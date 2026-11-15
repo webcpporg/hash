@@ -62,8 +62,8 @@ same, Argon2id (<<hash-argon2id>>), with heavier costs, since it runs once per
 session: `argon2id_moderate` or `argon2id_sensitive`, measured on the slowest
 device the app supports. The salt is random per vault and stored with it, in
 clear; the derived key is never stored. Bitwarden, for example, offers
-Argon2id for exactly this (its documentation is cited in the comparison table
-of <<hash-password-hashing>>).
+Argon2id for exactly this (its documentation is cited in the table of how to
+choose among the functions of <<hash-password-hashing>>).
 
 [#hash-privacy-subkeys]
 === One key, many purposes

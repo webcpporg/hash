@@ -8,10 +8,10 @@
 
 
 [#hash-non-cryptographic-compare]
-.Everything in "Hashes that are not cryptographic", side by side
-[cols="2,1,2,2,1,1,2,2,4,3",options="header"]
+.What each of "Hashes that are not cryptographic" is
+[cols="2,1,3,2,1,2",options="header"]
 |===
-| Name | Output | Security | Standard | Status | In the browser (WebCrypto) | Fastest natively | Smallest on Emscripten | Where it is used | Choose it when
+| Name | Output | Security | Standard | Status | In the browser (WebCrypto)
 
 | <<hash-non-cryptographic-functions,`fnv1a_32`>>
 | 32 bits
@@ -19,10 +19,6 @@
 | FNV-1a
 | not cryptographic
 | no
-| 924 MiB/s (hash2)
-| 10,651 bytes (hash2)
-| link:https://datatracker.ietf.org/doc/draft-eastlake-fnv/[the IETF draft that specifies it]
-| Small tables and identifiers no adversary chooses.
 
 | <<hash-non-cryptographic-functions,`fnv1a_64`>>
 | 64 bits
@@ -30,10 +26,6 @@
 | FNV-1a
 | not cryptographic
 | no
-| 924 MiB/s (hash2)
-| 10,661 bytes (hash2)
-| link:https://datatracker.ietf.org/doc/draft-eastlake-fnv/[the IETF draft that specifies it]
-| Tables and identifiers no adversary chooses.
 
 | <<hash-non-cryptographic-functions,`xxhash_32`>>
 | 32 bits
@@ -41,10 +33,6 @@
 | xxHash32
 | not cryptographic
 | no
-| 10,292 MiB/s (hash2)
-| 11,479 bytes (hash2)
-| link:https://github.com/Cyan4973/xxHash[xxHash's own repository]
-| Fast checksums against accidents on 32-bit targets.
 
 | <<hash-non-cryptographic-functions,`xxhash_64`>>
 | 64 bits
@@ -52,10 +40,6 @@
 | XXH64
 | not cryptographic
 | no
-| 20,443 MiB/s (hash2)
-| 11,891 bytes (hash2)
-| link:https://www.rfc-editor.org/rfc/rfc8878#section-3.1.1[Zstandard's frame checksum]
-| Fast checksums against accidents, as Zstandard's.
 
 | <<hash-non-cryptographic-functions,`xxh3_128`>>
 | 128 bits
@@ -63,10 +47,6 @@
 | XXH3
 | not cryptographic
 | no
-| 16,075 MiB/s (hash2)
-| 15,996 bytes (hash2)
-| link:https://github.com/Cyan4973/xxHash[xxHash's own repository]
-| Checksums and identifiers of large data no adversary chooses.
 
 | <<hash-non-cryptographic-functions,`murmur3_32`>>
 | 32 bits
@@ -74,10 +54,6 @@
 | MurmurHash3
 | not cryptographic
 | no
-| 2,924 MiB/s (hash2)
-| 11,187 bytes (hash2)
-| link:https://github.com/aappleby/smhasher[its author's SMHasher]
-| To match existing data that uses it.
 
 | <<hash-non-cryptographic-functions,`murmur3_128`>>
 | 128 bits
@@ -85,10 +61,6 @@
 | MurmurHash3
 | not cryptographic
 | no
-| 7,203 MiB/s (hash2)
-| 11,422 bytes (hash2)
-| link:https://github.com/aappleby/smhasher[its author's SMHasher]
-| To match existing data that uses it.
 
 | <<hash-non-cryptographic-functions,`spooky2_128`>>
 | 128 bits
@@ -96,6 +68,57 @@
 | SpookyHash V2
 | not cryptographic
 | no
+|===
+
+[#hash-non-cryptographic-choose]
+.How to choose among "Hashes that are not cryptographic"
+[cols="2,2,2,4,4",options="header"]
+|===
+| Name | Fastest natively | Smallest on Emscripten | Where it is used | Choose it when
+
+| <<hash-non-cryptographic-functions,`fnv1a_32`>>
+| 924 MiB/s (hash2)
+| 10,651 bytes (hash2)
+| link:https://datatracker.ietf.org/doc/draft-eastlake-fnv/[the IETF draft that specifies it]
+| Small tables and identifiers no adversary chooses.
+
+| <<hash-non-cryptographic-functions,`fnv1a_64`>>
+| 924 MiB/s (hash2)
+| 10,661 bytes (hash2)
+| link:https://datatracker.ietf.org/doc/draft-eastlake-fnv/[the IETF draft that specifies it]
+| Tables and identifiers no adversary chooses.
+
+| <<hash-non-cryptographic-functions,`xxhash_32`>>
+| 10,292 MiB/s (hash2)
+| 11,479 bytes (hash2)
+| link:https://github.com/Cyan4973/xxHash[xxHash's own repository]
+| Fast checksums against accidents on 32-bit targets.
+
+| <<hash-non-cryptographic-functions,`xxhash_64`>>
+| 20,443 MiB/s (hash2)
+| 11,891 bytes (hash2)
+| link:https://www.rfc-editor.org/rfc/rfc8878#section-3.1.1[Zstandard's frame checksum]
+| Fast checksums against accidents, as Zstandard's.
+
+| <<hash-non-cryptographic-functions,`xxh3_128`>>
+| 16,075 MiB/s (hash2)
+| 15,996 bytes (hash2)
+| link:https://github.com/Cyan4973/xxHash[xxHash's own repository]
+| Checksums and identifiers of large data no adversary chooses.
+
+| <<hash-non-cryptographic-functions,`murmur3_32`>>
+| 2,924 MiB/s (hash2)
+| 11,187 bytes (hash2)
+| link:https://github.com/aappleby/smhasher[its author's SMHasher]
+| To match existing data that uses it.
+
+| <<hash-non-cryptographic-functions,`murmur3_128`>>
+| 7,203 MiB/s (hash2)
+| 11,422 bytes (hash2)
+| link:https://github.com/aappleby/smhasher[its author's SMHasher]
+| To match existing data that uses it.
+
+| <<hash-non-cryptographic-functions,`spooky2_128`>>
 | 16,349 MiB/s (hash2)
 | 13,571 bytes (hash2)
 | link:https://burtleburtle.net/bob/hash/spooky.html[its author's page]

@@ -8,10 +8,10 @@
 
 
 [#hash-kdfs-compare]
-.Everything in "Key derivation", side by side
-[cols="2,1,2,2,1,1,2,2,4,3",options="header"]
+.What each of "Key derivation" is
+[cols="2,1,3,2,1,2",options="header"]
 |===
-| Name | Output | Security | Standard | Status | In the browser (WebCrypto) | Fastest natively | Smallest on Emscripten | Where it is used | Choose it when
+| Name | Output | Security | Standard | Status | In the browser (WebCrypto)
 
 | <<hash-hkdf,`hkdf_extract`>>
 | the hmac's digest size
@@ -19,10 +19,6 @@
 | RFC 5869
 | recommended
 | HKDF (whole only)
-| 732 ns (hash2)
-| 117,928 bytes (hash2)
-| link:https://github.com/nostr-protocol/nips/blob/master/44.md[NIP-44's conversation key]; link:https://www.rfc-editor.org/rfc/rfc8446#section-7.1[TLS 1.3's key schedule]
-| When a protocol names the extract step alone.
 
 | <<hash-hkdf,`hkdf_expand`>>
 | 1 to 255 times the digest size
@@ -30,10 +26,6 @@
 | RFC 5869
 | recommended
 | HKDF (whole only)
-| 774 ns (sodium)
-| 119,801 bytes (sodium)
-| link:https://www.rfc-editor.org/rfc/rfc8446#section-7.1[TLS 1.3's key schedule]; link:https://signal.org/docs/specifications/doubleratchet/[Signal's Double Ratchet]
-| Keys from a key that is already uniform (a master key), one per info label.
 
 | <<hash-hkdf,`hkdf`>>
 | 1 to 255 times the digest size
@@ -41,10 +33,6 @@
 | RFC 5869
 | recommended
 | HKDF
-| 1.54 µs (sodium)
-| 116,952 bytes (bearssl)
-| link:https://www.rfc-editor.org/rfc/rfc8446#section-7.1[TLS 1.3]; link:https://signal.org/docs/specifications/doubleratchet/[Signal's protocols]; link:https://www.wireguard.com/protocol/[WireGuard (over HMAC-BLAKE2s)]
-| The default way to turn one secret into several keys. Never for passwords.
 
 | <<hash-pbkdf2,`pbkdf2`>>
 | 1 to (2^32 - 1) times the digest size
@@ -52,6 +40,33 @@
 | RFC 8018
 | where a standard names it
 | PBKDF2
+|===
+
+[#hash-kdfs-choose]
+.How to choose among "Key derivation"
+[cols="2,2,2,4,4",options="header"]
+|===
+| Name | Fastest natively | Smallest on Emscripten | Where it is used | Choose it when
+
+| <<hash-hkdf,`hkdf_extract`>>
+| 732 ns (hash2)
+| 117,928 bytes (hash2)
+| link:https://github.com/nostr-protocol/nips/blob/master/44.md[NIP-44's conversation key]; link:https://www.rfc-editor.org/rfc/rfc8446#section-7.1[TLS 1.3's key schedule]
+| When a protocol names the extract step alone.
+
+| <<hash-hkdf,`hkdf_expand`>>
+| 774 ns (sodium)
+| 119,801 bytes (sodium)
+| link:https://www.rfc-editor.org/rfc/rfc8446#section-7.1[TLS 1.3's key schedule]; link:https://signal.org/docs/specifications/doubleratchet/[Signal's Double Ratchet]
+| Keys from a key that is already uniform (a master key), one per info label.
+
+| <<hash-hkdf,`hkdf`>>
+| 1.54 µs (sodium)
+| 116,952 bytes (bearssl)
+| link:https://www.rfc-editor.org/rfc/rfc8446#section-7.1[TLS 1.3]; link:https://signal.org/docs/specifications/doubleratchet/[Signal's protocols]; link:https://www.wireguard.com/protocol/[WireGuard (over HMAC-BLAKE2s)]
+| The default way to turn one secret into several keys. Never for passwords.
+
+| <<hash-pbkdf2,`pbkdf2`>>
 | 9.2 ms (openssl)
 | 122,671 bytes (hash2)
 | link:https://github.com/bitcoin/bips/blob/master/bip-0039.mediawiki[BIP39's seeds (2,048 iterations of HMAC-SHA-512)]; link:https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html[OWASP: 600,000 iterations of HMAC-SHA-256 for passwords]

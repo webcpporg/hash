@@ -23,13 +23,14 @@ cryptography and wants the right function for an application, and a language
 model that reads it to choose a function for someone. Both can start at
 <<hash-choose>>, which goes from a need to a function, a backend and a
 program that shows it. The chapters after it teach one family of functions
-each, opening with a table that compares everything in the family; each
-section says what a function is for, shows a program of `example/` that the
-build compiles and runs on every target with the output it prints, and lists
-the mistakes that cost security. Three chapters then follow an application
-from end to end: a peer-to-peer network, a cryptocurrency wallet, and the
-privacy of a login and a password manager. The <<reference,reference>> that
-closes the page lists every name the headers declare, and
+each, opening with two tables that compare everything in the family, what
+each function is and how to choose it; each section says what a function is
+for, shows a program of `example/` that the build compiles and runs on every
+target with the output it prints, and lists the mistakes that cost security.
+Three chapters then follow an application from end to end: a peer-to-peer
+network, a cryptocurrency wallet, and the privacy of a login and a password
+manager. The <<reference,reference>> that closes the page lists every name
+the headers declare, and
 link:llms.txt[llms.txt], beside this page, is the same guide as an index for
 language models (<<hash-llms>>).
 

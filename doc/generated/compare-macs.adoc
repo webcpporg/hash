@@ -8,10 +8,10 @@
 
 
 [#hash-macs-compare]
-.Everything in "Message authentication", side by side
-[cols="2,1,2,2,1,1,2,2,4,3",options="header"]
+.What each of "Message authentication" is
+[cols="2,1,3,2,1,2",options="header"]
 |===
-| Name | Output | Security | Standard | Status | In the browser (WebCrypto) | Fastest natively | Smallest on Emscripten | Where it is used | Choose it when
+| Name | Output | Security | Standard | Status | In the browser (WebCrypto)
 
 | <<hash-siphash,`siphash_32`>>
 | 32 bits
@@ -19,10 +19,6 @@
 | HalfSipHash-2-4 (Aumasson)
 | recommended
 | no
-| 1,126 MiB/s (hash2)
-| 11,335 bytes (hash2)
-| link:https://docs.kernel.org/security/siphash.html[the Linux kernel's hsiphash]
-| Hash tables on 32-bit targets whose keys an adversary chooses.
 
 | <<hash-siphash,`siphash_64`>>
 | 64 bits
@@ -30,10 +26,6 @@
 | SipHash-2-4 (Aumasson, Bernstein)
 | recommended
 | no
-| 2,253 MiB/s (hash2)
-| 11,428 bytes (hash2)
-| link:https://peps.python.org/pep-0456/[Python's string hashing (PEP 456)]; link:https://doc.rust-lang.org/std/collections/struct.HashMap.html[Rust's default HashMap hasher]
-| Every hash table, set or Bloom filter whose keys come from the network or another user.
 
 | <<hash-hmac,`hmac`>>
 | the digest of H
@@ -41,10 +33,6 @@
 | RFC 2104
 | recommended
 | HMAC
-| 385 MiB/s (hash2)
-| 19,781 bytes (hash2)
-| link:https://www.rfc-editor.org/rfc/rfc2104[RFC 2104]
-| HMAC over a hash that has no alias of its own.
 
 | <<hash-hmac,`hmac_md5_128`>>
 | 128 bits
@@ -52,10 +40,6 @@
 | RFC 2104
 | legacy
 | no
-| 786 MiB/s (hash2)
-| 13,624 bytes (hash2)
-| link:https://www.rfc-editor.org/rfc/rfc6151#section-2.3[RFC 6151 on HMAC-MD5]
-| Only for an existing protocol.
 
 | <<hash-hmac,`hmac_sha1_160`>>
 | 160 bits
@@ -63,10 +47,6 @@
 | RFC 2104
 | legacy
 | HMAC with SHA-1
-| 857 MiB/s (hash2)
-| 15,876 bytes (hash2)
-| link:https://www.rfc-editor.org/rfc/rfc6238[TOTP and HOTP codes (RFC 6238, RFC 4226)]
-| Only for an existing protocol, such as authenticator-app codes.
 
 | <<hash-hmac,`hmac_sha2_224`>>
 | 224 bits
@@ -74,10 +54,6 @@
 | RFC 2104
 | recommended
 | no
-| 384 MiB/s (hash2)
-| 19,787 bytes (hash2)
-| link:https://www.rfc-editor.org/rfc/rfc4231[RFC 4231's test cases]
-| When a standard asks for it.
 
 | <<hash-hmac,`hmac_sha2_256`>>
 | 256 bits
@@ -85,10 +61,6 @@
 | RFC 2104
 | recommended
 | HMAC with SHA-256
-| 384 MiB/s (hash2)
-| 19,781 bytes (hash2)
-| link:https://www.rfc-editor.org/rfc/rfc7518#section-3.2[JSON Web Tokens signed HS256]; link:https://www.rfc-editor.org/rfc/rfc8446#section-7.1[TLS 1.3's HKDF]
-| The default MAC: interoperable, in every browser.
 
 | <<hash-hmac,`hmac_sha2_384`>>
 | 384 bits
@@ -96,10 +68,6 @@
 | RFC 2104
 | recommended
 | HMAC with SHA-384
-| 585 MiB/s (hash2)
-| 23,384 bytes (hash2)
-| link:https://www.rfc-editor.org/rfc/rfc7518#section-3.2[JSON Web Tokens signed HS384]
-| When a standard asks for it.
 
 | <<hash-hmac,`hmac_sha2_512`>>
 | 512 bits
@@ -107,10 +75,6 @@
 | RFC 2104
 | recommended
 | HMAC with SHA-512
-| 585 MiB/s (hash2)
-| 23,393 bytes (hash2)
-| link:https://github.com/bitcoin/bips/blob/master/bip-0032.mediawiki[BIP32's key derivation]; link:https://www.rfc-editor.org/rfc/rfc7518#section-3.2[JSON Web Tokens signed HS512]
-| When a standard asks for it, or for a 512-bit tag.
 
 | <<hash-hmac,`hmac_sha2_512_224`>>
 | 224 bits
@@ -118,10 +82,6 @@
 | RFC 2104
 | recommended
 | no
-| 585 MiB/s (hash2)
-| 23,450 bytes (hash2)
-| link:https://doi.org/10.6028/NIST.FIPS.180-4[FIPS 180-4's truncated SHA-512]
-| When a standard asks for it.
 
 | <<hash-hmac,`hmac_sha2_512_256`>>
 | 256 bits
@@ -129,10 +89,6 @@
 | RFC 2104
 | recommended
 | no
-| 587 MiB/s (hash2)
-| 23,400 bytes (hash2)
-| link:https://doi.org/10.6028/NIST.FIPS.180-4[FIPS 180-4's truncated SHA-512; not libsodium's crypto_auth, which truncates HMAC-SHA-512's tag]
-| When a standard asks for it.
 
 | <<hash-hmac,`hmac_sha3_224`>>
 | 224 bits
@@ -140,10 +96,6 @@
 | RFC 2104
 | recommended
 | no
-| 464 MiB/s (hash2)
-| 12,686 bytes (hash2)
-| link:https://doi.org/10.6028/NIST.FIPS.202[FIPS 202]
-| When a standard asks for it.
 
 | <<hash-hmac,`hmac_sha3_256`>>
 | 256 bits
@@ -151,10 +103,6 @@
 | RFC 2104
 | recommended
 | no
-| 440 MiB/s (hash2)
-| 12,674 bytes (hash2)
-| link:https://doi.org/10.6028/NIST.FIPS.202[FIPS 202]
-| When a standard asks for it.
 
 | <<hash-hmac,`hmac_sha3_384`>>
 | 384 bits
@@ -162,10 +110,6 @@
 | RFC 2104
 | recommended
 | no
-| 337 MiB/s (hash2)
-| 12,641 bytes (hash2)
-| link:https://doi.org/10.6028/NIST.FIPS.202[FIPS 202]
-| When a standard asks for it.
 
 | <<hash-hmac,`hmac_sha3_512`>>
 | 512 bits
@@ -173,10 +117,6 @@
 | RFC 2104
 | recommended
 | no
-| 244 MiB/s (hash2)
-| 12,650 bytes (hash2)
-| link:https://doi.org/10.6028/NIST.FIPS.202[FIPS 202]
-| When a standard asks for it.
 
 | <<hash-hmac,`hmac_ripemd_128`>>
 | 128 bits
@@ -184,10 +124,6 @@
 | RFC 2104
 | legacy
 | no
-| 685 MiB/s (hash2)
-| 15,006 bytes (hash2)
-| link:https://www.rfc-editor.org/rfc/rfc2286[RFC 2286's test cases]
-| Only for an existing protocol.
 
 | <<hash-hmac,`hmac_ripemd_160`>>
 | 160 bits
@@ -195,10 +131,6 @@
 | RFC 2104
 | legacy
 | no
-| 442 MiB/s (hash2)
-| 17,199 bytes (hash2)
-| link:https://www.rfc-editor.org/rfc/rfc2286[RFC 2286's test cases]
-| Only for an existing protocol.
 
 | <<hash-hmac,`hmac_blake2b_512`>>
 | 512 bits
@@ -206,10 +138,6 @@
 | RFC 2104
 | recommended
 | no
-| 1,013 MiB/s (hash2)
-| 17,568 bytes (hash2)
-| link:https://www.rfc-editor.org/rfc/rfc7693#section-2.5[RFC 7693, whose keyed mode makes HMAC unnecessary]
-| When a protocol names HMAC-BLAKE2b; otherwise a keyed blake2b_512.
 
 | <<hash-hmac,`hmac_blake2s_256`>>
 | 256 bits
@@ -217,6 +145,123 @@
 | RFC 2104
 | recommended
 | no
+|===
+
+[#hash-macs-choose]
+.How to choose among "Message authentication"
+[cols="2,2,2,4,4",options="header"]
+|===
+| Name | Fastest natively | Smallest on Emscripten | Where it is used | Choose it when
+
+| <<hash-siphash,`siphash_32`>>
+| 1,126 MiB/s (hash2)
+| 11,335 bytes (hash2)
+| link:https://docs.kernel.org/security/siphash.html[the Linux kernel's hsiphash]
+| Hash tables on 32-bit targets whose keys an adversary chooses.
+
+| <<hash-siphash,`siphash_64`>>
+| 2,253 MiB/s (hash2)
+| 11,428 bytes (hash2)
+| link:https://peps.python.org/pep-0456/[Python's string hashing (PEP 456)]; link:https://doc.rust-lang.org/std/collections/struct.HashMap.html[Rust's default HashMap hasher]
+| Every hash table, set or Bloom filter whose keys come from the network or another user.
+
+| <<hash-hmac,`hmac`>>
+| 385 MiB/s (hash2)
+| 19,781 bytes (hash2)
+| link:https://www.rfc-editor.org/rfc/rfc2104[RFC 2104]
+| HMAC over a hash that has no alias of its own.
+
+| <<hash-hmac,`hmac_md5_128`>>
+| 786 MiB/s (hash2)
+| 13,624 bytes (hash2)
+| link:https://www.rfc-editor.org/rfc/rfc6151#section-2.3[RFC 6151 on HMAC-MD5]
+| Only for an existing protocol.
+
+| <<hash-hmac,`hmac_sha1_160`>>
+| 857 MiB/s (hash2)
+| 15,876 bytes (hash2)
+| link:https://www.rfc-editor.org/rfc/rfc6238[TOTP and HOTP codes (RFC 6238, RFC 4226)]
+| Only for an existing protocol, such as authenticator-app codes.
+
+| <<hash-hmac,`hmac_sha2_224`>>
+| 384 MiB/s (hash2)
+| 19,787 bytes (hash2)
+| link:https://www.rfc-editor.org/rfc/rfc4231[RFC 4231's test cases]
+| When a standard asks for it.
+
+| <<hash-hmac,`hmac_sha2_256`>>
+| 384 MiB/s (hash2)
+| 19,781 bytes (hash2)
+| link:https://www.rfc-editor.org/rfc/rfc7518#section-3.2[JSON Web Tokens signed HS256]; link:https://www.rfc-editor.org/rfc/rfc8446#section-7.1[TLS 1.3's HKDF]
+| The default MAC: interoperable, in every browser.
+
+| <<hash-hmac,`hmac_sha2_384`>>
+| 585 MiB/s (hash2)
+| 23,384 bytes (hash2)
+| link:https://www.rfc-editor.org/rfc/rfc7518#section-3.2[JSON Web Tokens signed HS384]
+| When a standard asks for it.
+
+| <<hash-hmac,`hmac_sha2_512`>>
+| 585 MiB/s (hash2)
+| 23,393 bytes (hash2)
+| link:https://github.com/bitcoin/bips/blob/master/bip-0032.mediawiki[BIP32's key derivation]; link:https://www.rfc-editor.org/rfc/rfc7518#section-3.2[JSON Web Tokens signed HS512]
+| When a standard asks for it, or for a 512-bit tag.
+
+| <<hash-hmac,`hmac_sha2_512_224`>>
+| 585 MiB/s (hash2)
+| 23,450 bytes (hash2)
+| link:https://doi.org/10.6028/NIST.FIPS.180-4[FIPS 180-4's truncated SHA-512]
+| When a standard asks for it.
+
+| <<hash-hmac,`hmac_sha2_512_256`>>
+| 587 MiB/s (hash2)
+| 23,400 bytes (hash2)
+| link:https://doi.org/10.6028/NIST.FIPS.180-4[FIPS 180-4's truncated SHA-512; not libsodium's crypto_auth, which truncates HMAC-SHA-512's tag]
+| When a standard asks for it.
+
+| <<hash-hmac,`hmac_sha3_224`>>
+| 464 MiB/s (hash2)
+| 12,686 bytes (hash2)
+| link:https://doi.org/10.6028/NIST.FIPS.202[FIPS 202]
+| When a standard asks for it.
+
+| <<hash-hmac,`hmac_sha3_256`>>
+| 440 MiB/s (hash2)
+| 12,674 bytes (hash2)
+| link:https://doi.org/10.6028/NIST.FIPS.202[FIPS 202]
+| When a standard asks for it.
+
+| <<hash-hmac,`hmac_sha3_384`>>
+| 337 MiB/s (hash2)
+| 12,641 bytes (hash2)
+| link:https://doi.org/10.6028/NIST.FIPS.202[FIPS 202]
+| When a standard asks for it.
+
+| <<hash-hmac,`hmac_sha3_512`>>
+| 244 MiB/s (hash2)
+| 12,650 bytes (hash2)
+| link:https://doi.org/10.6028/NIST.FIPS.202[FIPS 202]
+| When a standard asks for it.
+
+| <<hash-hmac,`hmac_ripemd_128`>>
+| 685 MiB/s (hash2)
+| 15,006 bytes (hash2)
+| link:https://www.rfc-editor.org/rfc/rfc2286[RFC 2286's test cases]
+| Only for an existing protocol.
+
+| <<hash-hmac,`hmac_ripemd_160`>>
+| 442 MiB/s (hash2)
+| 17,199 bytes (hash2)
+| link:https://www.rfc-editor.org/rfc/rfc2286[RFC 2286's test cases]
+| Only for an existing protocol.
+
+| <<hash-hmac,`hmac_blake2b_512`>>
+| 1,013 MiB/s (hash2)
+| 17,568 bytes (hash2)
+| link:https://www.rfc-editor.org/rfc/rfc7693#section-2.5[RFC 7693, whose keyed mode makes HMAC unnecessary]
+| When a protocol names HMAC-BLAKE2b; otherwise a keyed blake2b_512.
+
+| <<hash-hmac,`hmac_blake2s_256`>>
 | 597 MiB/s (hash2)
 | 16,625 bytes (hash2)
 | link:https://www.wireguard.com/protocol/[WireGuard's HKDF]
