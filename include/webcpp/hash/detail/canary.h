@@ -19,8 +19,12 @@
 /* The commit each library is pinned at, its first seven hex digits, which the CI compares
  * with `git -C third_party/libs/<name> rev-parse --short=7 HEAD`. A test of the canary
  * gives another through WEBCPP_HASH_<NAME>_CANARY_COMMIT. A library's pin,
- * WEBCPP_HASH_<NAME>_COMMIT behind that seam, is added with the library's target: none is
- * pinned yet. */
+ * WEBCPP_HASH_<NAME>_COMMIT behind that seam, is added with the library's target. */
+#ifdef WEBCPP_HASH_XKCP_CANARY_COMMIT
+#define WEBCPP_HASH_XKCP_COMMIT WEBCPP_HASH_XKCP_CANARY_COMMIT
+#else
+#define WEBCPP_HASH_XKCP_COMMIT d20c8fc
+#endif
 
 #define WEBCPP_HASH_DETAIL_CANARY_I(name, commit, configuration) \
     webcpp_hash_##name##_##commit##_##configuration##__add_third_party_##name##_to_your_link

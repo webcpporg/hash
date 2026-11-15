@@ -24,6 +24,7 @@ webcpp.headers-alone hash : ../include :
     hash.hpp
     hash/algorithms.hpp
     hash/config.hpp
+    hash/detail/xkcp.hpp
     hash/error.hpp
     hash/hmac.hpp ;
 
@@ -41,3 +42,6 @@ hash-run error : error_test.cpp ;
 
 # Boost.Hash2's algorithms and HMAC are webcpp::hash's names for them.
 hash-run algorithms : algorithms_test.cpp ;
+
+# The C libraries' own suites, in the own lane c-suites.
+build-project c_suites ;

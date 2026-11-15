@@ -1,0 +1,31 @@
+# Copyright (c) 2026 WebCpp.org
+#
+# Distributed under the Boost Software License, Version 1.0. (See
+# accompanying file LICENSE_1_0.txt or copy at
+# https://www.boost.org/LICENSE_1_0.txt)
+
+# The C libraries' own test programs, on webcpp's build of each, on every target
+# (CODING-GUIDELINES.md chapter 5, rule 11). One lane line lists every program;
+# each task that adds a suite adds its programs to it.
+import webcpp ;
+
+webcpp.targets native wasip2 wasip3 emscripten ;
+
+# XKCP's unit tests of Keccak-p[1600] (--SnP), against /third_party//xkcp and
+# webcpp's config.h, which enables that one component: main.c then calls only
+# testPermutations. XKCP_PrintImplementations, which main.c calls first, is
+# lib/low/common/SnP-implementations.c's, a file of XKCP's test framework that
+# is added to this program, never to /third_party//xkcp. A failed check exits 1
+# (UT.c's UT_assertSyn).
+path-constant XKCP : ../../../../third_party/libs/xkcp ;
+webcpp.run xkcp_unit_tests : $(XKCP)/tests/UnitTests/main.c
+    $(XKCP)/tests/UnitTests/UT.c $(XKCP)/tests/UnitTests/testPermutations.c
+    $(XKCP)/lib/low/common/SnP-implementations.c
+  : <testing.arg>--SnP <library>/third_party//xkcp <include>../../src/xkcp
+    <include>$(XKCP)/tests/UnitTests <include>$(XKCP)/lib/common
+    <include>$(XKCP)/lib/low/common <include>$(XKCP)/lib/low/KeccakP-1600/common
+    <include>$(XKCP)/lib/low/KeccakP-1600/plain-64bits
+    <include>$(XKCP)/lib/low/KeccakP-1600/plain-64bits/SnP
+    <warnings>off <warnings-as-errors>off ;
+
+webcpp.lane c-suites : xkcp_unit_tests : native wasip2 wasip3 emscripten ;
