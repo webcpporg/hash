@@ -32,6 +32,12 @@
 #define WEBCPP_HASH_SODIUM_COMMIT 77e1ce5
 #endif
 
+#ifdef WEBCPP_HASH_BLAKE3_CANARY_COMMIT
+#define WEBCPP_HASH_BLAKE3_COMMIT WEBCPP_HASH_BLAKE3_CANARY_COMMIT
+#else
+#define WEBCPP_HASH_BLAKE3_COMMIT f3149ec
+#endif
+
 #define WEBCPP_HASH_DETAIL_CANARY_I(name, commit, configuration) \
     webcpp_hash_##name##_##commit##_##configuration##__add_third_party_##name##_to_your_link
 #define WEBCPP_HASH_DETAIL_CANARY(name, commit, configuration) \
