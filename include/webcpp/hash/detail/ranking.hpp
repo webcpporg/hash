@@ -33,7 +33,10 @@ using portable_order = backend_list<backends::hash2, backends::sodium, backends:
 
 #ifdef WEBCPP_TARGET_WASIP2
 
-/** The orders of an algorithm's backends on this target, as on the native target. */
+/**
+ The orders of an algorithm's backends on this target (as the native target's `ranking`
+ documents them): provisionally backends::hash2 first by size and by throughput.
+*/
 template <class Algorithm, class Hmac>
 struct ranking {
     /** The smallest program first. */
@@ -46,7 +49,10 @@ struct ranking {
 
 #elif defined(WEBCPP_TARGET_WASIP3)
 
-/** The orders of an algorithm's backends on this target, as on the native target. */
+/**
+ The orders of an algorithm's backends on this target (as the native target's `ranking`
+ documents them): provisionally backends::hash2 first by size and by throughput.
+*/
 template <class Algorithm, class Hmac>
 struct ranking {
     /** The smallest program first. */
@@ -59,7 +65,10 @@ struct ranking {
 
 #elif defined(WEBCPP_TARGET_EMSCRIPTEN)
 
-/** The orders of an algorithm's backends on this target, as on the native target. */
+/**
+ The orders of an algorithm's backends on this target (as the native target's `ranking`
+ documents them): provisionally backends::hash2 first by size and by throughput.
+*/
 template <class Algorithm, class Hmac>
 struct ranking {
     /** The smallest program first. */

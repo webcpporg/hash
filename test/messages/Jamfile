@@ -8,5 +8,6 @@
 # case the requirements that raise the message, and nothing else.
 
 build-project kdf_not_digest ;
+build-project kdf_not_hmac ;
 build-project xkcp_not_linked ;
 build-project blake3_not_linked ;

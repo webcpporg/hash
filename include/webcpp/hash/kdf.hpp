@@ -104,6 +104,26 @@ constexpr bool takes_hmac() noexcept {
     return is_digest_hmac<Hmac>::value;
 }
 
+/**
+ The result of a type that has no `result_type`: `hkdf_extract`'s signature stays well-formed
+ for it, so that @ref takes_hmac's refusal is the error such a type gets.
+*/
+struct no_result {};
+
+/** `Hmac::result_type` when it exists, else @ref no_result. */
+template <class Hmac, class = void>
+struct hmac_result {
+    /** No result type. */
+    using type = no_result;
+};
+
+/** A type with a `result_type`. */
+template <class Hmac>
+struct hmac_result<Hmac, std::void_t<typename Hmac::result_type>> {
+    /** Its result type. */
+    using type = Hmac::result_type;
+};
+
 /** Whether the program links `Backend`: backends::hash2 always, another when its target says so. */
 template <class Backend>
 inline constexpr bool linked_v = false;

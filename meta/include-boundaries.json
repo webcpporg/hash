@@ -27,12 +27,8 @@
                 "include/webcpp/hash/kdf.hpp",
                 "include/webcpp/hash/pbkdf2.hpp"
             ],
-            "must-not-include": [
-                "xkcp", "blake3", "sodium", "bearssl", "openssl/",
-                "webcpp/hash/backends/sodium", "webcpp/hash/backends/bearssl",
-                "webcpp/hash/backends/openssl"
-            ],
-            "why": "the key derivations' layer and backends::hash2 need nothing but Boost: a program that names no other backend links no C library (spec sections 2.12 and 2.13)"
+            "must-not-include": ["xkcp", "blake3", "sodium", "bearssl", "openssl/"],
+            "why": "the key derivations' layer and backends::hash2 include no C library's header: a linked backend's webcpp header comes in under its WEBCPP_HASH_HAS_<NAME> (ruling R22; spec sections 2.12 and 2.13)"
         },
         {
             "headers": [

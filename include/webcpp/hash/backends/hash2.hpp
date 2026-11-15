@@ -9,8 +9,11 @@
  `hmac<H>`, on every target and over every Hash2 hmac whose result is a digest. It needs no C
  library.
 
- The code follows each RFC's steps, named in its comments, and wipes every intermediate (each
- copy of the keyed hmac, each block) before it returns (spec sections 1.3 and 6.1).
+ The code follows each RFC's steps, named in its comments, and wipes every intermediate it holds
+ (each copy of the keyed hmac, each block) before it returns (spec sections 1.3 and 6.1). What it
+ cannot reach is not wiped: Boost.Hash2's own temporaries (the padded key of `hmac`'s constructor,
+ the inner digest of its `result()`) and the temporary a digest returned by `result()` may pass
+ through before it is stored.
 */
 #ifndef WEBCPP_HASH_BACKENDS_HASH2_HPP
 #define WEBCPP_HASH_BACKENDS_HASH2_HPP
@@ -59,7 +62,7 @@ struct hkdf_engine<backends::hash2, Hmac> {
                                                       std::span<std::uint8_t const> ikm) noexcept {
         Hmac mac(salt.data(), salt.size());
         mac.update(ikm.data(), ikm.size());
-        // Built in the result returned, so that no copy of the PRK is left behind.
+        // The PRK is stored in the result returned, whose wiping is the caller's.
         boost::system::result<digest_type> prk(boost::system::in_place_value, mac.result());
         wipe_object(mac);
         return prk;

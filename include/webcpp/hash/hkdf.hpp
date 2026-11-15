@@ -50,11 +50,12 @@ inline constexpr std::size_t hkdf_max_info_size = 32768;
  @tparam Hmac The hmac, as `hmac_sha2_256`. @tparam Backend The backend.
  @param salt The salt, any length; empty means `Hmac`'s digest size of zeros.
  @param ikm The input keying material, any length.
- @return The pseudorandom key, of the hmac's digest size, or the backend's failure.
+ @return The pseudorandom key, an `Hmac::result_type` of the hmac's digest size, or the backend's
+ failure.
 */
 template <class Hmac, class Backend = default_kdf_backend<Hmac>>
-boost::system::result<typename Hmac::result_type> hkdf_extract(std::span<std::uint8_t const> salt,
-                                                               std::span<std::uint8_t const> ikm) {
+boost::system::result<typename detail::hmac_result<Hmac>::type> hkdf_extract(
+    std::span<std::uint8_t const> salt, std::span<std::uint8_t const> ikm) {
     if constexpr (!detail::takes_hmac<Hmac>()) {
         return error::backend_failure;  // unreachable: takes_hmac has stopped the build
     } else {

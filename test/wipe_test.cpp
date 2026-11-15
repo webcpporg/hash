@@ -8,7 +8,7 @@
 // bits on every target. Built with WEBCPP_HASH_DETAIL_TEST_WIPE_RECORD, every wipe is reported
 // to this test once its bytes are zero, so that the test checks the whole sequence of wipes HKDF's
 // and PBKDF2's engines on backends::hash2 do (spec section 6.1): each one's size, in order, its
-// bytes zero.
+// bytes zero, and the addresses of objects alive at once told apart.
 
 #include <webcpp/hash/backends/hash2.hpp>
 #include <webcpp/hash/detail/limits.hpp>
@@ -21,9 +21,13 @@
 
 #include <webcpp/test/exit_status.hpp>
 
+#include "require.hpp"
+
+#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <initializer_list>
 #include <span>
 #include <vector>
 
@@ -36,10 +40,15 @@ namespace hash = webcpp::hash;
 
 namespace {
 
-// The sizes of the wipes reported since the last clear, and how many of them found a byte that
-// was not zero.
+// One wipe: where, and how many bytes.
+struct wipe_entry {
+    void const* at = nullptr;
+    std::size_t size = 0;
+};
+
+// The wipes reported since the last clear, and how many of them found a byte that was not zero.
 struct record {
-    std::array<std::size_t, 512> sizes{};
+    std::array<wipe_entry, 512> entries{};
     std::size_t count = 0;
     std::size_t not_zero = 0;
 };
@@ -48,12 +57,35 @@ struct record {
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables): the seam's record
 record wipes;
 
-std::vector<std::size_t> taken() {
-    std::vector<std::size_t> sizes(wipes.sizes.begin(),
-                                   wipes.sizes.begin() + static_cast<std::ptrdiff_t>(wipes.count));
+// The wipes since the last call, which clears them; each found its bytes zero.
+std::vector<wipe_entry> taken_entries() {
+    std::vector<wipe_entry> entries(
+        wipes.entries.begin(), wipes.entries.begin() + static_cast<std::ptrdiff_t>(wipes.count));
     BOOST_TEST_EQ(wipes.not_zero, 0U);
     wipes = record{};
+    return entries;
+}
+
+std::vector<std::size_t> sizes_of(const std::vector<wipe_entry>& entries) {
+    std::vector<std::size_t> sizes;
+    sizes.reserve(entries.size());
+    for (const wipe_entry& entry : entries) {
+        sizes.push_back(entry.size);
+    }
     return sizes;
+}
+
+// The sizes of the wipes since the last call, which clears them.
+std::vector<std::size_t> taken() {
+    return sizes_of(taken_entries());
+}
+
+// Whether the wipe at `index` is at an address none of the wipes at `others` used: two objects
+// alive at once (the keyed hmac and a block's copy, T and the PRK, U and T) are told apart.
+bool apart(const std::vector<wipe_entry>& entries, std::size_t index,
+           std::initializer_list<std::size_t> others) {
+    return std::ranges::none_of(
+        others, [&](std::size_t other) { return entries[other].at == entries[index].at; });
 }
 
 }  // namespace
@@ -66,8 +98,8 @@ void webcpp::hash::detail::test::wipe_record(void const* data, std::size_t size)
             break;
         }
     }
-    if (wipes.count < wipes.sizes.size()) {
-        wipes.sizes[wipes.count] = size;
+    if (wipes.count < wipes.entries.size()) {
+        wipes.entries[wipes.count] = wipe_entry{.at = data, .size = size};
     }
     ++wipes.count;
 }
@@ -122,15 +154,26 @@ void test_hkdf() {
     static_cast<void>(taken());
 
     auto prk = hash::hkdf_extract<hmac, backend>(salt, ikm);
-    BOOST_TEST(prk.has_value());
+    webcpp::test::require(BOOST_TEST(prk.has_value()));
     BOOST_TEST((taken() == std::vector<std::size_t>{mac}));
 
+    // Each block's mac, T, the keyed hmac (apart from the blocks' macs).
     const std::vector<std::uint8_t> prk_bytes(prk->begin(), prk->end());
     BOOST_TEST((hash::hkdf_expand<hmac, backend>(output, prk_bytes, info).has_value()));
-    BOOST_TEST((taken() == std::vector<std::size_t>{mac, mac, digest, mac}));
+    auto entries = taken_entries();
+    BOOST_TEST((sizes_of(entries) == std::vector<std::size_t>{mac, mac, digest, mac}));
+    if (entries.size() == 4) {
+        BOOST_TEST(apart(entries, 3, {0, 1}));
+    }
 
+    // Extract's mac, each block's mac, T, the keyed hmac, the PRK (apart from T).
     BOOST_TEST((hash::hkdf<hmac, backend>(output, salt, ikm, info).has_value()));
-    BOOST_TEST((taken() == std::vector<std::size_t>{mac, mac, mac, digest, mac, digest}));
+    entries = taken_entries();
+    BOOST_TEST((sizes_of(entries) == std::vector<std::size_t>{mac, mac, mac, digest, mac, digest}));
+    if (entries.size() == 6) {
+        BOOST_TEST(apart(entries, 4, {1, 2}));
+        BOOST_TEST(apart(entries, 5, {3}));
+    }
 
     // The longest output, 255 blocks: one mac per block, then T and the keyed hmac.
     std::vector<std::uint8_t> longest(255 * digest);
@@ -138,7 +181,13 @@ void test_hkdf() {
     std::vector<std::size_t> expected(255, mac);
     expected.push_back(digest);
     expected.push_back(mac);
-    BOOST_TEST((taken() == expected));
+    entries = taken_entries();
+    BOOST_TEST((sizes_of(entries) == expected));
+    if (entries.size() == expected.size()) {
+        for (std::size_t block = 0; block < 255; ++block) {
+            BOOST_TEST(apart(entries, 256, {block}));
+        }
+    }
 
     // A guard's refusal wipes nothing: no work has started.
     BOOST_TEST((hash::hkdf_expand<hmac, backend>(output, salt, info).has_error()));
@@ -158,7 +207,12 @@ void test_pbkdf2() {
     static_cast<void>(taken());
 
     BOOST_TEST((hash::pbkdf2<hmac, backend>(output, password, salt, 3).has_value()));
-    BOOST_TEST((taken() == std::vector<std::size_t>{mac, mac, digest, digest, mac}));
+    const auto entries = taken_entries();
+    BOOST_TEST((sizes_of(entries) == std::vector<std::size_t>{mac, mac, digest, digest, mac}));
+    if (entries.size() == 5) {
+        BOOST_TEST(apart(entries, 4, {0, 1}));  // the keyed hmac, not a block's mac
+        BOOST_TEST(apart(entries, 3, {2}));     // T, not U
+    }
 
     // A guard's refusal wipes nothing.
     BOOST_TEST((hash::pbkdf2<hmac, backend>(output, password, salt, 0).has_error()));
