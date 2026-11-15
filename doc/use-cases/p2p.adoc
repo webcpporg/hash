@@ -33,10 +33,10 @@ before the piece is used.
 
 *The idea.* Name the content by its digest. The name is published by whoever
 created the content; anybody who receives the bytes hashes them and compares:
-a single changed bit gives another name. BLAKE3 suits it best: it is the
-fastest digest here on large data, and its tree lets a receiver verify a large
-file part by part. SHA-256 is the choice where a format names it, as Git and
-IPFS's default CIDs do.
+a single changed bit gives another name. BLAKE3 suits it best: its tree lets
+a receiver verify a large file part by part, and natively it is the fastest
+cryptographic digest measured here (<<hash-measurements>>). SHA-256 is the
+choice where a format names it, as Git and IPFS's default CIDs do.
 
 [source]
 ----

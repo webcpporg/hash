@@ -76,7 +76,7 @@ others.
 *The idea.* Key separation: derive one key per purpose from the master key,
 each bound to a label that names the purpose. HKDF-Expand (<<hash-hkdf>>) with
 an info string per purpose is the standard way; BLAKE3's `derive_key` with a
-context string (<<hash-blake3>>) is the fastest; a keyed BLAKE2b over a
+context string (<<hash-blake3>>) does it in one call; a keyed BLAKE2b over a
 subkey number and a context does the same with BLAKE2b (<<hash-blake2>>). Each
 derived key reveals nothing of the master key or of the other keys.
 

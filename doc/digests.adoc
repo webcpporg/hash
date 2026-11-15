@@ -162,9 +162,9 @@ include::{examples}/blake2b.expected[]
 
 * *The key goes to the constructor.* `blake2b_512(key, size)` is RFC 7693's
 key, up to 64 bytes (32 for BLAKE2s), mixed in as a block of its own; a key
-written into the message instead gives a different function, and a key past
-64 bytes is taken as the start of the message, so keep keys at 32 or 64
-bytes.
+written into the message instead gives a different function, and a longer
+key gives a function no other BLAKE2 implementation computes, so keep keys at
+most 64 bytes (32 for BLAKE2s).
 * *No salt, no personalisation, no variable length here.* RFC 7693's
 parameter block also carries a salt, a personalisation string (16 bytes for
 BLAKE2b, 8 for BLAKE2s) and the digest's length; Boost.Hash2's types fix them,
@@ -182,10 +182,11 @@ BLAKE3 (2020) is one function with four uses: a digest, a keyed hash (a MAC),
 a key derivation from a context string, and an extendable output. It splits
 the input into chunks of 1 KiB, hashes them independently and joins them in a
 binary tree, so it uses every SIMD lane of a processor and verifies a large
-file in parts; its rounds are fewer than BLAKE2's. It is the fastest
-cryptographic digest here on large data. hash runs the
-official C implementation, with its SIMD code natively and the portable code
-on WebAssembly; a program links `/third_party//blake3`.
+file in parts; its rounds are fewer than BLAKE2's. hash runs the official C
+implementation, with its SIMD code natively and the portable code on
+WebAssembly; a program links `/third_party//blake3`. In the measured data
+(<<hash-measurements>>), BLAKE3 is the fastest cryptographic digest natively
+on 1 MiB, and BLAKE2b is faster than BLAKE3 on wasip2, wasip3 and Emscripten.
 
 [source]
 ----
@@ -222,9 +223,11 @@ include::generated/backends-blake3.adoc[]
 === MD5, SHA-1 and RIPEMD: legacy
 
 MD5 (1992) and SHA-1 (1995) are broken: collisions of MD5 are found in
-seconds, and chosen-prefix collisions of SHA-1, two documents of the
-attacker's choosing with one digest, were computed in public in 2017 and
-2020. RIPEMD-160 (1996) is not broken, but its 160 bits give 80-bit collision
+seconds; the first public collision of SHA-1, an identical-prefix one,
+https://shattered.io/[SHAttered], came in 2017, and the first public
+chosen-prefix collision, two documents of the attacker's choosing with one
+digest, https://sha-mbles.github.io/[SHA-1 is a Shambles], in 2019 (published
+2020). RIPEMD-160 (1996) is not broken, but its 160 bits give 80-bit collision
 resistance, below what new designs accept, and RIPEMD-128 gives 64. hash keeps
 them because data and protocols use them: Git's original object ids, old
 checksums, and Bitcoin's hash160, RIPEMD-160 over SHA-256, in every legacy and

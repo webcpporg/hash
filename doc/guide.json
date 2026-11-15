@@ -70,7 +70,8 @@
             "anchor": "hash-legacy",
             "uses": [
                 {"text": "Git's original object ids, with collision detection", "source": "https://git-scm.com/docs/hash-function-transition"},
-                {"text": "the first public collision, SHAttered (2017)", "source": "https://shattered.io/"}
+                {"text": "the first public collision, SHAttered (2017)", "source": "https://shattered.io/"},
+                {"text": "the first public chosen-prefix collision, SHA-1 is a Shambles (2020)", "source": "https://sha-mbles.github.io/"}
             ],
             "choose": "Only to read or check data that already uses it."
         },
@@ -276,7 +277,7 @@
             "uses": [
                 {"text": "the BLAKE3 specification: a Merkle tree, for verified streaming and content addressing", "source": "https://github.com/BLAKE3-team/BLAKE3-specs/blob/master/blake3.pdf"}
             ],
-            "choose": "The fastest digest for large data, content addressing, and key derivation from a context string."
+            "choose": "Large data verified in parts, content addressing, and key derivation from a context string."
         },
         "ripemd_128": {
             "standard": "RIPEMD-128 (Dobbertin, Bosselaers, Preneel)",
@@ -591,7 +592,7 @@
         },
         "xxh3_128": {
             "standard": "XXH3",
-            "summary": "XXH3 with a 128-bit result: the fastest checksum here, not cryptographic.",
+            "summary": "XXH3 with a 128-bit result: a fast checksum, not cryptographic.",
             "output": "128 bits",
             "security": "none",
             "status": "not cryptographic",

@@ -22,8 +22,9 @@ include::generated/compare-non-cryptographic.adoc[]
 
 FNV-1a multiplies and XORs a byte at a time: tiny, slow on long inputs, good
 for short keys. xxHash32 and XXH64 (Collet) read 16 or 32 bytes per step;
-XXH64 is Zstandard's frame checksum. XXH3 is xxHash's newer design, the
-fastest here on large data. MurmurHash3 (Appleby) and SpookyHash V2 (Jenkins)
+XXH64 is Zstandard's frame checksum. XXH3 is xxHash's newer design; which
+of them is fastest on large data depends on the target
+(<<hash-measurements>>). MurmurHash3 (Appleby) and SpookyHash V2 (Jenkins)
 are older hashes kept to read data that already uses them.
 
 [source]
