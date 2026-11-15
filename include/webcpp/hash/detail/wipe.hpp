@@ -19,8 +19,8 @@
 namespace webcpp::hash::detail::test {
 
 /**
- The test seam of @ref webcpp::hash::detail::wipe: a program built with
- `WEBCPP_HASH_DETAIL_TEST_WIPE_RECORD` defines this function, which each wipe calls once its
+ The test seam through which @ref webcpp::hash::detail::wipe reports each wipe. A program built
+ with `WEBCPP_HASH_DETAIL_TEST_WIPE_RECORD` defines this function, which each wipe calls once its
  bytes are zero, with what it wiped. A program built without the macro neither declares nor
  calls it.
 

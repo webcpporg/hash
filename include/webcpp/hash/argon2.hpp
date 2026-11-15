@@ -55,11 +55,11 @@ struct argon2id_parameters {
 };
 
 /** libsodium's interactive costs: 2 passes over 64 MiB. */
-inline constexpr argon2id_parameters argon2id_interactive{2, 67108864};
+inline constexpr argon2id_parameters argon2id_interactive{.passes = 2, .memory = 67108864};
 /** libsodium's moderate costs: 3 passes over 256 MiB. */
-inline constexpr argon2id_parameters argon2id_moderate{3, 268435456};
+inline constexpr argon2id_parameters argon2id_moderate{.passes = 3, .memory = 268435456};
 /** libsodium's sensitive costs: 4 passes over 1 GiB. */
-inline constexpr argon2id_parameters argon2id_sensitive{4, 1073741824};
+inline constexpr argon2id_parameters argon2id_sensitive{.passes = 4, .memory = 1073741824};
 
 /** The salt's size, 16 bytes. */
 inline constexpr std::size_t argon2id_salt_size = 16;

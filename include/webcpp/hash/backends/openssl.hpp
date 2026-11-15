@@ -300,8 +300,10 @@ inline boost::system::result<void> openssl_kdf(char const* kdf, std::span<std::u
     const bool derived = context != nullptr &&
                          EVP_KDF_derive(context, output.data(), output.size(), params.data()) == 1;
     // Only an error raised since the mark is OpenSSL's answer: an older one is the caller's.
+    // NOLINTNEXTLINE(bugprone-signed-bitwise): OpenSSL's macro ORs signed constants
+    constexpr int malloc_failure = ERR_R_MALLOC_FAILURE;
     const bool out_of_memory = !derived && ERR_count_to_mark() > 0 &&
-                               ERR_GET_REASON(ERR_peek_last_error()) == ERR_R_MALLOC_FAILURE;
+                               ERR_GET_REASON(ERR_peek_last_error()) == malloc_failure;
     EVP_KDF_CTX_free(context);
     EVP_KDF_free(algorithm);
     ERR_pop_to_mark();
