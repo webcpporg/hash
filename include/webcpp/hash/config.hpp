@@ -107,7 +107,7 @@
 #define WEBCPP_PROFILE_PORTABLE
 #undef WEBCPP_PROFILE_PORTABLE
 // ... and the overrides WEBCPP_HASH_DEFAULT_BACKEND_<ALGORITHM>_<NAME>, one per algorithm of
-// doc/capabilities.json and backend, in detail/overrides.hpp (spec 4.1).
+// doc/capabilities.json and backend, in detail/overrides.hpp, which kdf.hpp includes (spec 4.1).
 #endif
 
 #if !defined(WEBCPP_HAS_EXCEPTIONS) && !defined(WEBCPP_HASH_NO_EXCEPTIONS)
@@ -130,7 +130,7 @@
 #endif
 // The profile's refusals (spec 4.1): two library profiles, or two umbrella profiles, name both
 // defines. A library profile beside an umbrella profile is not an error: the library's wins. The
-// overrides' refusals are in detail/overrides.hpp.
+// overrides' refusals are in detail/overrides.hpp, which kdf.hpp includes.
 #if defined(WEBCPP_HASH_PROFILE_FASTEST) && defined(WEBCPP_HASH_PROFILE_SMALLEST)
 #error "webcpp::hash: WEBCPP_HASH_PROFILE_FASTEST and WEBCPP_HASH_PROFILE_SMALLEST are both defined. Keep one."
 #endif
@@ -220,21 +220,42 @@ struct openssl;
 
 namespace webcpp::hash::kdfs {
 
-/** HKDF, RFC 5869: `hkdf_extract`, `hkdf_expand` and `hkdf`. */
+/**
+ HKDF, RFC 5869. A tag, declared and never defined: it names the algorithm to
+ @ref webcpp::hash::backend_has_v, @ref webcpp::hash::default_backend and the overrides
+ `WEBCPP_HASH_DEFAULT_BACKEND_HKDF_<NAME>`, which apply to `hkdf_extract`, `hkdf_expand` and
+ `hkdf`; as an operation it is `hkdf`, both steps at once.
+*/
 struct hkdf;
 /**
- HKDF-Extract alone, `hkdf_extract`: the tag by which @ref webcpp::hash::backend_has_v and
- @ref webcpp::hash::default_backend answer for the step, which a backend that has HKDF only whole
- (`backends::bearssl`) lacks.
+ HKDF-Extract alone, the operation `hkdf_extract` (RFC 5869, section 2.2). A tag, declared and
+ never defined: @ref webcpp::hash::backend_has_v and @ref webcpp::hash::default_backend answer
+ for the step through it, so that a backend that has HKDF only whole (`backends::bearssl`) is
+ never its default. It follows HKDF's ranking and HKDF's override.
 */
 struct hkdf_extract;
-/** HKDF-Expand alone, `hkdf_expand`: as @ref hkdf_extract, for the second step. */
+/**
+ HKDF-Expand alone, the operation `hkdf_expand` (RFC 5869, section 2.3). A tag, declared and
+ never defined, as @ref hkdf_extract is for the first step.
+*/
 struct hkdf_expand;
-/** PBKDF2, RFC 8018: `pbkdf2`. */
+/**
+ PBKDF2, RFC 8018, the operation `pbkdf2`. A tag, declared and never defined, for
+ @ref webcpp::hash::backend_has_v, @ref webcpp::hash::default_backend and the overrides
+ `WEBCPP_HASH_DEFAULT_BACKEND_PBKDF2_<NAME>`.
+*/
 struct pbkdf2;
-/** Argon2id, RFC 9106, with one lane: `argon2id`, on `backends::sodium`. */
+/**
+ Argon2id, RFC 9106, with one lane, the operation `argon2id` (on `backends::sodium` alone). A
+ tag, declared and never defined, for @ref webcpp::hash::backend_has_v (over no hmac: `void`),
+ @ref webcpp::hash::default_backend and the overrides `WEBCPP_HASH_DEFAULT_BACKEND_ARGON2ID_<NAME>`.
+*/
 struct argon2id;
-/** scrypt, RFC 7914: `scrypt`, on `backends::sodium`. */
+/**
+ scrypt, RFC 7914, the operation `scrypt` (on `backends::sodium` alone). A tag, declared and never
+ defined, for @ref webcpp::hash::backend_has_v (over no hmac: `void`),
+ @ref webcpp::hash::default_backend and the overrides `WEBCPP_HASH_DEFAULT_BACKEND_SCRYPT_<NAME>`.
+*/
 struct scrypt;
 
 }  // namespace webcpp::hash::kdfs
@@ -314,7 +335,5 @@ using profile = profiles::automatic;
 #endif
 
 }  // namespace webcpp::hash::detail
-
-#include <webcpp/hash/detail/overrides.hpp>
 
 #endif  // WEBCPP_HASH_CONFIG_HPP

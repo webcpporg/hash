@@ -10,7 +10,7 @@
 // clang-format off
 // expected-error@webcpp/hash/detail/overrides.hpp:* {{webcpp::hash: WEBCPP_HASH_DEFAULT_BACKEND_HKDF_HASH2 and WEBCPP_HASH_DEFAULT_BACKEND_HKDF_SODIUM are both defined. Keep one.}}
 // clang-format on
-#include <webcpp/hash/config.hpp>
+#include <webcpp/hash/kdf.hpp>
 
 int main() {
     return 0;

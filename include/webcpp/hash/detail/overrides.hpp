@@ -4,8 +4,8 @@
 // accompanying file LICENSE_1_0.txt or copy at
 // https://www.boost.org/LICENSE_1_0.txt)
 
-// The per-algorithm overrides of the default backend (spec section 4.1), one block per algorithm
-// of doc/capabilities.json and one define per backend of it:
+// The per-algorithm overrides of the default backend (spec section 4.1), one block per overridable
+// algorithm of doc/capabilities.json and one define per backend of it that has a tag:
 // WEBCPP_HASH_DEFAULT_BACKEND_<ALGORITHM>_<NAME> names the backend of every function of the
 // algorithm, whatever the profile. Two overrides of one algorithm, and OpenSSL's on Emscripten,
 // are an #error. An override names its backend even where the backend lacks the function over
@@ -13,7 +13,8 @@
 // program does not link it, hkdf.hpp and pbkdf2.hpp include its header, which stops with its
 // "needs" message (spec 5.7). Written by hand in increment 1, checked against
 // doc/capabilities.json by test/overrides_list_test.cpp; tools/hash/measure.py --overrides
-// regenerates it from Task 21 on.
+// regenerates it from Task 21 on. kdf.hpp includes it, the one reader of override_choice, so
+// the overrides' refusals come with every key derivation header.
 
 #ifndef WEBCPP_HASH_DETAIL_OVERRIDES_HPP
 #define WEBCPP_HASH_DETAIL_OVERRIDES_HPP
@@ -62,7 +63,6 @@ struct override_choice {
 // clang-format on
 #ifdef WEBCPP_HASH_DEFAULT_BACKEND_HKDF_HASH2
 #define WEBCPP_HASH_DETAIL_OVERRIDE_HKDF hash2
-#define WEBCPP_HASH_DETAIL_OVERRIDES_HASH2
 #elif defined(WEBCPP_HASH_DEFAULT_BACKEND_HKDF_SODIUM)
 #define WEBCPP_HASH_DETAIL_OVERRIDE_HKDF sodium
 #define WEBCPP_HASH_DETAIL_OVERRIDES_SODIUM
@@ -114,7 +114,6 @@ struct override_choice<kdfs::hkdf> {
 // clang-format on
 #ifdef WEBCPP_HASH_DEFAULT_BACKEND_PBKDF2_HASH2
 #define WEBCPP_HASH_DETAIL_OVERRIDE_PBKDF2 hash2
-#define WEBCPP_HASH_DETAIL_OVERRIDES_HASH2
 #elif defined(WEBCPP_HASH_DEFAULT_BACKEND_PBKDF2_SODIUM)
 #define WEBCPP_HASH_DETAIL_OVERRIDE_PBKDF2 sodium
 #define WEBCPP_HASH_DETAIL_OVERRIDES_SODIUM
@@ -166,7 +165,6 @@ struct override_choice<kdfs::pbkdf2> {
 // clang-format on
 #ifdef WEBCPP_HASH_DEFAULT_BACKEND_ARGON2ID_HASH2
 #define WEBCPP_HASH_DETAIL_OVERRIDE_ARGON2ID hash2
-#define WEBCPP_HASH_DETAIL_OVERRIDES_HASH2
 #elif defined(WEBCPP_HASH_DEFAULT_BACKEND_ARGON2ID_SODIUM)
 #define WEBCPP_HASH_DETAIL_OVERRIDE_ARGON2ID sodium
 #define WEBCPP_HASH_DETAIL_OVERRIDES_SODIUM
@@ -218,7 +216,6 @@ struct override_choice<kdfs::argon2id> {
 // clang-format on
 #ifdef WEBCPP_HASH_DEFAULT_BACKEND_SCRYPT_HASH2
 #define WEBCPP_HASH_DETAIL_OVERRIDE_SCRYPT hash2
-#define WEBCPP_HASH_DETAIL_OVERRIDES_HASH2
 #elif defined(WEBCPP_HASH_DEFAULT_BACKEND_SCRYPT_SODIUM)
 #define WEBCPP_HASH_DETAIL_OVERRIDE_SCRYPT sodium
 #define WEBCPP_HASH_DETAIL_OVERRIDES_SODIUM

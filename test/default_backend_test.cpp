@@ -8,7 +8,8 @@
 // library the target has and once with none: natively the throughput order's first linked
 // backend that has each operation over each hmac, on WebAssembly the size order's; the
 // invariants of Review Focus 4 and ruling R23; the selection over an order that puts BearSSL
-// first; and each default called, agreeing with backends::hash2 on RFC 5869's A.1.
+// first; the selection's fallbacks, with and without libsodium; and each default called, agreeing
+// with backends::hash2 on RFC 5869's A.1.
 
 #include <webcpp/hash/hkdf.hpp>
 #include <webcpp/hash/kdf.hpp>
@@ -58,11 +59,31 @@ void check_bearssl_first() {
     BOOST_TEST((std::is_same_v<derive, hash2>));
 }
 
+// first_serving's fallbacks (built once with libsodium linked and once without): when no linked
+// backend of the order serves, the first that serves, linked or not, whose engine then refuses
+// with the Jamfile's line; when none serves at all, backends::hash2. Argon2id and scrypt are
+// libsodium's either way.
+void check_fallbacks() {
+    using hash::backends::sodium;
+    using unlinked = hash::detail::first_serving<hash::kdfs::hkdf, hash::hmac_sha2_256,
+                                                 backend_list<sodium>>::type;
+    using none = hash::detail::first_serving<hash::kdfs::pbkdf2, hash::hmac_sha2_256,
+                                             backend_list<sodium, bearssl>>::type;
+#ifndef WEBCPP_HASH_HAS_SODIUM
+    BOOST_TEST(!hash::detail::linked_v<sodium>);
+#endif
+    BOOST_TEST((std::is_same_v<unlinked, sodium>));
+    BOOST_TEST((std::is_same_v<none, hash2>));
+    BOOST_TEST((std::is_same_v<hash::default_backend<hash::kdfs::argon2id>, sodium>));
+    BOOST_TEST((std::is_same_v<hash::default_backend<hash::kdfs::scrypt>, sodium>));
+}
+
 }  // namespace
 
 int main() {
     check_auto();
     check_bearssl_first();
+    check_fallbacks();
     test::check_calls();
     return webcpp::test::exit_status(boost::report_errors());
 }

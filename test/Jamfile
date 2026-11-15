@@ -276,7 +276,17 @@ path-constant HASH_TEST_INCLUDE : ../include ;
     <dependency>../include/webcpp/hash/backends/openssl.hpp
     <dependency>../include/webcpp/hash/backends/sodium.hpp
     <dependency>../include/webcpp/hash/detail/overrides.hpp ;
-hash-run capabilities : capabilities_test.cpp : $(.hash-tables) ;
+# capabilities links every library its target has, so that a backend's targets
+# in the table can be checked against what links here.
+hash-run capabilities : capabilities_test.cpp
+  : $(.hash-tables) <library>/third_party//xkcp <library>/third_party//blake3
+    <library>/third_party//sodium <library>/third_party//bearssl
+    <library>/webcpp/hash//openssl
+  : native wasip2 wasip3 ;
+hash-run capabilities_emscripten : capabilities_test.cpp
+  : $(.hash-tables) <library>/third_party//xkcp <library>/third_party//blake3
+    <library>/third_party//sodium <library>/third_party//bearssl
+  : emscripten ;
 hash-run overrides_list : overrides_list_test.cpp : $(.hash-tables) ;
 
 build-project messages ;

@@ -16,6 +16,7 @@
 #include <webcpp/hash/config.hpp>
 
 #include <webcpp/hash/detail/engines.hpp>
+#include <webcpp/hash/detail/overrides.hpp>
 #include <webcpp/hash/detail/ranking.hpp>
 #include <webcpp/hash/hmac.hpp>
 

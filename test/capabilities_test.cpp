@@ -10,7 +10,11 @@
 // the headers (spec 3.3) names exactly the backends of its row: those that have the function it
 // refuses, over the hmacs it is about, besides the refusing backend itself.
 
+#include <webcpp/hash/algorithms.hpp>
+#include <webcpp/hash/blake3.hpp>
+#include <webcpp/hash/hmac.hpp>
 #include <webcpp/hash/kdf.hpp>
+#include <webcpp/hash/keccak.hpp>
 #include <webcpp/test/exit_status.hpp>
 
 #include "require.hpp"
@@ -105,13 +109,202 @@ bool cell(json::object const& row, std::string_view backend, std::string_view hm
                                [hmac](json::value const& h) { return h.as_string() == hmac; });
 }
 
+// A type row of the table (spec 3.5: Hash2's algorithms, HMAC, Keccak-256, BLAKE3): its name in
+// webcpp::hash and the library behind it, read from the code where the code can tell.
+struct type_row {
+    std::string_view name;
+    std::string_view backend;
+};
+
+// "hash2" when webcpp::hash's name is Boost.Hash2's type itself.
+template <class Webcpp, class Boost>
+constexpr std::string_view hash2_if_alias() {
+    return std::is_same_v<Webcpp, Boost> ? "hash2" : "not Boost.Hash2's";
+}
+
+// The library of one of webcpp's own classes: its header refuses a program that does not link
+// that library (the messages xkcp_not_linked and blake3_not_linked), so naming the class here,
+// in a program that links it, is the check that the class exists.
+template <class Class>
+constexpr std::string_view own_class(std::string_view library) {
+    return std::is_class_v<Class> ? library : "not a class";
+}
+
+constexpr type_row row(std::string_view name, std::string_view backend) {
+    return {.name = name, .backend = backend};
+}
+
+std::vector<type_row> const& type_rows() {
+    namespace h2 = boost::hash2;
+    static std::vector<type_row> const rows{
+        row("md5_128", hash2_if_alias<hash::md5_128, h2::md5_128>()),
+        row("sha1_160", hash2_if_alias<hash::sha1_160, h2::sha1_160>()),
+        row("sha2_224", hash2_if_alias<hash::sha2_224, h2::sha2_224>()),
+        row("sha2_256", hash2_if_alias<hash::sha2_256, h2::sha2_256>()),
+        row("sha2_384", hash2_if_alias<hash::sha2_384, h2::sha2_384>()),
+        row("sha2_512", hash2_if_alias<hash::sha2_512, h2::sha2_512>()),
+        row("sha2_512_224", hash2_if_alias<hash::sha2_512_224, h2::sha2_512_224>()),
+        row("sha2_512_256", hash2_if_alias<hash::sha2_512_256, h2::sha2_512_256>()),
+        row("sha3_224", hash2_if_alias<hash::sha3_224, h2::sha3_224>()),
+        row("sha3_256", hash2_if_alias<hash::sha3_256, h2::sha3_256>()),
+        row("sha3_384", hash2_if_alias<hash::sha3_384, h2::sha3_384>()),
+        row("sha3_512", hash2_if_alias<hash::sha3_512, h2::sha3_512>()),
+        row("shake_128", hash2_if_alias<hash::shake_128, h2::shake_128>()),
+        row("shake_256", hash2_if_alias<hash::shake_256, h2::shake_256>()),
+        row("keccak_256", own_class<hash::keccak_256>("xkcp")),
+        row("blake2b_512", hash2_if_alias<hash::blake2b_512, h2::blake2b_512>()),
+        row("blake2s_256", hash2_if_alias<hash::blake2s_256, h2::blake2s_256>()),
+        row("blake3", own_class<hash::blake3>("blake3")),
+        row("ripemd_128", hash2_if_alias<hash::ripemd_128, h2::ripemd_128>()),
+        row("ripemd_160", hash2_if_alias<hash::ripemd_160, h2::ripemd_160>()),
+        row("siphash_32", hash2_if_alias<hash::siphash_32, h2::siphash_32>()),
+        row("siphash_64", hash2_if_alias<hash::siphash_64, h2::siphash_64>()),
+        row("hmac", hash2_if_alias<hash::hmac<h2::sha2_256>, h2::hmac<h2::sha2_256>>()),
+        row("hmac_md5_128", hash2_if_alias<hash::hmac_md5_128, h2::hmac_md5_128>()),
+        row("hmac_sha1_160", hash2_if_alias<hash::hmac_sha1_160, h2::hmac_sha1_160>()),
+        row("hmac_sha2_224", hash2_if_alias<hash::hmac_sha2_224, h2::hmac_sha2_224>()),
+        row("hmac_sha2_256", hash2_if_alias<hash::hmac_sha2_256, h2::hmac_sha2_256>()),
+        row("hmac_sha2_384", hash2_if_alias<hash::hmac_sha2_384, h2::hmac_sha2_384>()),
+        row("hmac_sha2_512", hash2_if_alias<hash::hmac_sha2_512, h2::hmac_sha2_512>()),
+        row("hmac_sha2_512_224", hash2_if_alias<hash::hmac_sha2_512_224, h2::hmac_sha2_512_224>()),
+        row("hmac_sha2_512_256", hash2_if_alias<hash::hmac_sha2_512_256, h2::hmac_sha2_512_256>()),
+        row("hmac_sha3_224", hash2_if_alias<hash::hmac_sha3_224, h2::hmac_sha3_224>()),
+        row("hmac_sha3_256", hash2_if_alias<hash::hmac_sha3_256, h2::hmac_sha3_256>()),
+        row("hmac_sha3_384", hash2_if_alias<hash::hmac_sha3_384, h2::hmac_sha3_384>()),
+        row("hmac_sha3_512", hash2_if_alias<hash::hmac_sha3_512, h2::hmac_sha3_512>()),
+        row("hmac_ripemd_128", hash2_if_alias<hash::hmac_ripemd_128, h2::hmac_ripemd_128>()),
+        row("hmac_ripemd_160", hash2_if_alias<hash::hmac_ripemd_160, h2::hmac_ripemd_160>()),
+        row("hmac_blake2b_512", hash2_if_alias<hash::hmac_blake2b_512, h2::hmac_blake2b_512>()),
+        row("hmac_blake2s_256", hash2_if_alias<hash::hmac_blake2s_256, h2::hmac_blake2s_256>()),
+        row("fnv1a_32", hash2_if_alias<hash::fnv1a_32, h2::fnv1a_32>()),
+        row("fnv1a_64", hash2_if_alias<hash::fnv1a_64, h2::fnv1a_64>()),
+        row("xxhash_32", hash2_if_alias<hash::xxhash_32, h2::xxhash_32>()),
+        row("xxhash_64", hash2_if_alias<hash::xxhash_64, h2::xxhash_64>()),
+        row("xxh3_128", hash2_if_alias<hash::xxh3_128, h2::xxh3_128>()),
+        row("murmur3_32", hash2_if_alias<hash::murmur3_32, h2::murmur3_32>()),
+        row("murmur3_128", hash2_if_alias<hash::murmur3_128, h2::murmur3_128>()),
+        row("spooky2_128", hash2_if_alias<hash::spooky2_128, h2::spooky2_128>()),
+    };
+    return rows;
+}
+
+// Each type row of the file: a type, over no hmac, whose one backend is the library the code
+// says.
+void check_type_rows(json::object const& table) {
+    for (auto const* function : functions_of(table)) {
+        if (function->at("kind").as_string() != "type") {
+            continue;
+        }
+        json::string const& written = function->at("name").as_string();
+        std::string_view const name(written.data(), written.size());
+        auto const known = std::ranges::find(type_rows(), name, &type_row::name);
+        if (!BOOST_TEST(known != type_rows().end())) {
+            std::cerr << "  a type row this test does not know: " << name << '\n';
+            continue;
+        }
+        auto const& backends = function->at("backends").as_object();
+        if (!BOOST_TEST_EQ(backends.size(), 1U) || !BOOST_TEST(backends.contains(known->backend)) ||
+            !BOOST_TEST(backends.at(known->backend).at("hmacs").is_null())) {
+            std::cerr << "  the backend of " << name << ": " << known->backend << '\n';
+        }
+    }
+}
+
+// The target this program runs on, as the table names it.
+constexpr std::string_view this_target() {
+#ifdef WEBCPP_TARGET_WASIP2
+    return "wasip2";
+#elif defined(WEBCPP_TARGET_WASIP3)
+    return "wasip3";
+#elif defined(WEBCPP_TARGET_EMSCRIPTEN)
+    return "emscripten";
+#else
+    return "native";
+#endif
+}
+
+// Whether this program links a library of the table, by its macro word: the program is built with
+// every library its target has, so a backend is linked exactly on its targets.
+bool linked_here(std::string_view macro) {
+    names linked;
+    linked.emplace("HASH2");
+#ifdef WEBCPP_HASH_HAS_XKCP
+    linked.emplace("XKCP");
+#endif
+#ifdef WEBCPP_HASH_HAS_BLAKE3
+    linked.emplace("BLAKE3");
+#endif
+    [&linked]<class... Backend>(std::tuple<Backend...>*) {
+        (static_cast<void>(hash::detail::linked_v<Backend> &&
+                           linked.emplace(test::name_of_macro<Backend>()).second),
+         ...);
+    }(static_cast<backend_tags*>(nullptr));
+    return linked.contains(macro);
+}
+
+void check_cell_fields(json::object const& table, names const& tagged);
+
+// The backends' own fields, where the code can tell (review M6): a backend's targets hold this
+// target exactly when the program links it here, `portable` is membership of portable_order for
+// a backend with a tag, and every cell is of increment 1 and states its constant time (R26).
+void check_backend_fields(json::object const& table) {
+    names portable;
+    [&portable]<class... Backend>(hash::detail::backend_list<Backend...>*) {
+        (portable.emplace(test::name_of<Backend>()), ...);
+    }(static_cast<hash::detail::portable_order*>(nullptr));
+    names tagged;
+    for (auto const& b : table.at("backends").as_array()) {
+        std::string const name(b.at("name").as_string());
+        bool const on_this_target =
+            std::ranges::any_of(b.at("targets").as_array(),
+                                [](auto const& t) { return t.as_string() == this_target(); });
+        if (!BOOST_TEST_EQ(on_this_target, linked_here(b.at("macro").as_string()))) {
+            std::cerr << "  the targets of " << name << " on " << this_target() << '\n';
+        }
+        if (!b.at("tag").is_null()) {
+            tagged.insert(name);
+            if (!BOOST_TEST_EQ(b.at("portable").as_bool(), portable.contains(name))) {
+                std::cerr << "  portable, for " << name << '\n';
+            }
+        }
+    }
+    check_cell_fields(table, tagged);
+}
+
+// Every cell is of increment 1, states its constant time (R26), and, for a function with a
+// Backend parameter, names a backend with a tag.
+void check_cell_fields(json::object const& table, names const& tagged) {
+    for (auto const* function : functions_of(table)) {
+        bool const is_function = function->at("kind").as_string() == "function";
+        for (auto const& backend : function->at("backends").as_object()) {
+            auto const& c = backend.value().as_object();
+            auto const* const ct = c.if_contains("constant_time");
+            auto const* const value =
+                ct != nullptr && ct->is_object() ? ct->as_object().if_contains("value") : nullptr;
+            auto const* const source =
+                ct != nullptr && ct->is_object() ? ct->as_object().if_contains("source") : nullptr;
+            bool const stated = value != nullptr && value->is_string() &&
+                                (value->as_string() == "yes" || value->as_string() == "no" ||
+                                 value->as_string() == "not stated");
+            bool const fine = c.at("since").as_int64() == 1 && stated && source != nullptr &&
+                              source->is_string() && !source->as_string().empty() &&
+                              (!is_function || tagged.contains(backend.key()));
+            if (!BOOST_TEST(fine)) {
+                std::cerr << "  the cell " << function->at("name").as_string() << " / "
+                          << backend.key() << '\n';
+            }
+        }
+    }
+}
+
 // The file's lists against the test's: its backends, its hmacs, its functions.
 void check_names(json::object const& table) {
     std::vector<std::string> backends;
     for (auto const& backend : table.at("backends").as_array()) {
         backends.emplace_back(backend.at("name").as_string());
     }
-    BOOST_TEST((backends == std::vector<std::string>{"hash2", "sodium", "bearssl", "openssl"}));
+    BOOST_TEST((backends == std::vector<std::string>{"hash2", "xkcp", "blake3", "sodium", "bearssl",
+                                                     "openssl"}));
 
     std::vector<std::string> hmacs;
     for (auto const& hmac : table.at("hmacs").as_array()) {
@@ -136,8 +329,11 @@ void check_names(json::object const& table) {
             }
         }
     }
-    BOOST_TEST((functions ==
-                names{"hkdf_extract", "hkdf_expand", "hkdf", "pbkdf2", "argon2id", "scrypt"}));
+    names known_functions{"hkdf_extract", "hkdf_expand", "hkdf", "pbkdf2", "argon2id", "scrypt"};
+    for (auto const& row : type_rows()) {
+        known_functions.emplace(row.name);
+    }
+    BOOST_TEST((functions == known_functions));
 }
 
 template <class Backend, class Function, class Hmac>
@@ -175,8 +371,18 @@ void check_cells(json::object const& table) {
     }(static_cast<backend_tags*>(nullptr));
 }
 
+// The index of the quote that closes the literal opened at `open`, an escaped character skipped.
+std::size_t literal_end(std::string const& source, std::size_t open) {
+    std::size_t end = open + 1;
+    while (end < source.size() && source[end] != source[open]) {
+        end += source[end] == '\\' ? 2 : 1;
+    }
+    return end;
+}
+
 // The texts of the static_asserts of a header that begin "webcpp::hash: ", each the
-// concatenation of its string literals.
+// concatenation of its string literals; a character literal is skipped, and an escape inside a
+// literal is kept as written (the refusal texts hold none).
 std::vector<std::string> refusals_in(std::string const& source) {
     std::vector<std::string> texts;
     constexpr std::string_view opening = "static_assert(";
@@ -186,9 +392,11 @@ std::vector<std::string> refusals_in(std::string const& source) {
         int depth = 1;
         for (std::size_t i = at + opening.size(); i < source.size() && depth > 0; ++i) {
             char const c = source[i];
-            if (c == '"') {
-                std::size_t const end = source.find('"', i + 1);
-                text.append(source, i + 1, end - i - 1);
+            if (c == '"' || c == '\'') {
+                std::size_t const end = literal_end(source, i);
+                if (c == '"') {
+                    text.append(source, i + 1, end - i - 1);
+                }
                 i = end;
             } else if (c == '(') {
                 ++depth;
@@ -412,6 +620,8 @@ int main() {
     json::object const& table = parsed.as_object();
 
     check_names(table);
+    check_type_rows(table);
+    check_backend_fields(table);
     check_cells(table);
     check_refusals(table, include);
     return webcpp::test::exit_status(boost::report_errors());

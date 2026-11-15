@@ -1,16 +1,65 @@
 {
-    "about": "webcpp::hash's capability table (spec section 3.5): which backend implements each public function, over which hmacs, on which targets. backend_has_v is the same table; test/capabilities_test.cpp compares them cell by cell and checks that each refusal text names exactly the backends of its row, and test/overrides_list_test.cpp checks the overrides of detail/overrides.hpp against its algorithms and backends. The documentation renders from it: the backends of each function, and the matrices of functions, backends and targets. A cell holds on every target of its backend.",
-    "schema": 1,
-    "targets": ["native", "wasip2", "wasip3", "emscripten"],
+    "about": "webcpp::hash's capability table (spec section 3.5): which library implements each public name, over which hmacs, on which targets, and what upstream states about constant time. backend_has_v is the same table for the key derivations: test/capabilities_test.cpp compares them cell by cell, checks each type row against the code and each refusal text against its row; test/overrides_list_test.cpp checks detail/overrides.hpp against the overridable algorithms. The documentation renders from it (rulings R21, R25, R26).",
+    "version": 2,
+    "layout": {
+        "schema": "This description. The version of the layout is \"version\"; a change of layout raises it.",
+        "targets": "The targets webcpp builds for.",
+        "backends[]": "Each library a function runs on: name (as cells name it), tag (its webcpp::hash::backends type, or null for a library without one in this increment: xkcp, blake3), macro (the word of WEBCPP_HASH_HAS_<macro>, WEBCPP_HASH_PROFILE_BACKEND_<macro> and WEBCPP_HASH_DEFAULT_BACKEND_<ALGORITHM>_<macro>), library (name and pin), licence, jamfile (the target a program names), targets (where it builds), portable (whether the portable profile may choose it: present on every target).",
+        "hmacs": "The hmac columns of a function over an hmac: the aliases of <webcpp/hash/hmac.hpp>, and \"other\", hmac<H> over any other Boost.Hash2 hash whose result is a digest.",
+        "algorithms[]": "One row group of spec 3.5: name, macro (the <ALGORITHM> of an override), tag (its kdfs:: type, or null), chapter (the documentation's chapter: digests, macs, kdfs, password_hashing, non-cryptographic), standard, overridable (whether default_backend chooses its backend, so that it has the overrides of detail/overrides.hpp), functions.",
+        "functions[]": "One public name: name, kind (\"type\": a Boost.Hash2-form type; \"function\": a function template with a Backend parameter), tag (the kdfs:: type of backend_has_v and default_backend, for a function), header, backends.",
+        "backends{}": "Per backend name, the cell: since (the increment it came with), hmacs (the columns it has, or null for a function or type that takes no hmac), constant_time {value: \"yes\", \"no\" or \"not stated\", source: where upstream says so, or what was read and says nothing}. A cell holds on every target of its backend."
+    },
+    "targets": [
+        "native",
+        "wasip2",
+        "wasip3",
+        "emscripten"
+    ],
     "backends": [
         {
             "name": "hash2",
             "tag": "backends::hash2",
             "macro": "HASH2",
-            "library": "Boost.Hash2's hmac<H>, under webcpp's own HKDF and PBKDF2",
+            "library": "Boost.Hash2 1.92, and webcpp's own HKDF and PBKDF2 over its hmac<H>",
             "licence": "BSL-1.0",
             "jamfile": "/webcpp/hash//hash",
-            "targets": ["native", "wasip2", "wasip3", "emscripten"],
+            "targets": [
+                "native",
+                "wasip2",
+                "wasip3",
+                "emscripten"
+            ],
+            "portable": true
+        },
+        {
+            "name": "xkcp",
+            "tag": null,
+            "macro": "XKCP",
+            "library": "XKCP's Keccak-p[1600] at d20c8fc",
+            "licence": "CC0-1.0",
+            "jamfile": "/third_party//xkcp",
+            "targets": [
+                "native",
+                "wasip2",
+                "wasip3",
+                "emscripten"
+            ],
+            "portable": true
+        },
+        {
+            "name": "blake3",
+            "tag": null,
+            "macro": "BLAKE3",
+            "library": "BLAKE3's C implementation 1.8.7",
+            "licence": "CC0-1.0 or Apache-2.0",
+            "jamfile": "/third_party//blake3",
+            "targets": [
+                "native",
+                "wasip2",
+                "wasip3",
+                "emscripten"
+            ],
             "portable": true
         },
         {
@@ -20,7 +69,12 @@
             "library": "libsodium 1.0.22",
             "licence": "ISC",
             "jamfile": "/third_party//sodium",
-            "targets": ["native", "wasip2", "wasip3", "emscripten"],
+            "targets": [
+                "native",
+                "wasip2",
+                "wasip3",
+                "emscripten"
+            ],
             "portable": true
         },
         {
@@ -30,7 +84,12 @@
             "library": "BearSSL at webcpp::crypto's pin",
             "licence": "MIT",
             "jamfile": "/third_party//bearssl",
-            "targets": ["native", "wasip2", "wasip3", "emscripten"],
+            "targets": [
+                "native",
+                "wasip2",
+                "wasip3",
+                "emscripten"
+            ],
             "portable": true
         },
         {
@@ -40,7 +99,11 @@
             "library": "OpenSSL 3.5.9",
             "licence": "Apache-2.0",
             "jamfile": "/webcpp/hash//openssl",
-            "targets": ["native", "wasip2", "wasip3"],
+            "targets": [
+                "native",
+                "wasip2",
+                "wasip3"
+            ],
             "portable": false
         }
     ],
@@ -63,42 +126,1030 @@
         "hmac_blake2s_256",
         "other"
     ],
-    "hmacs_about": "The aliases of <webcpp/hash/hmac.hpp>; \"other\" is hmac<H> over any other Boost.Hash2 hash whose result is a digest.",
     "algorithms": [
+        {
+            "name": "md5_sha1_sha2",
+            "macro": "MD5_SHA1_SHA2",
+            "tag": null,
+            "chapter": "digests",
+            "standard": "RFC 1321, RFC 3174, FIPS 180-4",
+            "overridable": false,
+            "functions": [
+                {
+                    "name": "md5_128",
+                    "kind": "type",
+                    "header": "webcpp/hash/algorithms.hpp",
+                    "backends": {
+                        "hash2": {
+                            "since": 1,
+                            "hmacs": null,
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property."
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "sha1_160",
+                    "kind": "type",
+                    "header": "webcpp/hash/algorithms.hpp",
+                    "backends": {
+                        "hash2": {
+                            "since": 1,
+                            "hmacs": null,
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property."
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "sha2_224",
+                    "kind": "type",
+                    "header": "webcpp/hash/algorithms.hpp",
+                    "backends": {
+                        "hash2": {
+                            "since": 1,
+                            "hmacs": null,
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property."
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "sha2_256",
+                    "kind": "type",
+                    "header": "webcpp/hash/algorithms.hpp",
+                    "backends": {
+                        "hash2": {
+                            "since": 1,
+                            "hmacs": null,
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property."
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "sha2_384",
+                    "kind": "type",
+                    "header": "webcpp/hash/algorithms.hpp",
+                    "backends": {
+                        "hash2": {
+                            "since": 1,
+                            "hmacs": null,
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property."
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "sha2_512",
+                    "kind": "type",
+                    "header": "webcpp/hash/algorithms.hpp",
+                    "backends": {
+                        "hash2": {
+                            "since": 1,
+                            "hmacs": null,
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property."
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "sha2_512_224",
+                    "kind": "type",
+                    "header": "webcpp/hash/algorithms.hpp",
+                    "backends": {
+                        "hash2": {
+                            "since": 1,
+                            "hmacs": null,
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property."
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "sha2_512_256",
+                    "kind": "type",
+                    "header": "webcpp/hash/algorithms.hpp",
+                    "backends": {
+                        "hash2": {
+                            "since": 1,
+                            "hmacs": null,
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property."
+                            }
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "sha3_shake",
+            "macro": "SHA3_SHAKE",
+            "tag": null,
+            "chapter": "digests",
+            "standard": "FIPS 202",
+            "overridable": false,
+            "functions": [
+                {
+                    "name": "sha3_224",
+                    "kind": "type",
+                    "header": "webcpp/hash/algorithms.hpp",
+                    "backends": {
+                        "hash2": {
+                            "since": 1,
+                            "hmacs": null,
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property."
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "sha3_256",
+                    "kind": "type",
+                    "header": "webcpp/hash/algorithms.hpp",
+                    "backends": {
+                        "hash2": {
+                            "since": 1,
+                            "hmacs": null,
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property."
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "sha3_384",
+                    "kind": "type",
+                    "header": "webcpp/hash/algorithms.hpp",
+                    "backends": {
+                        "hash2": {
+                            "since": 1,
+                            "hmacs": null,
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property."
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "sha3_512",
+                    "kind": "type",
+                    "header": "webcpp/hash/algorithms.hpp",
+                    "backends": {
+                        "hash2": {
+                            "since": 1,
+                            "hmacs": null,
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property."
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "shake_128",
+                    "kind": "type",
+                    "header": "webcpp/hash/algorithms.hpp",
+                    "backends": {
+                        "hash2": {
+                            "since": 1,
+                            "hmacs": null,
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property."
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "shake_256",
+                    "kind": "type",
+                    "header": "webcpp/hash/algorithms.hpp",
+                    "backends": {
+                        "hash2": {
+                            "since": 1,
+                            "hmacs": null,
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property."
+                            }
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "keccak_256",
+            "macro": "KECCAK_256",
+            "tag": null,
+            "chapter": "digests",
+            "standard": "Keccak (the SHA-3 submission's padding), as Ethereum uses it",
+            "overridable": false,
+            "functions": [
+                {
+                    "name": "keccak_256",
+                    "kind": "type",
+                    "header": "webcpp/hash/keccak.hpp",
+                    "backends": {
+                        "xkcp": {
+                            "since": 1,
+                            "hmacs": null,
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "XKCP at d20c8fc: README.markdown and lib/low/KeccakP-1600 state no constant-time property."
+                            }
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "blake2",
+            "macro": "BLAKE2",
+            "tag": null,
+            "chapter": "digests",
+            "standard": "RFC 7693",
+            "overridable": false,
+            "functions": [
+                {
+                    "name": "blake2b_512",
+                    "kind": "type",
+                    "header": "webcpp/hash/algorithms.hpp",
+                    "backends": {
+                        "hash2": {
+                            "since": 1,
+                            "hmacs": null,
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property."
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "blake2s_256",
+                    "kind": "type",
+                    "header": "webcpp/hash/algorithms.hpp",
+                    "backends": {
+                        "hash2": {
+                            "since": 1,
+                            "hmacs": null,
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property."
+                            }
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "blake3",
+            "macro": "BLAKE3",
+            "tag": null,
+            "chapter": "digests",
+            "standard": "the BLAKE3 specification (hash, keyed hash, derive_key, extendable output)",
+            "overridable": false,
+            "functions": [
+                {
+                    "name": "blake3",
+                    "kind": "type",
+                    "header": "webcpp/hash/blake3.hpp",
+                    "backends": {
+                        "blake3": {
+                            "since": 1,
+                            "hmacs": null,
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "BLAKE3 1.8.7: README.md and c/README.md state no constant-time property."
+                            }
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "ripemd",
+            "macro": "RIPEMD",
+            "tag": null,
+            "chapter": "digests",
+            "standard": "RIPEMD-128 and RIPEMD-160 (Dobbertin, Bosselaers, Preneel)",
+            "overridable": false,
+            "functions": [
+                {
+                    "name": "ripemd_128",
+                    "kind": "type",
+                    "header": "webcpp/hash/algorithms.hpp",
+                    "backends": {
+                        "hash2": {
+                            "since": 1,
+                            "hmacs": null,
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property."
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "ripemd_160",
+                    "kind": "type",
+                    "header": "webcpp/hash/algorithms.hpp",
+                    "backends": {
+                        "hash2": {
+                            "since": 1,
+                            "hmacs": null,
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property."
+                            }
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "siphash",
+            "macro": "SIPHASH",
+            "tag": null,
+            "chapter": "macs",
+            "standard": "SipHash-2-4 (Aumasson, Bernstein)",
+            "overridable": false,
+            "functions": [
+                {
+                    "name": "siphash_32",
+                    "kind": "type",
+                    "header": "webcpp/hash/algorithms.hpp",
+                    "backends": {
+                        "hash2": {
+                            "since": 1,
+                            "hmacs": null,
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property."
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "siphash_64",
+                    "kind": "type",
+                    "header": "webcpp/hash/algorithms.hpp",
+                    "backends": {
+                        "hash2": {
+                            "since": 1,
+                            "hmacs": null,
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property."
+                            }
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "hmac",
+            "macro": "HMAC",
+            "tag": null,
+            "chapter": "macs",
+            "standard": "RFC 2104",
+            "overridable": false,
+            "functions": [
+                {
+                    "name": "hmac",
+                    "kind": "type",
+                    "header": "webcpp/hash/hmac.hpp",
+                    "backends": {
+                        "hash2": {
+                            "since": 1,
+                            "hmacs": null,
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property."
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "hmac_md5_128",
+                    "kind": "type",
+                    "header": "webcpp/hash/hmac.hpp",
+                    "backends": {
+                        "hash2": {
+                            "since": 1,
+                            "hmacs": null,
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property."
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "hmac_sha1_160",
+                    "kind": "type",
+                    "header": "webcpp/hash/hmac.hpp",
+                    "backends": {
+                        "hash2": {
+                            "since": 1,
+                            "hmacs": null,
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property."
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "hmac_sha2_224",
+                    "kind": "type",
+                    "header": "webcpp/hash/hmac.hpp",
+                    "backends": {
+                        "hash2": {
+                            "since": 1,
+                            "hmacs": null,
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property."
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "hmac_sha2_256",
+                    "kind": "type",
+                    "header": "webcpp/hash/hmac.hpp",
+                    "backends": {
+                        "hash2": {
+                            "since": 1,
+                            "hmacs": null,
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property."
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "hmac_sha2_384",
+                    "kind": "type",
+                    "header": "webcpp/hash/hmac.hpp",
+                    "backends": {
+                        "hash2": {
+                            "since": 1,
+                            "hmacs": null,
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property."
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "hmac_sha2_512",
+                    "kind": "type",
+                    "header": "webcpp/hash/hmac.hpp",
+                    "backends": {
+                        "hash2": {
+                            "since": 1,
+                            "hmacs": null,
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property."
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "hmac_sha2_512_224",
+                    "kind": "type",
+                    "header": "webcpp/hash/hmac.hpp",
+                    "backends": {
+                        "hash2": {
+                            "since": 1,
+                            "hmacs": null,
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property."
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "hmac_sha2_512_256",
+                    "kind": "type",
+                    "header": "webcpp/hash/hmac.hpp",
+                    "backends": {
+                        "hash2": {
+                            "since": 1,
+                            "hmacs": null,
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property."
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "hmac_sha3_224",
+                    "kind": "type",
+                    "header": "webcpp/hash/hmac.hpp",
+                    "backends": {
+                        "hash2": {
+                            "since": 1,
+                            "hmacs": null,
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property."
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "hmac_sha3_256",
+                    "kind": "type",
+                    "header": "webcpp/hash/hmac.hpp",
+                    "backends": {
+                        "hash2": {
+                            "since": 1,
+                            "hmacs": null,
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property."
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "hmac_sha3_384",
+                    "kind": "type",
+                    "header": "webcpp/hash/hmac.hpp",
+                    "backends": {
+                        "hash2": {
+                            "since": 1,
+                            "hmacs": null,
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property."
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "hmac_sha3_512",
+                    "kind": "type",
+                    "header": "webcpp/hash/hmac.hpp",
+                    "backends": {
+                        "hash2": {
+                            "since": 1,
+                            "hmacs": null,
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property."
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "hmac_ripemd_128",
+                    "kind": "type",
+                    "header": "webcpp/hash/hmac.hpp",
+                    "backends": {
+                        "hash2": {
+                            "since": 1,
+                            "hmacs": null,
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property."
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "hmac_ripemd_160",
+                    "kind": "type",
+                    "header": "webcpp/hash/hmac.hpp",
+                    "backends": {
+                        "hash2": {
+                            "since": 1,
+                            "hmacs": null,
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property."
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "hmac_blake2b_512",
+                    "kind": "type",
+                    "header": "webcpp/hash/hmac.hpp",
+                    "backends": {
+                        "hash2": {
+                            "since": 1,
+                            "hmacs": null,
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property."
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "hmac_blake2s_256",
+                    "kind": "type",
+                    "header": "webcpp/hash/hmac.hpp",
+                    "backends": {
+                        "hash2": {
+                            "since": 1,
+                            "hmacs": null,
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property."
+                            }
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "non_cryptographic",
+            "macro": "NON_CRYPTOGRAPHIC",
+            "tag": null,
+            "chapter": "non-cryptographic",
+            "standard": "FNV-1a, xxHash, XXH3, MurmurHash3, SpookyHash V2",
+            "overridable": false,
+            "functions": [
+                {
+                    "name": "fnv1a_32",
+                    "kind": "type",
+                    "header": "webcpp/hash/algorithms.hpp",
+                    "backends": {
+                        "hash2": {
+                            "since": 1,
+                            "hmacs": null,
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property."
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "fnv1a_64",
+                    "kind": "type",
+                    "header": "webcpp/hash/algorithms.hpp",
+                    "backends": {
+                        "hash2": {
+                            "since": 1,
+                            "hmacs": null,
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property."
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "xxhash_32",
+                    "kind": "type",
+                    "header": "webcpp/hash/algorithms.hpp",
+                    "backends": {
+                        "hash2": {
+                            "since": 1,
+                            "hmacs": null,
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property."
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "xxhash_64",
+                    "kind": "type",
+                    "header": "webcpp/hash/algorithms.hpp",
+                    "backends": {
+                        "hash2": {
+                            "since": 1,
+                            "hmacs": null,
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property."
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "xxh3_128",
+                    "kind": "type",
+                    "header": "webcpp/hash/algorithms.hpp",
+                    "backends": {
+                        "hash2": {
+                            "since": 1,
+                            "hmacs": null,
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property."
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "murmur3_32",
+                    "kind": "type",
+                    "header": "webcpp/hash/algorithms.hpp",
+                    "backends": {
+                        "hash2": {
+                            "since": 1,
+                            "hmacs": null,
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property."
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "murmur3_128",
+                    "kind": "type",
+                    "header": "webcpp/hash/algorithms.hpp",
+                    "backends": {
+                        "hash2": {
+                            "since": 1,
+                            "hmacs": null,
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property."
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "spooky2_128",
+                    "kind": "type",
+                    "header": "webcpp/hash/algorithms.hpp",
+                    "backends": {
+                        "hash2": {
+                            "since": 1,
+                            "hmacs": null,
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property."
+                            }
+                        }
+                    }
+                }
+            ]
+        },
         {
             "name": "hkdf",
             "macro": "HKDF",
             "tag": "kdfs::hkdf",
-            "namespace": "kdfs",
+            "chapter": "kdfs",
             "standard": "RFC 5869",
-            "header": "webcpp/hash/hkdf.hpp",
+            "overridable": true,
             "functions": [
                 {
                     "name": "hkdf_extract",
+                    "kind": "function",
                     "tag": "kdfs::hkdf_extract",
+                    "header": "webcpp/hash/hkdf.hpp",
                     "backends": {
-                        "hash2": {"since": 1, "hmacs": ["hmac_md5_128", "hmac_sha1_160", "hmac_sha2_224", "hmac_sha2_256", "hmac_sha2_384", "hmac_sha2_512", "hmac_sha2_512_224", "hmac_sha2_512_256", "hmac_sha3_224", "hmac_sha3_256", "hmac_sha3_384", "hmac_sha3_512", "hmac_ripemd_128", "hmac_ripemd_160", "hmac_blake2b_512", "hmac_blake2s_256", "other"]},
-                        "sodium": {"since": 1, "hmacs": ["hmac_sha2_256", "hmac_sha2_512"]},
-                        "openssl": {"since": 1, "hmacs": ["hmac_md5_128", "hmac_sha1_160", "hmac_sha2_224", "hmac_sha2_256", "hmac_sha2_384", "hmac_sha2_512", "hmac_sha2_512_224", "hmac_sha2_512_256", "hmac_sha3_224", "hmac_sha3_256", "hmac_sha3_384", "hmac_sha3_512", "hmac_ripemd_160", "hmac_blake2b_512", "hmac_blake2s_256"]}
+                        "hash2": {
+                            "since": 1,
+                            "hmacs": [
+                                "hmac_md5_128",
+                                "hmac_sha1_160",
+                                "hmac_sha2_224",
+                                "hmac_sha2_256",
+                                "hmac_sha2_384",
+                                "hmac_sha2_512",
+                                "hmac_sha2_512_224",
+                                "hmac_sha2_512_256",
+                                "hmac_sha3_224",
+                                "hmac_sha3_256",
+                                "hmac_sha3_384",
+                                "hmac_sha3_512",
+                                "hmac_ripemd_128",
+                                "hmac_ripemd_160",
+                                "hmac_blake2b_512",
+                                "hmac_blake2s_256",
+                                "other"
+                            ],
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property."
+                            }
+                        },
+                        "sodium": {
+                            "since": 1,
+                            "hmacs": [
+                                "hmac_sha2_256",
+                                "hmac_sha2_512"
+                            ],
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "libsodium 1.0.22: its headers state constant time for comparisons (sodium/utils.h) alone, not for crypto_kdf_hkdf_* or crypto_pwhash_*."
+                            }
+                        },
+                        "openssl": {
+                            "since": 1,
+                            "hmacs": [
+                                "hmac_md5_128",
+                                "hmac_sha1_160",
+                                "hmac_sha2_224",
+                                "hmac_sha2_256",
+                                "hmac_sha2_384",
+                                "hmac_sha2_512",
+                                "hmac_sha2_512_224",
+                                "hmac_sha2_512_256",
+                                "hmac_sha3_224",
+                                "hmac_sha3_256",
+                                "hmac_sha3_384",
+                                "hmac_sha3_512",
+                                "hmac_ripemd_160",
+                                "hmac_blake2b_512",
+                                "hmac_blake2s_256"
+                            ],
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "OpenSSL 3.5.9: doc/man7/EVP_KDF-HKDF.pod and EVP_KDF-PBKDF2.pod state no constant-time property."
+                            }
+                        }
                     }
                 },
                 {
                     "name": "hkdf_expand",
+                    "kind": "function",
                     "tag": "kdfs::hkdf_expand",
+                    "header": "webcpp/hash/hkdf.hpp",
                     "backends": {
-                        "hash2": {"since": 1, "hmacs": ["hmac_md5_128", "hmac_sha1_160", "hmac_sha2_224", "hmac_sha2_256", "hmac_sha2_384", "hmac_sha2_512", "hmac_sha2_512_224", "hmac_sha2_512_256", "hmac_sha3_224", "hmac_sha3_256", "hmac_sha3_384", "hmac_sha3_512", "hmac_ripemd_128", "hmac_ripemd_160", "hmac_blake2b_512", "hmac_blake2s_256", "other"]},
-                        "sodium": {"since": 1, "hmacs": ["hmac_sha2_256", "hmac_sha2_512"]},
-                        "openssl": {"since": 1, "hmacs": ["hmac_md5_128", "hmac_sha1_160", "hmac_sha2_224", "hmac_sha2_256", "hmac_sha2_384", "hmac_sha2_512", "hmac_sha2_512_224", "hmac_sha2_512_256", "hmac_sha3_224", "hmac_sha3_256", "hmac_sha3_384", "hmac_sha3_512", "hmac_ripemd_160", "hmac_blake2b_512", "hmac_blake2s_256"]}
+                        "hash2": {
+                            "since": 1,
+                            "hmacs": [
+                                "hmac_md5_128",
+                                "hmac_sha1_160",
+                                "hmac_sha2_224",
+                                "hmac_sha2_256",
+                                "hmac_sha2_384",
+                                "hmac_sha2_512",
+                                "hmac_sha2_512_224",
+                                "hmac_sha2_512_256",
+                                "hmac_sha3_224",
+                                "hmac_sha3_256",
+                                "hmac_sha3_384",
+                                "hmac_sha3_512",
+                                "hmac_ripemd_128",
+                                "hmac_ripemd_160",
+                                "hmac_blake2b_512",
+                                "hmac_blake2s_256",
+                                "other"
+                            ],
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property."
+                            }
+                        },
+                        "sodium": {
+                            "since": 1,
+                            "hmacs": [
+                                "hmac_sha2_256",
+                                "hmac_sha2_512"
+                            ],
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "libsodium 1.0.22: its headers state constant time for comparisons (sodium/utils.h) alone, not for crypto_kdf_hkdf_* or crypto_pwhash_*."
+                            }
+                        },
+                        "openssl": {
+                            "since": 1,
+                            "hmacs": [
+                                "hmac_md5_128",
+                                "hmac_sha1_160",
+                                "hmac_sha2_224",
+                                "hmac_sha2_256",
+                                "hmac_sha2_384",
+                                "hmac_sha2_512",
+                                "hmac_sha2_512_224",
+                                "hmac_sha2_512_256",
+                                "hmac_sha3_224",
+                                "hmac_sha3_256",
+                                "hmac_sha3_384",
+                                "hmac_sha3_512",
+                                "hmac_ripemd_160",
+                                "hmac_blake2b_512",
+                                "hmac_blake2s_256"
+                            ],
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "OpenSSL 3.5.9: doc/man7/EVP_KDF-HKDF.pod and EVP_KDF-PBKDF2.pod state no constant-time property."
+                            }
+                        }
                     }
                 },
                 {
                     "name": "hkdf",
+                    "kind": "function",
                     "tag": "kdfs::hkdf",
+                    "header": "webcpp/hash/hkdf.hpp",
                     "backends": {
-                        "hash2": {"since": 1, "hmacs": ["hmac_md5_128", "hmac_sha1_160", "hmac_sha2_224", "hmac_sha2_256", "hmac_sha2_384", "hmac_sha2_512", "hmac_sha2_512_224", "hmac_sha2_512_256", "hmac_sha3_224", "hmac_sha3_256", "hmac_sha3_384", "hmac_sha3_512", "hmac_ripemd_128", "hmac_ripemd_160", "hmac_blake2b_512", "hmac_blake2s_256", "other"]},
-                        "sodium": {"since": 1, "hmacs": ["hmac_sha2_256", "hmac_sha2_512"]},
-                        "bearssl": {"since": 1, "hmacs": ["hmac_md5_128", "hmac_sha1_160", "hmac_sha2_224", "hmac_sha2_256", "hmac_sha2_384", "hmac_sha2_512"]},
-                        "openssl": {"since": 1, "hmacs": ["hmac_md5_128", "hmac_sha1_160", "hmac_sha2_224", "hmac_sha2_256", "hmac_sha2_384", "hmac_sha2_512", "hmac_sha2_512_224", "hmac_sha2_512_256", "hmac_sha3_224", "hmac_sha3_256", "hmac_sha3_384", "hmac_sha3_512", "hmac_ripemd_160", "hmac_blake2b_512", "hmac_blake2s_256"]}
+                        "hash2": {
+                            "since": 1,
+                            "hmacs": [
+                                "hmac_md5_128",
+                                "hmac_sha1_160",
+                                "hmac_sha2_224",
+                                "hmac_sha2_256",
+                                "hmac_sha2_384",
+                                "hmac_sha2_512",
+                                "hmac_sha2_512_224",
+                                "hmac_sha2_512_256",
+                                "hmac_sha3_224",
+                                "hmac_sha3_256",
+                                "hmac_sha3_384",
+                                "hmac_sha3_512",
+                                "hmac_ripemd_128",
+                                "hmac_ripemd_160",
+                                "hmac_blake2b_512",
+                                "hmac_blake2s_256",
+                                "other"
+                            ],
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property."
+                            }
+                        },
+                        "sodium": {
+                            "since": 1,
+                            "hmacs": [
+                                "hmac_sha2_256",
+                                "hmac_sha2_512"
+                            ],
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "libsodium 1.0.22: its headers state constant time for comparisons (sodium/utils.h) alone, not for crypto_kdf_hkdf_* or crypto_pwhash_*."
+                            }
+                        },
+                        "bearssl": {
+                            "since": 1,
+                            "hmacs": [
+                                "hmac_md5_128",
+                                "hmac_sha1_160",
+                                "hmac_sha2_224",
+                                "hmac_sha2_256",
+                                "hmac_sha2_384",
+                                "hmac_sha2_512"
+                            ],
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "BearSSL at webcpp::crypto's pin: bearssl_hmac.h states constant time for br_hmac_outCT alone; br_hkdf_* (src/kdf/hkdf.c) calls br_hmac_out."
+                            }
+                        },
+                        "openssl": {
+                            "since": 1,
+                            "hmacs": [
+                                "hmac_md5_128",
+                                "hmac_sha1_160",
+                                "hmac_sha2_224",
+                                "hmac_sha2_256",
+                                "hmac_sha2_384",
+                                "hmac_sha2_512",
+                                "hmac_sha2_512_224",
+                                "hmac_sha2_512_256",
+                                "hmac_sha3_224",
+                                "hmac_sha3_256",
+                                "hmac_sha3_384",
+                                "hmac_sha3_512",
+                                "hmac_ripemd_160",
+                                "hmac_blake2b_512",
+                                "hmac_blake2s_256"
+                            ],
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "OpenSSL 3.5.9: doc/man7/EVP_KDF-HKDF.pod and EVP_KDF-PBKDF2.pod state no constant-time property."
+                            }
+                        }
                     }
                 }
             ]
@@ -107,16 +1158,66 @@
             "name": "pbkdf2",
             "macro": "PBKDF2",
             "tag": "kdfs::pbkdf2",
-            "namespace": "kdfs",
+            "chapter": "kdfs",
             "standard": "RFC 8018",
-            "header": "webcpp/hash/pbkdf2.hpp",
+            "overridable": true,
             "functions": [
                 {
                     "name": "pbkdf2",
+                    "kind": "function",
                     "tag": "kdfs::pbkdf2",
+                    "header": "webcpp/hash/pbkdf2.hpp",
                     "backends": {
-                        "hash2": {"since": 1, "hmacs": ["hmac_md5_128", "hmac_sha1_160", "hmac_sha2_224", "hmac_sha2_256", "hmac_sha2_384", "hmac_sha2_512", "hmac_sha2_512_224", "hmac_sha2_512_256", "hmac_sha3_224", "hmac_sha3_256", "hmac_sha3_384", "hmac_sha3_512", "hmac_ripemd_128", "hmac_ripemd_160", "hmac_blake2b_512", "hmac_blake2s_256", "other"]},
-                        "openssl": {"since": 1, "hmacs": ["hmac_md5_128", "hmac_sha1_160", "hmac_sha2_224", "hmac_sha2_256", "hmac_sha2_384", "hmac_sha2_512", "hmac_sha2_512_224", "hmac_sha2_512_256", "hmac_sha3_224", "hmac_sha3_256", "hmac_sha3_384", "hmac_sha3_512", "hmac_ripemd_160", "hmac_blake2b_512", "hmac_blake2s_256"]}
+                        "hash2": {
+                            "since": 1,
+                            "hmacs": [
+                                "hmac_md5_128",
+                                "hmac_sha1_160",
+                                "hmac_sha2_224",
+                                "hmac_sha2_256",
+                                "hmac_sha2_384",
+                                "hmac_sha2_512",
+                                "hmac_sha2_512_224",
+                                "hmac_sha2_512_256",
+                                "hmac_sha3_224",
+                                "hmac_sha3_256",
+                                "hmac_sha3_384",
+                                "hmac_sha3_512",
+                                "hmac_ripemd_128",
+                                "hmac_ripemd_160",
+                                "hmac_blake2b_512",
+                                "hmac_blake2s_256",
+                                "other"
+                            ],
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property."
+                            }
+                        },
+                        "openssl": {
+                            "since": 1,
+                            "hmacs": [
+                                "hmac_md5_128",
+                                "hmac_sha1_160",
+                                "hmac_sha2_224",
+                                "hmac_sha2_256",
+                                "hmac_sha2_384",
+                                "hmac_sha2_512",
+                                "hmac_sha2_512_224",
+                                "hmac_sha2_512_256",
+                                "hmac_sha3_224",
+                                "hmac_sha3_256",
+                                "hmac_sha3_384",
+                                "hmac_sha3_512",
+                                "hmac_ripemd_160",
+                                "hmac_blake2b_512",
+                                "hmac_blake2s_256"
+                            ],
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "OpenSSL 3.5.9: doc/man7/EVP_KDF-HKDF.pod and EVP_KDF-PBKDF2.pod state no constant-time property."
+                            }
+                        }
                     }
                 }
             ]
@@ -125,15 +1226,24 @@
             "name": "argon2id",
             "macro": "ARGON2ID",
             "tag": "kdfs::argon2id",
-            "namespace": "kdfs",
-            "standard": "RFC 9106",
-            "header": "webcpp/hash/argon2.hpp",
+            "chapter": "password_hashing",
+            "standard": "RFC 9106, one lane",
+            "overridable": true,
             "functions": [
                 {
                     "name": "argon2id",
+                    "kind": "function",
                     "tag": "kdfs::argon2id",
+                    "header": "webcpp/hash/argon2.hpp",
                     "backends": {
-                        "sodium": {"since": 1, "hmacs": null}
+                        "sodium": {
+                            "since": 1,
+                            "hmacs": null,
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "libsodium 1.0.22: its headers state constant time for comparisons (sodium/utils.h) alone, not for crypto_kdf_hkdf_* or crypto_pwhash_*."
+                            }
+                        }
                     }
                 }
             ]
@@ -142,15 +1252,24 @@
             "name": "scrypt",
             "macro": "SCRYPT",
             "tag": "kdfs::scrypt",
-            "namespace": "kdfs",
+            "chapter": "password_hashing",
             "standard": "RFC 7914",
-            "header": "webcpp/hash/scrypt.hpp",
+            "overridable": true,
             "functions": [
                 {
                     "name": "scrypt",
+                    "kind": "function",
                     "tag": "kdfs::scrypt",
+                    "header": "webcpp/hash/scrypt.hpp",
                     "backends": {
-                        "sodium": {"since": 1, "hmacs": null}
+                        "sodium": {
+                            "since": 1,
+                            "hmacs": null,
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "libsodium 1.0.22: its headers state constant time for comparisons (sodium/utils.h) alone, not for crypto_kdf_hkdf_* or crypto_pwhash_*."
+                            }
+                        }
                     }
                 }
             ]

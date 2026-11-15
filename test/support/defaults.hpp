@@ -67,6 +67,21 @@ constexpr std::string_view name_of() {
     }
 }
 
+template <class Backend>
+constexpr std::string_view name_of_macro() {
+    if constexpr (std::is_same_v<Backend, backends::hash2>) {
+        return "HASH2";
+    } else if constexpr (std::is_same_v<Backend, backends::sodium>) {
+        return "SODIUM";
+    } else if constexpr (std::is_same_v<Backend, backends::bearssl>) {
+        return "BEARSSL";
+    } else if constexpr (std::is_same_v<Backend, backends::openssl>) {
+        return "OPENSSL";
+    } else {
+        return "?";
+    }
+}
+
 template <class Operation>
 constexpr std::string_view name_of_operation() {
     if constexpr (std::is_same_v<Operation, kdfs::hkdf_extract>) {
