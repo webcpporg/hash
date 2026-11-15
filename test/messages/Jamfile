@@ -22,6 +22,8 @@ build-project openssl_not_linked ;
 build-project ripemd128_on_openssl ;
 build-project argon2id_on_hash2 ;
 build-project scrypt_on_hash2 ;
+build-project argon2id_override_hash2 ;
+build-project scrypt_override_hash2 ;
 build-project two_profiles ;
 build-project two_umbrella_profiles ;
 build-project two_overrides ;

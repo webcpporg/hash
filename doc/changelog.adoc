@@ -24,6 +24,6 @@ of every version are on webcpp's index page.
 * Added backends::sodium's HKDF over HMAC-SHA-256 and HMAC-SHA-512, and backends::bearssl's over MD5, SHA-1 and SHA-2 (hkdf alone).
 * Added backends::openssl, OpenSSL 3.5.9's HKDF and PBKDF2 through /webcpp/hash//openssl on native, wasip2 and wasip3, refusing lengths past OpenSSL's int.
 * Added the default backend's profiles (WEBCPP_HASH_PROFILE_FASTEST, _SMALLEST, _PORTABLE, _BACKEND_<NAME>, webcpp's WEBCPP_PROFILE_*), choosing per function among the backends that have it.
-* Added the per-algorithm overrides WEBCPP_HASH_DEFAULT_BACKEND_<ALGORITHM>_<NAME> and the capability table doc/capabilities.json.
+* Added the per-algorithm overrides WEBCPP_HASH_DEFAULT_BACKEND_<ALGORITHM>_<NAME>, of HKDF, PBKDF2, argon2id and scrypt, and the capability table doc/capabilities.json.
 * Added bench/pbkdf2_sha512.cpp and doc/performance.adoc: PBKDF2-HMAC-SHA-512 at 1,000,000 iterations on every backend and target, measured in doc/measurements.throughput.json.
 // end::unreleased[]

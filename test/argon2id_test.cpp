@@ -12,6 +12,7 @@
 
 #include <webcpp/hash/argon2.hpp>
 #include <webcpp/hash/error.hpp>
+#include <webcpp/hash/kdf.hpp>
 
 #include <boost/core/lightweight_test.hpp>
 #include <boost/system/errc.hpp>
@@ -34,6 +35,7 @@
 #include <span>
 #include <string>
 #include <string_view>
+#include <type_traits>
 #include <vector>
 
 namespace hash = webcpp::hash;
@@ -353,6 +355,11 @@ void test_presets() {
     BOOST_TEST_EQ(hash::argon2id_sensitive.memory, crypto_pwhash_argon2id_memlimit_sensitive());
     BOOST_TEST_EQ(hash::argon2id_salt_size, crypto_pwhash_argon2id_saltbytes());
 }
+
+// Without an override, argon2id's default backend is default_backend's choice for kdfs::argon2id,
+// which is backends::sodium in increment 1, the one backend that has it.
+static_assert(std::is_same_v<hash::default_backend<hash::kdfs::argon2id>, hash::backends::sodium>);
+static_assert(&hash::argon2id<> == &hash::argon2id<hash::backends::sodium>);
 
 }  // namespace
 

@@ -34,6 +34,7 @@
 #include <webcpp/hash/detail/limits.hpp>
 #include <webcpp/hash/detail/wipe.hpp>
 #include <webcpp/hash/error.hpp>
+#include <webcpp/hash/kdf.hpp>
 
 #include <boost/system/result.hpp>
 
@@ -81,7 +82,9 @@ constexpr bool scrypt_valid_n(std::uint64_t n, std::uint32_t r) noexcept {
 /**
  scrypt (RFC 7914): fills `output` from `password` and `salt`.
 
- @tparam Backend The backend; `backends::sodium`, the only one.
+ @tparam Backend The backend; by default @ref default_backend of `kdfs::scrypt` (spec 4.1):
+ the one an override `WEBCPP_HASH_DEFAULT_BACKEND_SCRYPT_<NAME>` names, else
+ `backends::sodium`, the only one that has it.
  @param output The derived key, 1 to (2^32 - 1) times 32 bytes; it must not overlap `password`
  or `salt`.
  @param password The password. @param salt The salt.
@@ -90,7 +93,7 @@ constexpr bool scrypt_valid_n(std::uint64_t n, std::uint32_t r) noexcept {
  `invalid_parameters`, `input_too_long`), `output` untouched; or `errc::not_enough_memory` when the
  128 r N bytes cannot be allocated, or `backend_failure`, `output` zeroed.
 */
-template <class Backend = backends::sodium>
+template <class Backend = default_backend<kdfs::scrypt>>
 boost::system::result<void> scrypt(std::span<std::uint8_t> output,
                                    std::span<std::uint8_t const> password,
                                    std::span<std::uint8_t const> salt,
@@ -133,8 +136,9 @@ boost::system::result<void> scrypt(std::span<std::uint8_t> output,
 }  // namespace webcpp::hash
 
 // backends::sodium when the program links libsodium: a program that includes only this header
-// gets scrypt's default backend complete here.
-#ifdef WEBCPP_HASH_HAS_SODIUM
+// gets scrypt's default backend complete here. Also when an override names libsodium, whose
+// header then stops with its "needs" message if the program does not link it (spec 5.7).
+#if defined(WEBCPP_HASH_HAS_SODIUM) || defined(WEBCPP_HASH_DETAIL_OVERRIDES_SODIUM)
 #include <webcpp/hash/backends/sodium.hpp>
 #endif
 
