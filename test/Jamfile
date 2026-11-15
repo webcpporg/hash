@@ -157,6 +157,20 @@ hash-run openssl_limits : openssl_limits_test.cpp
 hash-run openssl_one_copy : openssl_one_copy_test.cpp
   : <library>/webcpp/hash//openssl <library>/webcpp/crypto//openssl
   : native wasip2 wasip3 ;
+# Agreement between backends (spec section 7.2): on 1,000 seeded random cases per
+# hmac, the empty inputs first, every linked backend that has the key derivation
+# gives the output of every other. Native, wasip2 and wasip3 link libsodium,
+# BearSSL and OpenSSL; Emscripten links libsodium and BearSSL.
+hash-run agreement_hkdf : agreement_hkdf_test.cpp
+  : <library>/third_party//sodium <library>/third_party//bearssl
+    <library>/webcpp/hash//openssl : native wasip2 wasip3 ;
+hash-run agreement_hkdf_emscripten : agreement_hkdf_test.cpp
+  : <library>/third_party//sodium <library>/third_party//bearssl : emscripten ;
+hash-run agreement_pbkdf2 : agreement_pbkdf2_test.cpp
+  : <library>/third_party//sodium <library>/third_party//bearssl
+    <library>/webcpp/hash//openssl : native wasip2 wasip3 ;
+hash-run agreement_pbkdf2_emscripten : agreement_pbkdf2_test.cpp
+  : <library>/third_party//sodium <library>/third_party//bearssl : emscripten ;
 # Naming the alias refuses an Emscripten program, by the forced include (its
 # message is a fixture of tools/test/hash_jamfiles_test.py). The source is
 # one that builds and runs on Emscripten without the alias (hkdf_hash2), so
