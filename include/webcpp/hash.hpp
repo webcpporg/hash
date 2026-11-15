@@ -45,4 +45,11 @@
 #include <webcpp/hash/backends/sodium.hpp>
 #endif
 
+// backends::openssl needs OpenSSL, /webcpp/hash//openssl, which defines
+// WEBCPP_HASH_HAS_OPENSSL (native, wasip2 and wasip3): a program that does not
+// link it leaves backends/openssl.hpp out.
+#ifdef WEBCPP_HASH_HAS_OPENSSL
+#include <webcpp/hash/backends/openssl.hpp>
+#endif
+
 #endif  // WEBCPP_HASH_HPP

@@ -18,3 +18,5 @@ build-project pbkdf2_on_bearssl ;
 build-project sodium_not_linked ;
 build-project sodium_hmac ;
 build-project pbkdf2_on_sodium ;
+build-project openssl_not_linked ;
+build-project ripemd128_on_openssl ;

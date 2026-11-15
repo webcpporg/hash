@@ -18,3 +18,27 @@ project /webcpp/hash ;
 # tag::hash[]
 alias hash : : : : <include>include <library>/boost//headers <library>/webcpp/config//config ;
 # end::hash[]
+
+# tag::openssl[]
+# OpenSSL, the backend backends::openssl: the superproject's source-built
+# OpenSSL 3.5.9 (/webcpp/third_party//openssl, static), the same archives as
+# /webcpp/crypto//openssl and /webcpp/asio//openssl name, with the define the
+# backend's header checks, on native, wasip2 and wasip3 (spec section 5.6).
+rule openssl-linked ( properties * )
+{
+    if [ webcpp-target.target-of $(properties) ] in native wasip2 wasip3
+    {
+        return <library>/webcpp/third_party//openssl
+            <define>WEBCPP_HASH_HAS_OPENSSL=1 ;
+    }
+}
+
+# Refused on Emscripten: every source of a program built for emscripten that
+# names it stops at the forced include, whose message says what to write.
+# Quoted, as the Jamroot quotes Boost's directory, for a path that holds a
+# space.
+path-constant WEBCPP_HASH_ROOT : . ;
+alias openssl : : : : <conditional>@openssl-linked
+    <toolset>emscripten:<cflags>"-include \"$(WEBCPP_HASH_ROOT)/src/openssl_on_emscripten.hpp\""
+    <toolset>emscripten:<cxxflags>"-include \"$(WEBCPP_HASH_ROOT)/src/openssl_on_emscripten.hpp\"" ;
+# end::openssl[]

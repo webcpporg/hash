@@ -52,6 +52,11 @@ webcpp.headers-alone hash : ../include : hash/backends/bearssl.hpp
 webcpp.headers-alone hash : ../include : hash/backends/sodium.hpp
   : <library>/third_party//sodium ;
 
+# backends/openssl.hpp compiles alone only with /webcpp/hash//openssl, which
+# defines WEBCPP_HASH_HAS_OPENSSL, on the targets where webcpp builds OpenSSL.
+webcpp.headers-alone hash : ../include : hash/backends/openssl.hpp
+  : <library>/webcpp/hash//openssl : native wasip2 wasip3 ;
+
 # config.hpp defines WEBCPP_HASH_NO_EXCEPTIONS exactly when webcpp has no
 # exceptions, keeps it when a developer defines it, defines it when
 # WEBCPP_NO_EXCEPTIONS is, and classifies the target.
@@ -127,6 +132,31 @@ hash-run hkdf_bearssl_canary : hkdf_bearssl_canary_test.cpp
 webcpp.link-fail hkdf_bearssl_canary_other_commit : hkdf_bearssl_canary_test.cpp
   : <library>/third_party//bearssl <optimization>speed
     <define>WEBCPP_HASH_BEARSSL_CANARY_COMMIT=0000000 ;
+
+# HKDF and PBKDF2 on backends::openssl (OpenSSL 3.5.9's EVP_KDF), on the
+# targets where webcpp builds OpenSSL: the RFCs' cases and backends::hash2's
+# agreement over every hmac of spec 3.2's OpenSSL column; the thread's error
+# queue left as found; a failure provoked through the seam
+# WEBCPP_HASH_DETAIL_TEST_OPENSSL_DIGEST, a digest OpenSSL cannot fetch.
+hash-run hkdf_openssl : hkdf_openssl_test.cpp : <library>/webcpp/hash//openssl
+  : native wasip2 wasip3 ;
+hash-run pbkdf2_openssl : pbkdf2_openssl_test.cpp
+  : <library>/webcpp/hash//openssl : native wasip2 wasip3 ;
+hash-run openssl_error_queue : openssl_error_queue_test.cpp
+  : <library>/webcpp/hash//openssl : native wasip2 wasip3 ;
+hash-run openssl_failure : openssl_failure_test.cpp
+  : <library>/webcpp/hash//openssl
+    <define>"\"WEBCPP_HASH_DETAIL_TEST_OPENSSL_DIGEST=\\\"NO-SUCH-DIGEST\\\"\""
+  : native wasip2 wasip3 ;
+# hash's and crypto's OpenSSL in one program: one provider, each archive once
+# (spec section 5.5; tools/test/openssl_one_copy_test.py reads the link line).
+hash-run openssl_one_copy : openssl_one_copy_test.cpp
+  : <library>/webcpp/hash//openssl <library>/webcpp/crypto//openssl
+  : native wasip2 wasip3 ;
+# Naming the alias refuses an Emscripten program, by the forced include (its
+# message is a fixture of tools/test/hash_jamfiles_test.py).
+webcpp.compile-fail openssl_named_on_emscripten : hkdf_openssl_test.cpp
+  : <library>/webcpp/hash//openssl : emscripten ;
 
 build-project messages ;
 

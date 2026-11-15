@@ -42,6 +42,9 @@
 #ifdef WEBCPP_HASH_HAS_SODIUM
 #include <webcpp/hash/backends/sodium.hpp>
 #endif
+#ifdef WEBCPP_HASH_HAS_OPENSSL
+#include <webcpp/hash/backends/openssl.hpp>
+#endif
 
 #include <boost/system/result.hpp>
 
