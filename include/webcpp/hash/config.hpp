@@ -17,9 +17,9 @@
 #include <webcpp/config.hpp>
 
 // MrDocs parses hash natively, as a build with exceptions does, where none of these macros is
-// defined: these definitions, each undone at once, are the ones the reference lists. The
-// libraries' WEBCPP_HASH_HAS_<NAME> stay defined: doc/Jamfile links every library, so that the
-// reference reads each backend's header, as a program that links them all does.
+// defined: these definitions are the ones the reference lists. Each is undone at once, except the
+// libraries' WEBCPP_HASH_HAS_<NAME>, which stay defined: doc/Jamfile links every library, so that
+// the reference reads each backend's header, as a program that links them all does.
 #ifdef __MRDOCS__
 /**
  Defined when webcpp::hash is built without exceptions: when webcpp has none (the compiler has

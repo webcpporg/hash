@@ -110,8 +110,12 @@ OpenSSL is called, a PBKDF2 output (`invalid_output_size`), a PBKDF2 password
 or salt, or an HKDF salt (`input_too_long`) of more than `INT_MAX` bytes. It
 is not built for Emscripten.
 
-| `xkcp`, `blake3`
-| Hashes without a secret of their own; they allocate nothing.
+| `xkcp`
+| Hashes without a secret of their own; it allocates nothing.
+
+| `blake3`
+| Allocates nothing. Its keyed and `derive_key` modes hold the key in the
+object's state until it is destroyed, without wiping it (<<hash-blake3>>).
 |===
 
 No backend states that its key derivations run in constant time; the

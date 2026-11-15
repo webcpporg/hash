@@ -44,7 +44,7 @@ sources, for the program's target:
 A program that hashes passwords with Argon2id and derives keys with HKDF on
 whatever backend is smallest names, for example:
 
-[source,bash]
+[source]
 ----
 exe app : app.cpp /webcpp/hash//hash /third_party//sodium ;
 ----
@@ -59,7 +59,7 @@ Emscripten's fixed 16 MiB.
 
 The library's own target, as `build.jam` declares it:
 
-[source,bash]
+[source]
 ----
 include::{library-root}/build.jam[tag=hash]
 ----

@@ -686,7 +686,7 @@
             "summary": "PBKDF2: a key from a password by many iterations of an hmac; not memory-hard.",
             "output": "1 to (2^32 - 1) times the digest size",
             "security": "each guess costs the iterations; no defence against GPUs beyond that",
-            "status": "recommended",
+            "status": "where a standard names it",
             "webcrypto": "PBKDF2",
             "anchor": "hash-pbkdf2",
             "uses": [
@@ -733,11 +733,11 @@
         {"need": "derive many keys from one master key, one per purpose", "use": "hkdf_expand (or hkdf) with distinct info labels, or blake3::derive_key with a context string", "function": "hkdf_expand", "profile": "the default", "example": "subkeys.cpp", "anchor": "hash-privacy-subkeys"},
         {"need": "build a hash table, set or Bloom filter whose keys come from the network", "use": "siphash_64 keyed with 16 random bytes per process", "function": "siphash_64", "profile": "none: one backend", "example": "siphash.cpp", "anchor": "hash-siphash"},
         {"need": "build a hash table of my own trusted keys, or a fast checksum", "use": "xxh3_128 or fnv1a_64", "function": "xxh3_128", "profile": "none: one backend", "example": "checksums.cpp", "anchor": "hash-non-cryptographic-functions"},
-        {"need": "compute a Bitcoin wallet's BIP39 seed from its words", "use": "pbkdf2 over hmac_sha2_512, 2,048 iterations (a domain library's step)", "function": "pbkdf2", "profile": "the default (OpenSSL natively when linked)", "example": "bip39_seed.cpp", "anchor": "hash-crypto-bip39"},
+        {"need": "compute a Bitcoin wallet's BIP39 seed from its words", "use": "pbkdf2 over hmac_sha2_512, 2,048 iterations (a domain library's step)", "function": "pbkdf2", "profile": "the default", "example": "bip39_seed.cpp", "anchor": "hash-crypto-bip39"},
         {"need": "compute a Bitcoin address's hash160", "use": "ripemd_160 over sha2_256 (a domain library's step)", "function": "ripemd_160", "profile": "none: one backend", "example": "bitcoin_hash160.cpp", "anchor": "hash-crypto-hash160"},
         {"need": "compute an Ethereum address or a Solidity selector", "use": "keccak_256 (never sha3_256)", "function": "keccak_256", "profile": "link /third_party//xkcp", "example": "ethereum_address.cpp", "anchor": "hash-crypto-ethereum"},
         {"need": "compute a Nostr event id", "use": "sha2_256 over NIP-01's serialization (a domain library's step)", "function": "sha2_256", "profile": "none: one backend", "example": "nostr_event_id.cpp", "anchor": "hash-p2p-nostr"},
-        {"need": "derive NIP-44's conversation key", "use": "hkdf_extract over hmac_sha2_256 with the salt nip44-v2", "function": "hkdf_extract", "profile": "the default", "example": "nip44_conversation_key.cpp", "anchor": "hash-p2p-nip44"},
+        {"need": "derive NIP-44's conversation key", "use": "hkdf_extract over hmac_sha2_256 with the salt nip44-v2 (a domain library's step)", "function": "hkdf_extract", "profile": "the default", "example": "nip44_conversation_key.cpp", "anchor": "hash-p2p-nip44"},
         {"need": "draw a long stream of pseudorandom bytes from a seed", "use": "shake_128 or shake_256, or blake3's squeeze", "function": "shake_128", "profile": "none: one backend", "example": "sha3_shake.cpp", "anchor": "hash-sha3"},
         {"need": "the smallest WebAssembly program", "use": "the default (on WebAssembly, the smallest linked backend), and link only the libraries the program uses", "function": "hkdf", "profile": "WEBCPP_HASH_PROFILE_SMALLEST, or nothing: it is the default on WebAssembly", "example": "hkdf_backends.cpp", "anchor": "hash-profile"},
         {"need": "the same code, and the same results, on every target", "use": "the portable profile", "function": "hkdf", "profile": "WEBCPP_HASH_PROFILE_PORTABLE", "example": "hkdf_backends.cpp", "anchor": "hash-profile"}

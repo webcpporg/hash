@@ -45,8 +45,8 @@ include::{library-root}/test/upstream/keccak.hpp[tag=proposal,indent=0]
 ----
 
 *The test,* for `test/keccak.cpp`: the digests of the empty message and of the
-byte 0xCC are the first two entries of the Keccak team's known-answer files of
-the SHA-3 competition's third round (`ShortMsgKAT_224.txt` to
+byte 0xCC are the Len = 0 and Len = 8 entries of the Keccak team's
+known-answer files of the SHA-3 competition's third round (`ShortMsgKAT_224.txt` to
 `ShortMsgKAT_512.txt`); those of "abc" and the HMAC's were computed with an
 independent Keccak that reproduces those entries and Python's SHA-3. It also
 checks incremental input and the seeds against `keccak_base` itself.

@@ -8,9 +8,9 @@
 // style, between the tags, which doc/upstream.adoc shows as the test proposed with it; then the
 // proof that webcpp::hash::keccak_256 gives the proposed keccak_256's results for every length
 // from 0 to 3 blocks and for random sequences of updates and results, so that the alias of spec
-// 9.1 changes no result. The digests of the empty message and of the byte 0xCC are the first two
-// of the Keccak team's KAT files for the SHA-3 competition's third round (ShortMsgKAT_224.txt to
-// ShortMsgKAT_512.txt, Len = 0 and Len = 8); those of "abc" were computed with an independent
+// 9.1 changes no result. The digests of the empty message and of the byte 0xCC are the Len = 0 and
+// Len = 8 entries of the Keccak team's KAT files for the SHA-3 competition's third round
+// (ShortMsgKAT_224.txt to ShortMsgKAT_512.txt); those of "abc" were computed with an independent
 // Python Keccak that gives those KAT values and hashlib's SHA-3, and so was the HMAC's.
 
 #include "upstream/keccak.hpp"
