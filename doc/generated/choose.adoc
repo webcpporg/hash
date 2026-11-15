@@ -69,7 +69,7 @@
 | compute a Bitcoin wallet's BIP39 seed from its words
 | <<hash-crypto-bip39,pbkdf2 over hmac_sha2_512, 2,048 iterations (a domain library's step)>>
 | `hash2`: `/webcpp/hash//hash`, `openssl`: `/webcpp/hash//openssl`
-| the default (OpenSSL natively when linked)
+| the default
 | `example/bip39_seed.cpp`
 
 | compute a Bitcoin address's hash160
@@ -91,7 +91,7 @@
 | `example/nostr_event_id.cpp`
 
 | derive NIP-44's conversation key
-| <<hash-p2p-nip44,hkdf_extract over hmac_sha2_256 with the salt nip44-v2>>
+| <<hash-p2p-nip44,hkdf_extract over hmac_sha2_256 with the salt nip44-v2 (a domain library's step)>>
 | `hash2`: `/webcpp/hash//hash`, `sodium`: `/third_party//sodium`, `openssl`: `/webcpp/hash//openssl`
 | the default
 | `example/nip44_conversation_key.cpp`

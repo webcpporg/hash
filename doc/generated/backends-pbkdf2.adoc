@@ -28,6 +28,39 @@
 | not stated
 |===
 
-The default backend of `pbkdf2` on each target follows the measured orders of doc/measurements.json, which this build of the guide does not have yet; until then, the order of `detail/ranking.hpp` applies.
+What each backend states on constant time, as the capability table read it:
 
-The orders are measured over `hmac_sha2_256`, every backend linked; a backend the program does not link is skipped. A named profile, `WEBCPP_HASH_PROFILE_BACKEND_<NAME>`, or an override, `WEBCPP_HASH_DEFAULT_BACKEND_PBKDF2_<NAME>`, takes its backend where it has the function (<<hash-profile>>).
+* `hash2`: Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property.
+* `openssl`: OpenSSL 3.5.9: doc/man7/EVP_KDF-HKDF.pod and EVP_KDF-PBKDF2.pod state no constant-time property.
+
+.The default backend of `pbkdf2`: the first linked backend of each order
+[cols="1,2,2,2,1",options="header"]
+|===
+| Target | auto (no profile) | fastest | smallest | portable
+
+| native
+| openssl, hash2
+| openssl, hash2
+| hash2, openssl
+| hash2
+
+| wasip2
+| hash2, openssl
+| hash2, openssl
+| hash2, openssl
+| hash2
+
+| wasip3
+| hash2, openssl
+| hash2, openssl
+| hash2, openssl
+| hash2
+
+| emscripten
+| hash2
+| hash2
+| hash2
+| hash2
+|===
+
+The orders shown are those over `hmac_sha2_256`, and over every hmac measured with none of its own; `hmac_sha2_512` has its own orders, which can differ (<<hash-measurements>>). Each order is measured with every backend linked; a backend the program does not link is skipped. A named profile, `WEBCPP_HASH_PROFILE_BACKEND_<NAME>`, or an override, `WEBCPP_HASH_DEFAULT_BACKEND_PBKDF2_<NAME>`, takes its backend where it has the function (<<hash-profile>>).

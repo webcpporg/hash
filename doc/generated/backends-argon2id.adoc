@@ -21,6 +21,38 @@
 | not stated
 |===
 
-The default backend of `argon2id` on each target follows the measured orders of doc/measurements.json, which this build of the guide does not have yet; until then, the order of `detail/ranking.hpp` applies.
+What each backend states on constant time, as the capability table read it:
 
-The orders are measured over `hmac_sha2_256`, every backend linked; a backend the program does not link is skipped. A named profile, `WEBCPP_HASH_PROFILE_BACKEND_<NAME>`, or an override, `WEBCPP_HASH_DEFAULT_BACKEND_ARGON2ID_<NAME>`, takes its backend where it has the function (<<hash-profile>>).
+* `sodium`: libsodium 1.0.22: its headers state constant time for comparisons (sodium/utils.h) alone, not for crypto_kdf_hkdf_* or crypto_pwhash_*.
+
+.The default backend of `argon2id`: the first linked backend of each order
+[cols="1,2,2,2,1",options="header"]
+|===
+| Target | auto (no profile) | fastest | smallest | portable
+
+| native
+| sodium
+| sodium
+| sodium
+| sodium
+
+| wasip2
+| sodium
+| sodium
+| sodium
+| sodium
+
+| wasip3
+| sodium
+| sodium
+| sodium
+| sodium
+
+| emscripten
+| sodium
+| sodium
+| sodium
+| sodium
+|===
+
+Each order is measured with every backend linked; a backend the program does not link is skipped. A named profile, `WEBCPP_HASH_PROFILE_BACKEND_<NAME>`, or an override, `WEBCPP_HASH_DEFAULT_BACKEND_ARGON2ID_<NAME>`, takes its backend where it has the function (<<hash-profile>>).

@@ -21,4 +21,8 @@
 | not stated
 |===
 
+What each backend states on constant time, as the capability table read it:
+
+* `xkcp`: XKCP at d20c8fc: README.markdown and lib/low/KeccakP-1600 state no constant-time property.
+
 One backend, `xkcp`: no profile or override changes it.

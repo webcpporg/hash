@@ -21,4 +21,8 @@
 | not stated
 |===
 
+What each backend states on constant time, as the capability table read it:
+
+* `blake3`: BLAKE3 1.8.7: README.md and c/README.md state no constant-time property.
+
 One backend, `blake3`: no profile or override changes it.

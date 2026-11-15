@@ -133,4 +133,8 @@
 | not stated
 |===
 
+What each backend states on constant time, as the capability table read it:
+
+* `hash2`: Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property.
+
 One backend, `hash2`: no profile or override changes it.
