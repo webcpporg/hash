@@ -23,6 +23,7 @@
 #include <boost/system/result.hpp>
 
 #include <algorithm>
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
@@ -110,6 +111,60 @@ struct hkdf_engine<backends::hash2, Hmac> {
         auto done = expand(output, std::span<std::uint8_t const>(prk->data(), prk->size()), info);
         wipe_object(*prk);
         return done;
+    }
+};
+
+/**
+ PBKDF2 on backends::hash2 (the engine's interface: @ref pbkdf2_engine).
+
+ @tparam Hmac A Boost.Hash2 hmac over a digest.
+*/
+template <class Hmac>
+struct pbkdf2_engine<backends::hash2, Hmac> {
+    /**
+     RFC 8018, 5.2: T_i = F(P, S, c, i) = U_1 ^ U_2 ^ ... ^ U_c, with U_1 = PRF(P, S || INT(i))
+     and U_j = PRF(P, U_{j-1}); DK = the first dkLen octets of T_1 || T_2 || ... || T_l.
+
+     @param output DK, its size dkLen. @param password P. @param salt S.
+     @param iterations c.
+     @return Success.
+    */
+    static boost::system::result<void> derive(std::span<std::uint8_t> output,
+                                              std::span<std::uint8_t const> password,
+                                              std::span<std::uint8_t const> salt,
+                                              std::uint64_t iterations) noexcept {
+        using digest_type = typename Hmac::result_type;
+        Hmac keyed(password.data(), password.size());  // not const: it is wiped at the end
+        digest_type u{};
+        digest_type t{};
+        std::size_t written = 0;
+        for (std::uint32_t block = 1; written < output.size(); ++block) {
+            // INT(i): the block's index, four octets, most significant first.
+            const std::array<unsigned char, 4> index{
+                static_cast<unsigned char>(block >> 24U), static_cast<unsigned char>(block >> 16U),
+                static_cast<unsigned char>(block >> 8U), static_cast<unsigned char>(block)};
+            Hmac mac = keyed;
+            mac.update(salt.data(), salt.size());
+            mac.update(index.data(), index.size());
+            u = mac.result();
+            t = u;
+            for (std::uint64_t j = 1; j < iterations; ++j) {
+                mac = keyed;
+                mac.update(u.data(), u.size());
+                u = mac.result();
+                for (std::size_t k = 0; k < t.size(); ++k) {
+                    t[k] ^= u[k];
+                }
+            }
+            wipe_object(mac);
+            const std::size_t n = std::min(t.size(), output.size() - written);
+            std::memcpy(output.data() + written, t.data(), n);
+            written += n;
+        }
+        wipe_object(u);
+        wipe_object(t);
+        wipe_object(keyed);
+        return {};
     }
 };
 

@@ -20,6 +20,7 @@
 #include <webcpp/hash/hkdf.hpp>
 #include <webcpp/hash/hmac.hpp>
 #include <webcpp/hash/kdf.hpp>
+#include <webcpp/hash/pbkdf2.hpp>
 
 // keccak_256 when the program links XKCP (/third_party//xkcp defines WEBCPP_HASH_HAS_XKCP).
 #ifdef WEBCPP_HASH_HAS_XKCP

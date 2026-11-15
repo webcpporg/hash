@@ -33,7 +33,8 @@ webcpp.headers-alone hash : ../include :
     hash/error.hpp
     hash/hkdf.hpp
     hash/hmac.hpp
-    hash/kdf.hpp ;
+    hash/kdf.hpp
+    hash/pbkdf2.hpp ;
 # keccak.hpp compiles alone only with XKCP, whose target defines
 # WEBCPP_HASH_HAS_XKCP (without it, it stops with its message).
 webcpp.headers-alone hash : ../include : hash/keccak.hpp : <library>/third_party//xkcp ;
@@ -82,6 +83,12 @@ hash-run blake3_vectors : blake3_vectors_test.cpp
 hash-run hkdf_hash2 : hkdf_hash2_test.cpp ;
 hash-run hkdf_guards : hkdf_guards_test.cpp ;
 hash-run wipe : wipe_test.cpp : <define>WEBCPP_HASH_DETAIL_TEST_WIPE_RECORD ;
+
+# PBKDF2 (RFC 8018) on backends::hash2: RFC 6070's cases and RFC 7914's two;
+# RFC 6070's case 4 (16,777,216 iterations) alone; the guards at their limits.
+hash-run pbkdf2_hash2 : pbkdf2_hash2_test.cpp ;
+hash-run pbkdf2_rfc6070_long : pbkdf2_rfc6070_long_test.cpp ;
+hash-run pbkdf2_guards : pbkdf2_guards_test.cpp ;
 
 build-project messages ;
 

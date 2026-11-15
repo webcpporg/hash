@@ -7,13 +7,15 @@
 // detail::wipe zeroes every byte it is given and none around it; detail::exceeds compares in 64
 // bits on every target. Built with WEBCPP_HASH_DETAIL_TEST_WIPE_RECORD, every wipe is reported
 // to this test once its bytes are zero, so that the test checks the whole sequence of wipes HKDF's
-// engine on backends::hash2 does (spec section 6.1): each one's size, in order, its bytes zero.
+// and PBKDF2's engines on backends::hash2 do (spec section 6.1): each one's size, in order, its
+// bytes zero.
 
 #include <webcpp/hash/backends/hash2.hpp>
 #include <webcpp/hash/detail/limits.hpp>
 #include <webcpp/hash/detail/wipe.hpp>
 #include <webcpp/hash/hkdf.hpp>
 #include <webcpp/hash/hmac.hpp>
+#include <webcpp/hash/pbkdf2.hpp>
 
 #include <boost/core/lightweight_test.hpp>
 
@@ -143,11 +145,32 @@ void test_hkdf() {
     BOOST_TEST(taken().empty());
 }
 
+// PBKDF2 over hmac_sha2_256 with an output of two blocks (64 bytes) and three iterations: each
+// block's mac, then U, T and the keyed hmac.
+void test_pbkdf2() {
+    using hmac = hash::hmac_sha2_256;
+    using backend = hash::backends::hash2;
+    constexpr std::size_t mac = sizeof(hmac);
+    constexpr std::size_t digest = 32;
+    const std::vector<std::uint8_t> password(8, 0x70);
+    const std::vector<std::uint8_t> salt(4, 0x73);
+    std::vector<std::uint8_t> output(64);
+    static_cast<void>(taken());
+
+    BOOST_TEST((hash::pbkdf2<hmac, backend>(output, password, salt, 3).has_value()));
+    BOOST_TEST((taken() == std::vector<std::size_t>{mac, mac, digest, digest, mac}));
+
+    // A guard's refusal wipes nothing.
+    BOOST_TEST((hash::pbkdf2<hmac, backend>(output, password, salt, 0).has_error()));
+    BOOST_TEST(taken().empty());
+}
+
 }  // namespace
 
 int main() {
     test_wipe();
     test_exceeds();
     test_hkdf();
+    test_pbkdf2();
     return webcpp::test::exit_status(boost::report_errors());
 }

@@ -24,7 +24,8 @@
                 "include/webcpp/hash/detail/ranking.hpp",
                 "include/webcpp/hash/detail/wipe.hpp",
                 "include/webcpp/hash/hkdf.hpp",
-                "include/webcpp/hash/kdf.hpp"
+                "include/webcpp/hash/kdf.hpp",
+                "include/webcpp/hash/pbkdf2.hpp"
             ],
             "must-not-include": [
                 "xkcp", "blake3", "sodium", "bearssl", "openssl/",
