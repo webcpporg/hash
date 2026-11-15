@@ -51,6 +51,13 @@
             ],
             "must-not-include": ["xkcp", "blake3", "sodium", "openssl/"],
             "why": "backends::bearssl links BearSSL alone (spec section 2.12)"
+        },
+        {
+            "headers": [
+                "include/webcpp/hash/backends/sodium.hpp"
+            ],
+            "must-not-include": ["xkcp", "blake3", "bearssl", "openssl/"],
+            "why": "backends::sodium links libsodium alone (spec section 2.13)"
         }
     ]
 }

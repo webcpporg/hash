@@ -10,6 +10,7 @@
 #include <webcpp/hash/config.hpp>
 
 #include <cstdint>
+#include <span>
 
 namespace webcpp::hash::detail {
 
@@ -25,6 +26,23 @@ namespace webcpp::hash::detail {
 */
 inline bool exceeds(std::uint64_t value, std::uint64_t limit) noexcept {
     return value > limit;
+}
+
+/** The byte that @ref nonnull points at for an empty span: a constant, so that no write reaches it.
+ */
+inline constexpr std::uint8_t nonnull_byte = 0;
+
+/**
+ The pointer to pass for a parameter a C library declares `nonnull`: the span's `data()`, or the
+ address of @ref nonnull_byte when the span is empty, since an empty span's `data()` may be null.
+ The length passed with it stays the span's, zero. Only the pointers libsodium declares nonnull
+ go through it (HKDF-Extract's IKM, scrypt's password and salt, Argon2id's password).
+
+ @param bytes The input.
+ @return A pointer that is never null.
+*/
+inline std::uint8_t const* nonnull(std::span<std::uint8_t const> bytes) noexcept {
+    return bytes.empty() ? &nonnull_byte : bytes.data();
 }
 
 }  // namespace webcpp::hash::detail

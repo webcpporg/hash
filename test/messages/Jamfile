@@ -15,3 +15,6 @@ build-project bearssl_not_linked ;
 build-project expand_on_bearssl ;
 build-project bearssl_hmac ;
 build-project pbkdf2_on_bearssl ;
+build-project sodium_not_linked ;
+build-project sodium_hmac ;
+build-project pbkdf2_on_sodium ;

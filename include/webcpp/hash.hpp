@@ -39,4 +39,10 @@
 #include <webcpp/hash/backends/bearssl.hpp>
 #endif
 
+// backends::sodium when the program links libsodium (/third_party//sodium defines
+// WEBCPP_HASH_HAS_SODIUM).
+#ifdef WEBCPP_HASH_HAS_SODIUM
+#include <webcpp/hash/backends/sodium.hpp>
+#endif
+
 #endif  // WEBCPP_HASH_HPP

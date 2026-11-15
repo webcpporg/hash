@@ -23,4 +23,5 @@ of every version are on webcpp's index page.
 * Added HKDF (RFC 5869) over every Boost.Hash2 hmac, on backends::hash2.
 * Added PBKDF2 (RFC 8018) over every Boost.Hash2 hmac, on backends::hash2.
 * Added backends::bearssl, BearSSL's HKDF over MD5, SHA-1 and SHA-2 (hkdf alone).
+* Added backends::sodium: HKDF (RFC 5869) over libsodium's HMAC-SHA-256 and HMAC-SHA-512.
 // end::unreleased[]

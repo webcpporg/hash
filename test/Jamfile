@@ -47,6 +47,11 @@ webcpp.headers-alone hash : ../include : hash/blake3.hpp
 webcpp.headers-alone hash : ../include : hash/backends/bearssl.hpp
   : <library>/third_party//bearssl ;
 
+# backends/sodium.hpp compiles alone only with libsodium, which defines
+# WEBCPP_HASH_HAS_SODIUM (without it, it stops with its message).
+webcpp.headers-alone hash : ../include : hash/backends/sodium.hpp
+  : <library>/third_party//sodium ;
+
 # config.hpp defines WEBCPP_HASH_NO_EXCEPTIONS exactly when webcpp has no
 # exceptions, keeps it when a developer defines it, defines it when
 # WEBCPP_NO_EXCEPTIONS is, and classifies the target.
@@ -87,6 +92,18 @@ hash-run blake3_vectors : blake3_vectors_test.cpp
 hash-run hkdf_hash2 : hkdf_hash2_test.cpp ;
 hash-run hkdf_guards : hkdf_guards_test.cpp ;
 hash-run wipe : wipe_test.cpp : <define>WEBCPP_HASH_DETAIL_TEST_WIPE_RECORD ;
+
+# HKDF on backends::sodium, over libsodium's crypto_kdf_hkdf_sha256 and
+# crypto_kdf_hkdf_sha512: RFC 5869's A.1 to A.3, a SHA-512 case that backends::hash2
+# agrees with, the guards of spec 2.8, the empty inputs, and the canary.
+hash-run hkdf_sodium : hkdf_sodium_test.cpp : <library>/third_party//sodium ;
+# The engines' read of the canary survives optimisation: with the library it
+# links and runs; with another commit's canary it does not link.
+hash-run hkdf_sodium_canary : hkdf_sodium_canary_test.cpp
+  : <library>/third_party//sodium <optimization>speed ;
+webcpp.link-fail hkdf_sodium_canary_other_commit : hkdf_sodium_canary_test.cpp
+  : <library>/third_party//sodium <optimization>speed
+    <define>WEBCPP_HASH_SODIUM_CANARY_COMMIT=0000000 ;
 
 # PBKDF2 (RFC 8018) on backends::hash2: RFC 6070's cases and RFC 7914's two;
 # RFC 6070's case 4 (16,777,216 iterations) alone; the guards at their limits.

@@ -39,6 +39,9 @@
 #ifdef WEBCPP_HASH_HAS_BEARSSL
 #include <webcpp/hash/backends/bearssl.hpp>
 #endif
+#ifdef WEBCPP_HASH_HAS_SODIUM
+#include <webcpp/hash/backends/sodium.hpp>
+#endif
 
 #include <boost/system/result.hpp>
 
