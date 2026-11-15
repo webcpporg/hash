@@ -18,6 +18,23 @@
         },
         {
             "headers": [
+                "include/webcpp/hash/backends/hash2.hpp",
+                "include/webcpp/hash/detail/engines.hpp",
+                "include/webcpp/hash/detail/limits.hpp",
+                "include/webcpp/hash/detail/ranking.hpp",
+                "include/webcpp/hash/detail/wipe.hpp",
+                "include/webcpp/hash/hkdf.hpp",
+                "include/webcpp/hash/kdf.hpp"
+            ],
+            "must-not-include": [
+                "xkcp", "blake3", "sodium", "bearssl", "openssl/",
+                "webcpp/hash/backends/sodium", "webcpp/hash/backends/bearssl",
+                "webcpp/hash/backends/openssl"
+            ],
+            "why": "the key derivations' layer and backends::hash2 need nothing but Boost: a program that names no other backend links no C library (spec sections 2.12 and 2.13)"
+        },
+        {
+            "headers": [
                 "include/webcpp/hash/detail/xkcp.hpp",
                 "include/webcpp/hash/keccak.hpp"
             ],

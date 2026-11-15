@@ -7,5 +7,6 @@
 # Each message test in a directory of its own: a directory's Jamfile gives its
 # case the requirements that raise the message, and nothing else.
 
+build-project kdf_not_digest ;
 build-project xkcp_not_linked ;
 build-project blake3_not_linked ;

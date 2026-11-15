@@ -23,10 +23,17 @@ rule hash-run ( name : sources + : requirements * : targets * )
 webcpp.headers-alone hash : ../include :
     hash.hpp
     hash/algorithms.hpp
+    hash/backends/hash2.hpp
     hash/config.hpp
+    hash/detail/engines.hpp
+    hash/detail/limits.hpp
+    hash/detail/ranking.hpp
+    hash/detail/wipe.hpp
     hash/detail/xkcp.hpp
     hash/error.hpp
-    hash/hmac.hpp ;
+    hash/hkdf.hpp
+    hash/hmac.hpp
+    hash/kdf.hpp ;
 # keccak.hpp compiles alone only with XKCP, whose target defines
 # WEBCPP_HASH_HAS_XKCP (without it, it stops with its message).
 webcpp.headers-alone hash : ../include : hash/keccak.hpp : <library>/third_party//xkcp ;
@@ -68,6 +75,13 @@ hash-run blake3 : blake3_test.cpp : <library>/third_party//blake3 ;
 hash-run blake3_vectors : blake3_vectors_test.cpp
   : <library>/third_party//blake3 <library>/third_party//blake3_vectors
     <library>/webcpp//boost_json ;
+
+# HKDF (RFC 5869) on backends::hash2: the RFC's seven cases and three more
+# computed by Python's hmac; the guards at their limits; the wipes, each one
+# reported through the seam WEBCPP_HASH_DETAIL_TEST_WIPE_RECORD.
+hash-run hkdf_hash2 : hkdf_hash2_test.cpp ;
+hash-run hkdf_guards : hkdf_guards_test.cpp ;
+hash-run wipe : wipe_test.cpp : <define>WEBCPP_HASH_DETAIL_TEST_WIPE_RECORD ;
 
 build-project messages ;
 
