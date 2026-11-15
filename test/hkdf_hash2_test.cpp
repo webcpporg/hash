@@ -72,49 +72,60 @@ void check(const rfc5869_case& c) {
 // stream's report. SHA3-256's salt is longer than its block (136 bytes), so the hmac hashes it;
 // BLAKE2b's is empty; each output ends inside a block.
 constexpr rfc5869_case sha3_256_case{
-    "sha3_256",
-    "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
-    "202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f"
-    "404142434445464748494a4b4c4d4e4f",
-    "606162636465666768696a6b6c6d6e6f707172737475767778797a7b7c7d7e7f"
-    "808182838485868788898a8b8c8d8e8f909192939495969798999a9b9c9d9e9f"
-    "a0a1a2a3a4a5a6a7a8a9aaabacadaeafb0b1b2b3b4b5b6b7b8b9babbbcbdbebf"
-    "c0c1c2c3c4c5c6c7c8c9cacbcccdcecfd0d1d2d3d4d5d6d7d8d9dadbdcdddedf"
-    "e0e1e2e3e4e5e6e7e8e9eaebecedeeeff0f1f2f3f4f5",
-    "b0b1b2b3b4b5b6b7b8b9babbbcbdbebfc0c1c2c3c4c5c6c7c8c9cacbcccdcecf"
-    "d0d1d2d3d4d5d6d7d8d9dadbdcdddedfe0e1e2e3e4e5e6e7e8e9eaebecedeeef"
-    "f0f1f2f3f4f5f6f7f8f9fafbfcfdfeff",
-    100,
-    "a8460495f6165e6bed5f5c86effd16aac659dd9269d55f236af7f3a1f0934303",
-    "332794d33dcae7ddb1b4bda2eaf3057152461e1d50fc3c5e3a87d749fdbd0d49"
-    "e49809140691c3f60be467dc8edb01294b15d78dae540846262238524496fb42"
-    "9818bd4b682569cabe12c4c2c9e71efa17471399bb5f0ae72a541913771f6279"
-    "4b5b7c8b"};
+    .hash = "sha3_256",
+    .ikm =
+        "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
+        "202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f"
+        "404142434445464748494a4b4c4d4e4f",
+    .salt =
+        "606162636465666768696a6b6c6d6e6f707172737475767778797a7b7c7d7e7f"
+        "808182838485868788898a8b8c8d8e8f909192939495969798999a9b9c9d9e9f"
+        "a0a1a2a3a4a5a6a7a8a9aaabacadaeafb0b1b2b3b4b5b6b7b8b9babbbcbdbebf"
+        "c0c1c2c3c4c5c6c7c8c9cacbcccdcecfd0d1d2d3d4d5d6d7d8d9dadbdcdddedf"
+        "e0e1e2e3e4e5e6e7e8e9eaebecedeeeff0f1f2f3f4f5",
+    .info =
+        "b0b1b2b3b4b5b6b7b8b9babbbcbdbebfc0c1c2c3c4c5c6c7c8c9cacbcccdcecf"
+        "d0d1d2d3d4d5d6d7d8d9dadbdcdddedfe0e1e2e3e4e5e6e7e8e9eaebecedeeef"
+        "f0f1f2f3f4f5f6f7f8f9fafbfcfdfeff",
+    .length = 100,
+    .prk = "a8460495f6165e6bed5f5c86effd16aac659dd9269d55f236af7f3a1f0934303",
+    .okm =
+        "332794d33dcae7ddb1b4bda2eaf3057152461e1d50fc3c5e3a87d749fdbd0d49"
+        "e49809140691c3f60be467dc8edb01294b15d78dae540846262238524496fb42"
+        "9818bd4b682569cabe12c4c2c9e71efa17471399bb5f0ae72a541913771f6279"
+        "4b5b7c8b",
+};
 
 constexpr rfc5869_case blake2b_512_case{
-    "blake2b_512",
-    "0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b",
-    "",
-    "",
-    200,
-    "39db468c9289015fd163c86a299ef5a95942835aed7103a2b9f30cc796e2d058"
-    "6fc284a024c25fb18699c78e47273346fa35f076ac315e5906fe170ba1877c63",
-    "817520332f597bd8f557a4b40fddfe7674f1edac6c8a1a36fa0546b649bfae4a"
-    "2ed3f34d03fdef572d515780475d1abac98e7c7079880fe6e4e91a714b5cca4d"
-    "e894b07019568c0fffb84ed89457fbb98ef7dfdeb366829ce61c7d42a45928d9"
-    "cf2451709b5fa184a857d90f1d272fc70e8296ade68cfcf1cf8e9770664148c6"
-    "7a1440926bfb33a6e15fd28e32c56f4d6e74f0fd4d94ff1bd18850e73fb7af3c"
-    "07d217335a7fa4dd3cf37c73ba78dfc6b672d6fd1139913d2d0a54b388192f4d"
-    "70c37e29f668d638"};
+    .hash = "blake2b_512",
+    .ikm = "0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b",
+    .salt = "",
+    .info = "",
+    .length = 200,
+    .prk =
+        "39db468c9289015fd163c86a299ef5a95942835aed7103a2b9f30cc796e2d058"
+        "6fc284a024c25fb18699c78e47273346fa35f076ac315e5906fe170ba1877c63",
+    .okm =
+        "817520332f597bd8f557a4b40fddfe7674f1edac6c8a1a36fa0546b649bfae4a"
+        "2ed3f34d03fdef572d515780475d1abac98e7c7079880fe6e4e91a714b5cca4d"
+        "e894b07019568c0fffb84ed89457fbb98ef7dfdeb366829ce61c7d42a45928d9"
+        "cf2451709b5fa184a857d90f1d272fc70e8296ade68cfcf1cf8e9770664148c6"
+        "7a1440926bfb33a6e15fd28e32c56f4d6e74f0fd4d94ff1bd18850e73fb7af3c"
+        "07d217335a7fa4dd3cf37c73ba78dfc6b672d6fd1139913d2d0a54b388192f4d"
+        "70c37e29f668d638",
+};
 
-constexpr rfc5869_case ripemd_160_case{"ripemd_160",
-                                       "0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b",
-                                       "000102030405060708090a0b0c",
-                                       "f0f1f2f3f4f5f6f7f8f9",
-                                       50,
-                                       "ee783bc4f2019faf334ec85c466822125ec783fd",
-                                       "8e2a6e5c36796c02636a4246873f35edf59684f394da0ec847b3643a"
-                                       "a1f0059ce97de9843cf9db968a8869ce411dd40b12a6"};
+constexpr rfc5869_case ripemd_160_case{
+    .hash = "ripemd_160",
+    .ikm = "0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b",
+    .salt = "000102030405060708090a0b0c",
+    .info = "f0f1f2f3f4f5f6f7f8f9",
+    .length = 50,
+    .prk = "ee783bc4f2019faf334ec85c466822125ec783fd",
+    .okm =
+        "8e2a6e5c36796c02636a4246873f35edf59684f394da0ec847b3643a"
+        "a1f0059ce97de9843cf9db968a8869ce411dd40b12a6",
+};
 
 }  // namespace
 

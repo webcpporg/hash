@@ -160,10 +160,10 @@ template <class Hmac, class Kdf>
 struct default_kdf {
 #ifdef WEBCPP_HASH_WEBASSEMBLY
     /** The order of this target's choice. */
-    using order = typename ranking<Kdf, Hmac>::by_size;
+    using order = ranking<Kdf, Hmac>::by_size;
 #else
     /** The order of this target's choice. */
-    using order = typename ranking<Kdf, Hmac>::by_throughput;
+    using order = ranking<Kdf, Hmac>::by_throughput;
 #endif
     /** The chosen backend. */
     using type = std::conditional_t<is_digest_hmac<Hmac>::value,
@@ -181,7 +181,7 @@ struct default_kdf {
  @tparam Hmac A Boost.Hash2 hmac. @tparam Kdf `kdfs::hkdf` (the default) or `kdfs::pbkdf2`.
 */
 template <class Hmac, class Kdf = kdfs::hkdf>
-using default_kdf_backend = typename detail::default_kdf<Hmac, Kdf>::type;
+using default_kdf_backend = detail::default_kdf<Hmac, Kdf>::type;
 
 }  // namespace webcpp::hash
 

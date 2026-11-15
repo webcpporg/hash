@@ -30,19 +30,21 @@
 namespace hash = webcpp::hash;
 
 namespace test_backends {
+namespace {
 
 // A backend whose engine writes into the output, then fails: the public function zeroes it.
 struct failing {};
 
+}  // namespace
 }  // namespace test_backends
 
 template <>
 struct webcpp::hash::detail::pbkdf2_engine<test_backends::failing, webcpp::hash::hmac_sha2_256> {
     static boost::system::result<void> derive(std::span<std::uint8_t> output,
-                                              std::span<std::uint8_t const>,
-                                              std::span<std::uint8_t const>,
-                                              std::uint64_t) noexcept {
-        std::fill(output.begin(), output.end(), std::uint8_t{0x55});
+                                              std::span<std::uint8_t const> /*password*/,
+                                              std::span<std::uint8_t const> /*salt*/,
+                                              std::uint64_t /*iterations*/) noexcept {
+        std::ranges::fill(output, std::uint8_t{0x55});
         return webcpp::hash::error::backend_failure;
     }
 };
@@ -58,7 +60,7 @@ constexpr std::uint8_t untouched = 0xaa;
 constexpr std::uint64_t longest = ((std::uint64_t{1} << 32U) - 1) * 32;
 
 bool all_of(std::span<std::uint8_t const> bytes, std::uint8_t value) {
-    return std::all_of(bytes.begin(), bytes.end(), [value](std::uint8_t b) { return b == value; });
+    return std::ranges::all_of(bytes, [value](std::uint8_t b) { return b == value; });
 }
 
 const std::array<std::uint8_t, 8> password{'p', 'a', 's', 's', 'w', 'o', 'r', 'd'};

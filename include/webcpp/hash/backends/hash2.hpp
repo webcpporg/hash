@@ -46,7 +46,7 @@ namespace webcpp::hash::detail {
 template <class Hmac>
 struct hkdf_engine<backends::hash2, Hmac> {
     /** The hmac's result, a `digest<N>`: the PRK and each block T(i). */
-    using digest_type = typename Hmac::result_type;
+    using digest_type = Hmac::result_type;
 
     /**
      RFC 5869, 2.2: PRK = HMAC-Hash(salt, IKM). An empty salt is HashLen zeros, which Hash2's
@@ -108,8 +108,12 @@ struct hkdf_engine<backends::hash2, Hmac> {
         std::span<std::uint8_t> output, std::span<std::uint8_t const> salt,
         std::span<std::uint8_t const> ikm, std::span<std::uint8_t const> info) noexcept {
         auto prk = extract(salt, ikm);
-        auto done = expand(output, std::span<std::uint8_t const>(prk->data(), prk->size()), info);
-        wipe_object(*prk);
+        if (!prk) {
+            return prk.error();
+        }
+        digest_type& key = prk.unsafe_value();
+        auto done = expand(output, std::span<std::uint8_t const>(key.data(), key.size()), info);
+        wipe_object(key);
         return done;
     }
 };
@@ -133,7 +137,7 @@ struct pbkdf2_engine<backends::hash2, Hmac> {
                                               std::span<std::uint8_t const> password,
                                               std::span<std::uint8_t const> salt,
                                               std::uint64_t iterations) noexcept {
-        using digest_type = typename Hmac::result_type;
+        using digest_type = Hmac::result_type;
         Hmac keyed(password.data(), password.size());  // not const: it is wiped at the end
         digest_type u{};
         digest_type t{};
@@ -141,8 +145,11 @@ struct pbkdf2_engine<backends::hash2, Hmac> {
         for (std::uint32_t block = 1; written < output.size(); ++block) {
             // INT(i): the block's index, four octets, most significant first.
             const std::array<unsigned char, 4> index{
-                static_cast<unsigned char>(block >> 24U), static_cast<unsigned char>(block >> 16U),
-                static_cast<unsigned char>(block >> 8U), static_cast<unsigned char>(block)};
+                static_cast<unsigned char>(block >> 24U),
+                static_cast<unsigned char>(block >> 16U),
+                static_cast<unsigned char>(block >> 8U),
+                static_cast<unsigned char>(block),
+            };
             Hmac mac = keyed;
             mac.update(salt.data(), salt.size());
             mac.update(index.data(), index.size());

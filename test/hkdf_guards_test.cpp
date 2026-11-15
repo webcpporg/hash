@@ -27,33 +27,34 @@
 namespace hash = webcpp::hash;
 
 namespace test_backends {
+namespace {
 
 // A backend whose engine writes into the output, then fails: the public function zeroes it.
 struct failing {};
 
+}  // namespace
 }  // namespace test_backends
 
 template <>
 struct webcpp::hash::detail::hkdf_engine<test_backends::failing, webcpp::hash::hmac_sha2_256> {
     using digest_type = webcpp::hash::hmac_sha2_256::result_type;
 
-    static boost::system::result<digest_type> extract(std::span<std::uint8_t const>,
-                                                      std::span<std::uint8_t const>) noexcept {
+    static boost::system::result<digest_type> extract(
+        std::span<std::uint8_t const> /*salt*/, std::span<std::uint8_t const> /*ikm*/) noexcept {
         return webcpp::hash::error::backend_failure;
     }
 
     static boost::system::result<void> expand(std::span<std::uint8_t> output,
-                                              std::span<std::uint8_t const>,
-                                              std::span<std::uint8_t const>) noexcept {
-        std::fill(output.begin(), output.end(), std::uint8_t{0x55});
+                                              std::span<std::uint8_t const> /*prk*/,
+                                              std::span<std::uint8_t const> /*info*/) noexcept {
+        std::ranges::fill(output, std::uint8_t{0x55});
         return webcpp::hash::error::backend_failure;
     }
 
-    static boost::system::result<void> extract_and_expand(std::span<std::uint8_t> output,
-                                                          std::span<std::uint8_t const>,
-                                                          std::span<std::uint8_t const>,
-                                                          std::span<std::uint8_t const>) noexcept {
-        std::fill(output.begin(), output.end(), std::uint8_t{0x55});
+    static boost::system::result<void> extract_and_expand(
+        std::span<std::uint8_t> output, std::span<std::uint8_t const> /*salt*/,
+        std::span<std::uint8_t const> /*ikm*/, std::span<std::uint8_t const> /*info*/) noexcept {
+        std::ranges::fill(output, std::uint8_t{0x55});
         return webcpp::hash::error::backend_failure;
     }
 };
@@ -66,11 +67,12 @@ using backend = hash::backends::hash2;
 constexpr std::uint8_t untouched = 0xaa;
 
 std::vector<std::uint8_t> filled(std::size_t size, std::uint8_t value) {
-    return std::vector<std::uint8_t>(size, value);
+    std::vector<std::uint8_t> bytes(size, value);
+    return bytes;
 }
 
 bool all_of(std::span<std::uint8_t const> bytes, std::uint8_t value) {
-    return std::all_of(bytes.begin(), bytes.end(), [value](std::uint8_t b) { return b == value; });
+    return std::ranges::all_of(bytes, [value](std::uint8_t b) { return b == value; });
 }
 
 // hkdf_expand on an output of `size` bytes from a buffer of 0xaa with one byte more, past its
@@ -93,24 +95,26 @@ boost::system::result<void> hkdf_into(std::vector<std::uint8_t>& buffer, std::si
     return hash::hkdf<hmac, backend>(std::span<std::uint8_t>(buffer.data(), size), salt, ikm, info);
 }
 
+// hkdf_expand (with a valid PRK and info), or hkdf, on an output of `size` bytes.
+boost::system::result<void> derive_into(bool together, std::vector<std::uint8_t>& buffer,
+                                        std::size_t size) {
+    return together ? hkdf_into(buffer, size, 10) : expand_into(buffer, size, 32, 10);
+}
+
 void test_output_size() {
     std::vector<std::uint8_t> buffer;
-    for (auto* call :
-         {+[](std::vector<std::uint8_t>& b, std::size_t size) {
-              return expand_into(b, size, 32, 10);
-          },
-          +[](std::vector<std::uint8_t>& b, std::size_t size) { return hkdf_into(b, size, 10); }}) {
-        auto refused = call(buffer, 0);
-        BOOST_TEST(refused.has_error() && refused.error() == hash::error::invalid_output_size);
+    for (const bool together : {false, true}) {
+        const auto empty = derive_into(together, buffer, 0);
+        BOOST_TEST(empty.has_error() && empty.error() == hash::error::invalid_output_size);
         BOOST_TEST(all_of(buffer, untouched));
 
-        auto longest = call(buffer, 8160);
+        const auto longest = derive_into(together, buffer, 8160);
         BOOST_TEST(longest.has_value());
         BOOST_TEST(!all_of(std::span<std::uint8_t const>(buffer.data() + 8128, 32), untouched));
         BOOST_TEST_EQ(buffer.back(), untouched);
 
-        refused = call(buffer, 8161);
-        BOOST_TEST(refused.has_error() && refused.error() == hash::error::invalid_output_size);
+        const auto one_more = derive_into(together, buffer, 8161);
+        BOOST_TEST(one_more.has_error() && one_more.error() == hash::error::invalid_output_size);
         BOOST_TEST(all_of(buffer, untouched));
     }
 }
@@ -118,7 +122,7 @@ void test_output_size() {
 void test_prk_size() {
     std::vector<std::uint8_t> buffer;
     for (const std::size_t size : {std::size_t{0}, std::size_t{31}, std::size_t{33}}) {
-        auto refused = expand_into(buffer, 42, size, 10);
+        const auto refused = expand_into(buffer, 42, size, 10);
         BOOST_TEST(refused.has_error() && refused.error() == hash::error::invalid_key_size);
         BOOST_TEST(all_of(buffer, untouched));
     }
@@ -170,7 +174,7 @@ void test_empty_inputs() {
 }
 
 void test_backend_failure() {
-    using failing = test_backends::failing;
+    using test_backends::failing;
     std::vector<std::uint8_t> output(42, untouched);
     const auto prk = filled(32, 0x0b);
     const auto info = filled(10, 0xf0);
@@ -184,7 +188,7 @@ void test_backend_failure() {
     BOOST_TEST(failed.has_error() && failed.error() == hash::error::backend_failure);
     BOOST_TEST(all_of(output, 0));
 
-    auto no_prk = hash::hkdf_extract<hmac, failing>(info, prk);
+    const auto no_prk = hash::hkdf_extract<hmac, failing>(info, prk);
     BOOST_TEST(no_prk.has_error() && no_prk.error() == hash::error::backend_failure);
 
     // A guard's refusal reaches no backend: the failing one does not touch the output.

@@ -31,7 +31,7 @@ struct backend_list {};
 */
 using portable_order = backend_list<backends::hash2, backends::sodium, backends::bearssl>;
 
-#if defined(WEBCPP_TARGET_WASIP2)
+#ifdef WEBCPP_TARGET_WASIP2
 
 /** The orders of an algorithm's backends on this target, as on the native target. */
 template <class Algorithm, class Hmac>
