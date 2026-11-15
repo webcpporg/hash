@@ -69,9 +69,10 @@ namespace webcpp::hash {
  untouched; or the backend's failure, `output` zeroed.
 */
 template <class Hmac, class Backend = default_kdf_backend<Hmac, kdfs::pbkdf2>>
-boost::system::result<void> pbkdf2(std::span<std::uint8_t> output,
-                                   std::span<std::uint8_t const> password,
-                                   std::span<std::uint8_t const> salt, std::uint64_t iterations) {
+[[nodiscard]] boost::system::result<void> pbkdf2(std::span<std::uint8_t> output,
+                                                 std::span<std::uint8_t const> password,
+                                                 std::span<std::uint8_t const> salt,
+                                                 std::uint64_t iterations) {
     if constexpr (!detail::takes_hmac<Hmac>()) {
         return error::backend_failure;  // unreachable: takes_hmac has stopped the build
     } else {

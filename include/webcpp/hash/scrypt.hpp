@@ -94,10 +94,10 @@ constexpr bool scrypt_valid_n(std::uint64_t n, std::uint32_t r) noexcept {
  128 r N bytes cannot be allocated, or `backend_failure`, `output` zeroed.
 */
 template <class Backend = default_backend<kdfs::scrypt>>
-boost::system::result<void> scrypt(std::span<std::uint8_t> output,
-                                   std::span<std::uint8_t const> password,
-                                   std::span<std::uint8_t const> salt,
-                                   scrypt_parameters const& parameters) {
+[[nodiscard]] boost::system::result<void> scrypt(std::span<std::uint8_t> output,
+                                                 std::span<std::uint8_t const> password,
+                                                 std::span<std::uint8_t const> salt,
+                                                 scrypt_parameters const& parameters) {
     using engine = detail::scrypt_engine<Backend>;
     using limits = detail::backend_limits<Backend>;
     auto const [n, r, p] = parameters;

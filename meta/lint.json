@@ -1,0 +1,3 @@
+{
+    "nodiscard-results": "a dropped result, a derivation's or a backend's refusal at run time, would pass as a success and leave the output unwritten"
+}

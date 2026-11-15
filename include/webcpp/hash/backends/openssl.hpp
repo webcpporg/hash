@@ -292,8 +292,8 @@ inline OSSL_PARAM openssl_text(char const* key, char const* text) noexcept {
  @return Success; `errc::not_enough_memory` when the last error OpenSSL raised is an allocation's;
  `error::backend_failure` for any other failure.
 */
-inline boost::system::result<void> openssl_kdf(char const* kdf, std::span<std::uint8_t> output,
-                                               std::span<OSSL_PARAM> params) noexcept {
+[[nodiscard]] inline boost::system::result<void> openssl_kdf(
+    char const* kdf, std::span<std::uint8_t> output, std::span<OSSL_PARAM> params) noexcept {
     ERR_set_mark();
     EVP_KDF* algorithm = EVP_KDF_fetch(nullptr, kdf, nullptr);
     EVP_KDF_CTX* context = algorithm != nullptr ? EVP_KDF_CTX_new(algorithm) : nullptr;
@@ -341,8 +341,8 @@ struct hkdf_engine<backends::openssl, Hmac> {
      @param salt The salt. @param ikm The input keying material.
      @return The PRK, or OpenSSL's failure.
     */
-    static boost::system::result<digest_type> extract(std::span<std::uint8_t const> salt,
-                                                      std::span<std::uint8_t const> ikm) noexcept {
+    [[nodiscard]] static boost::system::result<digest_type> extract(
+        std::span<std::uint8_t const> salt, std::span<std::uint8_t const> ikm) noexcept {
         int mode = extract_only;
         std::array<OSSL_PARAM, 5> params{
             openssl_text("digest", openssl_digest<Hmac>()),
@@ -353,7 +353,7 @@ struct hkdf_engine<backends::openssl, Hmac> {
         };
         // The PRK is derived into the result returned, whose wiping is the caller's: one return of
         // that one object, so that it is constructed in the caller's slot and no copy is left here.
-        boost::system::result<digest_type> prk(boost::system::in_place_value);
+        boost::system::result<digest_type> prk{boost::system::in_place_value};
         digest_type& key = prk.unsafe_value();
         const auto done =
             openssl_kdf("HKDF", std::span<std::uint8_t>(key.data(), key.size()), params);
@@ -370,9 +370,9 @@ struct hkdf_engine<backends::openssl, Hmac> {
      @param output The OKM, its size L. @param prk The PRK. @param info The info.
      @return Success, or OpenSSL's failure.
     */
-    static boost::system::result<void> expand(std::span<std::uint8_t> output,
-                                              std::span<std::uint8_t const> prk,
-                                              std::span<std::uint8_t const> info) noexcept {
+    [[nodiscard]] static boost::system::result<void> expand(
+        std::span<std::uint8_t> output, std::span<std::uint8_t const> prk,
+        std::span<std::uint8_t const> info) noexcept {
         int mode = expand_only;
         std::array<OSSL_PARAM, 5> params{
             openssl_text("digest", openssl_digest<Hmac>()),
@@ -391,7 +391,7 @@ struct hkdf_engine<backends::openssl, Hmac> {
      @param info The info.
      @return Success, or OpenSSL's failure.
     */
-    static boost::system::result<void> extract_and_expand(
+    [[nodiscard]] static boost::system::result<void> extract_and_expand(
         std::span<std::uint8_t> output, std::span<std::uint8_t const> salt,
         std::span<std::uint8_t const> ikm, std::span<std::uint8_t const> info) noexcept {
         int mode = both;
@@ -423,10 +423,10 @@ struct pbkdf2_engine<backends::openssl, Hmac> {
      @param iterations c.
      @return Success, or OpenSSL's failure.
     */
-    static boost::system::result<void> derive(std::span<std::uint8_t> output,
-                                              std::span<std::uint8_t const> password,
-                                              std::span<std::uint8_t const> salt,
-                                              std::uint64_t iterations) noexcept {
+    [[nodiscard]] static boost::system::result<void> derive(std::span<std::uint8_t> output,
+                                                            std::span<std::uint8_t const> password,
+                                                            std::span<std::uint8_t const> salt,
+                                                            std::uint64_t iterations) noexcept {
         int pkcs5 = 1;
         std::array<OSSL_PARAM, 6> params{
             openssl_text("digest", openssl_digest<Hmac>()),

@@ -121,7 +121,8 @@ inline bool sodium_ready() noexcept {
  @param status libsodium's return. @param error_number `errno` after the call.
  @return Success for 0, else the failure.
 */
-inline boost::system::result<void> sodium_pwhash_status(int status, int error_number) noexcept {
+[[nodiscard]] inline boost::system::result<void> sodium_pwhash_status(int status,
+                                                                      int error_number) noexcept {
     if (status == 0) {
         return {};
     }
@@ -220,12 +221,12 @@ struct sodium_hkdf_engine {
      @param salt The salt. @param ikm The input keying material.
      @return The PRK, or `error::backend_failure`.
     */
-    static boost::system::result<digest_type> extract(std::span<std::uint8_t const> salt,
-                                                      std::span<std::uint8_t const> ikm) noexcept {
+    [[nodiscard]] static boost::system::result<digest_type> extract(
+        std::span<std::uint8_t const> salt, std::span<std::uint8_t const> ikm) noexcept {
         // The PRK is built in the result returned and libsodium writes into it: a single return
         // path of the one named object, so that the result is constructed in the caller's place
         // (no copy or move, which would leave a PRK behind that nothing wipes).
-        boost::system::result<digest_type> prk(boost::system::in_place_value);
+        boost::system::result<digest_type> prk{boost::system::in_place_value};
         if (!sodium_ready() || Traits::extract(prk.unsafe_value().data(), salt, ikm) != 0) {
             wipe_object(prk.unsafe_value());
             prk = boost::system::result<digest_type>(error::backend_failure);
@@ -239,9 +240,9 @@ struct sodium_hkdf_engine {
      @param output The OKM, its size L. @param prk The PRK. @param info The info.
      @return Success, or `error::backend_failure`.
     */
-    static boost::system::result<void> expand(std::span<std::uint8_t> output,
-                                              std::span<std::uint8_t const> prk,
-                                              std::span<std::uint8_t const> info) noexcept {
+    [[nodiscard]] static boost::system::result<void> expand(
+        std::span<std::uint8_t> output, std::span<std::uint8_t const> prk,
+        std::span<std::uint8_t const> info) noexcept {
         if (!sodium_ready()) {
             return error::backend_failure;
         }
@@ -258,7 +259,7 @@ struct sodium_hkdf_engine {
      @param info The info.
      @return Success, or `error::backend_failure`.
     */
-    static boost::system::result<void> extract_and_expand(
+    [[nodiscard]] static boost::system::result<void> extract_and_expand(
         std::span<std::uint8_t> output, std::span<std::uint8_t const> salt,
         std::span<std::uint8_t const> ikm, std::span<std::uint8_t const> info) noexcept {
         auto prk = extract(salt, ikm);
@@ -296,20 +297,20 @@ struct hkdf_engine<backends::sodium, Hmac> {
         "hkdf alone).");
 
     /** Never called: the refusal has stopped the build. */
-    static boost::system::result<typename Hmac::result_type> extract(
+    [[nodiscard]] static boost::system::result<typename Hmac::result_type> extract(
         std::span<std::uint8_t const> /*salt*/, std::span<std::uint8_t const> /*ikm*/) noexcept {
         return error::backend_failure;
     }
 
     /** Never called: the refusal has stopped the build. */
-    static boost::system::result<void> expand(std::span<std::uint8_t> /*output*/,
-                                              std::span<std::uint8_t const> /*prk*/,
-                                              std::span<std::uint8_t const> /*info*/) noexcept {
+    [[nodiscard]] static boost::system::result<void> expand(
+        std::span<std::uint8_t> /*output*/, std::span<std::uint8_t const> /*prk*/,
+        std::span<std::uint8_t const> /*info*/) noexcept {
         return error::backend_failure;
     }
 
     /** Never called: the refusal has stopped the build. */
-    static boost::system::result<void> extract_and_expand(
+    [[nodiscard]] static boost::system::result<void> extract_and_expand(
         std::span<std::uint8_t> /*output*/, std::span<std::uint8_t const> /*salt*/,
         std::span<std::uint8_t const> /*ikm*/, std::span<std::uint8_t const> /*info*/) noexcept {
         return error::backend_failure;
@@ -330,10 +331,9 @@ struct pbkdf2_engine<backends::sodium, Hmac> {
                   "(every hmac but hmac_ripemd_128).");
 
     /** Never called: the refusal has stopped the build. */
-    static boost::system::result<void> derive(std::span<std::uint8_t> /*output*/,
-                                              std::span<std::uint8_t const> /*password*/,
-                                              std::span<std::uint8_t const> /*salt*/,
-                                              std::uint64_t /*iterations*/) noexcept {
+    [[nodiscard]] static boost::system::result<void> derive(
+        std::span<std::uint8_t> /*output*/, std::span<std::uint8_t const> /*password*/,
+        std::span<std::uint8_t const> /*salt*/, std::uint64_t /*iterations*/) noexcept {
         return error::backend_failure;
     }
 };
@@ -356,10 +356,11 @@ struct argon2id_engine<backends::sodium> {
      @param passes t. @param memory The memory in bytes, a multiple of 1,024.
      @return Success, `errc::not_enough_memory` or `error::backend_failure`.
     */
-    static boost::system::result<void> derive(std::span<std::uint8_t> output,
-                                              std::span<std::uint8_t const> password,
-                                              std::span<std::uint8_t const> salt,
-                                              std::uint64_t passes, std::size_t memory) noexcept {
+    [[nodiscard]] static boost::system::result<void> derive(std::span<std::uint8_t> output,
+                                                            std::span<std::uint8_t const> password,
+                                                            std::span<std::uint8_t const> salt,
+                                                            std::uint64_t passes,
+                                                            std::size_t memory) noexcept {
         if (!sodium_ready()) {
             return error::backend_failure;
         }
@@ -387,10 +388,11 @@ struct scrypt_engine<backends::sodium> {
      @param n N. @param r r. @param p p.
      @return Success, `errc::not_enough_memory` or `error::backend_failure`.
     */
-    static boost::system::result<void> derive(std::span<std::uint8_t> output,
-                                              std::span<std::uint8_t const> password,
-                                              std::span<std::uint8_t const> salt, std::uint64_t n,
-                                              std::uint32_t r, std::uint32_t p) noexcept {
+    [[nodiscard]] static boost::system::result<void> derive(std::span<std::uint8_t> output,
+                                                            std::span<std::uint8_t const> password,
+                                                            std::span<std::uint8_t const> salt,
+                                                            std::uint64_t n, std::uint32_t r,
+                                                            std::uint32_t p) noexcept {
         if (!sodium_ready()) {
             return error::backend_failure;
         }

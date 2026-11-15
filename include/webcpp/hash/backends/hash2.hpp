@@ -58,12 +58,12 @@ struct hkdf_engine<backends::hash2, Hmac> {
      @param salt The salt. @param ikm The input keying material.
      @return The PRK.
     */
-    static boost::system::result<digest_type> extract(std::span<std::uint8_t const> salt,
-                                                      std::span<std::uint8_t const> ikm) noexcept {
+    [[nodiscard]] static boost::system::result<digest_type> extract(
+        std::span<std::uint8_t const> salt, std::span<std::uint8_t const> ikm) noexcept {
         Hmac mac(salt.data(), salt.size());
         mac.update(ikm.data(), ikm.size());
         // The PRK is stored in the result returned, whose wiping is the caller's.
-        boost::system::result<digest_type> prk(boost::system::in_place_value, mac.result());
+        boost::system::result<digest_type> prk{boost::system::in_place_value, mac.result()};
         wipe_object(mac);
         return prk;
     }
@@ -75,9 +75,9 @@ struct hkdf_engine<backends::hash2, Hmac> {
      @param output The OKM, its size L. @param prk The PRK. @param info The info.
      @return Success.
     */
-    static boost::system::result<void> expand(std::span<std::uint8_t> output,
-                                              std::span<std::uint8_t const> prk,
-                                              std::span<std::uint8_t const> info) noexcept {
+    [[nodiscard]] static boost::system::result<void> expand(
+        std::span<std::uint8_t> output, std::span<std::uint8_t const> prk,
+        std::span<std::uint8_t const> info) noexcept {
         Hmac keyed(prk.data(), prk.size());  // not const: it is wiped at the end
         digest_type t{};
         std::size_t written = 0;
@@ -107,7 +107,7 @@ struct hkdf_engine<backends::hash2, Hmac> {
      @param info The info.
      @return Success.
     */
-    static boost::system::result<void> extract_and_expand(
+    [[nodiscard]] static boost::system::result<void> extract_and_expand(
         std::span<std::uint8_t> output, std::span<std::uint8_t const> salt,
         std::span<std::uint8_t const> ikm, std::span<std::uint8_t const> info) noexcept {
         auto prk = extract(salt, ikm);
@@ -136,10 +136,10 @@ struct pbkdf2_engine<backends::hash2, Hmac> {
      @param iterations c.
      @return Success.
     */
-    static boost::system::result<void> derive(std::span<std::uint8_t> output,
-                                              std::span<std::uint8_t const> password,
-                                              std::span<std::uint8_t const> salt,
-                                              std::uint64_t iterations) noexcept {
+    [[nodiscard]] static boost::system::result<void> derive(std::span<std::uint8_t> output,
+                                                            std::span<std::uint8_t const> password,
+                                                            std::span<std::uint8_t const> salt,
+                                                            std::uint64_t iterations) noexcept {
         using digest_type = Hmac::result_type;
         Hmac keyed(password.data(), password.size());  // not const: it is wiped at the end
         digest_type u{};

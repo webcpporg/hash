@@ -70,7 +70,7 @@ inline constexpr std::size_t hkdf_max_info_size = 32768;
  of more than `INT_MAX` bytes); or the backend's failure.
 */
 template <class Hmac, class Backend = default_kdf_backend<Hmac, kdfs::hkdf_extract>>
-boost::system::result<typename detail::hmac_result<Hmac>::type> hkdf_extract(
+[[nodiscard]] boost::system::result<typename detail::hmac_result<Hmac>::type> hkdf_extract(
     std::span<std::uint8_t const> salt, std::span<std::uint8_t const> ikm) {
     if constexpr (!detail::takes_hmac<Hmac>()) {
         return error::backend_failure;  // unreachable: takes_hmac has stopped the build
@@ -97,9 +97,9 @@ boost::system::result<typename detail::hmac_result<Hmac>::type> hkdf_extract(
  `input_too_long`), `output` untouched; or the backend's failure, `output` zeroed.
 */
 template <class Hmac, class Backend = default_kdf_backend<Hmac, kdfs::hkdf_expand>>
-boost::system::result<void> hkdf_expand(std::span<std::uint8_t> output,
-                                        std::span<std::uint8_t const> prk,
-                                        std::span<std::uint8_t const> info) {
+[[nodiscard]] boost::system::result<void> hkdf_expand(std::span<std::uint8_t> output,
+                                                      std::span<std::uint8_t const> prk,
+                                                      std::span<std::uint8_t const> info) {
     if constexpr (!detail::takes_hmac<Hmac>()) {
         return error::backend_failure;  // unreachable: takes_hmac has stopped the build
     } else {
@@ -144,9 +144,10 @@ boost::system::result<void> hkdf_expand(std::span<std::uint8_t> output,
  failure, `output` zeroed.
 */
 template <class Hmac, class Backend = default_kdf_backend<Hmac>>
-boost::system::result<void> hkdf(std::span<std::uint8_t> output, std::span<std::uint8_t const> salt,
-                                 std::span<std::uint8_t const> ikm,
-                                 std::span<std::uint8_t const> info) {
+[[nodiscard]] boost::system::result<void> hkdf(std::span<std::uint8_t> output,
+                                               std::span<std::uint8_t const> salt,
+                                               std::span<std::uint8_t const> ikm,
+                                               std::span<std::uint8_t const> info) {
     if constexpr (!detail::takes_hmac<Hmac>()) {
         return error::backend_failure;  // unreachable: takes_hmac has stopped the build
     } else {

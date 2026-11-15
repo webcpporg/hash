@@ -26,4 +26,5 @@ of every version are on webcpp's index page.
 * Added the per-algorithm overrides WEBCPP_HASH_DEFAULT_BACKEND_<ALGORITHM>_<NAME>, of HKDF, PBKDF2, argon2id and scrypt, and the capability table doc/capabilities.json.
 * Added the measured tables (doc/measurements.*): each backend's size and throughput per target, which order the defaults, and allocation tests: none in hash's code.
 * Added the guide: chapters per family and per use case, an example per section, generated tables and llms.txt, and a Boost.Hash2 proposal of keccak_224 to keccak_512.
+* Added [[nodiscard]] to every function that returns boost::system::result, which meta/lint.json asks the lint's nodiscard results rule to hold.
 // end::unreleased[]

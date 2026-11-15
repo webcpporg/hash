@@ -180,11 +180,10 @@ struct argon2id_engine {
     static constexpr argon2id_limits limits{0};
 
     /** Never called: the refusal has stopped the build. */
-    static boost::system::result<void> derive(std::span<std::uint8_t> /*output*/,
-                                              std::span<std::uint8_t const> /*password*/,
-                                              std::span<std::uint8_t const> /*salt*/,
-                                              std::uint64_t /*passes*/,
-                                              std::size_t /*memory*/) noexcept {
+    [[nodiscard]] static boost::system::result<void> derive(
+        std::span<std::uint8_t> /*output*/, std::span<std::uint8_t const> /*password*/,
+        std::span<std::uint8_t const> /*salt*/, std::uint64_t /*passes*/,
+        std::size_t /*memory*/) noexcept {
         return error::backend_failure;
     }
 };
@@ -214,11 +213,10 @@ struct scrypt_engine {
     static constexpr scrypt_limits limits{0};
 
     /** Never called: the refusal has stopped the build. */
-    static boost::system::result<void> derive(std::span<std::uint8_t> /*output*/,
-                                              std::span<std::uint8_t const> /*password*/,
-                                              std::span<std::uint8_t const> /*salt*/,
-                                              std::uint64_t /*n*/, std::uint32_t /*r*/,
-                                              std::uint32_t /*p*/) noexcept {
+    [[nodiscard]] static boost::system::result<void> derive(
+        std::span<std::uint8_t> /*output*/, std::span<std::uint8_t const> /*password*/,
+        std::span<std::uint8_t const> /*salt*/, std::uint64_t /*n*/, std::uint32_t /*r*/,
+        std::uint32_t /*p*/) noexcept {
         return error::backend_failure;
     }
 };

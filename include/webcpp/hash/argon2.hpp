@@ -100,10 +100,10 @@ inline constexpr std::size_t argon2id_memory_unit = 1024;
  zeroed.
 */
 template <class Backend = default_backend<kdfs::argon2id>>
-boost::system::result<void> argon2id(std::span<std::uint8_t> output,
-                                     std::span<std::uint8_t const> password,
-                                     std::span<std::uint8_t const> salt,
-                                     argon2id_parameters const& parameters) {
+[[nodiscard]] boost::system::result<void> argon2id(std::span<std::uint8_t> output,
+                                                   std::span<std::uint8_t const> password,
+                                                   std::span<std::uint8_t const> salt,
+                                                   argon2id_parameters const& parameters) {
     using engine = detail::argon2id_engine<Backend>;
     using limits = detail::backend_limits<Backend>;
     if (output.size() < detail::argon2id_min_output_size ||

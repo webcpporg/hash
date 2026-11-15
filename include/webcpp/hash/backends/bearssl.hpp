@@ -170,7 +170,7 @@ struct hkdf_engine<backends::bearssl, Hmac> {
 
      @return Never: the program does not compile.
     */
-    static boost::system::result<digest_type> extract(
+    [[nodiscard]] static boost::system::result<digest_type> extract(
         std::span<std::uint8_t const> /*salt*/, std::span<std::uint8_t const> /*ikm*/) noexcept {
         static_assert(always_false<Hmac>,
                       "webcpp::hash: hkdf_extract and hkdf_expand are not in backends::bearssl, "
@@ -184,9 +184,9 @@ struct hkdf_engine<backends::bearssl, Hmac> {
 
      @return Never: the program does not compile.
     */
-    static boost::system::result<void> expand(std::span<std::uint8_t> /*output*/,
-                                              std::span<std::uint8_t const> /*prk*/,
-                                              std::span<std::uint8_t const> /*info*/) noexcept {
+    [[nodiscard]] static boost::system::result<void> expand(
+        std::span<std::uint8_t> /*output*/, std::span<std::uint8_t const> /*prk*/,
+        std::span<std::uint8_t const> /*info*/) noexcept {
         static_assert(always_false<Hmac>,
                       "webcpp::hash: hkdf_extract and hkdf_expand are not in backends::bearssl, "
                       "whose HKDF does both steps together: call hkdf, or name backends::hash2, "
@@ -203,7 +203,7 @@ struct hkdf_engine<backends::bearssl, Hmac> {
      @param info The info.
      @return Success, or `error::backend_failure` when BearSSL produced fewer bytes than asked.
     */
-    static boost::system::result<void> extract_and_expand(
+    [[nodiscard]] static boost::system::result<void> extract_and_expand(
         std::span<std::uint8_t> output, std::span<std::uint8_t const> salt,
         std::span<std::uint8_t const> ikm, std::span<std::uint8_t const> info) noexcept {
         touch_bearssl_canary();
@@ -237,10 +237,9 @@ struct pbkdf2_engine<backends::bearssl, Hmac> {
 
      @return Never: the program does not compile.
     */
-    static boost::system::result<void> derive(std::span<std::uint8_t> /*output*/,
-                                              std::span<std::uint8_t const> /*password*/,
-                                              std::span<std::uint8_t const> /*salt*/,
-                                              std::uint64_t /*iterations*/) noexcept {
+    [[nodiscard]] static boost::system::result<void> derive(
+        std::span<std::uint8_t> /*output*/, std::span<std::uint8_t const> /*password*/,
+        std::span<std::uint8_t const> /*salt*/, std::uint64_t /*iterations*/) noexcept {
         return error::backend_failure;
     }
 };
