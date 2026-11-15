@@ -52,7 +52,7 @@ struct random_hkdf_case {
     std::vector<std::uint8_t> salt;
     std::vector<std::uint8_t> ikm;
     std::vector<std::uint8_t> info;
-    std::size_t output;
+    std::size_t output = 0;
 };
 
 // Case `index` of HKDF over a digest of `digest` bytes: the first four are the empty inputs (every
@@ -62,10 +62,22 @@ struct random_hkdf_case {
 inline random_hkdf_case next_hkdf_case(random_source& rnd, std::size_t index, std::size_t digest) {
     const std::size_t longest = 255 * digest;
     switch (index) {
-        case 0: return {{}, {}, {}, 1};
-        case 1: return {{}, {}, {}, longest};
-        case 2: return {{}, rnd.bytes(rnd.between(1, 64)), rnd.bytes(rnd.between(0, 64)), digest};
-        case 3: return {rnd.bytes(rnd.between(1, 64)), {}, rnd.bytes(rnd.between(0, 64)), digest};
+        case 0: return {.salt = {}, .ikm = {}, .info = {}, .output = 1};
+        case 1: return {.salt = {}, .ikm = {}, .info = {}, .output = longest};
+        case 2:
+            return {
+                .salt = {},
+                .ikm = rnd.bytes(rnd.between(1, 64)),
+                .info = rnd.bytes(rnd.between(0, 64)),
+                .output = digest,
+            };
+        case 3:
+            return {
+                .salt = rnd.bytes(rnd.between(1, 64)),
+                .ikm = {},
+                .info = rnd.bytes(rnd.between(0, 64)),
+                .output = digest,
+            };
         default: break;
     }
     const std::size_t output =
@@ -86,24 +98,43 @@ inline random_hkdf_case next_hkdf_case(random_source& rnd, std::size_t index, st
 struct random_pbkdf2_case {
     std::vector<std::uint8_t> password;
     std::vector<std::uint8_t> salt;
-    std::uint64_t iterations;
-    std::size_t output;
+    std::uint64_t iterations = 1;
+    std::size_t output = 0;
 };
 
 // Case `index` of PBKDF2 over a digest of `digest` bytes: the first three are the empty inputs
 // (both empty, then each alone), the others random sizes, up to 300 bytes for an input, 1 to 40
-// iterations and up to 3 digests of output.
+// iterations (every 50th case 1,000 to 3,000) and up to 3 digests of output.
 inline random_pbkdf2_case next_pbkdf2_case(random_source& rnd, std::size_t index,
                                            std::size_t digest) {
     switch (index) {
-        case 0: return {{}, {}, 1, digest};
-        case 1: return {{}, rnd.bytes(rnd.between(1, 64)), 2, rnd.between(1, 2 * digest)};
-        case 2: return {rnd.bytes(rnd.between(1, 64)), {}, 2, rnd.between(1, 2 * digest)};
+        case 0:
+            return {
+                .password = {},
+                .salt = {},
+                .iterations = 1,
+                .output = digest,
+            };
+        case 1:
+            return {
+                .password = {},
+                .salt = rnd.bytes(rnd.between(1, 64)),
+                .iterations = 2,
+                .output = rnd.between(1, 2 * digest),
+            };
+        case 2:
+            return {
+                .password = rnd.bytes(rnd.between(1, 64)),
+                .salt = {},
+                .iterations = 2,
+                .output = rnd.between(1, 2 * digest),
+            };
         default: break;
     }
     const std::size_t password = rnd.between(0, 300);
     const std::size_t salt = rnd.between(0, 300);
-    const std::size_t iterations = rnd.between(1, 40);
+    // Every 50th case, a few thousand iterations; the others 1 to 40.
+    const std::size_t iterations = index % 50 == 25 ? rnd.between(1000, 3000) : rnd.between(1, 40);
     const std::size_t output = rnd.between(1, std::size_t{3} * digest);
     random_pbkdf2_case c;
     c.password = rnd.bytes(password);

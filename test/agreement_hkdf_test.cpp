@@ -19,12 +19,14 @@
 
 #include <webcpp/test/exit_status.hpp>
 
+#include "support/agreement_expect.hpp"
 #include "support/random_cases.hpp"
 
 #include <cstddef>
 #include <cstdint>
 #include <span>
 #include <string>
+#include <string_view>
 #include <type_traits>
 #include <vector>
 
@@ -73,6 +75,39 @@ void add_ways(std::vector<way>& ways, const char* name) {
     }
 }
 
+// The names of the backends of `ways`, each once, in order.
+std::string backends_of(const std::vector<way>& ways) {
+    std::string names;
+    for (const way& w : ways) {
+        if (names.find(w.name) != std::string::npos) {
+            continue;
+        }
+        if (!names.empty()) {
+            names += ',';
+        }
+        names += w.name;
+    }
+    return names;
+}
+
+// Every way against the first (backends::hash2's `hkdf`) on `c`: every pair, by transitivity.
+void compare(const std::vector<way>& ways, const random_hkdf_case& c) {
+    std::vector<std::uint8_t> reference;
+    std::vector<std::uint8_t> other;
+    const bool first = ways[0].derive(reference, c);
+    BOOST_TEST(first);
+    if (!first) {
+        return;
+    }
+    for (std::size_t w = 1; w < ways.size(); ++w) {
+        const bool done = ways[w].derive(other, c);
+        BOOST_TEST(done);
+        if (done) {
+            BOOST_TEST(other == reference);
+        }
+    }
+}
+
 template <class Hmac>
 void agree(const char* hmac_name) {
     std::vector<way> ways;
@@ -81,21 +116,20 @@ void agree(const char* hmac_name) {
     add_ways<Hmac, hash::backends::bearssl>(ways, "bearssl");
     add_ways<Hmac, hash::backends::openssl>(ways, "openssl");
 
+    // The backends compared against the table written out in agreement_expect.hpp, so that a
+    // library lost from the Jamfile fails here instead of shrinking the comparison.
+    BOOST_TEST_EQ(backends_of(ways), webcpp::test::expected_hkdf_backends<Hmac>());
+    if (ways.empty() || std::string_view(ways[0].name) != "hash2") {
+        BOOST_ERROR("agreement_hkdf: the first way is not backends::hash2");
+        return;
+    }
+
     constexpr std::size_t digest = typename Hmac::result_type().size();
     webcpp::test::random_source rnd(webcpp::test::agreement_seed);
-    std::vector<std::uint8_t> reference;
-    std::vector<std::uint8_t> other;
     for (std::size_t i = 0; i < webcpp::test::agreement_cases; ++i) {
         const auto c = webcpp::test::next_hkdf_case(rnd, i, digest);
         const int before = boost::report_errors();
-        if (!BOOST_TEST(ways[0].derive(reference, c))) {
-            continue;
-        }
-        for (std::size_t w = 1; w < ways.size(); ++w) {
-            if (BOOST_TEST(ways[w].derive(other, c))) {
-                BOOST_TEST(other == reference);
-            }
-        }
+        compare(ways, c);
         if (boost::report_errors() != before) {
             BOOST_LIGHTWEIGHT_TEST_OSTREAM << "agreement_hkdf: " << hmac_name << " case " << i
                                            << " seed " << webcpp::test::agreement_seed << " salt "
@@ -103,7 +137,6 @@ void agree(const char* hmac_name) {
                                            << c.info.size() << " output " << c.output << "\n";
         }
     }
-    // Every way was compared to the first (backends::hash2's `hkdf`): every pair, by transitivity.
 }
 
 }  // namespace

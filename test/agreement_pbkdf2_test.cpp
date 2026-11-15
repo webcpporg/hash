@@ -8,8 +8,8 @@
 // seeded random cases per hmac, the empty inputs first (spec section 7.2). Per hmac, backend_has_v
 // and the program's links pick the backends: backends::hash2 always, then openssl where the
 // Jamfile links it (sodium and BearSSL have no PBKDF2; OpenSSL is absent on Emscripten, where
-// backends::hash2 alone remains and the test compares it with itself). A difference is a bug of
-// webcpp's code. The lengths stay within every backend's limits (ruling R24).
+// backends::hash2 alone remains: the test asserts that, and compares nothing there). A difference
+// is a bug of webcpp's code. The lengths stay within every backend's limits (ruling R24).
 
 #include <webcpp/hash/hmac.hpp>
 #include <webcpp/hash/pbkdf2.hpp>
@@ -18,10 +18,13 @@
 
 #include <webcpp/test/exit_status.hpp>
 
+#include "support/agreement_expect.hpp"
 #include "support/random_cases.hpp"
 
 #include <cstddef>
 #include <cstdint>
+#include <string>
+#include <string_view>
 #include <vector>
 
 namespace hash = webcpp::hash;
@@ -53,6 +56,36 @@ void add_way(std::vector<way>& ways, const char* name) {
     }
 }
 
+// The names of `ways`, in order, one per backend.
+std::string backends_of(const std::vector<way>& ways) {
+    std::string names;
+    for (const way& w : ways) {
+        if (!names.empty()) {
+            names += ',';
+        }
+        names += w.name;
+    }
+    return names;
+}
+
+// Every way against the first (backends::hash2's) on `c`: every pair, by transitivity.
+void compare(const std::vector<way>& ways, const random_pbkdf2_case& c) {
+    std::vector<std::uint8_t> reference;
+    std::vector<std::uint8_t> other;
+    const bool first = ways[0].derive(reference, c);
+    BOOST_TEST(first);
+    if (!first) {
+        return;
+    }
+    for (std::size_t w = 1; w < ways.size(); ++w) {
+        const bool done = ways[w].derive(other, c);
+        BOOST_TEST(done);
+        if (done) {
+            BOOST_TEST(other == reference);
+        }
+    }
+}
+
 template <class Hmac>
 void agree(const char* hmac_name) {
     std::vector<way> ways;
@@ -61,21 +94,21 @@ void agree(const char* hmac_name) {
     add_way<Hmac, hash::backends::bearssl>(ways, "bearssl");
     add_way<Hmac, hash::backends::openssl>(ways, "openssl");
 
+    // The backends compared against the table written out in agreement_expect.hpp. On Emscripten
+    // that is backends::hash2 alone (no other library has PBKDF2 there): the test expects exactly
+    // that and compares hash2's output with nothing but its own success.
+    BOOST_TEST_EQ(backends_of(ways), webcpp::test::expected_pbkdf2_backends<Hmac>());
+    if (ways.empty() || std::string_view(ways[0].name) != "hash2") {
+        BOOST_ERROR("agreement_pbkdf2: the first way is not backends::hash2");
+        return;
+    }
+
     constexpr std::size_t digest = typename Hmac::result_type().size();
     webcpp::test::random_source rnd(webcpp::test::agreement_seed);
-    std::vector<std::uint8_t> reference;
-    std::vector<std::uint8_t> other;
     for (std::size_t i = 0; i < webcpp::test::agreement_cases; ++i) {
         const auto c = webcpp::test::next_pbkdf2_case(rnd, i, digest);
         const int before = boost::report_errors();
-        if (!BOOST_TEST(ways[0].derive(reference, c))) {
-            continue;
-        }
-        for (std::size_t w = 1; w < ways.size(); ++w) {
-            if (BOOST_TEST(ways[w].derive(other, c))) {
-                BOOST_TEST(other == reference);
-            }
-        }
+        compare(ways, c);
         if (boost::report_errors() != before) {
             BOOST_LIGHTWEIGHT_TEST_OSTREAM
                 << "agreement_pbkdf2: " << hmac_name << " case " << i << " seed "
@@ -84,7 +117,6 @@ void agree(const char* hmac_name) {
                 << "\n";
         }
     }
-    // Every backend was compared to the first (backends::hash2's): every pair, by transitivity.
 }
 
 }  // namespace
