@@ -102,8 +102,8 @@ Fast hashes for hash tables, checksums against accidents and identifiers that no
 - I need to compute a Nostr event id: sha2_256 over NIP-01's serialization (a domain library's step); backend: none: one backend; example libs/hash/example/nostr_event_id.cpp. [Section](https://webcpporg.github.io/libs/hash/#hash-p2p-nostr)
 - I need to derive NIP-44's conversation key: hkdf_extract over hmac_sha2_256 with the salt nip44-v2 (a domain library's step); backend: the default; example libs/hash/example/nip44_conversation_key.cpp. [Section](https://webcpporg.github.io/libs/hash/#hash-p2p-nip44)
 - I need to draw a long stream of pseudorandom bytes from a seed: shake_128 or shake_256, or blake3's squeeze; backend: none: one backend; example libs/hash/example/sha3_shake.cpp. [Section](https://webcpporg.github.io/libs/hash/#hash-sha3)
-- I need to the smallest WebAssembly program: the default (on WebAssembly, the smallest linked backend), and link only the libraries the program uses; backend: WEBCPP_HASH_PROFILE_SMALLEST, or nothing: it is the default on WebAssembly; example libs/hash/example/hkdf_backends.cpp. [Section](https://webcpporg.github.io/libs/hash/#hash-profile)
-- I need to the same code, and the same results, on every target: the portable profile; backend: WEBCPP_HASH_PROFILE_PORTABLE; example libs/hash/example/hkdf_backends.cpp. [Section](https://webcpporg.github.io/libs/hash/#hash-profile)
+- I need to build the smallest WebAssembly program: the default (on WebAssembly, the smallest linked backend), and link only the libraries the program uses; backend: WEBCPP_HASH_PROFILE_SMALLEST, or nothing: it is the default on WebAssembly; example libs/hash/example/hkdf_backends.cpp. [Section](https://webcpporg.github.io/libs/hash/#hash-profile)
+- I need to run the same code, with the same results, on every target: the portable profile; backend: WEBCPP_HASH_PROFILE_PORTABLE; example libs/hash/example/hkdf_backends.cpp. [Section](https://webcpporg.github.io/libs/hash/#hash-profile)
 
 ## Data
 

@@ -173,9 +173,9 @@ inline constexpr bool linked_v<backends::openssl> = true;
 #endif
 
 /**
- The algorithm whose override `Algorithm` follows (spec 4.1, ruling R29): HKDF for its two steps,
- else `Algorithm` itself. Its ranking is its own: `ranking<Algorithm, Hmac>` holds a row per
- operation.
+ The algorithm whose override `Algorithm` follows (spec 4.1): HKDF for its two steps, which an
+ override of HKDF applies to both, else `Algorithm` itself. Its ranking is its own:
+ `ranking<Algorithm, Hmac>` holds a row per operation.
 
  @tparam Algorithm A tag of `kdfs`.
 */

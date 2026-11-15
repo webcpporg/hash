@@ -22,7 +22,21 @@ b2 -a --build-dir=bin/lane-native libs/hash/test libs/hash/example
 b2 -a --build-dir=bin/lane-wasip2 toolset=clang-wasip2 testing.launcher=tools/boost/asio-wasip2/run.sh libs/hash/test libs/hash/example
 b2 -a --build-dir=bin/lane-wasip3 toolset=clang-wasip3 testing.launcher=tools/boost/asio-wasip3/run.sh libs/hash/test libs/hash/example
 b2 -a --build-dir=bin/lane-emscripten toolset=emscripten libs/hash/test libs/hash/example
+b2 -a --build-dir=bin/lane-gcc-15 toolset=gcc-15 libs/hash/test libs/hash/example
 ```
+
+Two own lanes run outside those. `c-suites` builds the C libraries' own test programs on every
+target, and `measure` builds one program per cell of the capability table on every target in
+one command, then checks the committed measurements; it needs the WebAssembly toolsets
+(`clang-wasip2`, `clang-wasip3`, `emscripten`) to be set up beside the native one:
+
+```
+b2 -a --build-dir=bin/lane-c-suites libs/hash/test/c_suites//c-suites
+b2 -a --build-dir=bin/lane-measure libs/hash/test/measure//measure
+```
+
+The user Jamfiles of the library (each line of the specification's section 5.1, as a user
+writes it) are built with b2 as a user runs it by `python3 tools/test/hash_jamfiles_test.py`.
 
 A program names `/webcpp/hash//hash` and the C library of each part it uses.
 

@@ -29,8 +29,10 @@ pass, with further cases computed by an independent implementation (Python's
 inputs, on every target where one exists: natively OpenSSL, libsodium and
 BearSSL; on WebAssembly libsodium and BearSSL, and the browser's WebCrypto on
 Emscripten;
-* every intermediate value is wiped before the function returns, which a test
-observes wipe by wipe;
+* every intermediate value that webcpp holds is wiped before the function
+returns, which a test observes wipe by wipe; Boost.Hash2's own temporaries (the
+padded key inside the constructor of `hmac` and the inner digest of its
+`result()`) are not reached, and <<hash-backend-conditions>> says so;
 * it never compares a secret.
 
 [#hash-departures-keccak]

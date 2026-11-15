@@ -18,7 +18,7 @@ webcpp.same-program unused_blake3 : app.cpp : /third_party//blake3
 webcpp.same-program unused_sodium : app.cpp : /third_party//sodium
   : native wasip2 wasip3 : <library>/webcpp/hash//hash ;
 # On Emscripten /third_party//sodium links its programs with
-# -sALLOW_MEMORY_GROWTH=1 (third_party/Jamfile; ruling R32): there the flag is
+# -sALLOW_MEMORY_GROWTH=1 (third_party/Jamfile): there the flag is
 # naming libsodium's one difference. The program without the library gets the
 # flag explicitly (the one with it gets it from the library too), and the two
 # must be the same bytes: nothing of libsodium's code is added, only the flag.

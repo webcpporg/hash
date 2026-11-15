@@ -739,7 +739,7 @@
         {"need": "compute a Nostr event id", "use": "sha2_256 over NIP-01's serialization (a domain library's step)", "function": "sha2_256", "profile": "none: one backend", "example": "nostr_event_id.cpp", "anchor": "hash-p2p-nostr"},
         {"need": "derive NIP-44's conversation key", "use": "hkdf_extract over hmac_sha2_256 with the salt nip44-v2 (a domain library's step)", "function": "hkdf_extract", "profile": "the default", "example": "nip44_conversation_key.cpp", "anchor": "hash-p2p-nip44"},
         {"need": "draw a long stream of pseudorandom bytes from a seed", "use": "shake_128 or shake_256, or blake3's squeeze", "function": "shake_128", "profile": "none: one backend", "example": "sha3_shake.cpp", "anchor": "hash-sha3"},
-        {"need": "the smallest WebAssembly program", "use": "the default (on WebAssembly, the smallest linked backend), and link only the libraries the program uses", "function": "hkdf", "profile": "WEBCPP_HASH_PROFILE_SMALLEST, or nothing: it is the default on WebAssembly", "example": "hkdf_backends.cpp", "anchor": "hash-profile"},
-        {"need": "the same code, and the same results, on every target", "use": "the portable profile", "function": "hkdf", "profile": "WEBCPP_HASH_PROFILE_PORTABLE", "example": "hkdf_backends.cpp", "anchor": "hash-profile"}
+        {"need": "build the smallest WebAssembly program", "use": "the default (on WebAssembly, the smallest linked backend), and link only the libraries the program uses", "function": "hkdf", "profile": "WEBCPP_HASH_PROFILE_SMALLEST, or nothing: it is the default on WebAssembly", "example": "hkdf_backends.cpp", "anchor": "hash-profile"},
+        {"need": "run the same code, with the same results, on every target", "use": "the portable profile", "function": "hkdf", "profile": "WEBCPP_HASH_PROFILE_PORTABLE", "example": "hkdf_backends.cpp", "anchor": "hash-profile"}
     ]
 }

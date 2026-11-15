@@ -34,6 +34,6 @@ webcpp.run pbkdf2_sha512_key : pbkdf2_sha512.cpp : $(.requirements) ;
 
 # The same program at variant=release, which the own lane measure
 # (test/measure/Jamfile) builds on the four targets and tools/hash/measure.py
-# --check runs with no argument, its correctness test (ruling R31).
+# --check runs with no argument, its correctness test (on every target).
 exe pbkdf2_sha512 : pbkdf2_sha512.cpp : $(.requirements) <variant>release ;
 explicit pbkdf2_sha512 ;

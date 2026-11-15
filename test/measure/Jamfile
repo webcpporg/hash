@@ -5,7 +5,7 @@
 # https://www.boost.org/LICENSE_1_0.txt)
 
 # The measured table (spec section 4.2), the own lane measure, one command
-# for the four targets (ruling R17):
+# for the four targets:
 #
 #     b2 -a --build-dir=bin/lane-measure libs/hash/test/measure//measure
 #
@@ -16,14 +16,15 @@
 # speed-<cell> at optimization=speed, whose run with --time is its
 # throughput. Each is named with the toolset of its target (native: the
 # command's), so that one build makes them all. measure-programs-<target>-
-# <space|speed|bench>.txt lists them, and bench/'s correctness program
-# (ruling R31). The lane builds the programs for size and bench's: its check,
-# tools/hash/measure.py --check over their lists, runs each once and fails
-# when a program of a cell is missing on a target, when a result is wrong,
-# when the order by size of a row differs from doc/measurements.json (the
-# native rows only when the native toolchain is the one that measured them,
-# ruling R34), or when a generated file was edited by hand, naming
-# `python3 tools/hash/measure.py --write`, which builds every program
+# <space|speed|bench>.txt lists them, and bench/'s correctness program (run
+# on every target). The lane builds the programs for size and bench's: its
+# check, tools/hash/measure.py --check over their lists, runs each once and
+# fails when a program of a cell is missing on a target, when a result is
+# wrong, when the order by size of a row differs from
+# doc/measurements.json (the native rows only when the native toolchain is
+# the one that measured them, because the native orders hold for the
+# toolchain that measured them), or when a generated file was edited by hand,
+# naming `python3 tools/hash/measure.py --write`, which builds every program
 # (measure-programs), measures and writes them. A program b2 would skip
 # (<build>no) skips the check with it, without a word: the witness, built
 # after it, stops the build when the check was not generated. None of these

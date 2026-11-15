@@ -1,13 +1,13 @@
 {
-  "about": "webcpp::hash's measured table (spec section 4.2): the size of one program per cell of doc/capabilities.json on each target, and its throughput, which detail/ranking.hpp orders the backends by. Written by tools/hash/measure.py --write; the documentation renders from it (ruling R21).",
+  "about": "webcpp::hash's measured table (spec section 4.2): the size of one program per cell of doc/capabilities.json on each target, and its throughput, which detail/ranking.hpp orders the backends by. Written by tools/hash/measure.py --write; the documentation renders from it.",
   "version": 1,
   "layout": {
     "schema": "This description. The version of the layout is \"version\"; a change of layout raises it. Written only by tools/hash/measure.py; \"digest\" is the SHA-256 of the file without it, which the measure lane checks.",
     "date, machine, load_average_before_after, loaded, rules.loaded": "when and where the measurements were made; loaded says whether the machine was shared and loaded",
     "toolchains, runtimes, strip, pins, builds": "the compiler per target, wasmtime and node, the strip of the native sizes, each backend's library and pin (from doc/capabilities.json), and the two builds",
-    "native_toolchain": "what the native orders were measured with: the compiler, the host's operating system and processor, and the strip; the lane compares the native size orders only where its own is the same (ruling R34)",
+    "native_toolchain": "what the native orders were measured with: the compiler, the host's operating system and processor, and the strip; the lane compares the native size orders only where its own is the same",
     "workloads": "per function, what one computation does (spec 4.2)",
-    "records[]": "one per cell and target: operation (the function of doc/capabilities.json), hmac (or null), backend, target, size_bytes, result (the hexadecimal output, the same for every backend and target of an operation and hmac), throughput (repetitions, invocations, runs_per_invocation, invocation_medians_ns, median_ns, min_ns, max_ns: nanoseconds per computation) or null with throughput_absent saying why. operation, hmac, backend and target are the keys of doc/measurements.throughput.json's cases too, which the documentation joins on them (ruling R21); constant time is doc/capabilities.json's (ruling R26).",
+    "records[]": "one per cell and target: operation (the function of doc/capabilities.json), hmac (or null), backend, target, size_bytes, result (the hexadecimal output, the same for every backend and target of an operation and hmac), throughput (repetitions, invocations, runs_per_invocation, invocation_medians_ns, median_ns, min_ns, max_ns: nanoseconds per computation) or null with throughput_absent saying why. operation, hmac, backend and target are the keys of doc/measurements.throughput.json's cases too, which the documentation joins on them; constant time is doc/capabilities.json's.",
     "orders[]": "per operation, hmac and target: by_size and by_throughput, the backends that have it there in order, and throughput_from, the target whose throughput ordered it; detail/ranking.hpp is generated from the rows of the key derivations, one per operation (hkdf_extract and hkdf_expand their own)",
     "rules": "how sizes, throughput and orders are made"
   },
@@ -119,7 +119,7 @@
   "rules": {
     "size": "the bytes of the program built at variant=release optimization=space: natively the executable stripped with strip, on WebAssembly the .wasm file",
     "throughput": "the program built at variant=release optimization=speed, run with --time: one computation to warm up, then five timed runs of the workload, each repeated `repetitions` times; per invocation the median of its five runs, per record the median of its invocations' medians, with the fastest and slowest run",
-    "order": "spec 4.2: by size, the smallest program first; by throughput, the lowest median of the invocations' medians first, a committed order changing only where a median is more than 10 percent below the median of the backend ahead of it; on a first measurement, the medians alone (an exact tie keeps the capability table's order of backends). A WebAssembly target orders by its own throughput where every backend of the row ran within the bound, else by the native order. The native orders hold for the native toolchain that measured them (native_toolchain); the lane compares them only on that toolchain (ruling R34).",
+    "order": "spec 4.2: by size, the smallest program first; by throughput, the lowest median of the invocations' medians first, a committed order changing only where a median is more than 10 percent below the median of the backend ahead of it; on a first measurement, the medians alone (an exact tie keeps the capability table's order of backends). A WebAssembly target orders by its own throughput where every backend of the row ran within the bound, else by the native order. The native orders hold for the native toolchain that measured them (native_toolchain); the lane compares them only on that toolchain.",
     "loaded": "the larger of the two 1-minute load averages exceeds the core count"
   },
   "records": [
@@ -9790,5 +9790,5 @@
       "throughput_from": "emscripten"
     }
   ],
-  "digest": "sha256:3f7e96c57902eebc942eecc4f164cdd516de671b487dfed8da181944d4a39623"
+  "digest": "sha256:e3fa11b17195307baef6621ff5ebc001230c5f7076cf8403668471b2588cb78d"
 }
