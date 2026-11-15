@@ -114,8 +114,10 @@ public:
      under the first 32 bytes, zero-padded when there are fewer, with the bytes past them
      absorbed as the start of the input and one result() taken. That result() only moves the
      output's position, which the next update() starts again: a seed of 32 bytes `K` and more
-     bytes `R`, then the input `M`, hashes as the seed `K` then the input `R` and `M`. Two seeds
-     of at most 32 bytes that differ only by trailing zero bytes are the same key.
+     bytes `R`, then the input `M`, hashes as the seed `K` then the input `R` and `M`; with no
+     update() after such a seed, the first result() returns bytes 32 to 63 of the output of
+     `K` over `R`, the next 64 to 95, and so on. Two seeds of at most 32 bytes that differ
+     only by trailing zero bytes are the same key.
 
      @param p The seed. @param n Its size.
     */

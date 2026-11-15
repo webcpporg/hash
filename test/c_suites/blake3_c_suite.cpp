@@ -226,7 +226,11 @@ int main() {
     if (!BOOST_TEST(corrupted != runs.end())) {
         return webcpp::test::exit_status(boost::report_errors());
     }
+    std::string const original = corrupted->expected;
     corrupted->expected.back() = corrupted->expected.back() == '0' ? '1' : '0';
+    // The one form a mismatch takes: never "exited N" or "printed nothing", which a broken run
+    // would give instead.
+    std::string const mismatch = corrupted->name + ": " + corrupted->expected + " != " + original;
 #endif
 
     std::vector<std::string> found;
@@ -239,10 +243,11 @@ int main() {
     }
 
 #ifdef WEBCPP_TEST_BLAKE3_CORRUPTED
-    // Every line of the corrupted run differs (one per subset of CPU features), and no other.
+    // Every line of the corrupted run is reported as that mismatch (one line per subset of CPU
+    // features), and nothing else is.
     BOOST_TEST(!found.empty());
     for (auto const& difference : found) {
-        BOOST_TEST(difference.starts_with("keyed_hash_xof(1024): "));
+        BOOST_TEST_EQ(difference, mismatch);
     }
 #else
     BOOST_TEST_EQ(runs.size(), std::size_t{6 * 35});
