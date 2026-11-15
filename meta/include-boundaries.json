@@ -32,6 +32,13 @@
         },
         {
             "headers": [
+                "include/webcpp/hash/argon2.hpp"
+            ],
+            "must-not-include": ["xkcp", "blake3", "sodium", "bearssl", "openssl/"],
+            "why": "argon2id includes no C library's header: backends::sodium's webcpp header comes in under WEBCPP_HASH_HAS_SODIUM (ruling R22; spec sections 2.10 and 2.12)"
+        },
+        {
+            "headers": [
                 "include/webcpp/hash/detail/xkcp.hpp",
                 "include/webcpp/hash/keccak.hpp"
             ],

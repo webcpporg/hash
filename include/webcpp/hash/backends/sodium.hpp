@@ -6,9 +6,16 @@
 
 /**
  `backends::sodium`: HKDF (RFC 5869) over libsodium's `crypto_kdf_hkdf_sha256_*` and
- `crypto_kdf_hkdf_sha512_*`, built from source by `/third_party//sodium`, on every target. It has
- HKDF over `hmac_sha2_256` and `hmac_sha2_512` alone, and no PBKDF2; every other hmac and PBKDF2
- refuse at compile time with spec 3.3's texts.
+ `crypto_kdf_hkdf_sha512_*`, Argon2id over `crypto_pwhash_argon2id`, built from source by
+ `/third_party//sodium`, on every target. It has HKDF over `hmac_sha2_256` and `hmac_sha2_512`
+ alone, and no PBKDF2; every other hmac and PBKDF2 refuse at compile time with spec 3.3's texts.
+
+ Argon2's core holds the password's, salt's and tag's lengths in `uint32_t`, which spec 2.10's own
+ guards already keep within (this header checks that they agree), and webcpp passes no secret or
+ associated data; HKDF's lengths are `size_t`.
+
+ On Emscripten `/third_party//sodium` links a program with `-sALLOW_MEMORY_GROWTH=1`: Argon2id
+ allocates the memory its costs name, past Emscripten's fixed 16 MiB.
 
  Every engine function calls `sodium_init()` first (it returns 0 the first time and 1 after,
  both success), so that a program that never initialised libsodium is safe.
@@ -26,18 +33,22 @@
 #else
 
 #include <webcpp/hash/detail/canary.h>
+#include <webcpp/hash/argon2.hpp>
 #include <webcpp/hash/detail/engines.hpp>
 #include <webcpp/hash/detail/limits.hpp>
 #include <webcpp/hash/detail/wipe.hpp>
 #include <webcpp/hash/error.hpp>
 #include <webcpp/hash/hmac.hpp>
 
+#include <boost/system/errc.hpp>
 #include <boost/system/result.hpp>
 
 #include <sodium/core.h>  // third_party/libs/libsodium, through /third_party//sodium
 #include <sodium/crypto_kdf_hkdf_sha256.h>  // the same
 #include <sodium/crypto_kdf_hkdf_sha512.h>  // the same
+#include <sodium/crypto_pwhash_argon2id.h>  // the same
 
+#include <cerrno>
 #include <cstddef>
 #include <cstdint>
 #include <span>
@@ -96,6 +107,24 @@ inline void touch_sodium_canary() noexcept {
 inline bool sodium_ready() noexcept {
     touch_sodium_canary();
     return sodium_init() >= 0;
+}
+
+/**
+ What a -1 of libsodium's password hashing means: `errc::not_enough_memory` when `errno` is
+ `ENOMEM`, `error::backend_failure` otherwise. The caller sets `errno` to 0 before the call, since
+ libsodium returns -1 without setting it when its core fails.
+
+ @param status libsodium's return. @param error_number `errno` after the call.
+ @return Success for 0, else the failure.
+*/
+inline boost::system::result<void> sodium_pwhash_status(int status, int error_number) noexcept {
+    if (status == 0) {
+        return {};
+    }
+    if (error_number == ENOMEM) {
+        return boost::system::errc::make_error_code(boost::system::errc::not_enough_memory);
+    }
+    return error::backend_failure;
 }
 
 /** libsodium's HKDF over SHA-256: the hmac and the two C functions it wraps. */
@@ -304,6 +333,61 @@ struct pbkdf2_engine<backends::sodium, Hmac> {
         return error::backend_failure;
     }
 };
+
+/**
+ Argon2id on backends::sodium: `crypto_pwhash_argon2id` with `crypto_pwhash_ALG_ARGON2ID13`, one
+ lane, libsodium's 16-byte salt (the engine's interface: @ref argon2id_engine).
+*/
+template <>
+struct argon2id_engine<backends::sodium> {
+    /** libsodium's `crypto_pwhash_argon2id_MEMLIMIT_MAX`: 4 TiB less 1 KiB, 2 GiB on wasm32. */
+    static constexpr argon2id_limits limits{crypto_pwhash_argon2id_MEMLIMIT_MAX};
+
+    /**
+     The tag, by `crypto_pwhash_argon2id`, which libsodium computes in a buffer of its own that it
+     wipes; webcpp holds no copy of a secret.
+
+     @param output The tag. @param password The password. @param salt The 16-byte salt.
+     @param passes t. @param memory The memory in bytes, a multiple of 1,024.
+     @return Success, `errc::not_enough_memory` or `error::backend_failure`.
+    */
+    static boost::system::result<void> derive(std::span<std::uint8_t> output,
+                                              std::span<std::uint8_t const> password,
+                                              std::span<std::uint8_t const> salt,
+                                              std::uint64_t passes, std::size_t memory) noexcept {
+        if (!sodium_ready()) {
+            return error::backend_failure;
+        }
+        errno = 0;
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): libsodium types it char
+        auto const* const passwd = reinterpret_cast<char const*>(nonnull(password));
+        int const status = crypto_pwhash_argon2id(output.data(), output.size(), passwd,
+                                                  password.size(), salt.data(), passes, memory,
+                                                  crypto_pwhash_argon2id_ALG_ARGON2ID13);
+        return sodium_pwhash_status(status, errno);
+    }
+};
+
+// argon2.hpp's presets are libsodium's.
+static_assert(argon2id_interactive.passes == crypto_pwhash_argon2id_OPSLIMIT_INTERACTIVE &&
+                  argon2id_interactive.memory == crypto_pwhash_argon2id_MEMLIMIT_INTERACTIVE,
+              "argon2id_interactive is libsodium's interactive costs");
+static_assert(argon2id_moderate.passes == crypto_pwhash_argon2id_OPSLIMIT_MODERATE &&
+                  argon2id_moderate.memory == crypto_pwhash_argon2id_MEMLIMIT_MODERATE,
+              "argon2id_moderate is libsodium's moderate costs");
+static_assert(argon2id_sensitive.passes == crypto_pwhash_argon2id_OPSLIMIT_SENSITIVE &&
+                  argon2id_sensitive.memory == crypto_pwhash_argon2id_MEMLIMIT_SENSITIVE,
+              "argon2id_sensitive is libsodium's sensitive costs");
+// argon2.hpp's guards are libsodium's bounds, so that libsodium never refuses what they pass and
+// its uint32_t lengths never narrow (ruling R24).
+static_assert(argon2id_salt_size == crypto_pwhash_argon2id_SALTBYTES);
+static_assert(argon2id_min_output_size == crypto_pwhash_argon2id_BYTES_MIN);
+static_assert(argon2id_max_size == crypto_pwhash_argon2id_BYTES_MAX);
+static_assert(argon2id_max_size == crypto_pwhash_argon2id_PASSWD_MAX);
+static_assert(argon2id_min_passes == crypto_pwhash_argon2id_OPSLIMIT_MIN);
+static_assert(argon2id_max_passes == crypto_pwhash_argon2id_OPSLIMIT_MAX);
+static_assert(argon2id_min_memory == crypto_pwhash_argon2id_MEMLIMIT_MIN);
+static_assert(crypto_pwhash_argon2id_MEMLIMIT_MAX % argon2id_memory_unit == 0);
 
 }  // namespace detail
 

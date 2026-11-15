@@ -9,11 +9,16 @@
 
 #include <webcpp/hash/config.hpp>
 
+#include <webcpp/hash/error.hpp>
+
 #include <boost/hash2/has_constant_size.hpp>
 #include <boost/hash2/hmac.hpp>
+#include <boost/system/result.hpp>
 
+#include <cstddef>
 #include <cstdint>
 #include <limits>
+#include <span>
 #include <type_traits>
 
 namespace webcpp::hash::detail {
@@ -53,6 +58,18 @@ struct backend_limits {
     static constexpr std::uint64_t pbkdf2_salt = no_limit;
     /** PBKDF2's output, within (2^32 - 1) digests. */
     static constexpr std::uint64_t pbkdf2_output = no_limit;
+    /** Argon2id's password. */
+    static constexpr std::uint64_t argon2id_password = no_limit;
+    /** Argon2id's salt. */
+    static constexpr std::uint64_t argon2id_salt = no_limit;
+    /** Argon2id's output. */
+    static constexpr std::uint64_t argon2id_output = no_limit;
+    /** scrypt's password. */
+    static constexpr std::uint64_t scrypt_password = no_limit;
+    /** scrypt's salt. */
+    static constexpr std::uint64_t scrypt_salt = no_limit;
+    /** scrypt's output. */
+    static constexpr std::uint64_t scrypt_output = no_limit;
 };
 
 /**
@@ -120,9 +137,30 @@ struct pbkdf2_engine {
                   "hmac_ripemd_128).");
 };
 
+/** The costs an Argon2id engine accepts beyond spec section 2.10's lower bounds. */
+struct argon2id_limits {
+    /** The most memory, in bytes (libsodium's `crypto_pwhash_argon2id_MEMLIMIT_MAX`). */
+    std::uint64_t memory;
+};
+
 /**
- The Argon2id of a backend (spec sections 2.10 and 2.12): `derive` and `limits`, which
- `backends::sodium` alone specialises. The primary template refuses every other backend.
+ The Argon2id of a backend (spec sections 2.10 and 2.12), which `backends::sodium` alone
+ specialises. The primary template refuses every other backend with spec 3.3's text; its members
+ exist so that the refusal is the only error.
+
+ A specialisation has a constant and a static member function, called by `argon2id` only after
+ every guard of spec 2.10 has passed, the memory a multiple of 1,024 bytes within `limits`:
+
+ @code
+ static constexpr argon2id_limits limits{...};
+ static boost::system::result<void> derive(std::span<std::uint8_t> output,
+                                           std::span<std::uint8_t const> password,
+                                           std::span<std::uint8_t const> salt,
+                                           std::uint64_t passes, std::size_t memory) noexcept;
+ @endcode
+
+ A failure is `error::backend_failure`, or `errc::not_enough_memory` when the library could not
+ allocate; the public function then zeroes the output.
 
  @tparam Backend A backend of `backends`.
 */
@@ -131,6 +169,18 @@ struct argon2id_engine {
     static_assert(always_false<Backend>,
                   "webcpp::hash: argon2id is in backends::sodium alone. Name backends::sodium "
                   "and add /third_party//sodium to the program's Jamfile.");
+
+    /** Never read: the refusal has stopped the build. */
+    static constexpr argon2id_limits limits{0};
+
+    /** Never called: the refusal has stopped the build. */
+    static boost::system::result<void> derive(std::span<std::uint8_t> /*output*/,
+                                              std::span<std::uint8_t const> /*password*/,
+                                              std::span<std::uint8_t const> /*salt*/,
+                                              std::uint64_t /*passes*/,
+                                              std::size_t /*memory*/) noexcept {
+        return error::backend_failure;
+    }
 };
 
 /**

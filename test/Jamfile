@@ -23,6 +23,7 @@ rule hash-run ( name : sources + : requirements * : targets * )
 webcpp.headers-alone hash : ../include :
     hash.hpp
     hash/algorithms.hpp
+    hash/argon2.hpp
     hash/backends/hash2.hpp
     hash/config.hpp
     hash/detail/engines.hpp
@@ -185,6 +186,17 @@ webcpp.compile-fail openssl_named_on_emscripten : hkdf_hash2_test.cpp
 hash-run webcrypto_oracle : webcrypto_oracle_test.cpp
   : <library>/third_party//sodium <library>/third_party//bearssl
     <linkflags>-sJSPI : emscripten ;
+
+# Argon2id on backends::sodium: RFC 9106's case through libsodium's core
+# argon2_ctx (four lanes, a secret, associated data); three cases of
+# libsodium's own table, argon2id against argon2_ctx on 20 random cases, the
+# guards, the presets; the interactive preset (64 MiB) in its own program.
+hash-run argon2_rfc9106 : argon2_rfc9106_test.cpp
+  : <library>/third_party//sodium <library>/third_party//sodium-test-config ;
+hash-run argon2id : argon2id_test.cpp
+  : <library>/third_party//sodium <library>/third_party//sodium-test-config ;
+hash-run argon2id_interactive : argon2id_interactive_test.cpp
+  : <library>/third_party//sodium <library>/third_party//sodium-test-config ;
 
 build-project messages ;
 
