@@ -98,7 +98,7 @@ inline bool sodium_ready() noexcept {
     return sodium_init() >= 0;
 }
 
-/** libsodium's HKDF over SHA-256: the hmac and the three C functions. */
+/** libsodium's HKDF over SHA-256: the hmac and the two C functions it wraps. */
 struct sodium_hkdf_sha256 {
     /** The hmac it serves. */
     using hmac_type = hmac_sha2_256;
@@ -113,7 +113,7 @@ struct sodium_hkdf_sha256 {
     */
     static int extract(std::uint8_t* prk, std::span<std::uint8_t const> salt,
                        std::span<std::uint8_t const> ikm) noexcept {
-        // libsodium declares the IKM nonnull; an empty span's data() may be null.
+        // SHA-256's extract declares the IKM nonnull; an empty span's data() may be null.
         return crypto_kdf_hkdf_sha256_extract(prk, salt.data(), salt.size(), nonnull(ikm),
                                               ikm.size());
     }
@@ -133,7 +133,7 @@ struct sodium_hkdf_sha256 {
     }
 };
 
-/** libsodium's HKDF over SHA-512: the hmac and the three C functions. */
+/** libsodium's HKDF over SHA-512: the hmac and the two C functions it wraps. */
 struct sodium_hkdf_sha512 {
     /** The hmac it serves. */
     using hmac_type = hmac_sha2_512;
@@ -148,7 +148,8 @@ struct sodium_hkdf_sha512 {
     */
     static int extract(std::uint8_t* prk, std::span<std::uint8_t const> salt,
                        std::span<std::uint8_t const> ikm) noexcept {
-        // libsodium declares the IKM nonnull; an empty span's data() may be null.
+        // SHA-512's extract declares no IKM nonnull; it is passed as SHA-256's is, so that the two
+        // traits are alike (a deliberate step past R11's letter, harmless).
         return crypto_kdf_hkdf_sha512_extract(prk, salt.data(), salt.size(), nonnull(ikm),
                                               ikm.size());
     }
@@ -191,9 +192,10 @@ struct sodium_hkdf_engine {
         if (!sodium_ready()) {
             return error::backend_failure;
         }
-        digest_type prk{};
-        if (Traits::extract(prk.data(), salt, ikm) != 0) {
-            wipe_object(prk);
+        // The PRK is built in the result returned, whose wiping is the caller's: no local copy.
+        boost::system::result<digest_type> prk(boost::system::in_place_value);
+        if (Traits::extract(prk.unsafe_value().data(), salt, ikm) != 0) {
+            wipe_object(prk.unsafe_value());
             return error::backend_failure;
         }
         return prk;

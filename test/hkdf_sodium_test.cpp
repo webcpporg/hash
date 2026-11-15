@@ -84,7 +84,7 @@ void check_on_both(const rfc5869_case& c) {
 // libsodium: Python 3.15.2's hmac over hashlib.sha512, RFC 5869's two steps over hmac.new; the
 // script and its output are in the stream's report. The first is A.1's shape (L = 42, inside one
 // block), the second has no salt, IKM or info (L = 71, across two blocks), the third a salt, IKM
-// and info longer than a block of 128 bytes' half and an output of 200 bytes (four blocks).
+// and info of 80 bytes each and an output of 200 bytes (four blocks).
 constexpr rfc5869_case sha512_a1_shape{
     .hash = "sha512",
     .ikm = "0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b",
@@ -155,7 +155,7 @@ bool all_of(std::span<std::uint8_t const> bytes, std::uint8_t value) {
 
 // A call of hkdf_expand (a valid PRK of the digest size), or of hkdf, into `size` bytes of a buffer
 // of 0xaa with one byte more, past its end, which no call may write.
-template <class Hmac>
+template <class Hmac, class Backend = libsodium>
 boost::system::result<void> derive_into(bool together, std::vector<std::uint8_t>& buffer,
                                         std::size_t size, std::span<std::uint8_t const> info) {
     constexpr std::size_t n = typename Hmac::result_type().size();
@@ -165,13 +165,24 @@ boost::system::result<void> derive_into(bool together, std::vector<std::uint8_t>
     buffer = filled(size + 1, untouched);
     const std::span<std::uint8_t> out(buffer.data(), size);
     if (together) {
-        return hash::hkdf<Hmac, libsodium>(out, salt, ikm, info);
+        return hash::hkdf<Hmac, Backend>(out, salt, ikm, info);
     }
-    return hash::hkdf_expand<Hmac, libsodium>(out, prk, info);
+    return hash::hkdf_expand<Hmac, Backend>(out, prk, info);
 }
 
 bool refused_with(const boost::system::result<void>& result, hash::error expected) {
     return result.has_error() && result.error() == expected;
+}
+
+// Whether libsodium's output of `size` bytes is backends::hash2's, byte for byte, the byte past it
+// included.
+template <class Hmac>
+bool agrees(bool together, std::size_t size, std::span<std::uint8_t const> info) {
+    std::vector<std::uint8_t> ours;
+    std::vector<std::uint8_t> theirs;
+    return derive_into<Hmac>(together, ours, size, info).has_value() &&
+           derive_into<Hmac, webcpp_hash2>(together, theirs, size, info).has_value() &&
+           ours == theirs;
 }
 
 // The output of 1 to 255 * n bytes, the info of at most 32,768; a refusal leaves the output (and
@@ -187,6 +198,7 @@ void test_sizes(bool together) {
     BOOST_TEST(all_of(buffer, untouched));
 
     BOOST_TEST(derive_into<Hmac>(together, buffer, 255 * n, info).has_value());
+    BOOST_TEST(agrees<Hmac>(together, 255 * n, info));
     BOOST_TEST(!all_of(std::span<std::uint8_t const>(buffer.data() + (254 * n), n), untouched));
     BOOST_TEST_EQ(buffer.back(), untouched);
 
@@ -196,6 +208,7 @@ void test_sizes(bool together) {
 
     const auto longest_info = filled(32768, 0xf0);
     BOOST_TEST(derive_into<Hmac>(together, buffer, 42, longest_info).has_value());
+    BOOST_TEST(agrees<Hmac>(together, 42, longest_info));
     BOOST_TEST(!all_of(std::span<std::uint8_t const>(buffer.data(), 42), untouched));
     const auto too_long = filled(32769, 0xf0);
     BOOST_TEST(refused_with(derive_into<Hmac>(together, buffer, 42, too_long),
