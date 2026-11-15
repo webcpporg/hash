@@ -1,0 +1,33 @@
+# Copyright (c) 2026 WebCpp.org
+#
+# Distributed under the Boost Software License, Version 1.0. (See
+# accompanying file LICENSE_1_0.txt or copy at
+# https://www.boost.org/LICENSE_1_0.txt)
+
+project : requirements <library>/webcpp/hash//hash ;
+
+import webcpp ;
+
+webcpp.targets native wasip2 wasip3 emscripten ;
+
+# Every test runs with exceptions on and off: the second program has the suffix
+# _no_exceptions and is built with exception-handling=off, which links
+# tools/throw_exception.cpp.
+rule hash-run ( name : sources + : requirements * : targets * )
+{
+    webcpp.run $(name) : $(sources) : $(requirements) : $(targets) ;
+    webcpp.run $(name)_no_exceptions : $(sources)
+      : $(requirements) <exception-handling>off : $(targets) ;
+}
+
+webcpp.headers-alone hash : ../include : hash.hpp hash/config.hpp ;
+
+# config.hpp defines WEBCPP_HASH_NO_EXCEPTIONS exactly when webcpp has no
+# exceptions, keeps it when a developer defines it, defines it when
+# WEBCPP_NO_EXCEPTIONS is, and classifies the target.
+webcpp.compile config : config_test.cpp ;
+webcpp.compile config_no_exceptions : config_test.cpp : <exception-handling>off ;
+webcpp.compile config_all_off : config_test.cpp
+  : <define>WEBCPP_NO_EXCEPTIONS <define>WEBCPP_TEST_HASH_ALL_OFF ;
+webcpp.compile config_developer_defined : config_test.cpp
+  : <define>WEBCPP_HASH_NO_EXCEPTIONS <define>WEBCPP_TEST_HASH_DEVELOPER_DEFINED ;

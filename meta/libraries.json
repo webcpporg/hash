@@ -1,0 +1,10 @@
+{
+    "key": "hash",
+    "name": "hash",
+    "authors": ["R"],
+    "description": "Hashing and key derivation: Boost.Hash2's algorithms, Keccak-256, BLAKE3, HKDF, PBKDF2, Argon2id and scrypt over C backends.",
+    "category": ["Cryptography"],
+    "maintainers": ["R <github.overboard312@passmail.net>"],
+    "cxxstd": "20",
+    "port-of": null
+}

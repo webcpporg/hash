@@ -1,0 +1,37 @@
+// Copyright (c) 2026 WebCpp.org
+//
+// Distributed under the Boost Software License, Version 1.0. (See
+// accompanying file LICENSE_1_0.txt or copy at
+// https://www.boost.org/LICENSE_1_0.txt)
+
+= hash: hashing and key derivation for {cpp}
+:toc: left
+:toclevels: 1
+:idprefix:
+:sectanchors:
+:example-caption!:
+:attribute-missing: warn
+
+hash is one entry point for hashing and key derivation in a {cpp}20 program,
+on every target webcpp has, one of the libraries of
+https://github.com/webcpporg/webcpp[webcpp]. The algorithms are Boost.Hash2's
+and those of C libraries, each a backend that the program names in its own
+Jamfile.
+
+This page teaches hash concept by concept. The <<reference,reference>> that
+closes it lists every name the headers declare.
+
+include::overview.adoc[]
+
+[#reference]
+== Reference
+
+Every name hash declares, in the namespaces `webcpp::hash` and its `backends`
+and `kdfs`, from the Doc Comments of its headers: each class, function, type
+and enumerator with its declaration, what it does, what it asks of its caller
+and how it fails. The other sections teach the library; this one is where a
+name is looked up.
+
+include::{reference}[leveloffset=+1]
+
+include::changelog.adoc[]

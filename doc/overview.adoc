@@ -1,0 +1,53 @@
+// Copyright (c) 2026 WebCpp.org
+//
+// Distributed under the Boost Software License, Version 1.0. (See
+// accompanying file LICENSE_1_0.txt or copy at
+// https://www.boost.org/LICENSE_1_0.txt)
+
+[#hash-overview]
+== Why hash
+
+webcpp::hash is one entry point for hashing and key derivation in a {cpp}
+program, on every target webcpp has: native (Linux x86-64 and arm64, macOS
+arm64, Windows with MSVC), wasip2, wasip3 and Emscripten. It is a wrapper:
+webcpp's interface over code other projects wrote.
+
+[cols="2,3"]
+|===
+| What | Where it comes from
+
+| MD5, SHA-1, SHA-2, SHA-3, SHAKE, RIPEMD, BLAKE2b/s, the non-cryptographic
+hashes, HMAC
+| Boost.Hash2, re-exported by alias
+
+| Keccak-256 with the original padding (Ethereum's)
+| XKCP's Keccak-p[1600] permutation, in Hash2's HashAlgorithm form
+
+| BLAKE3, keyed BLAKE3, BLAKE3's key derivation and its extendable output
+| the official BLAKE3 C implementation, in Hash2's HashAlgorithm form
+
+| HKDF (RFC 5869: extract, expand, extract-and-expand)
+| a backend: `backends::hash2`, `backends::sodium`, `backends::bearssl`,
+`backends::openssl`
+
+| PBKDF2 (RFC 8018)
+| a backend: `backends::hash2`, `backends::openssl`
+
+| Argon2id (RFC 9106, parallelism 1)
+| libsodium's `crypto_pwhash_argon2id`
+
+| scrypt (RFC 7914)
+| libsodium's `crypto_pwhash_scryptsalsa208sha256_ll`
+|===
+
+Every function is synchronous, reports failure as a value
+(`boost::system::result`), takes its data as `std::span`, and allocates nothing
+in webcpp's own code.
+
+[#hash-overview-not]
+=== What hash is not
+
+hash is not a new implementation of a primitive: every permutation,
+compression function and hash is Boost.Hash2's or a C library's. It is not
+webcpp::crypto either: encryption, signatures, randomness and constant-time
+comparison stay there, and `webcpp::crypto::equal` is what compares a MAC.

@@ -1,0 +1,20 @@
+# Copyright (c) 2026 WebCpp.org
+#
+# Distributed under the Boost Software License, Version 1.0. (See
+# accompanying file LICENSE_1_0.txt or copy at
+# https://www.boost.org/LICENSE_1_0.txt)
+
+# hash: hashing and key derivation over Boost.Hash2 and C backends. A program
+# names /webcpp/hash//hash and the C library of each part it uses,
+# /third_party//<name> (third_party/Jamfile), or, for OpenSSL,
+# /webcpp/hash//openssl:
+#
+#     exe app : app.cpp /webcpp/hash//hash /third_party//sodium ;
+
+import webcpp-target ;
+
+project /webcpp/hash ;
+
+# tag::hash[]
+alias hash : : : : <include>include <library>/boost//headers <library>/webcpp/config//config ;
+# end::hash[]
