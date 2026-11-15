@@ -265,14 +265,11 @@ int main() {
     longest_info();
     info_too_long();
 
-    // The default backend of a program that links OpenSSL: OpenSSL natively, the fastest;
-    // backends::hash2 on WebAssembly, the smallest (detail/ranking.hpp).
+    // The default backend of a program that links OpenSSL: of backends::hash2 and OpenSSL, the
+    // one detail/ranking.hpp's measured order puts first (natively by throughput, where the two
+    // are within the noise rule's 10 percent, on WebAssembly by size).
     using chosen = hash::default_kdf_backend<hash::hmac_sha2_256>;
-#ifdef WEBCPP_HASH_WEBASSEMBLY
-    static_assert(std::is_same_v<chosen, hash2>);
-#else
-    static_assert(std::is_same_v<chosen, openssl>);
-#endif
+    static_assert(std::is_same_v<chosen, hash2> || std::is_same_v<chosen, openssl>);
     // hmac_ripemd_128, which OpenSSL lacks, defaults to backends::hash2 on every target.
     static_assert(std::is_same_v<hash::default_kdf_backend<hash::hmac_ripemd_128>, hash2>);
     auto prk = hash::hkdf_extract<hash::hmac_sha2_256>(from_hex(a1.salt), from_hex(a1.ikm));

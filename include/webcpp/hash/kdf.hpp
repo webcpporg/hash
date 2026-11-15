@@ -332,9 +332,9 @@ using default_backend = detail::default_choice<Algorithm, Hmac>::type;
 
 /**
  The backend `hkdf_extract`, `hkdf_expand`, `hkdf` and `pbkdf2` use when the program names none:
- @ref default_backend of `Kdf` over `Hmac`. Without a profile, natively the fastest linked backend
- (OpenSSL's when the program links `/webcpp/hash//openssl`), on WebAssembly the smallest
- (backends::hash2's).
+ @ref default_backend of `Kdf` over `Hmac`. Without a profile, natively the fastest linked backend,
+ on WebAssembly the smallest, by the measured orders of `detail/ranking.hpp` (the guide's
+ measured table: OpenSSL natively for PBKDF2, backends::hash2 on WebAssembly).
 
  @tparam Hmac A Boost.Hash2 hmac. @tparam Kdf `kdfs::hkdf` (the default), `kdfs::hkdf_extract`,
  `kdfs::hkdf_expand` or `kdfs::pbkdf2`.

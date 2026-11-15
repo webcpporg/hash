@@ -1,0 +1,163 @@
+# Copyright (c) 2026 WebCpp.org
+#
+# Distributed under the Boost Software License, Version 1.0. (See
+# accompanying file LICENSE_1_0.txt or copy at
+# https://www.boost.org/LICENSE_1_0.txt)
+
+# The measured table (spec section 4.2), the own lane measure, one command
+# for the four targets (ruling R17):
+#
+#     b2 -a --build-dir=bin/lane-measure libs/hash/test/measure//measure
+#
+# One program per cell of doc/capabilities.json (cells.jam, which
+# tools/hash/measure.py generates from it), built twice on every target of
+# its backend, whatever toolset the command gives: space-<cell> at
+# variant=release optimization=space, whose bytes are its size, and
+# speed-<cell> at optimization=speed, whose run with --time is its
+# throughput. Each is named with the toolset of its target (native: the
+# command's), so that one build makes them all. measure-programs-<target>-
+# <space|speed|bench>.txt lists them, and bench/'s correctness program
+# (ruling R31). The check runs tools/hash/measure.py --check over the lists:
+# it fails when a program of a cell is missing on a target, when a result is
+# wrong, when the order by size of any row differs from doc/measurements.json,
+# or when a generated file was edited by hand, naming
+# `python3 tools/hash/measure.py --write`, which measures and writes them.
+# A program b2 would skip (<build>no) skips the check with it, without a
+# word: the witness, built after it, stops the build when the check was not
+# generated. None of these targets is in the library's ordinary lanes.
+import errors ;
+import notfile ;
+import os ;
+import path ;
+import webcpp ;
+
+project : requirements <library>/webcpp/hash//hash ;
+
+path-constant MEASURE_HERE : . ;
+path-constant MEASURE_ROOT : ../../../.. ;
+
+if [ os.name ] = NT { .python = python ; } else { .python = python3 ; }
+.script = [ path.native $(MEASURE_ROOT)/tools/hash/measure.py ] ;
+.library = [ path.native $(MEASURE_ROOT)/libs/hash ] ;
+.nl = "\n" ;
+
+.targets = native wasip2 wasip3 emscripten ;
+.optimizations = space speed ;
+
+# What names a program for each target: nothing natively (the command's
+# toolset), else the toolset that builds for that target.
+.on.native = "" ;
+.on.wasip2 = /<toolset>clang/<toolset-clang:version>wasip2 ;
+.on.wasip3 = /<toolset>clang/<toolset-clang:version>wasip3 ;
+# b2 gives emscripten <target-os>none when the command names its toolset; a
+# reference names it too, or the libraries would build for the host's.
+.on.emscripten = /<toolset>emscripten/<target-os>none ;
+
+# measure-cell <name> : <source> : <library> ? : <hmac> ? : <targets> + ;
+# the cell's two programs, linked with only its backend's library, and its
+# hmac (a key derivation's) as WEBCPP_HASH_MEASURE_HMAC: the explicit
+# space-<name>-program and speed-<name>-program of webcpp.link, whose link
+# tests are explicit too, so that each program is linked once. Each links an
+# object of its own: two cells of one source (a key derivation over two
+# hmacs) differ only by a define, which would otherwise give their objects
+# one path.
+rule measure-cell ( name : source : library ? : hmac ? : targets + )
+{
+    local requirements = <variant>release <library>$(library) ;
+    if $(hmac)
+    {
+        requirements += <define>WEBCPP_HASH_MEASURE_HMAC=$(hmac) ;
+    }
+    local space = $(requirements) <optimization>space ;
+    local speed = $(requirements) <optimization>speed
+        <define>WEBCPP_HASH_MEASURE_TIME ;
+    obj space-$(name)-object : $(source) : $(space) ;
+    obj speed-$(name)-object : $(source) : $(speed) ;
+    webcpp.link space-$(name) : space-$(name)-object : $(space) : $(targets) ;
+    webcpp.link speed-$(name) : speed-$(name)-object : $(speed) : $(targets) ;
+    explicit space-$(name)-object speed-$(name)-object space-$(name)
+        speed-$(name) ;
+    for local target in $(targets)
+    {
+        for local optimization in $(.optimizations)
+        {
+            .programs.$(target).$(optimization) +=
+                $(optimization)-$(name)-program$(.on.$(target)) ;
+        }
+    }
+}
+
+include $(MEASURE_HERE)/cells.jam ;
+
+# The lists of programs, one per target and optimization, and bench/'s
+# program per target.
+rule write-list ( targets * : sources * : properties * )
+{
+}
+
+actions write-list
+{
+    @($(STDOUT):E=$(>:J=$(.nl))$(.nl)) > "$(<)"
+}
+
+local lists ;
+for local target in $(.targets)
+{
+    for local optimization in $(.optimizations)
+    {
+        make measure-programs-$(target)-$(optimization).txt
+          : $(.programs.$(target).$(optimization)) : @write-list ;
+        lists += measure-programs-$(target)-$(optimization).txt ;
+    }
+    make measure-programs-$(target)-bench.txt
+      : ../../bench//pbkdf2_sha512$(.on.$(target)) : @write-list ;
+    lists += measure-programs-$(target)-bench.txt ;
+}
+explicit $(lists) ;
+
+# Every program, built: what tools/hash/measure.py --write builds.
+alias measure-programs : $(lists) ;
+explicit measure-programs ;
+
+# The check, which records that it was generated, for the witness. It runs
+# at every build, as the generated files it compares are no source of it.
+rule check ( targets * : sources * : properties * )
+{
+    .checked = $(targets) ;
+    ALWAYS $(targets) ;
+    PYTHON on $(targets) = $(.python) ;
+    SCRIPT on $(targets) = $(.script) ;
+    LIBRARY on $(targets) = $(.library) ;
+}
+
+actions check
+{
+    "$(PYTHON)" "$(SCRIPT)" --library "$(LIBRARY)" --check \
+        --programs "$(>)" && echo checked > "$(<)"
+}
+
+make measure-check.txt : $(lists) : @check ;
+explicit measure-check.txt ;
+
+# The witness: the check was generated, or the build stops (Review Focus 8:
+# a lane that passes having built nothing).
+rule witness ( targets * : sources * : properties * )
+{
+    if ! $(.checked)
+    {
+        errors.user-error "measure: the check of the measured table was not"
+            "built, so a program of libs/hash/test/measure was skipped: the"
+            "lane built nothing" ;
+    }
+    DEPENDS $(targets) : $(.checked) ;
+}
+
+actions witness
+{
+    echo "measure: the measured table is checked on its four targets"
+}
+
+notfile measure-witness : @witness ;
+explicit measure-witness ;
+
+webcpp.lane measure : measure-check.txt measure-witness ;

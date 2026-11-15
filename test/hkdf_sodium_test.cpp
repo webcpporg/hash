@@ -44,9 +44,12 @@ static_assert(hash::backend_has_v<libsodium, hash::kdfs::hkdf, hash::hmac_sha2_2
 static_assert(hash::backend_has_v<libsodium, hash::kdfs::hkdf, hash::hmac_sha2_512>);
 static_assert(!hash::backend_has_v<libsodium, hash::kdfs::hkdf, hash::hmac_sha1_160>);
 static_assert(!hash::backend_has_v<libsodium, hash::kdfs::pbkdf2, hash::hmac_sha2_512>);
-// Natively OpenSSL, then backends::hash2, lead the ranking; libsodium alone changes no default.
+// With libsodium linked, the default is backends::hash2 or libsodium, whichever
+// detail/ranking.hpp's measured order puts first (on Emscripten libsodium's program is the
+// smaller); never a backend the program does not link.
 static_assert(
-    std::is_same_v<hash::default_kdf_backend<hash::hmac_sha2_256>, hash::backends::hash2>);
+    std::is_same_v<hash::default_kdf_backend<hash::hmac_sha2_256>, hash::backends::hash2> ||
+    std::is_same_v<hash::default_kdf_backend<hash::hmac_sha2_256>, libsodium>);
 
 // The three functions on one case, over Hmac on Backend, the case's salt spelled as given.
 template <class Hmac, class Backend>
