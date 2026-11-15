@@ -19,6 +19,25 @@
 
 #include <type_traits>
 
+namespace {
+
+// The default a cell has when no override names its backend: the library's profile, else the
+// umbrella's size order.
+template <class Operation, class Hmac>
+void expect_profile_default() {
+    namespace test = webcpp::test;
+#ifdef WEBCPP_HASH_PROFILE_PORTABLE
+    test::expect_default<Operation, Hmac>(
+        test::first_serving<Operation, Hmac>(webcpp::hash::detail::portable_order{}));
+#else
+    using ranking = webcpp::hash::detail::ranking<Operation, Hmac>;
+    test::expect_default<Operation, Hmac>(
+        test::first_serving<Operation, Hmac>(typename ranking::by_size{}));
+#endif
+}
+
+}  // namespace
+
 int main() {
     namespace hash = webcpp::hash;
     namespace test = webcpp::test;
@@ -32,18 +51,15 @@ int main() {
 #endif
     test::for_each_kdf_cell([]<class Operation, class Hmac> {
 #ifdef WEBCPP_HASH_DEFAULT_BACKEND_HKDF_OPENSSL
+        // The override's cells, then the profile's in the else branch: code after a return in
+        // an if constexpr is unreachable for MSVC (C4702) in the cells the branch takes.
         if constexpr (!std::is_same_v<Operation, hash::kdfs::pbkdf2>) {
             test::expect_default<Operation, Hmac>("openssl");
-            return;
+        } else {
+            expect_profile_default<Operation, Hmac>();
         }
-#endif
-#ifdef WEBCPP_HASH_PROFILE_PORTABLE
-        test::expect_default<Operation, Hmac>(
-            test::first_serving<Operation, Hmac>(hash::detail::portable_order{}));
 #else
-        using ranking = hash::detail::ranking<Operation, Hmac>;
-        test::expect_default<Operation, Hmac>(
-            test::first_serving<Operation, Hmac>(typename ranking::by_size{}));
+        expect_profile_default<Operation, Hmac>();
 #endif
     });
 #ifdef WEBCPP_HASH_DEFAULT_BACKEND_HKDF_OPENSSL

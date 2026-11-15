@@ -89,22 +89,24 @@ void measure_one(char const* name) {
     if constexpr (!hash::backend_has_v<openssl, hash::kdfs::hkdf, Hmac>) {
         std::printf("record operation=none hmac=%s backend=openssl target=%s\n", name,
                     webcpp::test::target_name);
-        return;
-    }
-    std::array<std::uint8_t, 42> okm{};
-    std::array<std::uint8_t, 40> key{};
-    std::span<std::uint8_t const> const input(bytes);
-    // The first call of each function pays OpenSSL's one-time setup; the second is steady state.
-    for (int round = 1; round != 3; ++round) {
-        measured("hkdf", name, round, [&] {
-            auto const done =
-                hash::hkdf<Hmac, openssl>(okm, input.first(20), input, input.last(10));
-            BOOST_TEST(done.has_value());
-        });
-        measured("pbkdf2", name, round, [&] {
-            auto const done = hash::pbkdf2<Hmac, openssl>(key, input.first(20), input.last(16), 3);
-            BOOST_TEST(done.has_value());
-        });
+    } else {
+        std::array<std::uint8_t, 42> okm{};
+        std::array<std::uint8_t, 40> key{};
+        std::span<std::uint8_t const> const input(bytes);
+        // The first call of each function pays OpenSSL's one-time setup; the second is steady
+        // state.
+        for (int round = 1; round != 3; ++round) {
+            measured("hkdf", name, round, [&] {
+                auto const done =
+                    hash::hkdf<Hmac, openssl>(okm, input.first(20), input, input.last(10));
+                BOOST_TEST(done.has_value());
+            });
+            measured("pbkdf2", name, round, [&] {
+                auto const done =
+                    hash::pbkdf2<Hmac, openssl>(key, input.first(20), input.last(16), 3);
+                BOOST_TEST(done.has_value());
+            });
+        }
     }
 }
 
