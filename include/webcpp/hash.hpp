@@ -5,8 +5,9 @@
 // https://www.boost.org/LICENSE_1_0.txt)
 
 /**
- Every header of webcpp::hash that needs no C library. The headers of each part
- are included here as the tasks that build them add them.
+ Every public header of webcpp::hash: those that need no C library always, and
+ each part over a C library when the program links that library (its target
+ defines `WEBCPP_HASH_HAS_<NAME>`).
 */
 #ifndef WEBCPP_HASH_HPP
 #define WEBCPP_HASH_HPP
@@ -16,5 +17,10 @@
 #include <webcpp/hash/algorithms.hpp>
 #include <webcpp/hash/error.hpp>
 #include <webcpp/hash/hmac.hpp>
+
+// keccak_256 when the program links XKCP (/third_party//xkcp defines WEBCPP_HASH_HAS_XKCP).
+#ifdef WEBCPP_HASH_HAS_XKCP
+#include <webcpp/hash/keccak.hpp>
+#endif
 
 #endif  // WEBCPP_HASH_HPP

@@ -18,4 +18,5 @@ of every version are on webcpp's index page.
 // tag::unreleased[]
 * Added the library.
 * Added Boost.Hash2's algorithms and HMAC under webcpp::hash's names.
+* Added keccak_256, Ethereum's Keccak-256, over XKCP's permutation.
 // end::unreleased[]

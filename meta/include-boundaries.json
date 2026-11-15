@@ -18,7 +18,8 @@
         },
         {
             "headers": [
-                "include/webcpp/hash/detail/xkcp.hpp"
+                "include/webcpp/hash/detail/xkcp.hpp",
+                "include/webcpp/hash/keccak.hpp"
             ],
             "must-not-include": ["Keccak", "SnP", "brg_endian", "config.h", "align.h", "xkcp/"],
             "why": "no XKCP header, and with it XKCP's generated config.h, reaches a program's translation unit: webcpp's adapter is the only way in (spec section 2.6)"

@@ -27,6 +27,9 @@ webcpp.headers-alone hash : ../include :
     hash/detail/xkcp.hpp
     hash/error.hpp
     hash/hmac.hpp ;
+# keccak.hpp compiles alone only with XKCP, whose target defines
+# WEBCPP_HASH_HAS_XKCP (without it, it stops with its message).
+webcpp.headers-alone hash : ../include : hash/keccak.hpp : <library>/third_party//xkcp ;
 
 # config.hpp defines WEBCPP_HASH_NO_EXCEPTIONS exactly when webcpp has no
 # exceptions, keeps it when a developer defines it, defines it when
@@ -42,6 +45,20 @@ hash-run error : error_test.cpp ;
 
 # Boost.Hash2's algorithms and HMAC are webcpp::hash's names for them.
 hash-run algorithms : algorithms_test.cpp ;
+
+# keccak_256 against Boost.Hash2's own Keccak-256 (spec section 1.3).
+hash-run keccak : keccak_test.cpp : <library>/third_party//xkcp ;
+# hash.hpp's branch for XKCP.
+webcpp.compile hash_keccak : hash_keccak_test.cpp : <library>/third_party//xkcp ;
+# keccak_256's read of the canary survives optimisation: with the library it
+# links and runs; with another commit's canary it does not link.
+hash-run keccak_canary : keccak_canary_test.cpp
+  : <library>/third_party//xkcp <optimization>speed ;
+webcpp.link-fail keccak_canary_other_commit : keccak_canary_test.cpp
+  : <library>/third_party//xkcp <optimization>speed
+    <define>WEBCPP_HASH_XKCP_CANARY_COMMIT=0000000 ;
+
+build-project messages ;
 
 # The C libraries' own suites, in the own lane c-suites.
 build-project c_suites ;
