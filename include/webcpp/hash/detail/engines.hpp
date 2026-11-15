@@ -143,6 +143,12 @@ struct argon2id_limits {
     std::uint64_t memory;
 };
 
+/** The costs a scrypt engine accepts beyond RFC 7914's conditions. */
+struct scrypt_limits {
+    /** The largest N (libsodium's `_ll` refuses an N above `UINT32_MAX`). */
+    std::uint64_t n;
+};
+
 /**
  The Argon2id of a backend (spec sections 2.10 and 2.12), which `backends::sodium` alone
  specialises. The primary template refuses every other backend with spec 3.3's text; its members
@@ -184,8 +190,17 @@ struct argon2id_engine {
 };
 
 /**
- The scrypt of a backend (spec sections 2.11 and 2.12): `derive`, which `backends::sodium` alone
- specialises. The primary template refuses every other backend.
+ The scrypt of a backend (spec sections 2.11 and 2.12), which `backends::sodium` alone
+ specialises, as @ref argon2id_engine is. A specialisation's `derive` is called by `scrypt` only
+ after every guard of spec 2.11 has passed, N within `limits`:
+
+ @code
+ static constexpr scrypt_limits limits{...};
+ static boost::system::result<void> derive(std::span<std::uint8_t> output,
+                                           std::span<std::uint8_t const> password,
+                                           std::span<std::uint8_t const> salt, std::uint64_t n,
+                                           std::uint32_t r, std::uint32_t p) noexcept;
+ @endcode
 
  @tparam Backend A backend of `backends`.
 */
@@ -194,6 +209,18 @@ struct scrypt_engine {
     static_assert(always_false<Backend>,
                   "webcpp::hash: scrypt is in backends::sodium alone. Name backends::sodium and "
                   "add /third_party//sodium to the program's Jamfile.");
+
+    /** Never read: the refusal has stopped the build. */
+    static constexpr scrypt_limits limits{0};
+
+    /** Never called: the refusal has stopped the build. */
+    static boost::system::result<void> derive(std::span<std::uint8_t> /*output*/,
+                                              std::span<std::uint8_t const> /*password*/,
+                                              std::span<std::uint8_t const> /*salt*/,
+                                              std::uint64_t /*n*/, std::uint32_t /*r*/,
+                                              std::uint32_t /*p*/) noexcept {
+        return error::backend_failure;
+    }
 };
 
 /**

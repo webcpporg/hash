@@ -21,3 +21,4 @@ build-project pbkdf2_on_sodium ;
 build-project openssl_not_linked ;
 build-project ripemd128_on_openssl ;
 build-project argon2id_on_hash2 ;
+build-project scrypt_on_hash2 ;

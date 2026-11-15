@@ -6,16 +6,18 @@
 
 /**
  `backends::sodium`: HKDF (RFC 5869) over libsodium's `crypto_kdf_hkdf_sha256_*` and
- `crypto_kdf_hkdf_sha512_*`, Argon2id over `crypto_pwhash_argon2id`, built from source by
- `/third_party//sodium`, on every target. It has HKDF over `hmac_sha2_256` and `hmac_sha2_512`
- alone, and no PBKDF2; every other hmac and PBKDF2 refuse at compile time with spec 3.3's texts.
+ `crypto_kdf_hkdf_sha512_*`, Argon2id over `crypto_pwhash_argon2id` and scrypt over
+ `crypto_pwhash_scryptsalsa208sha256_ll`, built from source by `/third_party//sodium`, on every
+ target. It has HKDF over `hmac_sha2_256` and `hmac_sha2_512` alone, and no PBKDF2; every other
+ hmac and PBKDF2 refuse at compile time with spec 3.3's texts.
 
+ Its limits beyond the spec's: scrypt's N at most 4,294,967,295 (libsodium refuses a larger one).
  Argon2's core holds the password's, salt's and tag's lengths in `uint32_t`, which spec 2.10's own
  guards already keep within (this header checks that they agree), and webcpp passes no secret or
- associated data; HKDF's lengths are `size_t`.
+ associated data; scrypt's and HKDF's lengths are `size_t`.
 
- On Emscripten `/third_party//sodium` links a program with `-sALLOW_MEMORY_GROWTH=1`: Argon2id
- allocates the memory its costs name, past Emscripten's fixed 16 MiB.
+ On Emscripten `/third_party//sodium` links a program with `-sALLOW_MEMORY_GROWTH=1`: Argon2id and
+ scrypt allocate the memory their costs name, past Emscripten's fixed 16 MiB.
 
  Every engine function calls `sodium_init()` first (it returns 0 the first time and 1 after,
  both success), so that a program that never initialised libsodium is safe.
@@ -39,14 +41,16 @@
 #include <webcpp/hash/detail/wipe.hpp>
 #include <webcpp/hash/error.hpp>
 #include <webcpp/hash/hmac.hpp>
+#include <webcpp/hash/scrypt.hpp>
 
 #include <boost/system/errc.hpp>
 #include <boost/system/result.hpp>
 
 #include <sodium/core.h>  // third_party/libs/libsodium, through /third_party//sodium
-#include <sodium/crypto_kdf_hkdf_sha256.h>  // the same
-#include <sodium/crypto_kdf_hkdf_sha512.h>  // the same
-#include <sodium/crypto_pwhash_argon2id.h>  // the same
+#include <sodium/crypto_kdf_hkdf_sha256.h>              // the same
+#include <sodium/crypto_kdf_hkdf_sha512.h>              // the same
+#include <sodium/crypto_pwhash_argon2id.h>              // the same
+#include <sodium/crypto_pwhash_scryptsalsa208sha256.h>  // the same
 
 #include <cerrno>
 #include <cstddef>
@@ -364,6 +368,35 @@ struct argon2id_engine<backends::sodium> {
         int const status = crypto_pwhash_argon2id(output.data(), output.size(), passwd,
                                                   password.size(), salt.data(), passes, memory,
                                                   crypto_pwhash_argon2id_ALG_ARGON2ID13);
+        return sodium_pwhash_status(status, errno);
+    }
+};
+
+/** scrypt on backends::sodium: `crypto_pwhash_scryptsalsa208sha256_ll`. */
+template <>
+struct scrypt_engine<backends::sodium> {
+    /** libsodium's `_ll` refuses an N above `UINT32_MAX`. */
+    static constexpr scrypt_limits limits{0xffffffffULL};
+
+    /**
+     The derived key, by `crypto_pwhash_scryptsalsa208sha256_ll`, which declares every pointer
+     nonnull: an empty password or salt is passed through @ref nonnull.
+
+     @param output The derived key. @param password The password. @param salt The salt.
+     @param n N. @param r r. @param p p.
+     @return Success, `errc::not_enough_memory` or `error::backend_failure`.
+    */
+    static boost::system::result<void> derive(std::span<std::uint8_t> output,
+                                              std::span<std::uint8_t const> password,
+                                              std::span<std::uint8_t const> salt, std::uint64_t n,
+                                              std::uint32_t r, std::uint32_t p) noexcept {
+        if (!sodium_ready()) {
+            return error::backend_failure;
+        }
+        errno = 0;
+        int const status = crypto_pwhash_scryptsalsa208sha256_ll(nonnull(password), password.size(),
+                                                                 nonnull(salt), salt.size(), n, r,
+                                                                 p, output.data(), output.size());
         return sodium_pwhash_status(status, errno);
     }
 };

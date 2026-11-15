@@ -35,7 +35,8 @@ webcpp.headers-alone hash : ../include :
     hash/hkdf.hpp
     hash/hmac.hpp
     hash/kdf.hpp
-    hash/pbkdf2.hpp ;
+    hash/pbkdf2.hpp
+    hash/scrypt.hpp ;
 # keccak.hpp compiles alone only with XKCP, whose target defines
 # WEBCPP_HASH_HAS_XKCP (without it, it stops with its message).
 webcpp.headers-alone hash : ../include : hash/keccak.hpp : <library>/third_party//xkcp ;
@@ -197,6 +198,14 @@ hash-run argon2id : argon2id_test.cpp
   : <library>/third_party//sodium <library>/third_party//sodium-test-config ;
 hash-run argon2id_interactive : argon2id_interactive_test.cpp
   : <library>/third_party//sodium <library>/third_party//sodium-test-config ;
+
+# scrypt on backends::sodium: RFC 7914's first three cases and the guards.
+hash-run scrypt : scrypt_test.cpp : <library>/third_party//sodium ;
+# RFC 7914's fourth case (1 GiB), on every target: it passed natively and on
+# wasip2, wasip3 and emscripten (with /third_party//sodium's memory growth),
+# each in 5 to 25 seconds unoptimised (wasmtime 47.0.3, node 26.13).
+hash-run scrypt_rfc7914_large : scrypt_rfc7914_large_test.cpp
+  : <library>/third_party//sodium ;
 
 build-project messages ;
 

@@ -52,10 +52,11 @@
 #include <webcpp/hash/backends/openssl.hpp>
 #endif
 
-// argon2id, whose only backend is libsodium's: a program that does not link it leaves
-// it out.
+// argon2id and scrypt, whose only backend is libsodium's: a program that does not
+// link it leaves them out.
 #ifdef WEBCPP_HASH_HAS_SODIUM
 #include <webcpp/hash/argon2.hpp>
+#include <webcpp/hash/scrypt.hpp>
 #endif
 
 #endif  // WEBCPP_HASH_HPP
