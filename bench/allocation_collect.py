@@ -101,11 +101,9 @@ def render(data):
                     )
                 )
 
-            detail = "OpenSSL: %s first call (hmac_sha2_256), %s first call (hmac_sha2_512), %s steady state" % (
-                at("hmac_sha2_256", 1),
-                at("hmac_sha2_512", 1),
-                at("hmac_sha2_512", 2),
-            )
+            detail = "OpenSSL: %s first call (hmac_sha2_256), " % at("hmac_sha2_256", 1)
+            detail += "%s first call (hmac_sha2_512), " % at("hmac_sha2_512", 1)
+            detail += "%s steady state" % at("hmac_sha2_512", 2)
             rows.append((op, "openssl", target, "0", detail))
     lines = [
         '[cols="1,1,1,1,3",options="header"]',

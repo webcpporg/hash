@@ -126,7 +126,9 @@ void kdfs_allocate_nothing(char const* name) {
     if constexpr (hash::backend_has_v<Backend, hash::kdfs::hkdf, Hmac>) {
         std::array<std::uint8_t, 42> okm{};
         std::span<std::uint8_t> const no_output;
-        std::span<std::uint8_t const> const long_info(message.data(), hash::hkdf_max_info_size + 1);
+        // One byte over the limit, in a real buffer: the guard refuses on the size alone.
+        static std::array<std::uint8_t, hash::hkdf_max_info_size + 1> const long_buffer{};
+        std::span<std::uint8_t const> const long_info(long_buffer);
         if constexpr (split) {
             allocates_nothing(name, [&] {
                 auto const prk = hash::hkdf_extract<Hmac, Backend>(input.first(20), input);
@@ -239,7 +241,9 @@ void control() {
         void* (*volatile const do_malloc)(std::size_t) = &std::malloc;
         void* (*volatile const do_calloc)(std::size_t, std::size_t) = &std::calloc;
         void* (*volatile const do_realloc)(void*, std::size_t) = &std::realloc;
+#ifndef _WIN32
         void* (*volatile const do_aligned)(std::size_t, std::size_t) = &std::aligned_alloc;
+#endif
         auto window_c = [](auto&& allocate, char const* form) {
             window const w;
             void* const block = allocate();
@@ -251,12 +255,14 @@ void control() {
         window_c([&] { return do_malloc(16); }, "malloc");
         window_c([&] { return do_calloc(1, 16); }, "calloc");
         window_c([&] { return do_realloc(nullptr, 16); }, "realloc");
+#ifndef _WIN32
         window_c([&] { return do_aligned(64, 64); }, "aligned_alloc");
         void* (*volatile const do_posix)(std::size_t) = [](std::size_t size) {
             void* block = nullptr;
             return posix_memalign(&block, 64, size) == 0 ? block : nullptr;
         };
         window_c([&] { return do_posix(64); }, "posix_memalign");
+#endif
     }
     std::size_t const total = test::allocations();
     void* const again = ::operator new(16);
