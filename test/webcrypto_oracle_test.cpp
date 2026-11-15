@@ -25,8 +25,6 @@
 
 #include <webcpp/test/exit_status.hpp>
 
-#include "support/hex.hpp"
-
 #include <emscripten/em_js.h>
 
 #include <cstddef>
@@ -37,7 +35,6 @@
 #include <vector>
 
 namespace hash = webcpp::hash;
-using webcpp::test::to_hex;
 
 // The cases per function and hash, and the seed that makes a failure reproducible.
 constexpr std::size_t cases = 200;
@@ -158,7 +155,7 @@ using sha512 = row<3, hash::sha2_512, hash::hmac_sha2_512>;
 template <class Row, class Backend>
 void check_hkdf_backend(bytes const& expected, bytes const& ikm, bytes const& salt,
                         bytes const& info, std::size_t index) {
-    using hmac = typename Row::hmac_type;
+    using hmac = Row::hmac_type;
     if constexpr (hash::backend_has_v<Backend, hash::kdfs::hkdf, hmac>) {
         bytes okm(expected.size());
         const auto done = hash::hkdf<hmac, Backend>(okm, salt, ikm, info);
@@ -173,7 +170,7 @@ void check_hkdf_backend(bytes const& expected, bytes const& ikm, bytes const& sa
 template <class Row, class Backend>
 void check_pbkdf2_backend(bytes const& expected, bytes const& password, bytes const& salt,
                           std::uint32_t iterations, std::size_t index) {
-    using hmac = typename Row::hmac_type;
+    using hmac = Row::hmac_type;
     if constexpr (hash::backend_has_v<Backend, hash::kdfs::pbkdf2, hmac>) {
         bytes derived(expected.size());
         const auto done = hash::pbkdf2<hmac, Backend>(derived, password, salt, iterations);
@@ -228,7 +225,7 @@ void check_hkdf(std::mt19937_64& rng) {
         const bytes info = random_bytes(rng, 0, 100);
         // 1 to 255 times the digest size is HKDF's whole range; short outputs dominate.
         const std::size_t length =
-            random_size(rng, 1, i % 10 == 0 ? 255 * Row::digest_size : 3 * Row::digest_size + 7);
+            random_size(rng, 1, i % 10 == 0 ? 255 * Row::digest_size : (3 * Row::digest_size) + 7);
         bytes oracle(length);
         const int got = subtle_hkdf(Row::alg, ikm.data(), ikm.size(), salt.data(), salt.size(),
                                     info.data(), info.size(), length, oracle.data());
@@ -245,7 +242,7 @@ void check_pbkdf2(std::mt19937_64& rng) {
         const bytes password = random_bytes(rng, 0, 100);
         const bytes salt = random_bytes(rng, 0, 100);
         const auto iterations = static_cast<std::uint32_t>(random_size(rng, 1, 64));
-        const std::size_t length = random_size(rng, 1, 2 * Row::digest_size + 9);
+        const std::size_t length = random_size(rng, 1, (2 * Row::digest_size) + 9);
         bytes oracle(length);
         const int got = subtle_pbkdf2(Row::alg, password.data(), password.size(), salt.data(),
                                       salt.size(), iterations, length, oracle.data());

@@ -113,50 +113,56 @@ struct libsodium_case {
 };
 
 // The table's first three cases, each of which its .exp shows succeeding.
-const std::array libsodium_cases{
-    libsodium_case{.password = "a347ae92bce9f80f6f595a4480fc9c2fe7e7d7148d371e9487d75f5c23008ffa"
-                               "e065577a928febd9b1973a5a95073acdbeb6a030cfc0d79caa2dc5cd011cef02"
-                               "c08da232d76d52dfbca38ca8dcbd665b17d1665f7cf5fe59772ec909733b24de"
-                               "97d6f58d220b20c60d7c07ec1fd93c52c31020300c6c1facd77937a597c7a6",
-                   .salt = "5541fbc995d5c197ba290346d2c559de",
-                   .passes = 5,
-                   .memory = 7256064,  // 7256678 rounded down
-                   .tag = "18acec5d6507739f203d1f5d9f1d862f7c2cdac4f19d2bdff64487e60d969e3c"
-                          "ed615337b9eec6ac4461c6ca07f0939741e57c24d0005c7ea171a0ee1e734824"
-                          "9d135b38f222e4dad7b9a033ed83f5ca27277393e316582033c74affe2566a2b"
-                          "ea47f91f0fd9fe49ece7e1f79f3ad6e9b23e0277c8ecc4b313225748dd2a80f5"
-                          "679534a0700e246a79a49b3f74eb89ec6205fe1eeb941c73b1fcf1"},
-    libsodium_case{.password = "e125cee61c8cb7778d9e5ad0a6f5d978ce9f84de213a8556d9ffe202020ab4a6"
-                               "ed9074a4eb3416f9b168f137510f3a30b70b96cbfa219ff99f6c6eaffb15c06b"
-                               "60e00cc2890277f0fd3c622115772f7048adaebed86e",
-                   .salt = "f1192dd5dc2368b9cd421338b2243345",
-                   .passes = 4,
-                   .memory = 7848960,  // 7849083 rounded down
-                   .tag = "26bab5f101560e48c711da4f05e81f5a3802b7a93d5155b9cab153069cc42b8e"
-                          "9f910bfead747652a0708d70e4de0bada37218bd203a1201c36b42f9a269b675"
-                          "b1f30cfc36f35a3030e9c7f57dfba0d341a974c1886f708c3e8297efbfe411bb"
-                          "9d51375264bd7c70d57a8a56fc9de2c1c97c08776803ec2cd0140bba8e61dc0f"
-                          "4ad3d3d1a89b4b710af81bfe35a0eea193e18a6da0f5ec05542c9eefc4584458"
-                          "e1da715611ba09617384748bd43b9bf1f3a6df4ecd091d0875e08d6e2fd8a5c7"
-                          "ce08904b5160cd38167b76ec76ef2d310049055a564da23d4ebd2b87e421cc33"
-                          "c401e12d5cd8d936c9baf75ebdfb557d342d2858fc781da31860"},
-    libsodium_case{.password = "92263cbf6ac376499f68a4289d3bb59e5a22335eba63a32e6410249155b956b6"
-                               "a3b48d4a44906b18b897127300b375b8f834f1ceffc70880a885f47c33876717"
-                               "e392be57f7da3ae58da4fd1f43daa7e44bb82d3717af4319349c24cd31e46d29"
-                               "5856b0441b6b289992a11ced1cc3bf3011604590244a3eb737ff221129215e4e"
-                               "4347f4915d41292b5173d196eb9add693be5319fdadc242906178bb6c0286c9b"
-                               "6ca6012746711f58c8c392016b2fdfc09c64f0f6b6ab7b",
-                   .salt = "3b840e20e9555e9fb031c4ba1f1747ce",
-                   .passes = 3,
-                   .memory = 7994368,  // 7994791 rounded down
-                   .tag = "6eb45e668582d63788ca8f6e930ca60b045a795fca987344f9a7a135aa3b5132"
-                          "b50a34a3864c26581f1f56dd0bcbfafbfa92cd9bff6b24a734cfe88f854aef4b"
-                          "da0a7983120f44936e8ff31d29728ac08ccce6f3f916b3c63962755c23a1fa9b"
-                          "b4e8823fc867bfd18f28980d94bc5874423ab7f96cc0ab78d8fa21fbd00cd3a1"
-                          "d96a73fa439ccc3fc4eab1590677b06cc78b0f674dfb680f23022fb902022dd8"
-                          "620803229c6ddf79a8156ccfce48bbd76c05ab670634f206e5b2e896230baa74"
-                          "a856964dbd8511acb71d75a1506766a125d8ce037f1db72086ebc3bccaefbd8c"
-                          "d9380167c2530386544ebfbeadbe237784d102bb92a10fd242"},
+constexpr std::array libsodium_cases{
+    libsodium_case{
+        .password = "a347ae92bce9f80f6f595a4480fc9c2fe7e7d7148d371e9487d75f5c23008ffa"
+                    "e065577a928febd9b1973a5a95073acdbeb6a030cfc0d79caa2dc5cd011cef02"
+                    "c08da232d76d52dfbca38ca8dcbd665b17d1665f7cf5fe59772ec909733b24de"
+                    "97d6f58d220b20c60d7c07ec1fd93c52c31020300c6c1facd77937a597c7a6",
+        .salt = "5541fbc995d5c197ba290346d2c559de",
+        .passes = 5,
+        .memory = 7256064,  // 7256678 rounded down
+        .tag = "18acec5d6507739f203d1f5d9f1d862f7c2cdac4f19d2bdff64487e60d969e3c"
+               "ed615337b9eec6ac4461c6ca07f0939741e57c24d0005c7ea171a0ee1e734824"
+               "9d135b38f222e4dad7b9a033ed83f5ca27277393e316582033c74affe2566a2b"
+               "ea47f91f0fd9fe49ece7e1f79f3ad6e9b23e0277c8ecc4b313225748dd2a80f5"
+               "679534a0700e246a79a49b3f74eb89ec6205fe1eeb941c73b1fcf1",
+    },
+    libsodium_case{
+        .password = "e125cee61c8cb7778d9e5ad0a6f5d978ce9f84de213a8556d9ffe202020ab4a6"
+                    "ed9074a4eb3416f9b168f137510f3a30b70b96cbfa219ff99f6c6eaffb15c06b"
+                    "60e00cc2890277f0fd3c622115772f7048adaebed86e",
+        .salt = "f1192dd5dc2368b9cd421338b2243345",
+        .passes = 4,
+        .memory = 7848960,  // 7849083 rounded down
+        .tag = "26bab5f101560e48c711da4f05e81f5a3802b7a93d5155b9cab153069cc42b8e"
+               "9f910bfead747652a0708d70e4de0bada37218bd203a1201c36b42f9a269b675"
+               "b1f30cfc36f35a3030e9c7f57dfba0d341a974c1886f708c3e8297efbfe411bb"
+               "9d51375264bd7c70d57a8a56fc9de2c1c97c08776803ec2cd0140bba8e61dc0f"
+               "4ad3d3d1a89b4b710af81bfe35a0eea193e18a6da0f5ec05542c9eefc4584458"
+               "e1da715611ba09617384748bd43b9bf1f3a6df4ecd091d0875e08d6e2fd8a5c7"
+               "ce08904b5160cd38167b76ec76ef2d310049055a564da23d4ebd2b87e421cc33"
+               "c401e12d5cd8d936c9baf75ebdfb557d342d2858fc781da31860",
+    },
+    libsodium_case{
+        .password = "92263cbf6ac376499f68a4289d3bb59e5a22335eba63a32e6410249155b956b6"
+                    "a3b48d4a44906b18b897127300b375b8f834f1ceffc70880a885f47c33876717"
+                    "e392be57f7da3ae58da4fd1f43daa7e44bb82d3717af4319349c24cd31e46d29"
+                    "5856b0441b6b289992a11ced1cc3bf3011604590244a3eb737ff221129215e4e"
+                    "4347f4915d41292b5173d196eb9add693be5319fdadc242906178bb6c0286c9b"
+                    "6ca6012746711f58c8c392016b2fdfc09c64f0f6b6ab7b",
+        .salt = "3b840e20e9555e9fb031c4ba1f1747ce",
+        .passes = 3,
+        .memory = 7994368,  // 7994791 rounded down
+        .tag = "6eb45e668582d63788ca8f6e930ca60b045a795fca987344f9a7a135aa3b5132"
+               "b50a34a3864c26581f1f56dd0bcbfafbfa92cd9bff6b24a734cfe88f854aef4b"
+               "da0a7983120f44936e8ff31d29728ac08ccce6f3f916b3c63962755c23a1fa9b"
+               "b4e8823fc867bfd18f28980d94bc5874423ab7f96cc0ab78d8fa21fbd00cd3a1"
+               "d96a73fa439ccc3fc4eab1590677b06cc78b0f674dfb680f23022fb902022dd8"
+               "620803229c6ddf79a8156ccfce48bbd76c05ab670634f206e5b2e896230baa74"
+               "a856964dbd8511acb71d75a1506766a125d8ce037f1db72086ebc3bccaefbd8c"
+               "d9380167c2530386544ebfbeadbe237784d102bb92a10fd242",
+    },
 };
 
 void test_libsodium_table() {
@@ -164,7 +170,8 @@ void test_libsodium_table() {
         auto const password = from_hex(c.password);
         auto const salt = from_hex(c.salt);
         std::vector<std::uint8_t> tag(c.tag.size() / 2);
-        auto const done = hash::argon2id(tag, password, salt, {c.passes, c.memory});
+        auto const done =
+            hash::argon2id(tag, password, salt, {.passes = c.passes, .memory = c.memory});
         BOOST_TEST(done.has_value());
         BOOST_TEST_EQ(to_hex(tag), std::string(c.tag));
     }
@@ -173,6 +180,8 @@ void test_libsodium_table() {
 // argon2id against argon2_ctx with one lane, on 20 cases of a fixed seed: memory 8 to 256 KiB,
 // 1 to 3 passes, a password of 0 to 64 bytes, a tag of 16 to 80 bytes.
 void test_against_argon2_ctx() {
+    // A fixed seed on purpose: every run checks the same cases, and a failure reproduces.
+    // NOLINTNEXTLINE(bugprone-random-generator-seed,cert-msc32-c,cert-msc51-cpp): see above
     std::mt19937 random(20261115U);
     auto const between = [&random](std::uint32_t low, std::uint32_t high) {
         return std::uniform_int_distribution<std::uint32_t>(low, high)(random);
@@ -187,18 +196,20 @@ void test_against_argon2_ctx() {
         std::size_t const tag_size = between(16, 80);
 
         std::vector<std::uint8_t> expected(tag_size);
-        int const code = webcpp::test::argon2_reference(expected, {.password = password,
-                                                                   .salt = salt,
-                                                                   .secret = {},
-                                                                   .associated_data = {},
-                                                                   .passes = passes,
-                                                                   .memory_kib = memory_kib,
-                                                                   .lanes = 1});
+        int const code = webcpp::test::argon2_reference(expected, {
+                                                                      .password = password,
+                                                                      .salt = salt,
+                                                                      .secret = {},
+                                                                      .associated_data = {},
+                                                                      .passes = passes,
+                                                                      .memory_kib = memory_kib,
+                                                                      .lanes = 1,
+                                                                  });
         BOOST_TEST_EQ(code, ARGON2_OK);
 
         std::vector<std::uint8_t> tag(tag_size);
-        auto const done =
-            hash::argon2id(tag, password, salt, {passes, std::size_t{memory_kib} * 1024});
+        auto const done = hash::argon2id(
+            tag, password, salt, {.passes = passes, .memory = std::size_t{memory_kib} * 1024});
         BOOST_TEST(done.has_value());
         BOOST_TEST_EQ(to_hex(tag), to_hex(expected));
     }
@@ -206,8 +217,10 @@ void test_against_argon2_ctx() {
 
 const std::array<std::uint8_t, 8> password{'p', 'a', 's', 's', 'w', 'o', 'r', 'd'};
 const std::array<std::uint8_t, hash::argon2id_salt_size> salt{
-    's', 'o', 'm', 'e', 's', 'a', 'l', 't', 's', 'o', 'm', 'e', 's', 'a', 'l', 't'};
-constexpr hash::argon2id_parameters cheapest{1, 8192};
+    's', 'o', 'm', 'e', 's', 'a', 'l', 't',  // "somesalt" twice
+    's', 'o', 'm', 'e', 's', 'a', 'l', 't',
+};
+constexpr hash::argon2id_parameters cheapest{.passes = 1, .memory = 8192};
 
 // Expects argon2id's refusal with `expected`, the output untouched.
 void expect_refused(std::span<std::uint8_t> output, std::span<std::uint8_t const> pass,
@@ -254,7 +267,7 @@ void test_salt_guard() {
     std::array<std::uint8_t, 16> buffer{};
     buffer.fill(untouched);
     std::array<std::uint8_t, 17> long_salt{};
-    for (std::size_t size : {0U, 8U, 15U, 17U}) {
+    for (std::size_t const size : {0U, 8U, 15U, 17U}) {
         expect_refused(buffer, password, std::span<std::uint8_t const>(long_salt.data(), size),
                        cheapest, hash::error::invalid_salt_size);
     }
@@ -285,18 +298,26 @@ void test_parameters_guard() {
     std::array<std::uint8_t, 16> buffer{};
     buffer.fill(untouched);
     auto const most_memory = static_cast<std::uint64_t>(crypto_pwhash_argon2id_MEMLIMIT_MAX);
-    std::vector<hash::argon2id_parameters> refused{
-        {0, 8192}, {std::uint64_t{1} << 32U, 8192},
-        {1, 0},    {1, 7168},
-        {1, 8191}, {1, 8193},
-        {1, 9000}, {1, static_cast<std::size_t>(most_memory + 1024)}};
+    std::vector<hash::argon2id_parameters> const refused{
+        {.passes = 0, .memory = 8192},
+        {.passes = std::uint64_t{1} << 32U, .memory = 8192},
+        {.passes = 1, .memory = 0},
+        {.passes = 1, .memory = 7168},
+        {.passes = 1, .memory = 8191},
+        {.passes = 1, .memory = 8193},
+        {.passes = 1, .memory = 9000},
+        {.passes = 1, .memory = static_cast<std::size_t>(most_memory + 1024)},
+    };
     for (auto const& parameters : refused) {
         expect_refused(buffer, password, salt, parameters, hash::error::invalid_parameters);
     }
     BOOST_TEST(all_of(buffer, untouched));
     // The most passes and libsodium's most memory pass every guard and reach the engine, which
     // records them (a real run would take 4 TiB, 2 GiB on wasm32); a KiB more is refused.
-    hash::argon2id_parameters const largest{0xffffffff, static_cast<std::size_t>(most_memory)};
+    hash::argon2id_parameters const largest{
+        .passes = 0xffffffff,
+        .memory = static_cast<std::size_t>(most_memory),
+    };
     int const before = test_backends::recorded_calls;
     BOOST_TEST(
         hash::argon2id<test_backends::recording>(buffer, password, salt, largest).has_value());
@@ -304,7 +325,8 @@ void test_parameters_guard() {
     BOOST_TEST_EQ(test_backends::recorded_passes, largest.passes);
     BOOST_TEST_EQ(test_backends::recorded_memory, largest.memory);
     auto const past = hash::argon2id<test_backends::recording>(
-        buffer, password, salt, {1, static_cast<std::size_t>(most_memory + 1024)});
+        buffer, password, salt,
+        {.passes = 1, .memory = static_cast<std::size_t>(most_memory + 1024)});
     BOOST_TEST(past.has_error() && past.error() == hash::error::invalid_parameters);
     BOOST_TEST_EQ(test_backends::recorded_calls, before + 1);
 
@@ -313,7 +335,8 @@ void test_parameters_guard() {
     if constexpr (std::numeric_limits<std::size_t>::max() > 0xffffffffU) {
         std::span<std::uint8_t const> const past_password(
             password.data(), static_cast<std::size_t>(std::uint64_t{0xffffffff} + 1));
-        expect_refused(buffer, past_password, salt, {0, 0}, hash::error::input_too_long);
+        expect_refused(buffer, past_password, salt, {.passes = 0, .memory = 0},
+                       hash::error::input_too_long);
     }
 }
 
@@ -326,7 +349,8 @@ void test_backend_failure() {
 
     // A guard's refusal reaches no backend.
     buffer.fill(untouched);
-    failed = hash::argon2id<test_backends::failing>(buffer, password, salt, {0, 8192});
+    failed = hash::argon2id<test_backends::failing>(buffer, password, salt,
+                                                    {.passes = 0, .memory = 8192});
     BOOST_TEST(failed.has_error() && failed.error() == hash::error::invalid_parameters);
     BOOST_TEST(all_of(buffer, untouched));
 }

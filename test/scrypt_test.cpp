@@ -153,7 +153,7 @@ void test_output_guard() {
     BOOST_TEST(hash::scrypt(buffer, password, salt, cheap).has_value());
 }
 
-void test_parameters_guard() {
+void test_parameters_guard_n() {
     using enum hash::error;
     // N: a power of two, above 1, below 2^(16 r).
     for (std::uint64_t const n : {0ULL, 1ULL, 3ULL, 48ULL, 65535ULL, 65536ULL}) {
@@ -169,6 +169,10 @@ void test_parameters_guard() {
         BOOST_TEST(refuses({.n = std::uint64_t{1} << 31U, .r = 2, .p = 1}, invalid_parameters));
     }
     BOOST_TEST(passes({.n = 2, .r = 1, .p = 1}));
+}
+
+void test_parameters_guard_r_and_p() {
+    using enum hash::error;
     // r and p at least 1.
     BOOST_TEST(refuses({.n = 16, .r = 0, .p = 1}, invalid_parameters));
     BOOST_TEST(refuses({.n = 16, .r = 1, .p = 0}, invalid_parameters));
@@ -177,6 +181,10 @@ void test_parameters_guard() {
     BOOST_TEST(refuses({.n = 16, .r = 1, .p = 1U << 30U}, invalid_parameters));
     BOOST_TEST(refuses<test_backends::recording>({.n = 16, .r = 1U << 15U, .p = 1U << 15U},
                                                  invalid_parameters));
+}
+
+void test_parameters_guard_size() {
+    using enum hash::error;
     // 128 r (N + p) past size_t: on wasm32 4 GiB and a KiB, which passes natively; everywhere
     // 2^67 bytes.
     constexpr hash::scrypt_parameters four_gib{.n = std::uint64_t{1} << 22U, .r = 8, .p = 1};
@@ -206,7 +214,8 @@ void test_parameters_guard() {
 void test_backend_failure() {
     std::array<std::uint8_t, 32> buffer{};
     buffer.fill(untouched);
-    auto failed = hash::scrypt<test_backends::failing>(buffer, password, salt, {16, 1, 1});
+    auto const failed =
+        hash::scrypt<test_backends::failing>(buffer, password, salt, {.n = 16, .r = 1, .p = 1});
     BOOST_TEST(failed.has_error() && failed.error() == hash::error::backend_failure);
     BOOST_TEST(all_of(buffer, 0));
 
@@ -225,7 +234,9 @@ static_assert(&hash::scrypt<> == &hash::scrypt<hash::backends::sodium>);
 int main() {
     test_rfc7914();
     test_output_guard();
-    test_parameters_guard();
+    test_parameters_guard_n();
+    test_parameters_guard_r_and_p();
+    test_parameters_guard_size();
     test_backend_failure();
     return webcpp::test::exit_status(boost::report_errors());
 }

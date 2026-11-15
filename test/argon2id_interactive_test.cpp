@@ -28,8 +28,10 @@ using webcpp::test::to_hex;
 namespace {
 
 void test_interactive() {
-    std::array<std::uint8_t, 13> const password{'c', 'o', 'r', 'r', 'e', 'c', 't',
-                                                ' ', 'h', 'o', 'r', 's', 'e'};
+    std::array<std::uint8_t, 13> const password{
+        'c', 'o', 'r', 'r', 'e', 'c', 't',  // "correct"
+        ' ', 'h', 'o', 'r', 's', 'e',
+    };
     std::array<std::uint8_t, hash::argon2id_salt_size> salt{};
     salt.fill(0x5a);
 
@@ -45,13 +47,15 @@ void test_interactive() {
     std::array<std::uint8_t, 32> expected{};
     int const code = webcpp::test::argon2_reference(
         expected,
-        {.password = password,
-         .salt = salt,
-         .secret = {},
-         .associated_data = {},
-         .passes = static_cast<std::uint32_t>(hash::argon2id_interactive.passes),
-         .memory_kib = static_cast<std::uint32_t>(hash::argon2id_interactive.memory / 1024),
-         .lanes = 1});
+        {
+            .password = password,
+            .salt = salt,
+            .secret = {},
+            .associated_data = {},
+            .passes = static_cast<std::uint32_t>(hash::argon2id_interactive.passes),
+            .memory_kib = static_cast<std::uint32_t>(hash::argon2id_interactive.memory / 1024),
+            .lanes = 1,
+        });
     BOOST_TEST_EQ(code, ARGON2_OK);
     BOOST_TEST_EQ(to_hex(tag), to_hex(expected));
 }

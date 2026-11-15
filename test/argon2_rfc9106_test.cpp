@@ -34,13 +34,15 @@ void test_section_5_3() {
     associated_data.fill(0x04);
     std::array<std::uint8_t, 32> tag{};
 
-    int const code = webcpp::test::argon2_reference(tag, {.password = password,
-                                                          .salt = salt,
-                                                          .secret = secret,
-                                                          .associated_data = associated_data,
-                                                          .passes = 3,
-                                                          .memory_kib = 32,
-                                                          .lanes = 4});
+    int const code = webcpp::test::argon2_reference(tag, {
+                                                             .password = password,
+                                                             .salt = salt,
+                                                             .secret = secret,
+                                                             .associated_data = associated_data,
+                                                             .passes = 3,
+                                                             .memory_kib = 32,
+                                                             .lanes = 4,
+                                                         });
     BOOST_TEST_EQ(code, ARGON2_OK);
     // RFC 9106, section 5.3, "Tag".
     BOOST_TEST_EQ(to_hex(tag),

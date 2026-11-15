@@ -26,18 +26,50 @@ struct expected_message {
     std::string_view text;
 };
 
-constexpr std::array<expected_message, 8> messages{{
-    {hash::error::invalid_output_size, 1,
-     "the output is empty or longer than the function produces"},
-    {hash::error::invalid_key_size, 2, "the pseudorandom key is not of the hmac's digest size"},
-    {hash::error::invalid_salt_size, 3, "the salt is not of a size the function accepts"},
-    {hash::error::invalid_iterations, 4, "the iteration count is zero"},
-    {hash::error::invalid_parameters, 5, "a cost is outside the function's limits"},
-    {hash::error::input_too_long, 6, "an input is longer than the function accepts"},
-    {hash::error::backend_failure, 7, "the backend failed where it should not"},
-    {hash::error::unsupported_by_backend, 8,
-     "the backend does not take this parameter; name a backend that does"},
-}};
+constexpr std::array<expected_message, 8> messages{
+    {
+        {
+            .value = hash::error::invalid_output_size,
+            .number = 1,
+            .text = "the output is empty or longer than the function produces",
+        },
+        {
+            .value = hash::error::invalid_key_size,
+            .number = 2,
+            .text = "the pseudorandom key is not of the hmac's digest size",
+        },
+        {
+            .value = hash::error::invalid_salt_size,
+            .number = 3,
+            .text = "the salt is not of a size the function accepts",
+        },
+        {
+            .value = hash::error::invalid_iterations,
+            .number = 4,
+            .text = "the iteration count is zero",
+        },
+        {
+            .value = hash::error::invalid_parameters,
+            .number = 5,
+            .text = "a cost is outside the function's limits",
+        },
+        {
+            .value = hash::error::input_too_long,
+            .number = 6,
+            .text = "an input is longer than the function accepts",
+        },
+        {
+            .value = hash::error::backend_failure,
+            .number = 7,
+            .text = "the backend failed where it should not",
+        },
+        {
+            .value = hash::error::unsupported_by_backend,
+            .number = 8,
+            .text = "the backend does not take this parameter; name a backend that does",
+        },
+    },
+};
 
 void check_values_and_messages() {
     for (const auto& expected : messages) {

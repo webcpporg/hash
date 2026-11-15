@@ -35,7 +35,8 @@ void test_large() {
                              webcpp::test::bytes_of(c.salt), {.n = c.n, .r = c.r, .p = c.p});
     auto const elapsed = std::chrono::steady_clock::now() - start;
     if (!BOOST_TEST(done.has_value())) {
-        std::printf("scrypt_rfc7914_large: %s\n", done.error().message().c_str());
+        auto const message = done.error().message();
+        std::printf("scrypt_rfc7914_large: %s\n", message.c_str());
         return;
     }
     std::printf("scrypt_rfc7914_large: %lld ms\n",

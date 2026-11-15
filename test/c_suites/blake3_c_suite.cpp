@@ -250,7 +250,7 @@ int main() {
         BOOST_TEST_EQ(difference, mismatch);
     }
 #else
-    BOOST_TEST_EQ(runs.size(), std::size_t{6 * 35});
+    BOOST_TEST_EQ(runs.size(), std::size_t{6} * 35);
     if (BOOST_TEST(found.empty())) {
         std::cout << "blake3 c suite: " << cases.size() << " cases ok\n";
     }

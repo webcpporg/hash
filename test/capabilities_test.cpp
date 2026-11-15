@@ -203,8 +203,9 @@ void check_type_rows(json::object const& table) {
             continue;
         }
         auto const& backends = function->at("backends").as_object();
-        if (!BOOST_TEST_EQ(backends.size(), 1U) || !BOOST_TEST(backends.contains(known->backend)) ||
-            !BOOST_TEST(backends.at(known->backend).at("hmacs").is_null())) {
+        auto const* const entry = backends.if_contains(known->backend);
+        if (!BOOST_TEST_EQ(backends.size(), 1U) || !BOOST_TEST(entry != nullptr) ||
+            !BOOST_TEST(entry->at("hmacs").is_null())) {
             std::cerr << "  the backend of " << name << ": " << known->backend << '\n';
         }
     }
@@ -322,9 +323,8 @@ void check_names(json::object const& table) {
         functions.emplace(function->at("name").as_string());
         for (auto const& backend : function->at("backends").as_object()) {
             BOOST_TEST((std::ranges::find(backends, std::string(backend.key())) != backends.end()));
-            for (auto const& hmac : backend.value().at("hmacs").is_null()
-                                        ? json::array{}
-                                        : backend.value().at("hmacs").as_array()) {
+            auto const& listed = backend.value().at("hmacs");
+            for (auto const& hmac : listed.is_null() ? json::array{} : listed.as_array()) {
                 BOOST_TEST(
                     (std::ranges::find(hmacs, std::string(hmac.as_string())) != hmacs.end()));
             }
