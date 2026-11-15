@@ -1,0 +1,123 @@
+// Copyright (c) 2026 WebCpp.org
+//
+// Distributed under the Boost Software License, Version 1.0. (See
+// accompanying file LICENSE_1_0.txt or copy at
+// https://www.boost.org/LICENSE_1_0.txt)
+
+[#hash-crypto]
+== Use case: a cryptocurrency wallet
+
+A wallet app holds keys that move money, and its mistakes are paid in coins
+that no one can return. Its hashes are not chosen: each chain's standards name
+them, and a wallet that computes a seed, an address or a checksum differently
+from every other wallet sends funds where nobody can reach them. This chapter
+computes the three steps every Bitcoin and Ethereum wallet takes, from the
+standards' own test vectors: the seed from the recovery words, the
+hash of a Bitcoin public key in its address, and an Ethereum address with its
+checksum.
+
+Each step is a protocol's (BIP39, BIP141, EIP-55), and is shown as what a
+domain library, webcpp::bitcoin or webcpp::ethereum, would build from hash's
+primitives; hash has no BIP, EIP or address function. JavaScript wallets do
+the same with paulmillr's noble libraries: the Ethereum library
+https://github.com/wevm/viem[viem] computes Keccak-256 with `@noble/hashes`,
+and https://github.com/paulmillr/scure-bip39[scure-bip39] derives BIP39 seeds
+with it. The code below is webcpp's own.
+
+[#hash-crypto-bip39]
+=== The seed of a wallet: BIP39
+
+*The problem.* A wallet must be recoverable from something a person can write
+on paper. BIP39 encodes 128 to 256 random bits as 12 to 24 words, with a
+checksum; the wallet then needs a 64-byte seed from the words, from which
+every key derives (BIP32).
+
+*The idea.* The seed is PBKDF2-HMAC-SHA-512 of the words, normalised to
+Unicode NFKD, with the salt `mnemonic` followed by an optional passphrase, at
+2,048 iterations. The passphrase makes a second wallet from the same words:
+someone who finds the paper without the passphrase finds an empty wallet. The
+word list, the checksum and the normalisation are webcpp::bitcoin's; the KDF
+is hash's `pbkdf2`.
+
+[source]
+----
+include::{examples}/bip39_seed.cpp[tag=example,indent=0]
+----
+
+[listing]
+----
+include::{examples}/bip39_seed.expected[]
+----
+
+The words, the passphrase `TREZOR` and the seed are BIP39's first English
+test vector.
+
+*Mistakes.* 2,048 iterations do not make a weak secret strong: the words carry
+128 bits or more of randomness, which is the protection, and a passphrase
+alone, as a "brain wallet", is guessed. Skipping the NFKD normalisation gives
+another seed for any word or passphrase with accents. And the seed is as
+secret as the words: it never leaves the device in clear.
+
+[#hash-crypto-hash160]
+=== A Bitcoin address: hash160
+
+*The problem.* A Bitcoin address must be short, and must not reveal the
+public key until the coins are spent.
+
+*The idea.* Legacy (P2PKH) and SegWit version 0 (P2WPKH) addresses commit to
+hash160 of the public key: RIPEMD-160 of SHA-256 of its 33 compressed bytes.
+The two digests together give 20 bytes, and an attacker would have to break
+both to substitute a key. The address's encoding (Base58Check or Bech32) is
+webcpp::bitcoin's.
+
+[source]
+----
+include::{examples}/bitcoin_hash160.cpp[tag=example,indent=0]
+----
+
+[listing]
+----
+include::{examples}/bitcoin_hash160.expected[]
+----
+
+The public key is that of the secret key 1, the generator point of secp256k1;
+its hash160 is the one inside the well-known address of that key, and the
+example's value is computed independently with Python.
+
+*Mistakes.* Hashing the uncompressed key (65 bytes) gives another, valid but
+different address; wallets must agree on the form. RIPEMD-160 alone is legacy:
+use it only inside hash160, never for a new design (<<hash-legacy>>).
+
+[#hash-crypto-ethereum]
+=== An Ethereum address: Keccak-256 and EIP-55
+
+*The problem.* An Ethereum address is 20 bytes, typed or pasted as 40
+hexadecimal digits. A single wrong digit sends funds to an address nobody
+holds.
+
+*The idea.* The address is the last 20 bytes of the Keccak-256 of the 64-byte
+public key (x and y, without the prefix byte). EIP-55 adds a checksum without
+changing the address: each letter of the hexadecimal form is written in upper
+case where the same position of the Keccak-256 of the lower-case form is 8 or
+more. A wallet that receives a mixed-case address checks the case and refuses
+a typo: https://eips.ethereum.org/EIPS/eip-55[EIP-55] puts the chance
+that a mistyped address still passes at about 0.0247 percent.
+
+[source]
+----
+include::{examples}/ethereum_address.cpp[tag=example,indent=0]
+----
+
+[listing]
+----
+include::{examples}/ethereum_address.expected[]
+----
+
+The public key is again that of the secret key 1; the address is the one every
+Ethereum tool gives for it, and the example's values are computed
+independently with a Python Keccak.
+
+*Mistakes.* SHA3-256 in place of Keccak-256 (<<hash-keccak>>) gives an address
+that exists nowhere. Accepting an all-lower-case address without a checksum is
+allowed by EIP-55, but a wallet should warn: it carries no protection against
+typos.

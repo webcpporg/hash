@@ -16,8 +16,7 @@ of every version are on webcpp's index page.
 === Unreleased
 
 // tag::unreleased[]
-* Added the library.
-* Added Boost.Hash2's algorithms and HMAC under webcpp::hash's names.
+* Added the library, with Boost.Hash2's algorithms and HMAC under webcpp::hash's names.
 * Added keccak_256, Ethereum's Keccak-256 over XKCP, and blake3, BLAKE3 with keyed hashing, key derivation and its extendable output.
 * Added HKDF (RFC 5869) and PBKDF2 (RFC 8018) over every Boost.Hash2 hmac, on backends::hash2.
 * Added argon2id (RFC 9106, one lane) with libsodium's three presets, and scrypt (RFC 7914), on backends::sodium.
@@ -26,4 +25,5 @@ of every version are on webcpp's index page.
 * Added the default backend's profiles (WEBCPP_HASH_PROFILE_FASTEST, _SMALLEST, _PORTABLE, _BACKEND_<NAME>, webcpp's WEBCPP_PROFILE_*), choosing per function among the backends that have it.
 * Added the per-algorithm overrides WEBCPP_HASH_DEFAULT_BACKEND_<ALGORITHM>_<NAME>, of HKDF, PBKDF2, argon2id and scrypt, and the capability table doc/capabilities.json.
 * Added the measured tables (doc/measurements.*): each backend's size and throughput per target, which order the defaults, and allocation tests: none in hash's code.
+* Added the guide: chapters per family and per use case, an example per section, generated tables and llms.txt, and a Boost.Hash2 proposal of keccak_224 to keccak_512.
 // end::unreleased[]

@@ -1,0 +1,744 @@
+{
+    "about": "What the guide says of each public name that the tests and measurements do not produce: what it is for, its security, where the world uses it (each fact with its source) and when to choose it; and the decision table of the chapter \"Choose by use case\". tools/hash/doc_tables.py renders the comparison tables, the backend lists, the decision table and doc/llms.txt from it, doc/capabilities.json and the measured data; it fails when a function of the capability table has no entry here. Support, size and speed are never written here: they come from the capability table and the measurements.",
+    "version": 1,
+    "layout": {
+        "schema": "This description. The version of the layout is \"version\"; a change of layout raises it.",
+        "page": "The URL the guide is published at, which doc/llms.txt links.",
+        "chapters[]": "One per chapter of doc/capabilities.json, in the guide's order: chapter (its key there), title (the chapter's heading), anchor (its id), file (the .adoc that teaches it), summary (one sentence for doc/llms.txt).",
+        "functions{}": "Per public name of doc/capabilities.json: standard (only where the capability table's algorithm names several standards: this name's own), summary (one sentence), output, security (in plain words, with its source in sources), status (recommended, legacy, broken or not cryptographic), webcrypto (the WebCrypto name, or null when the browser's Web Cryptography API has none), anchor (the guide's section), uses[] ({text, source}: where it is used, each with its source), choose (when to choose it).",
+        "use_cases[]": "The rows of \"Choose by use case\": need (I need to ...), use (the function, with its parameters), function (the name in doc/capabilities.json whose backends the row lists), profile (what to do about the backend), example (the program of example/ that shows it) and anchor (the guide's section)."
+    },
+    "page": "https://webcpporg.github.io/libs/hash/",
+    "chapters": [
+        {
+            "chapter": "digests",
+            "title": "Digests",
+            "anchor": "hash-digests",
+            "file": "digests.adoc",
+            "summary": "Cryptographic hash functions: a fixed-size fingerprint of any data, for integrity, content addressing, identifiers and signatures."
+        },
+        {
+            "chapter": "macs",
+            "title": "Message authentication",
+            "anchor": "hash-macs",
+            "file": "macs.adoc",
+            "summary": "Keyed hashes: a tag that only the holder of a secret key can compute, so that a receiver knows a message is genuine; and SipHash for hash tables."
+        },
+        {
+            "chapter": "kdfs",
+            "title": "Key derivation",
+            "anchor": "hash-kdfs",
+            "file": "kdfs.adoc",
+            "summary": "HKDF and PBKDF2: keys from a shared secret or a master key (HKDF), or from a password where a standard demands PBKDF2."
+        },
+        {
+            "chapter": "password_hashing",
+            "title": "Password hashing",
+            "anchor": "hash-password-hashing",
+            "file": "password_hashing.adoc",
+            "summary": "Argon2id and scrypt: slow, memory-hard functions that make every guess of a stolen password database expensive."
+        },
+        {
+            "chapter": "non-cryptographic",
+            "title": "Hashes that are not cryptographic",
+            "anchor": "hash-non-cryptographic",
+            "file": "non_cryptographic.adoc",
+            "summary": "Fast hashes for hash tables, checksums against accidents and identifiers that no adversary chooses."
+        }
+    ],
+    "functions": {
+        "md5_128": {
+            "standard": "RFC 1321",
+            "summary": "MD5, a 128-bit digest, broken: kept to read existing data and protocols.",
+            "output": "128 bits",
+            "security": "broken: collisions are found in seconds",
+            "status": "broken",
+            "webcrypto": null,
+            "anchor": "hash-legacy",
+            "uses": [
+                {"text": "legacy checksums and old protocols; RFC 6151 retires it for signatures", "source": "https://www.rfc-editor.org/rfc/rfc6151"}
+            ],
+            "choose": "Only to read or check data that already uses it."
+        },
+        "sha1_160": {
+            "standard": "RFC 3174, FIPS 180-4",
+            "summary": "SHA-1, a 160-bit digest, broken: kept to read existing data and protocols.",
+            "output": "160 bits",
+            "security": "broken: chosen-prefix collisions are practical",
+            "status": "broken",
+            "webcrypto": "SHA-1",
+            "anchor": "hash-legacy",
+            "uses": [
+                {"text": "Git's original object ids, with collision detection", "source": "https://git-scm.com/docs/hash-function-transition"},
+                {"text": "the first public collision, SHAttered (2017)", "source": "https://shattered.io/"}
+            ],
+            "choose": "Only to read or check data that already uses it."
+        },
+        "sha2_224": {
+            "standard": "FIPS 180-4",
+            "summary": "SHA-224, SHA-256 cut to 224 bits.",
+            "output": "224 bits",
+            "security": "112-bit collision resistance",
+            "status": "recommended",
+            "webcrypto": null,
+            "anchor": "hash-sha2",
+            "uses": [
+                {"text": "FIPS 180-4's shorter SHA-2", "source": "https://doi.org/10.6028/NIST.FIPS.180-4"}
+            ],
+            "choose": "When a standard asks for it; otherwise SHA-256."
+        },
+        "sha2_256": {
+            "standard": "FIPS 180-4",
+            "summary": "SHA-256, the most widely used 256-bit digest.",
+            "output": "256 bits",
+            "security": "128-bit collision resistance",
+            "status": "recommended",
+            "webcrypto": "SHA-256",
+            "anchor": "hash-sha2",
+            "uses": [
+                {"text": "Bitcoin's block and transaction ids (twice)", "source": "https://bitcoin.org/bitcoin.pdf"},
+                {"text": "Nostr's event ids (NIP-01)", "source": "https://github.com/nostr-protocol/nips/blob/master/01.md"},
+                {"text": "Git's SHA-256 object format", "source": "https://git-scm.com/docs/hash-function-transition"},
+                {"text": "TLS 1.3's cipher suites", "source": "https://www.rfc-editor.org/rfc/rfc8446#appendix-B.4"}
+            ],
+            "choose": "The default digest: interoperable everywhere, in every browser, fast with hardware support."
+        },
+        "sha2_384": {
+            "standard": "FIPS 180-4",
+            "summary": "SHA-384, SHA-512 cut to 384 bits, immune to length extension.",
+            "output": "384 bits",
+            "security": "192-bit collision resistance",
+            "status": "recommended",
+            "webcrypto": "SHA-384",
+            "anchor": "hash-sha2",
+            "uses": [
+                {"text": "TLS 1.3's AES-256 cipher suite", "source": "https://www.rfc-editor.org/rfc/rfc8446#appendix-B.4"}
+            ],
+            "choose": "When a standard asks for 192-bit strength, or a digest that resists length extension within SHA-2."
+        },
+        "sha2_512": {
+            "standard": "FIPS 180-4",
+            "summary": "SHA-512, a 512-bit digest, faster than SHA-256 on 64-bit machines without SHA hardware.",
+            "output": "512 bits",
+            "security": "256-bit collision resistance",
+            "status": "recommended",
+            "webcrypto": "SHA-512",
+            "anchor": "hash-sha2",
+            "uses": [
+                {"text": "Ed25519's signatures", "source": "https://www.rfc-editor.org/rfc/rfc8032#section-5.1"},
+                {"text": "BIP39's seeds, through PBKDF2-HMAC-SHA-512", "source": "https://github.com/bitcoin/bips/blob/master/bip-0039.mediawiki"}
+            ],
+            "choose": "When a standard asks for it, or for a 512-bit digest."
+        },
+        "sha2_512_224": {
+            "standard": "FIPS 180-4",
+            "summary": "SHA-512/224, SHA-512 with other initial values cut to 224 bits.",
+            "output": "224 bits",
+            "security": "112-bit collision resistance",
+            "status": "recommended",
+            "webcrypto": null,
+            "anchor": "hash-sha2",
+            "uses": [
+                {"text": "FIPS 180-4's truncated SHA-512", "source": "https://doi.org/10.6028/NIST.FIPS.180-4"}
+            ],
+            "choose": "When a standard asks for it."
+        },
+        "sha2_512_256": {
+            "standard": "FIPS 180-4",
+            "summary": "SHA-512/256, SHA-512 with other initial values cut to 256 bits, immune to length extension.",
+            "output": "256 bits",
+            "security": "128-bit collision resistance",
+            "status": "recommended",
+            "webcrypto": null,
+            "anchor": "hash-sha2",
+            "uses": [
+                {"text": "FIPS 180-4's truncated SHA-512", "source": "https://doi.org/10.6028/NIST.FIPS.180-4"}
+            ],
+            "choose": "A 256-bit SHA-2 digest that resists length extension, fast on 64-bit machines."
+        },
+        "sha3_224": {
+            "summary": "SHA3-224, the SHA-3 standard's 224-bit digest.",
+            "output": "224 bits",
+            "security": "112-bit collision resistance",
+            "status": "recommended",
+            "webcrypto": null,
+            "anchor": "hash-sha3",
+            "uses": [
+                {"text": "FIPS 202", "source": "https://doi.org/10.6028/NIST.FIPS.202"}
+            ],
+            "choose": "When a standard asks for it."
+        },
+        "sha3_256": {
+            "summary": "SHA3-256, the SHA-3 standard's 256-bit digest, a design unrelated to SHA-2.",
+            "output": "256 bits",
+            "security": "128-bit collision resistance",
+            "status": "recommended",
+            "webcrypto": null,
+            "anchor": "hash-sha3",
+            "uses": [
+                {"text": "ML-KEM, NIST's post-quantum key encapsulation", "source": "https://doi.org/10.6028/NIST.FIPS.203"}
+            ],
+            "choose": "A standard 256-bit digest that is not SHA-2, immune to length extension."
+        },
+        "sha3_384": {
+            "summary": "SHA3-384, the SHA-3 standard's 384-bit digest.",
+            "output": "384 bits",
+            "security": "192-bit collision resistance",
+            "status": "recommended",
+            "webcrypto": null,
+            "anchor": "hash-sha3",
+            "uses": [
+                {"text": "FIPS 202", "source": "https://doi.org/10.6028/NIST.FIPS.202"}
+            ],
+            "choose": "When a standard asks for it."
+        },
+        "sha3_512": {
+            "summary": "SHA3-512, the SHA-3 standard's 512-bit digest.",
+            "output": "512 bits",
+            "security": "256-bit collision resistance",
+            "status": "recommended",
+            "webcrypto": null,
+            "anchor": "hash-sha3",
+            "uses": [
+                {"text": "ML-KEM, NIST's post-quantum key encapsulation", "source": "https://doi.org/10.6028/NIST.FIPS.203"}
+            ],
+            "choose": "When a standard asks for it."
+        },
+        "shake_128": {
+            "summary": "SHAKE128, an extendable-output function: as many bytes as the caller takes, 128-bit security at most.",
+            "output": "any length",
+            "security": "up to 128 bits, and half the output length for collisions",
+            "status": "recommended",
+            "webcrypto": null,
+            "anchor": "hash-sha3",
+            "uses": [
+                {"text": "ML-KEM's and ML-DSA's matrix expansion", "source": "https://doi.org/10.6028/NIST.FIPS.203"}
+            ],
+            "choose": "To draw a long stream of bytes from one input, at 128-bit security."
+        },
+        "shake_256": {
+            "summary": "SHAKE256, an extendable-output function: as many bytes as the caller takes, 256-bit security at most.",
+            "output": "any length",
+            "security": "up to 256 bits, and half the output length for collisions",
+            "status": "recommended",
+            "webcrypto": null,
+            "anchor": "hash-sha3",
+            "uses": [
+                {"text": "Ed448's signatures", "source": "https://www.rfc-editor.org/rfc/rfc8032#section-5.2"}
+            ],
+            "choose": "To draw a long stream of bytes from one input, at 256-bit security."
+        },
+        "keccak_256": {
+            "summary": "Keccak-256 with the original padding, Ethereum's hash; not SHA3-256.",
+            "output": "256 bits",
+            "security": "128-bit collision resistance",
+            "status": "recommended",
+            "webcrypto": null,
+            "anchor": "hash-keccak",
+            "uses": [
+                {"text": "Ethereum's addresses, transaction ids and state", "source": "https://ethereum.github.io/yellowpaper/paper.pdf"},
+                {"text": "EIP-55's checksummed addresses", "source": "https://eips.ethereum.org/EIPS/eip-55"}
+            ],
+            "choose": "For Ethereum and every format that names Keccak-256; never in place of SHA3-256."
+        },
+        "blake2b_512": {
+            "summary": "BLAKE2b, a 512-bit digest faster than SHA-2 in software, with a key of up to 64 bytes.",
+            "output": "512 bits",
+            "security": "256-bit collision resistance",
+            "status": "recommended",
+            "webcrypto": null,
+            "anchor": "hash-blake2",
+            "uses": [
+                {"text": "Argon2's internal hash", "source": "https://www.rfc-editor.org/rfc/rfc9106#section-3.2"},
+                {"text": "libsodium's generic hash", "source": "https://doc.libsodium.org/hashing/generic_hashing"}
+            ],
+            "choose": "A fast software digest or keyed hash where SHA-2 has no hardware support."
+        },
+        "blake2s_256": {
+            "summary": "BLAKE2s, a 256-bit digest for 32-bit and small machines, with a key of up to 32 bytes.",
+            "output": "256 bits",
+            "security": "128-bit collision resistance",
+            "status": "recommended",
+            "webcrypto": null,
+            "anchor": "hash-blake2",
+            "uses": [
+                {"text": "WireGuard's hash, MAC and HKDF", "source": "https://www.wireguard.com/protocol/"}
+            ],
+            "choose": "For WireGuard-style protocols and 32-bit targets."
+        },
+        "blake3": {
+            "summary": "BLAKE3, a very fast 256-bit digest with keyed hashing, key derivation and extendable output in one design.",
+            "output": "256 bits, or any length",
+            "security": "128-bit security in every mode",
+            "status": "recommended",
+            "webcrypto": null,
+            "anchor": "hash-blake3",
+            "uses": [
+                {"text": "the BLAKE3 specification: a Merkle tree, for verified streaming and content addressing", "source": "https://github.com/BLAKE3-team/BLAKE3-specs/blob/master/blake3.pdf"}
+            ],
+            "choose": "The fastest digest for large data, content addressing, and key derivation from a context string."
+        },
+        "ripemd_128": {
+            "standard": "RIPEMD-128 (Dobbertin, Bosselaers, Preneel)",
+            "summary": "RIPEMD-128, a 128-bit legacy digest.",
+            "output": "128 bits",
+            "security": "64-bit collision resistance: too short today",
+            "status": "legacy",
+            "webcrypto": null,
+            "anchor": "hash-legacy",
+            "uses": [
+                {"text": "the RIPEMD family's page", "source": "https://homes.esat.kuleuven.be/~bosselae/ripemd160.html"}
+            ],
+            "choose": "Only to read existing data."
+        },
+        "ripemd_160": {
+            "standard": "RIPEMD-160 (Dobbertin, Bosselaers, Preneel)",
+            "summary": "RIPEMD-160, a 160-bit legacy digest, kept for Bitcoin's hash160.",
+            "output": "160 bits",
+            "security": "80-bit collision resistance",
+            "status": "legacy",
+            "webcrypto": null,
+            "anchor": "hash-legacy",
+            "uses": [
+                {"text": "Bitcoin's hash160 (P2PKH, P2WPKH)", "source": "https://github.com/bitcoin/bips/blob/master/bip-0141.mediawiki"}
+            ],
+            "choose": "For Bitcoin's hash160; never in a new design."
+        },
+        "siphash_32": {
+            "standard": "HalfSipHash-2-4 (Aumasson)",
+            "summary": "HalfSipHash-2-4, a keyed 32-bit hash for hash tables, with an 8-byte key.",
+            "output": "32 bits",
+            "security": "a 64-bit key; for hash tables only, not a MAC",
+            "status": "recommended",
+            "webcrypto": null,
+            "anchor": "hash-siphash",
+            "uses": [
+                {"text": "the Linux kernel's hsiphash", "source": "https://docs.kernel.org/security/siphash.html"}
+            ],
+            "choose": "Hash tables on 32-bit targets whose keys an adversary chooses."
+        },
+        "siphash_64": {
+            "standard": "SipHash-2-4 (Aumasson, Bernstein)",
+            "summary": "SipHash-2-4, a keyed 64-bit hash for hash tables keyed by untrusted input, with a 16-byte key.",
+            "output": "64 bits",
+            "security": "a 128-bit key; for hash tables only, not a MAC",
+            "status": "recommended",
+            "webcrypto": null,
+            "anchor": "hash-siphash",
+            "uses": [
+                {"text": "Python's string hashing (PEP 456)", "source": "https://peps.python.org/pep-0456/"},
+                {"text": "Rust's default HashMap hasher", "source": "https://doc.rust-lang.org/std/collections/struct.HashMap.html"}
+            ],
+            "choose": "Every hash table, set or Bloom filter whose keys come from the network or another user."
+        },
+        "hmac": {
+            "summary": "hmac<H>, HMAC over any Boost.Hash2 hash.",
+            "output": "the digest of H",
+            "security": "that of H's digest, with a key as long as it",
+            "status": "recommended",
+            "webcrypto": "HMAC",
+            "anchor": "hash-hmac",
+            "uses": [
+                {"text": "RFC 2104", "source": "https://www.rfc-editor.org/rfc/rfc2104"}
+            ],
+            "choose": "HMAC over a hash that has no alias of its own."
+        },
+        "hmac_md5_128": {
+            "summary": "HMAC over MD5, legacy.",
+            "output": "128 bits",
+            "security": "still unforgeable as HMAC, but on a broken hash: legacy",
+            "status": "legacy",
+            "webcrypto": null,
+            "anchor": "hash-hmac",
+            "uses": [
+                {"text": "RFC 6151 on HMAC-MD5", "source": "https://www.rfc-editor.org/rfc/rfc6151#section-2.3"}
+            ],
+            "choose": "Only for an existing protocol."
+        },
+        "hmac_sha1_160": {
+            "summary": "HMAC over SHA-1, legacy.",
+            "output": "160 bits",
+            "security": "still unforgeable as HMAC, but on a broken hash: legacy",
+            "status": "legacy",
+            "webcrypto": "HMAC with SHA-1",
+            "anchor": "hash-hmac",
+            "uses": [
+                {"text": "TOTP and HOTP codes (RFC 6238, RFC 4226)", "source": "https://www.rfc-editor.org/rfc/rfc6238"}
+            ],
+            "choose": "Only for an existing protocol, such as authenticator-app codes."
+        },
+        "hmac_sha2_224": {
+            "summary": "HMAC over SHA-224.",
+            "output": "224 bits",
+            "security": "112 bits and more",
+            "status": "recommended",
+            "webcrypto": null,
+            "anchor": "hash-hmac",
+            "uses": [
+                {"text": "RFC 4231's test cases", "source": "https://www.rfc-editor.org/rfc/rfc4231"}
+            ],
+            "choose": "When a standard asks for it."
+        },
+        "hmac_sha2_256": {
+            "summary": "HMAC over SHA-256, the default MAC.",
+            "output": "256 bits",
+            "security": "128 bits and more",
+            "status": "recommended",
+            "webcrypto": "HMAC with SHA-256",
+            "anchor": "hash-hmac",
+            "uses": [
+                {"text": "JSON Web Tokens signed HS256", "source": "https://www.rfc-editor.org/rfc/rfc7518#section-3.2"},
+                {"text": "TLS 1.3's HKDF", "source": "https://www.rfc-editor.org/rfc/rfc8446#section-7.1"}
+            ],
+            "choose": "The default MAC: interoperable, in every browser."
+        },
+        "hmac_sha2_384": {
+            "summary": "HMAC over SHA-384.",
+            "output": "384 bits",
+            "security": "192 bits and more",
+            "status": "recommended",
+            "webcrypto": "HMAC with SHA-384",
+            "anchor": "hash-hmac",
+            "uses": [
+                {"text": "JSON Web Tokens signed HS384", "source": "https://www.rfc-editor.org/rfc/rfc7518#section-3.2"}
+            ],
+            "choose": "When a standard asks for it."
+        },
+        "hmac_sha2_512": {
+            "summary": "HMAC over SHA-512.",
+            "output": "512 bits",
+            "security": "256 bits",
+            "status": "recommended",
+            "webcrypto": "HMAC with SHA-512",
+            "anchor": "hash-hmac",
+            "uses": [
+                {"text": "BIP32's key derivation", "source": "https://github.com/bitcoin/bips/blob/master/bip-0032.mediawiki"},
+                {"text": "JSON Web Tokens signed HS512", "source": "https://www.rfc-editor.org/rfc/rfc7518#section-3.2"}
+            ],
+            "choose": "When a standard asks for it, or for a 512-bit tag."
+        },
+        "hmac_sha2_512_224": {
+            "summary": "HMAC over SHA-512/224.",
+            "output": "224 bits",
+            "security": "112 bits and more",
+            "status": "recommended",
+            "webcrypto": null,
+            "anchor": "hash-hmac",
+            "uses": [
+                {"text": "FIPS 180-4's truncated SHA-512", "source": "https://doi.org/10.6028/NIST.FIPS.180-4"}
+            ],
+            "choose": "When a standard asks for it."
+        },
+        "hmac_sha2_512_256": {
+            "summary": "HMAC over SHA-512/256.",
+            "output": "256 bits",
+            "security": "128 bits and more",
+            "status": "recommended",
+            "webcrypto": null,
+            "anchor": "hash-hmac",
+            "uses": [
+                {"text": "FIPS 180-4's truncated SHA-512; not libsodium's crypto_auth, which truncates HMAC-SHA-512's tag", "source": "https://doi.org/10.6028/NIST.FIPS.180-4"}
+            ],
+            "choose": "When a standard asks for it."
+        },
+        "hmac_sha3_224": {
+            "summary": "HMAC over SHA3-224.",
+            "output": "224 bits",
+            "security": "112 bits and more",
+            "status": "recommended",
+            "webcrypto": null,
+            "anchor": "hash-hmac",
+            "uses": [
+                {"text": "FIPS 202", "source": "https://doi.org/10.6028/NIST.FIPS.202"}
+            ],
+            "choose": "When a standard asks for it."
+        },
+        "hmac_sha3_256": {
+            "summary": "HMAC over SHA3-256.",
+            "output": "256 bits",
+            "security": "128 bits and more",
+            "status": "recommended",
+            "webcrypto": null,
+            "anchor": "hash-hmac",
+            "uses": [
+                {"text": "FIPS 202", "source": "https://doi.org/10.6028/NIST.FIPS.202"}
+            ],
+            "choose": "When a standard asks for it."
+        },
+        "hmac_sha3_384": {
+            "summary": "HMAC over SHA3-384.",
+            "output": "384 bits",
+            "security": "192 bits and more",
+            "status": "recommended",
+            "webcrypto": null,
+            "anchor": "hash-hmac",
+            "uses": [
+                {"text": "FIPS 202", "source": "https://doi.org/10.6028/NIST.FIPS.202"}
+            ],
+            "choose": "When a standard asks for it."
+        },
+        "hmac_sha3_512": {
+            "summary": "HMAC over SHA3-512.",
+            "output": "512 bits",
+            "security": "256 bits",
+            "status": "recommended",
+            "webcrypto": null,
+            "anchor": "hash-hmac",
+            "uses": [
+                {"text": "FIPS 202", "source": "https://doi.org/10.6028/NIST.FIPS.202"}
+            ],
+            "choose": "When a standard asks for it."
+        },
+        "hmac_ripemd_128": {
+            "summary": "HMAC over RIPEMD-128, legacy.",
+            "output": "128 bits",
+            "security": "legacy",
+            "status": "legacy",
+            "webcrypto": null,
+            "anchor": "hash-hmac",
+            "uses": [
+                {"text": "RFC 2286's test cases", "source": "https://www.rfc-editor.org/rfc/rfc2286"}
+            ],
+            "choose": "Only for an existing protocol."
+        },
+        "hmac_ripemd_160": {
+            "summary": "HMAC over RIPEMD-160, legacy.",
+            "output": "160 bits",
+            "security": "legacy",
+            "status": "legacy",
+            "webcrypto": null,
+            "anchor": "hash-hmac",
+            "uses": [
+                {"text": "RFC 2286's test cases", "source": "https://www.rfc-editor.org/rfc/rfc2286"}
+            ],
+            "choose": "Only for an existing protocol."
+        },
+        "hmac_blake2b_512": {
+            "summary": "HMAC over BLAKE2b; a keyed BLAKE2b does the same job faster.",
+            "output": "512 bits",
+            "security": "256 bits",
+            "status": "recommended",
+            "webcrypto": null,
+            "anchor": "hash-hmac",
+            "uses": [
+                {"text": "RFC 7693, whose keyed mode makes HMAC unnecessary", "source": "https://www.rfc-editor.org/rfc/rfc7693#section-2.5"}
+            ],
+            "choose": "When a protocol names HMAC-BLAKE2b; otherwise a keyed blake2b_512."
+        },
+        "hmac_blake2s_256": {
+            "summary": "HMAC over BLAKE2s.",
+            "output": "256 bits",
+            "security": "128 bits and more",
+            "status": "recommended",
+            "webcrypto": null,
+            "anchor": "hash-hmac",
+            "uses": [
+                {"text": "WireGuard's HKDF", "source": "https://www.wireguard.com/protocol/"}
+            ],
+            "choose": "For WireGuard-style protocols."
+        },
+        "fnv1a_32": {
+            "standard": "FNV-1a",
+            "summary": "FNV-1a with a 32-bit result: tiny and simple, not cryptographic.",
+            "output": "32 bits",
+            "security": "none: an adversary finds collisions at will",
+            "status": "not cryptographic",
+            "webcrypto": null,
+            "anchor": "hash-non-cryptographic-functions",
+            "uses": [
+                {"text": "the IETF draft that specifies it", "source": "https://datatracker.ietf.org/doc/draft-eastlake-fnv/"}
+            ],
+            "choose": "Small tables and identifiers no adversary chooses."
+        },
+        "fnv1a_64": {
+            "standard": "FNV-1a",
+            "summary": "FNV-1a with a 64-bit result: tiny and simple, not cryptographic.",
+            "output": "64 bits",
+            "security": "none: an adversary finds collisions at will",
+            "status": "not cryptographic",
+            "webcrypto": null,
+            "anchor": "hash-non-cryptographic-functions",
+            "uses": [
+                {"text": "the IETF draft that specifies it", "source": "https://datatracker.ietf.org/doc/draft-eastlake-fnv/"}
+            ],
+            "choose": "Tables and identifiers no adversary chooses."
+        },
+        "xxhash_32": {
+            "standard": "xxHash32",
+            "summary": "xxHash32: a very fast 32-bit checksum, not cryptographic.",
+            "output": "32 bits",
+            "security": "none",
+            "status": "not cryptographic",
+            "webcrypto": null,
+            "anchor": "hash-non-cryptographic-functions",
+            "uses": [
+                {"text": "xxHash's own repository", "source": "https://github.com/Cyan4973/xxHash"}
+            ],
+            "choose": "Fast checksums against accidents on 32-bit targets."
+        },
+        "xxhash_64": {
+            "standard": "XXH64",
+            "summary": "XXH64: a very fast 64-bit checksum, not cryptographic.",
+            "output": "64 bits",
+            "security": "none",
+            "status": "not cryptographic",
+            "webcrypto": null,
+            "anchor": "hash-non-cryptographic-functions",
+            "uses": [
+                {"text": "Zstandard's frame checksum", "source": "https://www.rfc-editor.org/rfc/rfc8878#section-3.1.1"}
+            ],
+            "choose": "Fast checksums against accidents, as Zstandard's."
+        },
+        "xxh3_128": {
+            "standard": "XXH3",
+            "summary": "XXH3 with a 128-bit result: the fastest checksum here, not cryptographic.",
+            "output": "128 bits",
+            "security": "none",
+            "status": "not cryptographic",
+            "webcrypto": null,
+            "anchor": "hash-non-cryptographic-functions",
+            "uses": [
+                {"text": "xxHash's own repository", "source": "https://github.com/Cyan4973/xxHash"}
+            ],
+            "choose": "Checksums and identifiers of large data no adversary chooses."
+        },
+        "murmur3_32": {
+            "standard": "MurmurHash3",
+            "summary": "MurmurHash3 x86_32, a fast 32-bit hash, not cryptographic.",
+            "output": "32 bits",
+            "security": "none",
+            "status": "not cryptographic",
+            "webcrypto": null,
+            "anchor": "hash-non-cryptographic-functions",
+            "uses": [
+                {"text": "its author's SMHasher", "source": "https://github.com/aappleby/smhasher"}
+            ],
+            "choose": "To match existing data that uses it."
+        },
+        "murmur3_128": {
+            "standard": "MurmurHash3",
+            "summary": "MurmurHash3 x64_128, a fast 128-bit hash, not cryptographic.",
+            "output": "128 bits",
+            "security": "none",
+            "status": "not cryptographic",
+            "webcrypto": null,
+            "anchor": "hash-non-cryptographic-functions",
+            "uses": [
+                {"text": "its author's SMHasher", "source": "https://github.com/aappleby/smhasher"}
+            ],
+            "choose": "To match existing data that uses it."
+        },
+        "spooky2_128": {
+            "standard": "SpookyHash V2",
+            "summary": "SpookyHash V2, a fast 128-bit hash, not cryptographic.",
+            "output": "128 bits",
+            "security": "none",
+            "status": "not cryptographic",
+            "webcrypto": null,
+            "anchor": "hash-non-cryptographic-functions",
+            "uses": [
+                {"text": "its author's page", "source": "https://burtleburtle.net/bob/hash/spooky.html"}
+            ],
+            "choose": "To match existing data that uses it."
+        },
+        "hkdf_extract": {
+            "summary": "HKDF-Extract: a uniform pseudorandom key from a secret that is not uniform, such as a Diffie-Hellman result.",
+            "output": "the hmac's digest size",
+            "security": "that of the hmac, given input with enough entropy",
+            "status": "recommended",
+            "webcrypto": "HKDF (whole only)",
+            "anchor": "hash-hkdf",
+            "uses": [
+                {"text": "NIP-44's conversation key", "source": "https://github.com/nostr-protocol/nips/blob/master/44.md"},
+                {"text": "TLS 1.3's key schedule", "source": "https://www.rfc-editor.org/rfc/rfc8446#section-7.1"}
+            ],
+            "choose": "When a protocol names the extract step alone."
+        },
+        "hkdf_expand": {
+            "summary": "HKDF-Expand: many keys, each for one purpose, from one pseudorandom key.",
+            "output": "1 to 255 times the digest size",
+            "security": "that of the hmac",
+            "status": "recommended",
+            "webcrypto": "HKDF (whole only)",
+            "anchor": "hash-hkdf",
+            "uses": [
+                {"text": "TLS 1.3's key schedule", "source": "https://www.rfc-editor.org/rfc/rfc8446#section-7.1"},
+                {"text": "Signal's Double Ratchet", "source": "https://signal.org/docs/specifications/doubleratchet/"}
+            ],
+            "choose": "Keys from a key that is already uniform (a master key), one per info label."
+        },
+        "hkdf": {
+            "summary": "HKDF, extract then expand: keys from a shared secret, each separated by its info label.",
+            "output": "1 to 255 times the digest size",
+            "security": "that of the hmac, given input with enough entropy",
+            "status": "recommended",
+            "webcrypto": "HKDF",
+            "anchor": "hash-hkdf",
+            "uses": [
+                {"text": "TLS 1.3", "source": "https://www.rfc-editor.org/rfc/rfc8446#section-7.1"},
+                {"text": "Signal's protocols", "source": "https://signal.org/docs/specifications/doubleratchet/"},
+                {"text": "WireGuard (over HMAC-BLAKE2s)", "source": "https://www.wireguard.com/protocol/"}
+            ],
+            "choose": "The default way to turn one secret into several keys. Never for passwords."
+        },
+        "pbkdf2": {
+            "summary": "PBKDF2: a key from a password by many iterations of an hmac; not memory-hard.",
+            "output": "1 to (2^32 - 1) times the digest size",
+            "security": "each guess costs the iterations; no defence against GPUs beyond that",
+            "status": "recommended",
+            "webcrypto": "PBKDF2",
+            "anchor": "hash-pbkdf2",
+            "uses": [
+                {"text": "BIP39's seeds (2,048 iterations of HMAC-SHA-512)", "source": "https://github.com/bitcoin/bips/blob/master/bip-0039.mediawiki"},
+                {"text": "OWASP: 600,000 iterations of HMAC-SHA-256 for passwords", "source": "https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html"}
+            ],
+            "choose": "When a standard or FIPS 140 demands it; otherwise Argon2id for passwords."
+        },
+        "argon2id": {
+            "summary": "Argon2id: the recommended password hash, memory-hard, winner of the Password Hashing Competition.",
+            "output": "16 to 2^32 - 1 bytes",
+            "security": "each guess costs its memory and passes, on a GPU too",
+            "status": "recommended",
+            "webcrypto": null,
+            "anchor": "hash-argon2id",
+            "uses": [
+                {"text": "OWASP's first choice for password storage", "source": "https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html"},
+                {"text": "the Password Hashing Competition's winner", "source": "https://www.password-hashing.net/"},
+                {"text": "Bitwarden's vault key, as an option", "source": "https://bitwarden.com/help/kdf-algorithms/"}
+            ],
+            "choose": "Storing passwords and deriving keys from them."
+        },
+        "scrypt": {
+            "summary": "scrypt: a memory-hard password hash, older than Argon2id.",
+            "output": "1 to (2^32 - 1) times 32 bytes",
+            "security": "each guess costs 128 r N bytes of memory",
+            "status": "recommended",
+            "webcrypto": null,
+            "anchor": "hash-scrypt",
+            "uses": [
+                {"text": "Ethereum's keystore files (Web3 Secret Storage)", "source": "https://ethereum.org/en/developers/docs/data-structures-and-encoding/web3-secret-storage/"},
+                {"text": "OWASP: N 2^17, r 8, p 1 when Argon2id is not available", "source": "https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html"}
+            ],
+            "choose": "When a format demands scrypt; otherwise Argon2id."
+        }
+    },
+    "use_cases": [
+        {"need": "check that a file or message was not changed by accident or on the way", "use": "sha2_256 (or blake3 for large data)", "function": "sha2_256", "profile": "none: one backend", "example": "sha256.cpp", "anchor": "hash-sha2"},
+        {"need": "name content by what it holds (a file-sharing app, a cache, a store of blobs)", "use": "blake3", "function": "blake3", "profile": "link /third_party//blake3", "example": "content_address.cpp", "anchor": "hash-p2p-content"},
+        {"need": "prove a message comes from someone who holds a shared secret key (an API request, a cookie, a webhook)", "use": "hmac_sha2_256, checked with webcpp::crypto::equal", "function": "hmac_sha2_256", "profile": "none: one backend", "example": "hmac_sha256.cpp", "anchor": "hash-hmac"},
+        {"need": "store users' passwords for a login", "use": "argon2id with argon2id_interactive or stronger, a random 16-byte salt per user", "function": "argon2id", "profile": "link /third_party//sodium", "example": "password_storage.cpp", "anchor": "hash-privacy-passwords"},
+        {"need": "turn a password into an encryption key (a password manager, an encrypted backup)", "use": "argon2id with argon2id_moderate or argon2id_sensitive, then hkdf for each purpose", "function": "argon2id", "profile": "link /third_party//sodium", "example": "argon2id.cpp", "anchor": "hash-argon2id"},
+        {"need": "turn a shared secret (an ECDH result) into keys", "use": "hkdf over hmac_sha2_256, one info label per key", "function": "hkdf", "profile": "the default; name a backend only to match another program's", "example": "hkdf.cpp", "anchor": "hash-hkdf"},
+        {"need": "derive many keys from one master key, one per purpose", "use": "hkdf_expand (or hkdf) with distinct info labels, or blake3::derive_key with a context string", "function": "hkdf_expand", "profile": "the default", "example": "subkeys.cpp", "anchor": "hash-privacy-subkeys"},
+        {"need": "build a hash table, set or Bloom filter whose keys come from the network", "use": "siphash_64 keyed with 16 random bytes per process", "function": "siphash_64", "profile": "none: one backend", "example": "siphash.cpp", "anchor": "hash-siphash"},
+        {"need": "build a hash table of my own trusted keys, or a fast checksum", "use": "xxh3_128 or fnv1a_64", "function": "xxh3_128", "profile": "none: one backend", "example": "checksums.cpp", "anchor": "hash-non-cryptographic-functions"},
+        {"need": "compute a Bitcoin wallet's BIP39 seed from its words", "use": "pbkdf2 over hmac_sha2_512, 2,048 iterations (a domain library's step)", "function": "pbkdf2", "profile": "the default (OpenSSL natively when linked)", "example": "bip39_seed.cpp", "anchor": "hash-crypto-bip39"},
+        {"need": "compute a Bitcoin address's hash160", "use": "ripemd_160 over sha2_256 (a domain library's step)", "function": "ripemd_160", "profile": "none: one backend", "example": "bitcoin_hash160.cpp", "anchor": "hash-crypto-hash160"},
+        {"need": "compute an Ethereum address or a Solidity selector", "use": "keccak_256 (never sha3_256)", "function": "keccak_256", "profile": "link /third_party//xkcp", "example": "ethereum_address.cpp", "anchor": "hash-crypto-ethereum"},
+        {"need": "compute a Nostr event id", "use": "sha2_256 over NIP-01's serialization (a domain library's step)", "function": "sha2_256", "profile": "none: one backend", "example": "nostr_event_id.cpp", "anchor": "hash-p2p-nostr"},
+        {"need": "derive NIP-44's conversation key", "use": "hkdf_extract over hmac_sha2_256 with the salt nip44-v2", "function": "hkdf_extract", "profile": "the default", "example": "nip44_conversation_key.cpp", "anchor": "hash-p2p-nip44"},
+        {"need": "draw a long stream of pseudorandom bytes from a seed", "use": "shake_128 or shake_256, or blake3's squeeze", "function": "shake_128", "profile": "none: one backend", "example": "sha3_shake.cpp", "anchor": "hash-sha3"},
+        {"need": "the smallest WebAssembly program", "use": "the default (on WebAssembly, the smallest linked backend), and link only the libraries the program uses", "function": "hkdf", "profile": "WEBCPP_HASH_PROFILE_SMALLEST, or nothing: it is the default on WebAssembly", "example": "hkdf_backends.cpp", "anchor": "hash-profile"},
+        {"need": "the same code, and the same results, on every target", "use": "the portable profile", "function": "hkdf", "profile": "WEBCPP_HASH_PROFILE_PORTABLE", "example": "hkdf_backends.cpp", "anchor": "hash-profile"}
+    ]
+}

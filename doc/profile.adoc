@@ -1,0 +1,132 @@
+// Copyright (c) 2026 WebCpp.org
+//
+// Distributed under the Boost Software License, Version 1.0. (See
+// accompanying file LICENSE_1_0.txt or copy at
+// https://www.boost.org/LICENSE_1_0.txt)
+
+[#hash-choosing-backend]
+== Choosing a backend
+
+A digest has one implementation, Boost.Hash2's or a C library's. A key
+derivation has several, its backends: the same function, giving the same
+bytes, in code of different size, speed and pedigree. A call that names no
+backend takes the default, which comes from the build: which libraries the
+program links, the target, the profile and the overrides it defines, and a
+table of webcpp's own measurements. This chapter says how that default is
+chosen, what each backend does with secrets and memory, and, from the
+committed data, which backend has which function on which target, what each
+costs in size and time, and what each allocates.
+
+[#hash-profile]
+=== The profile and the overrides
+
+One define, the *profile*, changes every default at once. A program sets it
+for hash alone, or for every webcpp library through webcpp's own profile:
+
+[cols="2,1,4"]
+|===
+| The program defines | Profile | The default of each function
+
+| nothing
+| auto
+| natively the fastest linked backend; on WebAssembly the smallest
+
+| `WEBCPP_HASH_PROFILE_FASTEST` (or `WEBCPP_PROFILE_FASTEST`)
+| fastest
+| the linked backend with the best measured throughput on this target
+
+| `WEBCPP_HASH_PROFILE_SMALLEST` (or `WEBCPP_PROFILE_SMALLEST`)
+| smallest
+| the linked backend whose measured program is smallest on this target
+
+| `WEBCPP_HASH_PROFILE_PORTABLE` (or `WEBCPP_PROFILE_PORTABLE`)
+| portable
+| the first that has the function of `hash2`, `sodium`, `bearssl`: the same
+code on every target, never OpenSSL, which Emscripten lacks
+
+| `WEBCPP_HASH_PROFILE_BACKEND_<NAME>` (`HASH2`, `SODIUM`, `BEARSSL`, `OPENSSL`)
+| a named backend
+| that backend for every function it has, if linked; the others as auto
+|===
+
+Two profiles of hash, or two of webcpp's, stop the build; hash's own wins over
+webcpp's. An *override* names the backend of one algorithm, whatever the
+profile: `WEBCPP_HASH_DEFAULT_BACKEND_<ALGORITHM>_<NAME>`, as
+`WEBCPP_HASH_DEFAULT_BACKEND_HKDF_SODIUM` or
+`WEBCPP_HASH_DEFAULT_BACKEND_PBKDF2_HASH2`, for the algorithms `HKDF`,
+`PBKDF2`, `ARGON2ID` and `SCRYPT`. An override wins over every profile; an
+override of a backend that lacks the function, or that the program does not
+link, stops the build with that backend's message, and so does OpenSSL chosen
+on Emscripten. A program defines these for every translation unit, in its
+Jamfile (`<define>WEBCPP_HASH_PROFILE_SMALLEST`); on MSVC the linker refuses
+two translation units that choose differently.
+
+The default is chosen per function: `hkdf_extract` and `hkdf_expand` follow
+HKDF's order but skip a backend that has HKDF only whole (BearSSL), so that no
+profile makes them refuse. `backends::hash2` is always a candidate, so every
+function has a default with no library linked. The order of each profile on
+each target, for each function, is in the function's section (as
+<<hash-hkdf>>), generated from the measured data below; the data is measured
+again at every move of a C library's pin, and an order moves only on a clear
+difference, so that a default does not flip on noise.
+
+[#hash-backend-conditions]
+=== What each backend does with secrets and memory
+
+webcpp's own code allocates nothing and wipes every secret intermediate it
+holds (HKDF's blocks, PBKDF2's accumulators, each keyed copy of an hmac,
+BearSSL's context) with stores the compiler cannot remove, on success and on
+failure. What a C library or Boost.Hash2 does inside its own functions is
+beyond its reach, and this table says what it is:
+
+[cols="1,4"]
+|===
+| Backend | Its conditions
+
+| `hash2`
+| Boost.Hash2's own temporaries are not wiped: the padded key inside the
+constructor of `hmac` and the inner digest of its `result()`. The digest types, and
+`blake3` and `keccak_256`, do not wipe themselves on destruction.
+
+| `sodium`
+| Argon2id and scrypt allocate
+the memory their costs name, with `mmap` where the system has it, else from
+the C heap, outside any allocator of the program; libsodium's `sodium_init`
+keeps its process-wide choice of implementations.
+
+| `bearssl`
+| hash wipes BearSSL's HKDF context before each call returns. BearSSL's own
+temporaries on its stack, the pseudorandom key of `br_hkdf_flip` and the
+padded keys of its HMAC, are not wiped: they stay in the stack memory of the
+call until it is reused. BearSSL allocates nothing.
+
+| `openssl`
+| OpenSSL allocates a KDF and a context in every call, through its own
+allocator, and frees both before the call returns. It clears the key (HKDF's
+IKM or PRK, PBKDF2's password) and the info when it frees the context; it
+frees the salt without clearing it. Its first call reads OpenSSL's
+configuration file. It holds some lengths in an `int`, so hash refuses, before
+OpenSSL is called, a PBKDF2 output (`invalid_output_size`), a PBKDF2 password
+or salt, or an HKDF salt (`input_too_long`) of more than `INT_MAX` bytes. It
+is not built for Emscripten.
+
+| `xkcp`, `blake3`
+| Hashes without a secret of their own; they allocate nothing.
+|===
+
+No backend states that its key derivations run in constant time; the
+capability table records each upstream's statement, or the absence of one,
+with its source, and the matrices below show it.
+
+[#hash-measured]
+=== The measured data
+
+The chapters that follow are generated from data that tests and measurements
+produce, never typed: the capability table, `doc/capabilities.json`, renders
+which backend has each function on which target, over which hmacs, and its
+constant time; the measured table, `doc/measurements.json`, the size of a
+program per backend and target and the throughput of each; the benchmark
+the owner named, PBKDF2-HMAC-SHA-512 at 1,000,000 iterations, its times; and
+the counting test, the allocations of each C library.
+
+include::generated/measured.adoc[]

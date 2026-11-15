@@ -41,12 +41,18 @@ namespace webcpp::hash {
 template <std::size_t N>
 using digest = boost::hash2::digest<N>;
 
-/** MD5, RFC 1321, a 128-bit digest. Broken: not for security, kept for compatibility with existing
- * data and protocols. */
+/**
+ MD5, RFC 1321, a 128-bit digest.
+
+ Broken: not for security, kept for compatibility with existing data and protocols.
+*/
 using boost::hash2::md5_128;
 
-/** SHA-1, FIPS 180-4, a 160-bit digest. Broken: not for security, kept for compatibility with
- * existing data and protocols. */
+/**
+ SHA-1, FIPS 180-4, a 160-bit digest.
+
+ Broken: not for security, kept for compatibility with existing data and protocols.
+*/
 using boost::hash2::sha1_160;
 
 /** SHA-224, FIPS 180-4, a 224-bit digest. */
@@ -85,10 +91,18 @@ using boost::hash2::shake_128;
 /** SHAKE256, FIPS 202, an extendable-output function with a 256-bit security strength. */
 using boost::hash2::shake_256;
 
-/** RIPEMD-128, ISO/IEC 10118-3, a 128-bit digest. Legacy: not for security. */
+/**
+ RIPEMD-128, ISO/IEC 10118-3, a 128-bit digest.
+
+ Legacy: not for security.
+*/
 using boost::hash2::ripemd_128;
 
-/** RIPEMD-160, ISO/IEC 10118-3, a 160-bit digest. Legacy: prefer SHA-2 or SHA-3 in new designs. */
+/**
+ RIPEMD-160, ISO/IEC 10118-3, a 160-bit digest.
+
+ Legacy: prefer SHA-2 or SHA-3 in new designs.
+*/
 using boost::hash2::ripemd_160;
 
 /** BLAKE2b with a 512-bit digest, RFC 7693. */
@@ -99,44 +113,76 @@ using boost::hash2::blake2s_256;
 
 // Not cryptographic: the algorithms below are for hash tables, checksums and identifiers.
 
-/** FNV-1a with a 32-bit result, the Fowler-Noll-Vo hash (IETF draft-eastlake-fnv). Not
- * cryptographic: for hash tables, checksums and identifiers, never for security. */
+/**
+ FNV-1a with a 32-bit result, the Fowler-Noll-Vo hash (IETF draft-eastlake-fnv).
+
+ Not cryptographic: for hash tables, checksums and identifiers, never for security.
+*/
 using boost::hash2::fnv1a_32;
 
-/** FNV-1a with a 64-bit result, the Fowler-Noll-Vo hash (IETF draft-eastlake-fnv). Not
- * cryptographic: for hash tables, checksums and identifiers, never for security. */
+/**
+ FNV-1a with a 64-bit result, the Fowler-Noll-Vo hash (IETF draft-eastlake-fnv).
+
+ Not cryptographic: for hash tables, checksums and identifiers, never for security.
+*/
 using boost::hash2::fnv1a_64;
 
-/** SipHash-2-4 truncated to a 32-bit result, Aumasson and Bernstein's keyed hash. A keyed function
- * for hash tables against flooding, not a general-purpose MAC or a digest. */
+/**
+ HalfSipHash-2-4, Aumasson's 32-bit variant of SipHash with an 8-byte key and a 32-bit result, as
+ Boost.Hash2 defines it (not SipHash-2-4 truncated).
+
+ A keyed function for hash tables against flooding on 32-bit targets, not a general-purpose MAC or
+ a digest.
+*/
 using boost::hash2::siphash_32;
 
-/** SipHash-2-4 with a 64-bit result, Aumasson and Bernstein's keyed hash. A keyed function for hash
- * tables against flooding, not a general-purpose MAC or a digest. */
+/**
+ SipHash-2-4 with a 64-bit result, Aumasson and Bernstein's keyed hash.
+
+ A keyed function for hash tables against flooding, not a general-purpose MAC or a digest.
+*/
 using boost::hash2::siphash_64;
 
-/** xxHash32, Yann Collet's 32-bit hash. Not cryptographic: for hash tables, checksums and
- * identifiers, never for security. */
+/**
+ xxHash32, Yann Collet's 32-bit hash.
+
+ Not cryptographic: for hash tables, checksums and identifiers, never for security.
+*/
 using boost::hash2::xxhash_32;
 
-/** XXH64, Yann Collet's 64-bit hash. Not cryptographic: for hash tables, checksums and identifiers,
- * never for security. */
+/**
+ XXH64, Yann Collet's 64-bit hash.
+
+ Not cryptographic: for hash tables, checksums and identifiers, never for security.
+*/
 using boost::hash2::xxhash_64;
 
-/** XXH3 with a 128-bit result, Yann Collet's hash. Not cryptographic: for hash tables, checksums
- * and identifiers, never for security. */
+/**
+ XXH3 with a 128-bit result, Yann Collet's hash.
+
+ Not cryptographic: for hash tables, checksums and identifiers, never for security.
+*/
 using boost::hash2::xxh3_128;
 
-/** MurmurHash3 x86_32, Austin Appleby's hash. Not cryptographic: for hash tables, checksums and
- * identifiers, never for security. */
+/**
+ MurmurHash3 x86_32, Austin Appleby's hash.
+
+ Not cryptographic: for hash tables, checksums and identifiers, never for security.
+*/
 using boost::hash2::murmur3_32;
 
-/** MurmurHash3 x64_128, Austin Appleby's hash. Not cryptographic: for hash tables, checksums and
- * identifiers, never for security. */
+/**
+ MurmurHash3 x64_128, Austin Appleby's hash.
+
+ Not cryptographic: for hash tables, checksums and identifiers, never for security.
+*/
 using boost::hash2::murmur3_128;
 
-/** SpookyHash V2 with a 128-bit result, Bob Jenkins' hash. Not cryptographic: for hash tables,
- * checksums and identifiers, never for security. */
+/**
+ SpookyHash V2 with a 128-bit result, Bob Jenkins' hash.
+
+ Not cryptographic: for hash tables, checksums and identifiers, never for security.
+*/
 using boost::hash2::spooky2_128;
 
 /** Boost.Hash2's `hash_append`: feeds a value to a hash algorithm. */

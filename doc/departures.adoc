@@ -1,0 +1,65 @@
+// Copyright (c) 2026 WebCpp.org
+//
+// Distributed under the Boost Software License, Version 1.0. (See
+// accompanying file LICENSE_1_0.txt or copy at
+// https://www.boost.org/LICENSE_1_0.txt)
+
+[#hash-departures]
+== The code webcpp writes, and what the C libraries do
+
+webcpp's rule is that it writes no cryptography of its own: every primitive is
+an audited library's. hash departs from it twice, by the owner's decision of
+2026-11-14, each time for a construction over an audited primitive, never for
+a primitive, and each under conditions that its tests and its review hold it
+to.
+
+[#hash-departures-hash2]
+=== HKDF and PBKDF2 over Boost.Hash2's hmac
+
+`backends::hash2` is webcpp's own HKDF and PBKDF2, written over Boost.Hash2's
+`hmac<H>`, so that both run on every target and over every Hash2 hmac without
+a C library. The conditions:
+
+* the code follows each RFC's text step by step, with the RFC's step names in
+its comments, in under 150 lines for both functions;
+* RFC 5869's seven HKDF cases, RFC 6070's six PBKDF2 cases and RFC 7914's two
+pass, with further cases computed by an independent implementation (Python's
+`hmac` and `hashlib`);
+* it agrees with every other backend that has the same function on random
+inputs, on every target where one exists: natively OpenSSL, libsodium and
+BearSSL; on WebAssembly libsodium and BearSSL, and the browser's WebCrypto on
+Emscripten;
+* every intermediate value is wiped before the function returns, which a test
+observes wipe by wipe;
+* it never compares a secret.
+
+[#hash-departures-keccak]
+=== Keccak-256's sponge over XKCP's permutation
+
+`keccak_256` runs the Keccak team's XKCP for the Keccak-p[1600] permutation;
+webcpp's code does the absorbing, the padding (the byte `0x01`, zeros, the byte `0x80`) and the
+squeezing, line for line as Boost.Hash2's `detail::keccak_base<0x01, 512, 256>`
+does. The conditions: Hash2's `keccak_base` is the oracle of a test on random
+sequences of `update` and `result` calls, which must give its results; and
+the type becomes an alias of Boost.Hash2's own `keccak_256` once a Boost
+release publishes one (<<hash-upstream>>), with no change to any result.
+
+[#hash-departures-c-libraries]
+=== What the C libraries allocate
+
+hash's own code allocates nothing, but two of its C libraries do, outside any
+allocator of the program, and hash records it rather than hides it:
+
+* *libsodium's Argon2id and scrypt* allocate the memory their costs name, with
+`mmap` where the system has it, else `malloc` (and, for Argon2's 64-byte
+alignment, `posix_memalign`). A program whose memory must come from its own
+allocator would need the Argon2 reference implementation's allocation
+callbacks, a possible later backend; it is not built.
+* *OpenSSL* allocates its KDF and context in every call, through its own
+allocator, and webcpp keeps no OpenSSL object between calls, which would be
+state shared between threads.
+
+The counting test of allocations proves that hash's own code allocates
+nothing, on every backend and target, and measures what these libraries
+allocate where a program can count it; the measured chapters at the end of
+<<hash-choosing-backend>> show the counts.

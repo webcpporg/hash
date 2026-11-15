@@ -4,7 +4,44 @@
 # accompanying file LICENSE_1_0.txt or copy at
 # https://www.boost.org/LICENSE_1_0.txt)
 
+import notfile ;
+import os ;
+import path ;
 import webcpp ;
 
 webcpp.doc hash : hash.adoc ;
-webcpp.reference hash ;
+# The reference reads every header, the backends' and the C libraries'
+# included: each library's target gives its define WEBCPP_HASH_HAS_<NAME>
+# and its headers' directory, as a program that links it has them.
+webcpp.reference hash : <library>/third_party//xkcp
+  <library>/third_party//blake3 <library>/third_party//sodium
+  <library>/third_party//bearssl <library>/webcpp/hash//openssl ;
+
+# The guide's generated tables and llms.txt (doc/generated/, doc/llms.txt)
+# against their data, capabilities.json, guide.json and measurements.json:
+# tools/hash/doc_tables.py --check fails, naming
+# `python3 tools/hash/doc_tables.py --write`, when one was edited by hand or
+# its data changed without it. It runs at every build of the page: what it
+# reads is no source b2 tracks.
+path-constant DOC_HERE : . ;
+path-constant DOC_ROOT : ../../.. ;
+if [ os.name ] = NT { .python = python ; } else { .python = python3 ; }
+
+rule check-tables ( targets * : sources * : properties * )
+{
+    ALWAYS $(targets) ;
+    PYTHON on $(targets) = $(.python) ;
+    SCRIPT on $(targets) =
+        [ path.native $(DOC_ROOT)/tools/hash/doc_tables.py ] ;
+    LIBRARY on $(targets) = [ path.native $(DOC_ROOT)/libs/hash ] ;
+}
+
+actions check-tables
+{
+    "$(PYTHON)" "$(SCRIPT)" --check --library "$(LIBRARY)"
+}
+
+notfile tables-checked : @check-tables ;
+
+# llms.txt beside the page, at the root of the library's documentation.
+install llms : llms.txt : <location>html <dependency>tables-checked ;

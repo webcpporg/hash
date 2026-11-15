@@ -1,0 +1,113 @@
+// Copyright (c) 2026 WebCpp.org
+//
+// Distributed under the Boost Software License, Version 1.0. (See
+// accompanying file LICENSE_1_0.txt or copy at
+// https://www.boost.org/LICENSE_1_0.txt)
+
+[#hash-privacy]
+== Use case: a login and a password manager
+
+Two applications almost everybody uses hold the most personal secret there is,
+a password: the login of any web service, and the password manager that keeps
+all the others. Both are attacked the same way, by stealing what they store
+and guessing offline, as fast as the attacker's hardware allows. This chapter
+builds what each stores so that a stolen copy is as costly to attack as
+possible, and how one key becomes many without one weak use exposing the
+others.
+
+[#hash-privacy-passwords]
+=== Storing passwords for a login
+
+*The problem.* A service must check a user's password at every login without
+keeping the password, and a copy of its database must not give the passwords
+away.
+
+*The idea.* At registration, draw a random 16-byte salt, compute Argon2id of
+the password with it, and store the salt, the costs and the tag. At login,
+compute the tag again with the stored salt and costs, and compare it with the
+stored tag in constant time.
+
+[source]
+----
+include::{examples}/password_storage.cpp[tag=example,indent=0]
+----
+
+[listing]
+----
+include::{examples}/password_storage.expected[]
+----
+
+*What goes wrong without each step.*
+
+* *Without a salt,* two users with the same password have the same tag, and
+one guess tests every user; tables of precomputed hashes of common passwords
+work at once.
+* *With a fast hash* (SHA-256, MD5) instead of Argon2id, a graphics card tests
+billions of guesses per second: most human passwords fall in hours.
+* *With `==`* instead of `webcpp::crypto::equal`, the time of the comparison
+tells an attacker at the network how much of a guessed tag is right.
+* *Without the costs in the record,* the service cannot raise them later: the
+record must say which memory and passes made its tag, so that a login can
+verify an old tag and store a new one with today's costs.
+
+hash keeps no `$argon2id$` string: the record is the program's, three fields
+in its own database.
+
+[#hash-privacy-vault]
+=== A password manager's vault key
+
+A password manager, an encrypted backup or an encrypted notes app turns the
+master password into the key that encrypts the vault. The function is the
+same, Argon2id (<<hash-argon2id>>), with heavier costs, since it runs once per
+session: `argon2id_moderate` or `argon2id_sensitive`, measured on the slowest
+device the app supports. The salt is random per vault and stored with it, in
+clear; the derived key is never stored. Bitwarden, for example, offers
+Argon2id for exactly this (its documentation is cited in the comparison table
+of <<hash-password-hashing>>).
+
+[#hash-privacy-subkeys]
+=== One key, many purposes
+
+*The problem.* The vault key encrypts files, authenticates the sync with the
+server, and names items in an index. If the same key did all three, a flaw in
+one use (an index that leaks, a sync protocol with a weakness) would expose the
+others.
+
+*The idea.* Key separation: derive one key per purpose from the master key,
+each bound to a label that names the purpose. HKDF-Expand (<<hash-hkdf>>) with
+an info string per purpose is the standard way; BLAKE3's `derive_key` with a
+context string (<<hash-blake3>>) is the fastest; a keyed BLAKE2b over a
+subkey number and a context does the same with BLAKE2b (<<hash-blake2>>). Each
+derived key reveals nothing of the master key or of the other keys.
+
+[source]
+----
+include::{examples}/subkeys.cpp[tag=example,indent=0]
+----
+
+[listing]
+----
+include::{examples}/subkeys.expected[]
+----
+
+The keyed BLAKE2b of the example is the application's own construction, not
+libsodium's `crypto_kdf`, which places the subkey number and the context in
+BLAKE2b's salt and personalisation parameters; Boost.Hash2's BLAKE2b has
+neither, and libsodium's comes to hash in a later increment. A program that
+must give libsodium's subkeys waits for it.
+
+*Mistakes.* Two purposes with the same label get the same key: write each
+label once, as a constant, with the application's name and a version. Never
+derive a subkey from a password with these functions: the password goes
+through Argon2id first, and only the key it gives is split.
+
+[#hash-privacy-separation]
+=== Domain separation
+
+The labels above are one case of a general rule: whenever one secret, or one
+hash, serves two purposes, each purpose puts a distinct, fixed prefix in what
+it hashes, so that a value computed for one purpose is never valid for the
+other. HKDF's info, BLAKE3's context and the salt of NIP-44 do it for keys; a
+digest that signs two kinds of messages hashes a type tag first; NIST's cSHAKE
+(SP 800-185) builds a customization string into SHAKE for the same reason,
+and comes to hash with XKCP's family in a later increment.

@@ -23,7 +23,7 @@
  Tip: on Emscripten the memory grows to what the costs name; `/third_party//sodium` links its
  programs with `-sALLOW_MEMORY_GROWTH=1` for that reason.
 
- @see "Key derivation", in the guide.
+ @see "Password hashing", in the guide.
 */
 #ifndef WEBCPP_HASH_SCRYPT_HPP
 #define WEBCPP_HASH_SCRYPT_HPP

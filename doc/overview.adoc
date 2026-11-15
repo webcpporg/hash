@@ -12,6 +12,19 @@ program, on every target webcpp has: native (Linux x86-64 and arm64, macOS
 arm64, Windows with MSVC), wasip2, wasip3 and Emscripten. It is a wrapper:
 webcpp's interface over code other projects wrote.
 
+A hash function turns any amount of data into a short, fixed-size value, its
+digest, such that the same input always gives the same digest and different
+inputs, in practice, never do. A cryptographic hash adds that nobody can find
+two inputs with the same digest, or an input for a given digest, without an
+amount of work no computer will ever do. Everything else on this page is built
+from that property: a message authentication code is a hash that only the
+holder of a key can compute; a key derivation function turns one secret into
+several keys, or a password into a key; a password hash makes every guess of a
+stolen password database slow and costly. Each of them protects something an
+ordinary application holds: the integrity of a downloaded file, the
+authenticity of a request, the keys of an encrypted chat, the passwords of a
+login.
+
 [cols="2,3"]
 |===
 | What | Where it comes from
@@ -42,12 +55,40 @@ hashes, HMAC
 
 Every function is synchronous, reports failure as a value
 (`boost::system::result`), takes its data as `std::span`, and allocates nothing
-in webcpp's own code.
+in webcpp's own code (<<hash-backend-conditions>> names what the C
+libraries allocate).
+
+[#hash-overview-shape]
+=== The shape of a hash
+
+Every digest, every MAC and the non-cryptographic hashes have Boost.Hash2's
+shape, the HashAlgorithm: construct it (with a key or a seed where it takes
+one), `update` it with bytes as often as the data arrives, and call `result`
+for the digest, a `digest<N>` of N bytes, or an integer for the
+non-cryptographic hashes and SipHash. The type is Hash2's own, so every part of
+Hash2, `hash_append` and `get_integral_result` among them, takes it unchanged.
+The key derivations are functions that fill a caller's `std::span` and return
+`boost::system::result<void>`.
+
+The examples share one small header, `example/hex.hpp`, which writes bytes in
+hexadecimal and reads text and hexadecimal as bytes:
+
+[source]
+----
+include::{examples}/hex.hpp[tag=hex,indent=0]
+----
 
 [#hash-overview-not]
 === What hash is not
 
 hash is not a new implementation of a primitive: every permutation,
-compression function and hash is Boost.Hash2's or a C library's. It is not
-webcpp::crypto either: encryption, signatures, randomness and constant-time
-comparison stay there, and `webcpp::crypto::equal` is what compares a MAC.
+compression function and hash is Boost.Hash2's or a C library's, and the two
+constructions webcpp writes over them are listed in <<hash-departures>>. It is
+not webcpp::crypto either: encryption, signatures, randomness and
+constant-time comparison stay there, and `webcpp::crypto::equal` is what
+compares a MAC. It holds primitives only: what a protocol defines on top of
+them (Bitcoin's BIP39 seeds and hash160, Ethereum's EIP-55 addresses, Nostr's
+event ids and NIP-44's keys) belongs to domain libraries, webcpp::bitcoin,
+webcpp::ethereum and webcpp::nostr, which build them from these functions. The
+chapters by use case show those steps as examples, each marked as what such a
+library builds, never as hash's API.

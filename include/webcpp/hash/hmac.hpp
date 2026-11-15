@@ -12,10 +12,14 @@
  does not run in constant time:
 
  @code
+ // key, message: the shared key and the message received; tag: the tag received with it,
+ // a webcpp::hash::hmac_sha2_256::result_type
  webcpp::hash::hmac_sha2_256 mac(key.data(), key.size());
  mac.update(message.data(), message.size());
- bool ok = webcpp::crypto::equal(mac.result(), received);
+ bool genuine = webcpp::crypto::equal(mac.result(), tag);
  @endcode
+
+ @see "HMAC", in the guide.
 */
 #ifndef WEBCPP_HASH_HMAC_HPP
 #define WEBCPP_HASH_HMAC_HPP

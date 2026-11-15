@@ -1,0 +1,53 @@
+// Copyright (c) 2026 WebCpp.org
+//
+// Distributed under the Boost Software License, Version 1.0. (See
+// accompanying file LICENSE_1_0.txt or copy at
+// https://www.boost.org/LICENSE_1_0.txt)
+
+[#hash-non-cryptographic]
+== Hashes that are not cryptographic
+
+A hash table, a cache key, a checksum that catches a corrupted disk block and
+a shard chosen from a user id all need a hash that is fast and spreads its
+inputs evenly, and none of them needs to resist someone who chooses inputs on
+purpose. For those uses FNV-1a, xxHash, XXH3, MurmurHash3 and SpookyHash are
+many times faster than any cryptographic digest. hash re-exports Boost.Hash2's, and with them
+`hash_append`, which feeds a whole value, a struct field by field or a
+container element by element, to any hash of this page.
+
+include::generated/compare-non-cryptographic.adoc[]
+
+[#hash-non-cryptographic-functions]
+=== FNV-1a, xxHash, XXH3, MurmurHash3, SpookyHash
+
+FNV-1a multiplies and XORs a byte at a time: tiny, slow on long inputs, good
+for short keys. xxHash32 and XXH64 (Collet) read 16 or 32 bytes per step;
+XXH64 is Zstandard's frame checksum. XXH3 is xxHash's newer design, the
+fastest here on large data. MurmurHash3 (Appleby) and SpookyHash V2 (Jenkins)
+are older hashes kept to read data that already uses them.
+
+[source]
+----
+include::{examples}/checksums.cpp[tag=example,indent=0]
+----
+
+[listing]
+----
+include::{examples}/checksums.expected[]
+----
+
+*Pitfalls.*
+
+* *Never where an adversary chooses the input.* Collisions of every function
+here can be computed at will: a table keyed by them, filled from the network,
+is open to hash flooding. Use SipHash (<<hash-siphash>>) there.
+* *Never as a security check.* A checksum detects a flipped bit, not a
+replaced file: an attacker who changes the file recomputes the checksum. Use a
+digest, and a MAC or a signature when the attacker could replace the digest
+too.
+* *Fix the byte order of what is hashed.* A struct hashed as raw memory
+includes its padding and the machine's byte order; `hash_append` with
+`little_endian_flavor` (or `big_endian_flavor`) gives the same bytes, and the
+same hash, on every target.
+
+include::generated/backends-non-cryptographic.adoc[]

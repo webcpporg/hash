@@ -1,0 +1,149 @@
+// Copyright (c) 2026 WebCpp.org
+//
+// Distributed under the Boost Software License, Version 1.0. (See
+// accompanying file LICENSE_1_0.txt or copy at
+// https://www.boost.org/LICENSE_1_0.txt)
+
+[#hash-kdfs]
+== Key derivation
+
+A key derivation function (KDF) turns secret material that is not fit to be a
+key, or is fit to be one key only, into as many keys as an application needs.
+Two people who agree on a shared secret by Diffie-Hellman get a point of an
+elliptic curve, whose bytes are not uniformly random; a password manager has
+one master key and needs a key per vault, per device, per purpose. Using the
+same key for two purposes, encryption and authentication for example, can let
+an attack on one break the other; using a raw Diffie-Hellman output as an AES
+key wastes part of its strength. HKDF fixes both: it concentrates the entropy
+of its input into a pseudorandom key, then expands it into independent keys,
+one per label. PBKDF2 is the older answer to another problem, a key from a
+password, which Argon2id now answers better (<<hash-password-hashing>>).
+
+The key derivations are the functions of hash that run on a backend, a C
+library or Boost.Hash2, that the program chooses or lets hash choose
+(<<hash-profile>>). Each backend gives the same bytes for the same inputs: the
+tests check them against each other on random inputs on every target.
+
+include::generated/compare-kdfs.adoc[]
+
+[#hash-hkdf]
+=== HKDF
+
+HKDF (RFC 5869, 2010, Krawczyk) has two steps, both HMACs. *Extract* takes an
+optional salt and the input keying material (IKM) and returns a pseudorandom
+key (PRK) of the hmac's digest size: `PRK = HMAC(salt, IKM)`. *Expand* takes
+the PRK and an info string, the label of one purpose, and returns up to 255
+digests of output, each block an HMAC of the previous block, the info and a
+counter. `hkdf` does both; `hkdf_extract` and `hkdf_expand` do one each, for
+a protocol that names a step, or a program that extracts once and expands
+many times. TLS 1.3, Signal, WireGuard, Noise and Nostr's NIP-44 derive their
+keys with it.
+
+This section adapts the guidance of libsodium's documentation on HKDF
+(`key_derivation/hkdf.md` of
+https://github.com/jedisct1/libsodium-doc[libsodium-doc], ISC licence, kept in
+`NOTICE.md`), in hash's own terms.
+
+[source]
+----
+include::{examples}/hkdf.cpp[tag=example,indent=0]
+----
+
+[listing]
+----
+include::{examples}/hkdf.expected[]
+----
+
+*Choosing the inputs.*
+
+* *IKM* is the secret. It may be non-uniform (a Diffie-Hellman result) but
+must hold enough entropy: extract concentrates entropy, it never adds any. A
+password has too little; it goes through Argon2id.
+* *Salt* is optional and public: a random value per session, or a constant
+that names the application or the protocol (NIP-44 uses `nip44-v2`). It
+separates the keys of different applications that might share a secret. An
+empty salt is RFC 5869's string of zeros, and fine when the IKM is never
+reused across applications.
+* *Info* names the purpose and is public. Each key gets its own info, written
+so that no two purposes can produce the same string: an application name, a
+version and the purpose, as `example chat v1 encryption`. Info is limited to
+32,768 bytes on every backend.
+* *PRK* must stay secret, and `hkdf_expand` takes one of exactly the digest's
+size (`invalid_key_size` otherwise). A key that is already uniform and of
+that size, such as 32 bytes from `webcpp::crypto::random_device`, can be
+expanded without the extract step.
+* *HMAC-SHA-256 is the usual choice.* HMAC-SHA-512 gives longer blocks and no
+practical gain in security; use it when a protocol names it.
+
+*Pitfalls.*
+
+* *Never HKDF for a password.* HKDF is fast by design: a key derived from a
+password with HKDF is guessed as fast as the password's digest.
+* *One info, one purpose.* Two keys derived with the same IKM, salt and info
+are the same key.
+* *The output is limited:* 255 times the digest size, 8,160 bytes over
+HMAC-SHA-256; more fails with `invalid_output_size`, the output untouched.
+
+include::generated/backends-hkdf.adoc[]
+
+[#hash-kdfs-backends]
+=== Naming a backend
+
+Most programs never name a backend: the call takes the default, the first
+backend the program links in the order the profile gives (<<hash-profile>>).
+A program names one as the call's second template argument, to match the bytes
+of another program exactly, to keep a smaller binary, or to test one backend
+against another. `backend_has_v<Backend, Kdf, Hmac>` says at compile time
+whether a backend has a function over an hmac; a call on a backend that does
+not stops the build with a message that names the backends that do.
+
+[source]
+----
+include::{examples}/hkdf_backends.cpp[tag=example,indent=0]
+----
+
+[listing]
+----
+include::{examples}/hkdf_backends.expected[]
+----
+
+[#hash-pbkdf2]
+=== PBKDF2
+
+PBKDF2 (RFC 8018, first published in 2000 in PKCS #5 v2.0) derives a key from
+a password by iterating an HMAC: each block of output is the XOR of thousands
+or millions of chained HMACs of the password, so that every guess an attacker
+tries costs as many HMACs as the iteration count. It needs no memory, which
+is its weakness: a graphics card or a dedicated chip runs thousands of PBKDF2
+guesses in parallel, where Argon2id and scrypt force each guess to hold
+megabytes. PBKDF2 remains where a standard names it: BIP39 derives every
+Bitcoin wallet's seed from its words with 2,048 iterations of HMAC-SHA-512,
+and FIPS 140 validated products accept it when Argon2id is not approved.
+
+[source]
+----
+include::{examples}/pbkdf2.cpp[tag=example,indent=0]
+----
+
+[listing]
+----
+include::{examples}/pbkdf2.expected[]
+----
+
+*Pitfalls.*
+
+* *Iterations are the whole defence.* OWASP's Password Storage Cheat Sheet
+recommends 600,000 iterations of HMAC-SHA-256, or 210,000 of HMAC-SHA-512, for
+passwords; BIP39's 2,048 protect a seed of high entropy, not a password.
+Measure the time on the slowest device the program runs on (a phone, a
+browser tab: WebAssembly is slower than native; <<hash-profile>> has the
+measured times).
+* *A random salt per password,* 16 bytes from `webcpp::crypto::random_device`,
+stored beside the result: without it, one guess tests every user at once and
+precomputed tables work.
+* *Ask for no more than one digest.* Each further block of output costs the
+defender the full iteration count again, and the attacker, who checks the
+first block alone, nothing.
+* *Prefer Argon2id for a new design* (<<hash-argon2id>>).
+
+include::generated/backends-pbkdf2.adoc[]

@@ -4,8 +4,51 @@
 # accompanying file LICENSE_1_0.txt or copy at
 # https://www.boost.org/LICENSE_1_0.txt)
 
+# The guide's programs: each section's example, built and run on every
+# target, its output compared with the .expected beside it. A program names
+# the C library of each part it uses, as a user's Jamfile does.
+
 project : requirements <library>/webcpp/hash//hash ;
 
 import webcpp ;
 
 webcpp.targets native wasip2 wasip3 emscripten ;
+
+# Digests.
+webcpp.example sha256.cpp ;
+webcpp.example sha3_shake.cpp ;
+webcpp.example keccak_256.cpp : <library>/third_party//xkcp ;
+webcpp.example blake2b.cpp ;
+webcpp.example blake3.cpp : <library>/third_party//blake3 ;
+webcpp.example ripemd160.cpp ;
+
+# Message authentication: a MAC is compared with webcpp::crypto::equal, and a
+# hash table's key comes from webcpp::crypto::random_device.
+webcpp.example hmac_sha256.cpp : <library>/webcpp/crypto//crypto ;
+webcpp.example siphash.cpp : <library>/webcpp/crypto//crypto ;
+
+# Key derivation.
+webcpp.example hkdf.cpp ;
+webcpp.example hkdf_backends.cpp : <library>/third_party//sodium
+  <library>/third_party//bearssl ;
+webcpp.example pbkdf2.cpp ;
+
+# Password hashing.
+webcpp.example argon2id.cpp : <library>/third_party//sodium ;
+webcpp.example scrypt.cpp : <library>/third_party//sodium ;
+
+# Hashes that are not cryptographic.
+webcpp.example checksums.cpp ;
+
+# The chapters by use case: what an application, or a domain library
+# (webcpp::bitcoin, webcpp::ethereum, webcpp::nostr), builds from these
+# primitives.
+webcpp.example content_address.cpp : <library>/third_party//blake3 ;
+webcpp.example nostr_event_id.cpp ;
+webcpp.example nip44_conversation_key.cpp ;
+webcpp.example bip39_seed.cpp ;
+webcpp.example bitcoin_hash160.cpp ;
+webcpp.example ethereum_address.cpp : <library>/third_party//xkcp ;
+webcpp.example password_storage.cpp : <library>/third_party//sodium
+  <library>/webcpp/crypto//crypto ;
+webcpp.example subkeys.cpp ;

@@ -1,0 +1,72 @@
+// Copyright (c) 2026 WebCpp.org
+//
+// Distributed under the Boost Software License, Version 1.0. (See
+// accompanying file LICENSE_1_0.txt or copy at
+// https://www.boost.org/LICENSE_1_0.txt)
+
+[#hash-upstream]
+== Upstream: Keccak in Boost.Hash2
+
+hash's `keccak_256` exists because Boost.Hash2 has Keccak-256 only under
+`detail`: its `detail::keccak_base<0x01, 512, 256>` is exactly the function,
+but no public name gives it. This section is the text of a proposal to
+Boost.Hash2 that gives it one, with Keccak-224, Keccak-384 and Keccak-512, for
+webcpp's owner to open as a pull request. When a Boost release has it,
+`webcpp::hash::keccak_256` becomes an alias of
+`boost::hash2::keccak_256`, a program no longer links `/third_party//xkcp` for
+it, and no result changes, since hash's sponge is already Hash2's
+(<<hash-departures-keccak>>).
+
+[#hash-upstream-proposal]
+=== The proposal
+
+*Title:* Add keccak_224, keccak_256, keccak_384 and keccak_512.
+
+*Motivation.* Keccak-256, the Keccak team's submission to the SHA-3
+competition with its original padding, is the hash of Ethereum and of every
+chain and tool compatible with it: addresses, transaction ids, Solidity
+selectors, EIP-55 checksums. It differs from SHA3-256 only in its padding
+byte, 0x01 instead of FIPS 202's 0x06, and Hash2 already implements both
+through `detail::keccak_base`; users who need Keccak-256 today reach into
+`detail` or link another library. The four classes below make the existing
+code public under the names other libraries use (`Keccak-256` in OpenSSL's
+default provider, `keccak_256` in noble-hashes and in Ethereum's tools).
+
+*The change.* In `boost/hash2/sha3.hpp`, after `shake_256`: a class template
+`detail::keccak_seeded<D>` over `keccak_base<0x01, 2 * D, D>`, with the three
+constructors every SHA-3 class has (the default, the 64-bit seed and the byte
+seed, each with the SHA-3 classes' meaning), and four classes that inherit
+them, with their HMAC aliases. The seed's eight bytes are fed little-endian,
+one at a time, which gives the bytes of `detail::write64le` without an array.
+
+[source]
+----
+include::{library-root}/test/upstream/keccak.hpp[tag=proposal,indent=0]
+----
+
+*The test,* for `test/keccak.cpp`: the digests of the empty message and of the
+byte 0xCC are the first two entries of the Keccak team's known-answer files of
+the SHA-3 competition's third round (`ShortMsgKAT_224.txt` to
+`ShortMsgKAT_512.txt`); those of "abc" and the HMAC's were computed with an
+independent Keccak that reproduces those entries and Python's SHA-3. It also
+checks incremental input and the seeds against `keccak_base` itself.
+
+[source]
+----
+include::{library-root}/test/upstream_keccak_test.cpp[tag=test,indent=0]
+----
+
+*The documentation,* for the reference's list of algorithms: "keccak_224,
+keccak_256, keccak_384, keccak_512: Keccak as submitted to the SHA-3
+competition, before FIPS 202 changed its padding; Keccak-256 is Ethereum's
+hash. Not interchangeable with sha3_224 to sha3_512, whose digests differ."
+
+[#hash-upstream-evidence]
+=== The evidence
+
+webcpp builds this text against Boost.Hash2 1.92 in its test
+`upstream_keccak`, on every target webcpp has: the digests above pass, and
+`webcpp::hash::keccak_256` gives the results of the proposed `keccak_256` for every
+length up to three blocks and for random sequences of `update` and `result`,
+which is what makes the later alias safe. The proposal is the owner's to open;
+nothing here is sent upstream.

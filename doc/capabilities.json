@@ -492,7 +492,7 @@
             "macro": "SIPHASH",
             "tag": null,
             "chapter": "macs",
-            "standard": "SipHash-2-4 (Aumasson, Bernstein)",
+            "standard": "SipHash-2-4 (siphash_64) and HalfSipHash-2-4 (siphash_32), Aumasson and Bernstein",
             "overridable": false,
             "functions": [
                 {

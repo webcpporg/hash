@@ -1,0 +1,249 @@
+// Copyright (c) 2026 WebCpp.org
+//
+// Distributed under the Boost Software License, Version 1.0. (See
+// accompanying file LICENSE_1_0.txt or copy at
+// https://www.boost.org/LICENSE_1_0.txt)
+
+[#hash-digests]
+== Digests
+
+A cryptographic digest is a fingerprint of data: a few dozen bytes that stand
+for a file, a message or a block of a chain, such that changing any bit of the
+data changes the fingerprint beyond recognition. It is what lets a
+file-sharing app check that the file it received is the one it asked for, a
+backup tool skip what it already stored, a wallet name a transaction, and a
+signature sign a short value instead of a whole document. A digest has no key:
+anybody can compute it, so it protects against accidents and against changes
+made where the attacker cannot also replace the digest. Where the attacker can,
+the answer is a MAC (<<hash-macs>>) or a signature.
+
+Three properties make a hash cryptographic, each with its strength in bits:
+collision resistance (nobody finds two inputs with the same digest; at best
+half the digest's bits, by the birthday bound), preimage resistance (nobody
+finds an input for a given digest) and second-preimage resistance (nobody
+finds another input with the digest of a given one). A digest of 256 bits
+gives 128-bit collision resistance, which no computer will reach; the
+"Security" column below gives each function's.
+
+include::generated/compare-digests.adoc[]
+
+[#hash-sha2]
+=== SHA-2
+
+SHA-2 is the family of digests NIST published in 2001 (FIPS 180-4 is its
+current text): SHA-224 and SHA-256 over 32-bit words, SHA-384, SHA-512,
+SHA-512/224 and SHA-512/256 over 64-bit words. SHA-256 is the most widely
+deployed digest: TLS, Bitcoin, Git's new object format, Nostr and every
+browser's WebCrypto have it, and recent x86 and Arm processors compute it in
+hardware. Each is a Merkle-Damgård construction: the message, padded with its
+length, is cut into blocks, and a compression function folds each block into a
+state whose last value is the digest.
+
+[source]
+----
+include::{examples}/sha256.cpp[tag=example,indent=0]
+----
+
+[listing]
+----
+include::{examples}/sha256.expected[]
+----
+
+*Pitfalls.*
+
+* *Length extension.* Whoever knows SHA-256(m) and the length of m can compute
+SHA-256(m || padding || x) for any x without knowing m. So the digest of a key
+followed by a message is not a MAC: an attacker appends to a signed request and computes
+its valid "tag". Use HMAC (<<hash-hmac>>), or a digest that resists it:
+SHA-384, SHA-512/256, SHA-3, BLAKE2 and BLAKE3.
+* *A digest is not a password hash.* SHA-256 runs at hundreds of megabytes per
+second; a stolen table of SHA-256 password digests is tested at billions of
+guesses per second on a graphics card. Passwords go through Argon2id
+(<<hash-argon2id>>).
+* *A digest is compared as a public value.* Comparing two digests with `==` is
+fine when both are public, a file's expected digest for example; a tag that
+depends on a secret is compared with `webcpp::crypto::equal`
+(<<hash-hmac>>).
+
+include::generated/backends-md5-sha1-sha2.adoc[]
+
+[#hash-sha3]
+=== SHA-3 and SHAKE
+
+SHA-3 is the standard NIST chose by an open competition and published in 2015
+as FIPS 202: the Keccak team's sponge. A sponge absorbs the message into a
+large state of 1,600 bits, a block at a time, mixing it with the Keccak-p
+permutation, then squeezes output from it. Its design shares nothing with
+SHA-2, which is why it exists: if a weakness were found in SHA-2, SHA-3 would
+not share it. It resists length extension by construction. SHA3-224 to
+SHA3-512 have fixed digest sizes; SHAKE128 and SHAKE256 are extendable-output
+functions (XOFs), which give as many bytes as the caller takes, and are what
+NIST's post-quantum standards (ML-KEM, ML-DSA) use to expand seeds into
+matrices.
+
+[source]
+----
+include::{examples}/sha3_shake.cpp[tag=example,indent=0]
+----
+
+[listing]
+----
+include::{examples}/sha3_shake.expected[]
+----
+
+*Pitfalls.*
+
+* *An XOF's output length is the caller's security choice.* SHAKE128 gives at
+most 128-bit security however much is taken, and a short output gives less:
+16 bytes give only 64-bit collision resistance. Take what the protocol names.
+* *Hash2's `result()` returns a whole block.* Each call of `result()` on
+`shake_128` returns the next 168 bytes of the stream (136 for `shake_256`), as
+Boost.Hash2 defines it; a program that wants bytes 32 to 63 takes them from
+the first block, not from a second call.
+* *SHA3-256 is not Keccak-256.* The padding differs (<<hash-keccak>>).
+
+include::generated/backends-sha3-shake.adoc[]
+
+[#hash-keccak]
+=== Keccak-256
+
+Keccak-256 is Keccak as its authors submitted it to the SHA-3 competition,
+before NIST changed the padding for FIPS 202. Ethereum adopted it before the
+standard was final and kept it: an Ethereum address, a transaction id, a
+Solidity function selector and the state trie are all Keccak-256. hash's
+`keccak_256` runs XKCP's Keccak-p[1600] permutation (the Keccak team's own
+code) under a sponge written line for line as Boost.Hash2's, so that it gives
+Hash2's results for every sequence of calls (<<hash-departures>>,
+<<hash-upstream>>). A program links `/third_party//xkcp`.
+
+[source]
+----
+include::{examples}/keccak_256.cpp[tag=example,indent=0]
+----
+
+[listing]
+----
+include::{examples}/keccak_256.expected[]
+----
+
+*Pitfalls.*
+
+* *Keccak-256 is not SHA3-256.* The two differ in one padding byte, 0x01
+against 0x06, and give unrelated digests. A library that offers "SHA3" for
+Ethereum, or "Keccak" for a FIPS 202 format, computes a value nobody else
+computes, and the mistake shows only as an address or a signature that does
+not match. Use `keccak_256` exactly where a format says Keccak-256.
+* *Keccak-224, Keccak-384 and Keccak-512* are not in this increment; their
+proposal to Boost.Hash2 is in <<hash-upstream>>.
+
+include::generated/backends-keccak-256.adoc[]
+
+[#hash-blake2]
+=== BLAKE2
+
+BLAKE2 (RFC 7693) is a digest faster than MD5 in software and as strong as
+SHA-3, designed from BLAKE, a SHA-3 finalist. BLAKE2b works on 64-bit words
+and gives up to 64 bytes; BLAKE2s works on 32-bit words, for small machines,
+and gives up to 32 bytes. Both take a key, so a keyed BLAKE2 is a MAC without
+HMAC's double pass. Argon2 is built on BLAKE2b, libsodium's generic hash is
+BLAKE2b, and WireGuard uses BLAKE2s for its hash, its MAC and its HKDF.
+
+[source]
+----
+include::{examples}/blake2b.cpp[tag=example,indent=0]
+----
+
+[listing]
+----
+include::{examples}/blake2b.expected[]
+----
+
+*Pitfalls.*
+
+* *The key goes to the constructor.* `blake2b_512(key, size)` is RFC 7693's
+key, up to 64 bytes (32 for BLAKE2s), mixed in as a block of its own; a key
+written into the message instead gives a different function, and a key past
+64 bytes is taken as the start of the message, so keep keys at 32 or 64
+bytes.
+* *No salt, no personalisation, no variable length here.* RFC 7693's
+parameter block also carries a salt, a personalisation string (16 bytes for
+BLAKE2b, 8 for BLAKE2s) and the digest's length; Boost.Hash2's types fix them,
+so a digest cut to 32 bytes is not BLAKE2b-256, which encodes its length in
+its parameters. libsodium's `crypto_generichash`, which has them all, comes
+to hash in a later increment; until then a format that names BLAKE2b-256 or a
+personalisation cannot be computed with `blake2b_512`.
+
+include::generated/backends-blake2.adoc[]
+
+[#hash-blake3]
+=== BLAKE3
+
+BLAKE3 (2020) is one function with four uses: a digest, a keyed hash (a MAC),
+a key derivation from a context string, and an extendable output. It splits
+the input into chunks of 1 KiB, hashes them independently and joins them in a
+binary tree, so it uses every SIMD lane of a processor and verifies a large
+file in parts; its rounds are fewer than BLAKE2's. It is the fastest
+cryptographic digest here on large data. hash runs the
+official C implementation, with its SIMD code natively and the portable code
+on WebAssembly; a program links `/third_party//blake3`.
+
+[source]
+----
+include::{examples}/blake3.cpp[tag=example,indent=0]
+----
+
+[listing]
+----
+include::{examples}/blake3.expected[]
+----
+
+The example's inputs are those of BLAKE3's official test vectors
+(`test_vectors.json` of its repository), and its outputs are theirs.
+
+*Pitfalls.*
+
+* *Three modes, three results.* The plain hash, `keyed(key)` and
+`derive_key(context)` of the same input are unrelated; a verifier must use the
+mode the producer used.
+* *A context names one purpose, forever.* BLAKE3's authors ask that a context
+string be hardcoded, globally unique and specific to one use, such as
+"example.com 2026-11-15 chat message keys": never a variable, never a secret.
+The key material goes through `update`.
+* *The seeded constructor is a keyed hash.* `blake3(seed)` and
+`blake3(p, n)` exist for Boost.Hash2's HashAlgorithm form and key the hash
+with the seed; for a MAC, call `keyed` with a 32-byte key.
+* *`blake3` does not wipe itself.* Like Hash2's types, it holds the key in
+its state until it is destroyed; a program that needs the key gone writes over
+the object.
+
+include::generated/backends-blake3.adoc[]
+
+[#hash-legacy]
+=== MD5, SHA-1 and RIPEMD: legacy
+
+MD5 (1992) and SHA-1 (1995) are broken: collisions of MD5 are found in
+seconds, and chosen-prefix collisions of SHA-1, two documents of the
+attacker's choosing with one digest, were computed in public in 2017 and
+2020. RIPEMD-160 (1996) is not broken, but its 160 bits give 80-bit collision
+resistance, below what new designs accept, and RIPEMD-128 gives 64. hash keeps
+them because data and protocols use them: Git's original object ids, old
+checksums, and Bitcoin's hash160, RIPEMD-160 over SHA-256, in every legacy and
+SegWit v0 address (<<hash-crypto-hash160>>).
+
+[source]
+----
+include::{examples}/ripemd160.cpp[tag=example,indent=0]
+----
+
+[listing]
+----
+include::{examples}/ripemd160.expected[]
+----
+
+*Pitfalls.* Never choose one of them for a new design: a signature over an
+MD5 or SHA-1 digest can be moved to a forged document. Read and check what
+already exists; write SHA-256, SHA-3 or BLAKE3. HMAC over MD5 or SHA-1 is not
+broken as a MAC, but it carries a broken name into audits; prefer
+`hmac_sha2_256`.
+
+include::generated/backends-ripemd.adoc[]

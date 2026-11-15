@@ -17,7 +17,9 @@
 #include <webcpp/config.hpp>
 
 // MrDocs parses hash natively, as a build with exceptions does, where none of these macros is
-// defined: these definitions, each undone at once, are the ones the reference lists.
+// defined: these definitions, each undone at once, are the ones the reference lists. The
+// libraries' WEBCPP_HASH_HAS_<NAME> stay defined: doc/Jamfile links every library, so that the
+// reference reads each backend's header, as a program that links them all does.
 #ifdef __MRDOCS__
 /**
  Defined when webcpp::hash is built without exceptions: when webcpp has none (the compiler has
@@ -39,31 +41,26 @@
  defines it to 1 itself.
 */
 #define WEBCPP_HASH_HAS_XKCP 1
-#undef WEBCPP_HASH_HAS_XKCP
 /**
  Defined by `/third_party//blake3` when the program links the BLAKE3 C implementation; a
  program built without b2 defines it to 1 itself.
 */
 #define WEBCPP_HASH_HAS_BLAKE3 1
-#undef WEBCPP_HASH_HAS_BLAKE3
 /**
  Defined by `/third_party//sodium` when the program links libsodium; a program built without
  b2 defines it to 1 itself.
 */
 #define WEBCPP_HASH_HAS_SODIUM 1
-#undef WEBCPP_HASH_HAS_SODIUM
 /**
  Defined by `/third_party//bearssl` when the program links BearSSL; a program built without
  b2 defines it to 1 itself.
 */
 #define WEBCPP_HASH_HAS_BEARSSL 1
-#undef WEBCPP_HASH_HAS_BEARSSL
 /**
  Defined by `/webcpp/hash//openssl` when the program links OpenSSL; a program built without
  b2 defines it to 1 itself. Refused on Emscripten, where OpenSSL is not built.
 */
 #define WEBCPP_HASH_HAS_OPENSSL 1
-#undef WEBCPP_HASH_HAS_OPENSSL
 /** Defined by a program to choose the fastest linked backend for every algorithm. */
 #define WEBCPP_HASH_PROFILE_FASTEST
 #undef WEBCPP_HASH_PROFILE_FASTEST
@@ -221,39 +218,47 @@ struct openssl;
 namespace webcpp::hash::kdfs {
 
 /**
- HKDF, RFC 5869. A tag, declared and never defined: it names the algorithm to
+ HKDF, RFC 5869.
+
+ A tag, declared and never defined: it names the algorithm to
  @ref webcpp::hash::backend_has_v, @ref webcpp::hash::default_backend and the overrides
  `WEBCPP_HASH_DEFAULT_BACKEND_HKDF_<NAME>`, which apply to `hkdf_extract`, `hkdf_expand` and
  `hkdf`; as an operation it is `hkdf`, both steps at once.
 */
 struct hkdf;
 /**
- HKDF-Extract alone, the operation `hkdf_extract` (RFC 5869, section 2.2). A tag, declared and
- never defined: @ref webcpp::hash::backend_has_v and @ref webcpp::hash::default_backend answer
- for the step through it, so that a backend that has HKDF only whole (`backends::bearssl`) is
- never its default. It follows HKDF's ranking and HKDF's override.
+ HKDF-Extract alone, the operation `hkdf_extract` (RFC 5869, section 2.2).
+
+ A tag, declared and never defined: @ref webcpp::hash::backend_has_v and @ref
+ webcpp::hash::default_backend answer for the step through it, so that a backend that has HKDF only
+ whole (`backends::bearssl`) is never its default. It follows HKDF's ranking and HKDF's override.
 */
 struct hkdf_extract;
 /**
- HKDF-Expand alone, the operation `hkdf_expand` (RFC 5869, section 2.3). A tag, declared and
- never defined, as @ref hkdf_extract is for the first step.
+ HKDF-Expand alone, the operation `hkdf_expand` (RFC 5869, section 2.3).
+
+ A tag, declared and never defined, as @ref hkdf_extract is for the first step.
 */
 struct hkdf_expand;
 /**
- PBKDF2, RFC 8018, the operation `pbkdf2`. A tag, declared and never defined, for
- @ref webcpp::hash::backend_has_v, @ref webcpp::hash::default_backend and the overrides
- `WEBCPP_HASH_DEFAULT_BACKEND_PBKDF2_<NAME>`.
+ PBKDF2, RFC 8018, the operation `pbkdf2`.
+
+ A tag, declared and never defined, for @ref webcpp::hash::backend_has_v,
+ @ref webcpp::hash::default_backend and the overrides `WEBCPP_HASH_DEFAULT_BACKEND_PBKDF2_<NAME>`.
 */
 struct pbkdf2;
 /**
- Argon2id, RFC 9106, with one lane, the operation `argon2id` (on `backends::sodium` alone). A
- tag, declared and never defined, for @ref webcpp::hash::backend_has_v (over no hmac: `void`),
- @ref webcpp::hash::default_backend and the overrides `WEBCPP_HASH_DEFAULT_BACKEND_ARGON2ID_<NAME>`.
+ Argon2id, RFC 9106, with one lane, the operation `argon2id` (on `backends::sodium` alone).
+
+ A tag, declared and never defined, for @ref webcpp::hash::backend_has_v (over no hmac: `void`),
+ @ref webcpp::hash::default_backend and the overrides
+ `WEBCPP_HASH_DEFAULT_BACKEND_ARGON2ID_<NAME>`.
 */
 struct argon2id;
 /**
- scrypt, RFC 7914, the operation `scrypt` (on `backends::sodium` alone). A tag, declared and never
- defined, for @ref webcpp::hash::backend_has_v (over no hmac: `void`),
+ scrypt, RFC 7914, the operation `scrypt` (on `backends::sodium` alone).
+
+ A tag, declared and never defined, for @ref webcpp::hash::backend_has_v (over no hmac: `void`),
  @ref webcpp::hash::default_backend and the overrides `WEBCPP_HASH_DEFAULT_BACKEND_SCRYPT_<NAME>`.
 */
 struct scrypt;
@@ -287,46 +292,57 @@ namespace webcpp::hash::detail {
 #ifdef WEBCPP_HASH_PROFILE_FASTEST
 /** The profile in force: fastest. */
 using profile = profiles::fastest;
+/** The name of the profile in force, which MSVC's linker compares between translation units. */
 #define WEBCPP_HASH_DETAIL_PROFILE_NAME "fastest"
 #elif defined(WEBCPP_HASH_PROFILE_SMALLEST)
 /** The profile in force: smallest. */
 using profile = profiles::smallest;
+/** The name of the profile in force, which MSVC's linker compares between translation units. */
 #define WEBCPP_HASH_DETAIL_PROFILE_NAME "smallest"
 #elif defined(WEBCPP_HASH_PROFILE_PORTABLE)
 /** The profile in force: portable. */
 using profile = profiles::portable;
+/** The name of the profile in force, which MSVC's linker compares between translation units. */
 #define WEBCPP_HASH_DETAIL_PROFILE_NAME "portable"
 #elif defined(WEBCPP_HASH_PROFILE_BACKEND_HASH2)
 /** The profile in force: backends::hash2 named. */
 using profile = profiles::named<backends::hash2>;
+/** The name of the profile in force, which MSVC's linker compares between translation units. */
 #define WEBCPP_HASH_DETAIL_PROFILE_NAME "hash2"
 #elif defined(WEBCPP_HASH_PROFILE_BACKEND_SODIUM)
 /** The profile in force: backends::sodium named. */
 using profile = profiles::named<backends::sodium>;
+/** The name of the profile in force, which MSVC's linker compares between translation units. */
 #define WEBCPP_HASH_DETAIL_PROFILE_NAME "sodium"
 #elif defined(WEBCPP_HASH_PROFILE_BACKEND_BEARSSL)
 /** The profile in force: backends::bearssl named. */
 using profile = profiles::named<backends::bearssl>;
+/** The name of the profile in force, which MSVC's linker compares between translation units. */
 #define WEBCPP_HASH_DETAIL_PROFILE_NAME "bearssl"
 #elif defined(WEBCPP_HASH_PROFILE_BACKEND_OPENSSL)
 /** The profile in force: backends::openssl named. */
 using profile = profiles::named<backends::openssl>;
+/** The name of the profile in force, which MSVC's linker compares between translation units. */
 #define WEBCPP_HASH_DETAIL_PROFILE_NAME "openssl"
 #elif defined(WEBCPP_PROFILE_FASTEST)
 /** The profile in force: fastest, by webcpp's umbrella. */
 using profile = profiles::fastest;
+/** The name of the profile in force, which MSVC's linker compares between translation units. */
 #define WEBCPP_HASH_DETAIL_PROFILE_NAME "fastest"
 #elif defined(WEBCPP_PROFILE_SMALLEST)
 /** The profile in force: smallest, by webcpp's umbrella. */
 using profile = profiles::smallest;
+/** The name of the profile in force, which MSVC's linker compares between translation units. */
 #define WEBCPP_HASH_DETAIL_PROFILE_NAME "smallest"
 #elif defined(WEBCPP_PROFILE_PORTABLE)
 /** The profile in force: portable, by webcpp's umbrella. */
 using profile = profiles::portable;
+/** The name of the profile in force, which MSVC's linker compares between translation units. */
 #define WEBCPP_HASH_DETAIL_PROFILE_NAME "portable"
 #else
 /** The profile in force: none defined, auto. */
 using profile = profiles::automatic;
+/** The name of the profile in force, which MSVC's linker compares between translation units. */
 #define WEBCPP_HASH_DETAIL_PROFILE_NAME "auto"
 #endif
 

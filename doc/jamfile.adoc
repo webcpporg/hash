@@ -1,0 +1,157 @@
+// Copyright (c) 2026 WebCpp.org
+//
+// Distributed under the Boost Software License, Version 1.0. (See
+// accompanying file LICENSE_1_0.txt or copy at
+// https://www.boost.org/LICENSE_1_0.txt)
+
+[#hash-jamfile]
+== Using webcpp::hash in your Jamfile
+
+hash is header-only. A program names `/webcpp/hash//hash`, which adds hash's
+`include` directory, Boost's headers and webcpp's configuration, and the C
+library of each part it uses; webcpp builds each C library from its pinned
+sources, for the program's target:
+
+[cols="2,3,2"]
+|===
+| The program uses | Its Jamfile adds | Targets
+
+| Boost.Hash2's digests, HMAC and SipHash; HKDF and PBKDF2 on `backends::hash2`
+| nothing more
+| every target
+
+| `keccak_256`
+| `/third_party//xkcp`
+| every target
+
+| `blake3`
+| `/third_party//blake3`
+| every target
+
+| `argon2id`, `scrypt`, or HKDF on `backends::sodium`
+| `/third_party//sodium`
+| every target
+
+| HKDF on `backends::bearssl`
+| `/third_party//bearssl`
+| every target
+
+| HKDF and PBKDF2 on `backends::openssl`
+| `/webcpp/hash//openssl`
+| native, wasip2, wasip3
+|===
+
+A program that hashes passwords with Argon2id and derives keys with HKDF on
+whatever backend is smallest names, for example:
+
+[source,bash]
+----
+exe app : app.cpp /webcpp/hash//hash /third_party//sodium ;
+----
+
+Each library's target defines the macro `WEBCPP_HASH_HAS_<NAME>` that hash's
+headers read, so linking a library is what makes its backend available; a
+program built without b2 defines the macro itself. libsodium and BearSSL are
+the same copies webcpp::crypto links, so a program of both libraries links
+each once. On Emscripten `/third_party//sodium` also links the program with
+`-sALLOW_MEMORY_GROWTH=1`, since Argon2id and scrypt allocate more than
+Emscripten's fixed 16 MiB.
+
+The library's own target, as `build.jam` declares it:
+
+[source,bash]
+----
+include::{library-root}/build.jam[tag=hash]
+----
+
+[#hash-jamfile-messages]
+=== When the build stops
+
+A call that needs a library the program does not link, a backend that lacks
+the function, or two settings that contradict each other stops the build
+with a message that starts `webcpp::hash:` and says what to change. The
+messages, by what causes them:
+
+[cols="2,3"]
+|===
+| Cause | What to change
+
+| `keccak_256`, `blake3`, `argon2id`, `scrypt` or a backend used without its
+library
+| The message is "... needs XKCP" (or BLAKE3's C implementation, libsodium,
+BearSSL, OpenSSL) and gives the whole Jamfile line, as
+`exe app : app.cpp /webcpp/hash//hash /third_party//xkcp ;`: add that library.
+
+| `/webcpp/hash//openssl` on Emscripten
+| OpenSSL is not built for Emscripten: remove it; HKDF and PBKDF2 then run on
+`backends::hash2`.
+
+| `pbkdf2` on `backends::sodium` or `backends::bearssl`
+| Neither library has PBKDF2: name `backends::hash2` (every hmac) or
+`backends::openssl` (every hmac but `hmac_ripemd_128`).
+
+| `hkdf_extract` or `hkdf_expand` on `backends::bearssl`
+| BearSSL's HKDF does both steps together: call `hkdf`, or name another
+backend.
+
+| HKDF over an hmac that `backends::sodium` or `backends::bearssl` does not
+have
+| The message lists the hmacs the backend has and the backends that have the
+one asked for.
+
+| `hmac_ripemd_128` on `backends::openssl`
+| OpenSSL 3.5 has no RIPEMD-128: name `backends::hash2`.
+
+| `argon2id` or `scrypt` on another backend than `backends::sodium`
+| Name `backends::sodium` and add `/third_party//sodium`.
+
+| A key derivation over a type that is not a Boost.Hash2 hmac of a digest
+| Pass an hmac, as `hmac_sha2_256`.
+
+| Two profiles, or two overrides of one algorithm, defined at once
+| The message names both: keep one (<<hash-profile>>).
+|===
+
+Every message is tested: each is a test of `test/messages/`, which compiles a
+program that makes the mistake and checks the compiler prints the whole
+text, on every target where the mistake is possible.
+
+[#hash-exceptions]
+== Exceptions
+
+hash raises no exception of its own: every operation that can fail reports it
+as a value, a `boost::system::result`, whether or not the program has
+exceptions. `<webcpp/hash/config.hpp>`, which every header of hash includes
+first, defines `WEBCPP_HASH_NO_EXCEPTIONS` when webcpp has none (the compiler
+has none, or the program defined `WEBCPP_NO_EXCEPTIONS` for every webcpp
+library), and a program may define it for hash alone. Boost.Hash2's types, on
+which every digest is built, do not throw either. Every test of hash runs
+twice, with exceptions and without.
+
+[#hash-errors]
+== Errors
+
+Every operation of hash that can fail reports it with an `error` of the
+category `webcpp.hash`, as a `boost::system::error_code`. The values are fixed
+and never reused, so a program may store them. A guard runs before any work:
+a call it refuses leaves its output untouched; a backend that fails after it
+started zeroes the output, so that half a key is never used.
+
+[cols="1,3,5"]
+|===
+|Value |Name |Raised when
+
+|1 |`invalid_output_size` |The output is empty or longer than the function produces (HKDF: 255 times the digest; Argon2id: under 16 bytes).
+|2 |`invalid_key_size` |The pseudorandom key given to `hkdf_expand` is not of the hmac's digest size.
+|3 |`invalid_salt_size` |The salt is not of a size the function accepts (Argon2id: 16 bytes).
+|4 |`invalid_iterations` |PBKDF2's iteration count is zero.
+|5 |`invalid_parameters` |A cost is outside the function's limits (Argon2id's passes or memory, scrypt's N, r and p).
+|6 |`input_too_long` |An input is longer than the function or the backend accepts (HKDF's info past 32,768 bytes; OpenSSL's `int` lengths).
+|7 |`backend_failure` |A backend failed where its contract says it does not.
+|8 |`unsupported_by_backend` |A parameter the chosen backend does not take.
+|===
+
+Argon2id and scrypt also return `errc::not_enough_memory` of the generic
+category when the memory their costs name cannot be allocated. A value that
+`error` does not define has the message "unknown webcpp.hash error"; the value
+9 is reserved for a later version.

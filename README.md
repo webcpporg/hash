@@ -7,8 +7,10 @@ Keccak-256, BLAKE3, Argon2id and scrypt run on C libraries; HKDF and PBKDF2 run 
 the program's choice. Every function is synchronous, reports failure as a value and allocates
 nothing in webcpp's own code.
 
-Nothing but the library's skeleton is built so far: the configuration header, the test rule and
-the documentation's outline.
+The guide (`doc/hash.adoc`) teaches each family of functions with a comparison table, an example
+program of `example/` per section and its pitfalls, then three applications from end to end; its
+tables and `doc/llms.txt` are generated from `doc/capabilities.json` and the measured data by
+`tools/hash/doc_tables.py`. `NOTICE.md` keeps the notice of the documentation it adapts.
 
 ## Building and testing
 

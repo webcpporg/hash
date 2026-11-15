@@ -1,0 +1,30 @@
+// Copyright (c) 2026 WebCpp.org
+//
+// Distributed under the Boost Software License, Version 1.0. (See
+// accompanying file LICENSE_1_0.txt or copy at
+// https://www.boost.org/LICENSE_1_0.txt)
+
+[#hash-choose]
+== Choose by use case
+
+Find the need in the first column; the row names the function and its
+parameters, the backends that implement it with the line the program's Jamfile
+adds, what to do about the backend, and the program of `example/` that shows
+it. The section the function's name links teaches it and its mistakes. The
+backend column is the capability table's, `doc/capabilities.json`, and the
+table is generated from it and from `doc/guide.json`.
+
+include::generated/choose.adoc[]
+
+Three rules decide most cases that the table does not list.
+
+. *A password is never a key.* Anything a person types and remembers is
+guessable: it goes through Argon2id (<<hash-argon2id>>) before it becomes a
+key, never through a digest, an HMAC or HKDF alone.
+. *A secret that is already random needs no slow function.* A Diffie-Hellman
+result, a master key or 32 bytes from `webcpp::crypto::random_device` go
+through HKDF (<<hash-hkdf>>), which is fast and separates each purpose by its
+info label.
+. *A standard names its function.* Ethereum names Keccak-256, BIP39 names
+PBKDF2-HMAC-SHA-512, Nostr names SHA-256: use exactly what the format names,
+even where a newer function would be chosen for a new design.

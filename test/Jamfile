@@ -84,6 +84,10 @@ hash-run algorithms : algorithms_test.cpp ;
 
 # keccak_256 against Boost.Hash2's own Keccak-256 (spec section 1.3).
 hash-run keccak : keccak_test.cpp : <library>/third_party//xkcp ;
+# The proposal to Boost.Hash2 (spec section 9.1, doc/upstream.adoc): the
+# public keccak_224 to keccak_512, their published digests, and keccak_256's
+# agreement with webcpp's.
+hash-run upstream_keccak : upstream_keccak_test.cpp : <library>/third_party//xkcp ;
 # hash.hpp's branch for XKCP.
 webcpp.compile hash_keccak : hash_keccak_test.cpp : <library>/third_party//xkcp ;
 # keccak_256's read of the canary survives optimisation: with the library it

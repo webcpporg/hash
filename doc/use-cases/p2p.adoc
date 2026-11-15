@@ -1,0 +1,129 @@
+// Copyright (c) 2026 WebCpp.org
+//
+// Distributed under the Boost Software License, Version 1.0. (See
+// accompanying file LICENSE_1_0.txt or copy at
+// https://www.boost.org/LICENSE_1_0.txt)
+
+[#hash-p2p]
+== Use case: a peer-to-peer network
+
+In a peer-to-peer network, a file-sharing app, a social protocol such as
+Nostr, a sync engine between devices, nobody is trusted: every peer may lie,
+replay or flood. Hashes are what make that workable. A piece of content named
+by its digest cannot be swapped by the peer that serves it; an event named by
+its digest cannot be altered by the relay that forwards it; two peers that
+agree on a secret derive their keys from it without a server; and a node that
+keeps tables of what peers send it keeps them in shape when a peer sends
+thousands of crafted keys. This chapter builds each of those from hash's
+primitives.
+
+The steps that a protocol defines (Nostr's serialization, NIP-44's labels) are
+shown as what a domain library, webcpp::nostr for example, would build from
+these primitives; hash has no such function. JavaScript applications do the
+same with paulmillr's noble libraries: the Nostr client library
+https://github.com/nbd-wtf/nostr-tools[nostr-tools] computes event ids and
+NIP-44 keys with `@noble/hashes`. The code below is webcpp's own.
+
+[#hash-p2p-content]
+=== Content addressing
+
+*The problem.* A file-sharing app fetches the pieces of a file from peers it
+does not know. A peer that sends a corrupted or malicious piece must be caught
+before the piece is used.
+
+*The idea.* Name the content by its digest. The name is published by whoever
+created the content; anybody who receives the bytes hashes them and compares:
+a single changed bit gives another name. BLAKE3 suits it best: it is the
+fastest digest here on large data, and its tree lets a receiver verify a large
+file part by part. SHA-256 is the choice where a format names it, as Git and
+IPFS's default CIDs do.
+
+[source]
+----
+include::{examples}/content_address.cpp[tag=example,indent=0]
+----
+
+[listing]
+----
+include::{examples}/content_address.expected[]
+----
+
+*Mistakes.* A digest of 64 bits or of a non-cryptographic hash lets a peer
+craft a piece with the same name; keep 256 bits. Hash the bytes as they will
+be used, after decompression or parsing, or a peer sends two encodings of
+different content with one name. The name protects the content, not its
+freshness: a peer can still serve an old version under its old name, which the
+application solves by signing the list of current names.
+
+[#hash-p2p-nostr]
+=== Nostr event ids
+
+*The problem.* A Nostr event travels through relays its author does not
+control. A relay that changes the content, the time or the tags of an event
+must be caught.
+
+*The idea.* NIP-01 defines the event's id as the SHA-256 of a canonical
+serialization, the JSON array `[0, pubkey, created_at, kind, tags, content]`
+written with no whitespace and with fixed escaping, and the author signs the
+id with a BIP340 Schnorr signature (webcpp::crypto's secp256k1). Any reader
+recomputes the id from the fields it received and checks the signature over
+it. The serialization is the protocol's, a domain library's job; the digest
+is hash's `sha2_256`.
+
+[source]
+----
+include::{examples}/nostr_event_id.cpp[tag=example,indent=0]
+----
+
+[listing]
+----
+include::{examples}/nostr_event_id.expected[]
+----
+
+*Mistakes.* Recomputing the id from a JSON library's own output, whose
+whitespace, key order or escaping differs from NIP-01's, gives another id and
+rejects valid events, or, worse, accepts an event whose id was never checked.
+Always recompute the id; never trust the `id` field a relay sends.
+
+[#hash-p2p-nip44]
+=== Keys between two peers: NIP-44
+
+*The problem.* Two Nostr users want to exchange private messages. They each
+have a secp256k1 key pair, and nothing else in common.
+
+*The idea.* Each computes the ECDH shared point from their own secret key and
+the other's public key (webcpp::crypto) and keeps its x coordinate, 32 bytes
+that both sides compute alike but that are not a uniform key. NIP-44 version 2
+turns them into a conversation key with HKDF-Extract over HMAC-SHA-256, with
+the salt `nip44-v2`, then expands a key per message with a random nonce. The
+salt is NIP-44's name for its use of the secret: another protocol over the
+same key pair, with another salt, gets unrelated keys.
+
+[source]
+----
+include::{examples}/nip44_conversation_key.cpp[tag=example,indent=0]
+----
+
+[listing]
+----
+include::{examples}/nip44_conversation_key.expected[]
+----
+
+The example's input is the x coordinate the two peers share when one secret
+key is 1 and the other public key is 2G; its output is computed independently
+with Python's `hmac`. The message keys, the padding and the encryption of
+NIP-44 are webcpp::nostr's.
+
+*Mistakes.* Using the shared x coordinate directly as a key, which wastes its
+structure and ties every protocol on the key pair together; hashing it with a
+plain SHA-256 instead of the HKDF the protocol names, which gives keys no
+other client computes; reusing one message key for two messages.
+
+[#hash-p2p-tables]
+=== Tables of what peers send
+
+A node keeps sets of peer ids, of event ids it has seen, of pending requests,
+each keyed by values that other peers choose. With an unkeyed hash, a peer
+that sends ids chosen to collide turns every lookup into a scan and stalls the
+node. A SipHash keyed with random bytes at start-up takes that choice away:
+<<hash-siphash>> shows the table, in `example/siphash.cpp`.

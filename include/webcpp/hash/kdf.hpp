@@ -132,7 +132,7 @@ constexpr bool takes_hmac() noexcept {
 */
 struct no_result {};
 
-/** `Hmac::result_type` when it exists, else @ref no_result. */
+/** `Hmac::result_type` when it exists, else `no_result`. */
 template <class Hmac, class = void>
 struct hmac_result {
     /** No result type. */
@@ -316,8 +316,10 @@ struct default_choice {
  The backend a function of `Algorithm` uses when the call names none: the override's
  (`WEBCPP_HASH_DEFAULT_BACKEND_<ALGORITHM>_<NAME>`), else the profile's choice among the backends
  the program links that have `Algorithm` over `Hmac`, from the measured orders of
- `detail/ranking.hpp` (spec sections 4.1 and 4.2). Chosen per function: `kdfs::hkdf_extract` and
- `kdfs::hkdf_expand` are never a backend that has HKDF only whole.
+ `detail/ranking.hpp` (spec sections 4.1 and 4.2).
+
+ Chosen per function: `kdfs::hkdf_extract` and `kdfs::hkdf_expand` are never a backend that has
+ HKDF only whole.
 
  @tparam Algorithm A tag of `kdfs`: `hkdf`, `hkdf_extract`, `hkdf_expand`, `pbkdf2`, `argon2id`
  or `scrypt`.
@@ -328,9 +330,10 @@ using default_backend = detail::default_choice<Algorithm, Hmac>::type;
 
 /**
  The backend `hkdf_extract`, `hkdf_expand`, `hkdf` and `pbkdf2` use when the program names none:
- @ref default_backend of `Kdf` over `Hmac`. Without a profile, natively the fastest linked backend,
- on WebAssembly the smallest, by the measured orders of `detail/ranking.hpp`, which the guide's
- measured table (doc/measurements.adoc) shows.
+ @ref default_backend of `Kdf` over `Hmac`.
+
+ Without a profile, natively the fastest linked backend, on WebAssembly the smallest, by the
+ measured orders of `detail/ranking.hpp`, which the guide's measured table shows.
 
  @tparam Hmac A Boost.Hash2 hmac. @tparam Kdf `kdfs::hkdf` (the default), `kdfs::hkdf_extract`,
  `kdfs::hkdf_expand` or `kdfs::pbkdf2`.
