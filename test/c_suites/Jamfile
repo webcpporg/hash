@@ -24,8 +24,8 @@ webcpp.targets native wasip2 wasip3 emscripten ;
 # private headers (sodium-test-config), and run by sodium_main.cpp's main,
 # which runs cmptest.h's, renamed sodium_test_main, from the test's directory
 # of results. On Emscripten the memory grows, as dist-build/emscripten.sh
-# links upstream's tests: argon2's and scrypt's take more than the 16 MB a
-# program starts with.
+# links upstream's tests (argon2's and scrypt's take more than the 16 MB a
+# program starts with): /third_party//sodium links every program that way.
 path-constant SODIUM_TESTS : ../../../../third_party/libs/libsodium/test/default ;
 .sodium-tests-dir = [ regex.replace $(SODIUM_TESTS) "\\\\" "/" ] ;
 
@@ -114,7 +114,6 @@ local rule sodium-requirements ( name )
         <include>$(SODIUM_TESTS) <include>$(SODIUM_TESTS)/../quirks
         <dependency>sodium_$(name).results <conditional>@sodium-results
         [ webcpp.data $(SODIUM_TESTS) ] <webcpp-node-raw-fs>off
-        <toolset>emscripten:<linkflags>-sALLOW_MEMORY_GROWTH=1
         <warnings>off <warnings-as-errors>off ;
 }
 

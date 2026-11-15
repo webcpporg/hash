@@ -12,6 +12,7 @@
 
 #include <array>
 #include <cstdint>
+#include <span>
 #include <string_view>
 
 namespace webcpp::test {
@@ -49,6 +50,12 @@ inline constexpr std::array rfc7914_cases{
                  .output = "7023bdcb3afd7348461c06cd81fd38ebfda8fbba904f8e3ea9b543f6545da1f2"
                            "d5432955613f0fcf62d49705242a9af9e61e85dc0d651e40dfcf017b45575887"},
 };
+
+// An ASCII text's bytes, as scrypt takes them: the span points at the text, never null.
+inline std::span<std::uint8_t const> bytes_of(std::string_view text) {
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): ASCII characters as bytes
+    return {reinterpret_cast<std::uint8_t const*>(text.data()), text.size()};
+}
 
 // The fourth: N = 1,048,576 and r = 8, 1 GiB of memory.
 inline constexpr rfc7914_case rfc7914_large{

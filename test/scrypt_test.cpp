@@ -4,8 +4,9 @@
 // accompanying file LICENSE_1_0.txt or copy at
 // https://www.boost.org/LICENSE_1_0.txt)
 
-// scrypt on backends::sodium: RFC 7914's first three cases (the first with an empty password and
-// salt, whose spans' data() is null); the guards of spec 2.11 at their limits, each one also
+// scrypt on backends::sodium: RFC 7914's first three cases, the first also with a password and a
+// salt that are empty spans whose data() is null (libsodium declares both pointers nonnull); the
+// guards of spec 2.11 at their limits, each one also
 // passed through to a recording backend of this test's own where a real run would take too much
 // memory; libsodium's own limit on N; a backend's failure. The test includes scrypt.hpp alone: a
 // program that links libsodium and includes only the function's header gets the backend's engine
@@ -86,19 +87,26 @@ bool all_of(std::span<std::uint8_t const> bytes, std::uint8_t value) {
     return std::ranges::all_of(bytes, [value](std::uint8_t b) { return b == value; });
 }
 
-std::span<std::uint8_t const> bytes_of(std::string_view text) {
-    return {reinterpret_cast<std::uint8_t const*>(text.data()),  // NOLINT: ASCII as bytes
-            text.size()};
-}
-
 void test_rfc7914() {
     for (auto const& c : webcpp::test::rfc7914_cases) {
         std::array<std::uint8_t, 64> output{};
-        auto const done = hash::scrypt(output, bytes_of(c.password), bytes_of(c.salt),
-                                       {.n = c.n, .r = c.r, .p = c.p});
+        auto const done =
+            hash::scrypt(output, webcpp::test::bytes_of(c.password), webcpp::test::bytes_of(c.salt),
+                         {.n = c.n, .r = c.r, .p = c.p});
         BOOST_TEST(done.has_value());
         BOOST_TEST_EQ(to_hex(output), std::string(c.output));
     }
+
+    // The first case's empty password and salt as default spans, whose data() is null: scrypt
+    // passes libsodium a pointer that is not.
+    auto const& first = webcpp::test::rfc7914_cases[0];
+    std::span<std::uint8_t const> const nothing{};
+    BOOST_TEST(nothing.data() == nullptr);
+    std::array<std::uint8_t, 64> output{};
+    auto const done =
+        hash::scrypt(output, nothing, nothing, {.n = first.n, .r = first.r, .p = first.p});
+    BOOST_TEST(done.has_value());
+    BOOST_TEST_EQ(to_hex(output), std::string(first.output));
 }
 
 const std::array<std::uint8_t, 8> password{'p', 'a', 's', 's', 'w', 'o', 'r', 'd'};

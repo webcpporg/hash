@@ -26,17 +26,13 @@
 
 namespace {
 
-std::span<std::uint8_t const> bytes_of(std::string_view text) {
-    return {reinterpret_cast<std::uint8_t const*>(text.data()),  // NOLINT: ASCII as bytes
-            text.size()};
-}
-
 void test_large() {
     auto const& c = webcpp::test::rfc7914_large;
     std::array<std::uint8_t, 64> output{};
     auto const start = std::chrono::steady_clock::now();
-    auto const done = webcpp::hash::scrypt(output, bytes_of(c.password), bytes_of(c.salt),
-                                           {.n = c.n, .r = c.r, .p = c.p});
+    auto const done =
+        webcpp::hash::scrypt(output, webcpp::test::bytes_of(c.password),
+                             webcpp::test::bytes_of(c.salt), {.n = c.n, .r = c.r, .p = c.p});
     auto const elapsed = std::chrono::steady_clock::now() - start;
     if (!BOOST_TEST(done.has_value())) {
         std::printf("scrypt_rfc7914_large: %s\n", done.error().message().c_str());

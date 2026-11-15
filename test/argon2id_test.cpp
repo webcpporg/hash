@@ -46,6 +46,16 @@ namespace {
 // A backend whose engine writes into the output, then fails: the public function zeroes it.
 struct failing {};
 
+// A backend whose engine records the costs it is called with and succeeds, with no work: a call
+// past the guards, with libsodium's limits.
+struct recording {};
+
+// NOLINTBEGIN(cppcoreguidelines-avoid-non-const-global-variables): the recording engine's record
+int recorded_calls = 0;
+std::uint64_t recorded_passes = 0;
+std::size_t recorded_memory = 0;
+// NOLINTEND(cppcoreguidelines-avoid-non-const-global-variables)
+
 }  // namespace
 }  // namespace test_backends
 
@@ -60,6 +70,22 @@ struct webcpp::hash::detail::argon2id_engine<test_backends::failing> {
                                               std::size_t /*memory*/) noexcept {
         std::ranges::fill(output, std::uint8_t{0x55});
         return webcpp::hash::error::backend_failure;
+    }
+};
+
+template <>
+struct webcpp::hash::detail::argon2id_engine<test_backends::recording> {
+    static constexpr argon2id_limits limits =
+        argon2id_engine<webcpp::hash::backends::sodium>::limits;
+
+    static boost::system::result<void> derive(std::span<std::uint8_t> /*output*/,
+                                              std::span<std::uint8_t const> /*password*/,
+                                              std::span<std::uint8_t const> /*salt*/,
+                                              std::uint64_t passes, std::size_t memory) noexcept {
+        ++test_backends::recorded_calls;
+        test_backends::recorded_passes = passes;
+        test_backends::recorded_memory = memory;
+        return {};
     }
 };
 
@@ -205,9 +231,21 @@ void test_output_guard() {
             salt, cheapest, hash::error::invalid_output_size);
     }
     BOOST_TEST(all_of(buffer, untouched));
-    // 16 bytes, the shortest, with an empty password and the cheapest costs.
-    BOOST_TEST(hash::argon2id(buffer, {}, salt, cheapest).has_value());
-    BOOST_TEST(!all_of(buffer, untouched));
+    // 16 bytes, the shortest, with an empty password and the cheapest costs: a default span,
+    // whose data() is null, against argon2_ctx with the same empty password.
+    std::span<std::uint8_t const> const nothing{};
+    BOOST_TEST(nothing.data() == nullptr);
+    BOOST_TEST(hash::argon2id(buffer, nothing, salt, cheapest).has_value());
+    std::array<std::uint8_t, 16> expected{};
+    BOOST_TEST_EQ(webcpp::test::argon2_reference(expected, {.password = nothing,
+                                                            .salt = salt,
+                                                            .secret = {},
+                                                            .associated_data = {},
+                                                            .passes = 1,
+                                                            .memory_kib = 8,
+                                                            .lanes = 1}),
+                  ARGON2_OK);
+    BOOST_TEST_EQ(to_hex(buffer), to_hex(expected));
 }
 
 void test_salt_guard() {
@@ -254,11 +292,27 @@ void test_parameters_guard() {
         expect_refused(buffer, password, salt, parameters, hash::error::invalid_parameters);
     }
     BOOST_TEST(all_of(buffer, untouched));
-    // The most passes and the most memory pass the guards; neither runs here.
+    // The most passes and libsodium's most memory pass every guard and reach the engine, which
+    // records them (a real run would take 4 TiB, 2 GiB on wasm32); a KiB more is refused.
+    hash::argon2id_parameters const largest{0xffffffff, static_cast<std::size_t>(most_memory)};
+    int const before = test_backends::recorded_calls;
     BOOST_TEST(
-        !hash::detail::exceeds(std::uint64_t{0xffffffff}, hash::detail::argon2id_max_passes));
-    BOOST_TEST_EQ(hash::detail::argon2id_engine<hash::backends::sodium>::limits.memory,
-                  most_memory);
+        hash::argon2id<test_backends::recording>(buffer, password, salt, largest).has_value());
+    BOOST_TEST_EQ(test_backends::recorded_calls, before + 1);
+    BOOST_TEST_EQ(test_backends::recorded_passes, largest.passes);
+    BOOST_TEST_EQ(test_backends::recorded_memory, largest.memory);
+    auto const past = hash::argon2id<test_backends::recording>(
+        buffer, password, salt, {1, static_cast<std::size_t>(most_memory + 1024)});
+    BOOST_TEST(past.has_error() && past.error() == hash::error::invalid_parameters);
+    BOOST_TEST_EQ(test_backends::recorded_calls, before + 1);
+
+    // The password's guard comes before the parameters': natively a password of 2^32 bytes over
+    // 8 with no passes is input_too_long, never read.
+    if constexpr (std::numeric_limits<std::size_t>::max() > 0xffffffffU) {
+        std::span<std::uint8_t const> const past_password(
+            password.data(), static_cast<std::size_t>(std::uint64_t{0xffffffff} + 1));
+        expect_refused(buffer, past_password, salt, {0, 0}, hash::error::input_too_long);
+    }
 }
 
 void test_backend_failure() {

@@ -82,7 +82,8 @@ constexpr bool scrypt_valid_n(std::uint64_t n, std::uint32_t r) noexcept {
  scrypt (RFC 7914): fills `output` from `password` and `salt`.
 
  @tparam Backend The backend; `backends::sodium`, the only one.
- @param output The derived key, 1 to (2^32 - 1) times 32 bytes.
+ @param output The derived key, 1 to (2^32 - 1) times 32 bytes; it must not overlap `password`
+ or `salt`.
  @param password The password. @param salt The salt.
  @param parameters The costs.
  @return Success, or the error of the first guard that fails (`invalid_output_size`,

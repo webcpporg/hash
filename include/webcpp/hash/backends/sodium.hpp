@@ -339,8 +339,9 @@ struct pbkdf2_engine<backends::sodium, Hmac> {
 };
 
 /**
- Argon2id on backends::sodium: `crypto_pwhash_argon2id` with `crypto_pwhash_ALG_ARGON2ID13`, one
- lane, libsodium's 16-byte salt (the engine's interface: @ref argon2id_engine).
+ Argon2id on backends::sodium: `crypto_pwhash_argon2id` with
+ `crypto_pwhash_argon2id_ALG_ARGON2ID13`, one lane, libsodium's 16-byte salt (the engine's
+ interface: @ref argon2id_engine).
 */
 template <>
 struct argon2id_engine<backends::sodium> {

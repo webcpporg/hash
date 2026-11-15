@@ -47,8 +47,10 @@ namespace webcpp::hash {
 struct argon2id_parameters {
     /** The number of passes over the memory, t: 1 to 4,294,967,295. */
     std::uint64_t passes;
-    /** The memory in bytes, m times 1,024: at least 8,192, a multiple of 1,024, at most 4 TiB (2
-     * GiB on wasm32). */
+    /**
+     The memory in bytes, m times 1,024: at least 8,192, a multiple of 1,024, at most 4 TiB less
+     1 KiB (2 GiB on wasm32).
+    */
     std::size_t memory;
 };
 
@@ -84,7 +86,8 @@ inline constexpr std::size_t argon2id_memory_unit = 1024;
  `output` from `password` and `salt`.
 
  @tparam Backend The backend; `backends::sodium`, the only one.
- @param output The tag, 16 to 4,294,967,295 bytes.
+ @param output The tag, 16 to 4,294,967,295 bytes; it must not overlap `password` or `salt`
+ (libsodium zeroes it before it reads them).
  @param password The password, at most 4,294,967,295 bytes.
  @param salt The salt, of `argon2id_salt_size` bytes.
  @param parameters The costs.
