@@ -23,4 +23,10 @@
 #include <webcpp/hash/keccak.hpp>
 #endif
 
+// blake3 needs BLAKE3's C implementation, /third_party//blake3, which defines
+// WEBCPP_HASH_HAS_BLAKE3: a program that does not link it leaves blake3.hpp out.
+#ifdef WEBCPP_HASH_HAS_BLAKE3
+#include <webcpp/hash/blake3.hpp>
+#endif
+
 #endif  // WEBCPP_HASH_HPP

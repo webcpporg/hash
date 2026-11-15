@@ -30,6 +30,10 @@ webcpp.headers-alone hash : ../include :
 # keccak.hpp compiles alone only with XKCP, whose target defines
 # WEBCPP_HASH_HAS_XKCP (without it, it stops with its message).
 webcpp.headers-alone hash : ../include : hash/keccak.hpp : <library>/third_party//xkcp ;
+# blake3.hpp compiles alone only with BLAKE3's library, which defines
+# WEBCPP_HASH_HAS_BLAKE3 (without it, it stops with its message).
+webcpp.headers-alone hash : ../include : hash/blake3.hpp
+  : <library>/third_party//blake3 ;
 
 # config.hpp defines WEBCPP_HASH_NO_EXCEPTIONS exactly when webcpp has no
 # exceptions, keeps it when a developer defines it, defines it when
@@ -57,6 +61,13 @@ hash-run keccak_canary : keccak_canary_test.cpp
 webcpp.link-fail keccak_canary_other_commit : keccak_canary_test.cpp
   : <library>/third_party//xkcp <optimization>speed
     <define>WEBCPP_HASH_XKCP_CANARY_COMMIT=0000000 ;
+
+# blake3 over BLAKE3's C implementation, on every target: Hash2's contract and
+# the seeds against BLAKE3's C functions, and BLAKE3's official vectors.
+hash-run blake3 : blake3_test.cpp : <library>/third_party//blake3 ;
+hash-run blake3_vectors : blake3_vectors_test.cpp
+  : <library>/third_party//blake3 <library>/third_party//blake3_vectors
+    <library>/webcpp//boost_json ;
 
 build-project messages ;
 

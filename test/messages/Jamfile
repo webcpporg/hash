@@ -8,3 +8,4 @@
 # case the requirements that raise the message, and nothing else.
 
 build-project xkcp_not_linked ;
+build-project blake3_not_linked ;
