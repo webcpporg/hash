@@ -33,4 +33,10 @@
 #include <webcpp/hash/blake3.hpp>
 #endif
 
+// backends::bearssl needs BearSSL, /third_party//bearssl, which defines
+// WEBCPP_HASH_HAS_BEARSSL: a program that does not link it leaves its header out.
+#ifdef WEBCPP_HASH_HAS_BEARSSL
+#include <webcpp/hash/backends/bearssl.hpp>
+#endif
+
 #endif  // WEBCPP_HASH_HPP

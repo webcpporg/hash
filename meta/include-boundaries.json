@@ -44,6 +44,13 @@
             ],
             "must-not-include": ["xkcp", "sodium", "bearssl", "openssl/"],
             "why": "blake3 links BLAKE3's C implementation alone (spec section 2.7)"
+        },
+        {
+            "headers": [
+                "include/webcpp/hash/backends/bearssl.hpp"
+            ],
+            "must-not-include": ["xkcp", "blake3", "sodium", "openssl/"],
+            "why": "backends::bearssl links BearSSL alone (spec section 2.12)"
         }
     ]
 }

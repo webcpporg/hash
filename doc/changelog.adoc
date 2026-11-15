@@ -22,4 +22,5 @@ of every version are on webcpp's index page.
 * Added blake3, BLAKE3 with keyed hashing, key derivation and its extendable output.
 * Added HKDF (RFC 5869) over every Boost.Hash2 hmac, on backends::hash2.
 * Added PBKDF2 (RFC 8018) over every Boost.Hash2 hmac, on backends::hash2.
+* Added backends::bearssl, BearSSL's HKDF over MD5, SHA-1 and SHA-2 (hkdf alone).
 // end::unreleased[]

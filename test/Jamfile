@@ -42,6 +42,10 @@ webcpp.headers-alone hash : ../include : hash/keccak.hpp : <library>/third_party
 # WEBCPP_HASH_HAS_BLAKE3 (without it, it stops with its message).
 webcpp.headers-alone hash : ../include : hash/blake3.hpp
   : <library>/third_party//blake3 ;
+# backends/bearssl.hpp compiles alone only with BearSSL, whose target defines
+# WEBCPP_HASH_HAS_BEARSSL (without it, it stops with its message).
+webcpp.headers-alone hash : ../include : hash/backends/bearssl.hpp
+  : <library>/third_party//bearssl ;
 
 # config.hpp defines WEBCPP_HASH_NO_EXCEPTIONS exactly when webcpp has no
 # exceptions, keeps it when a developer defines it, defines it when
@@ -89,6 +93,19 @@ hash-run wipe : wipe_test.cpp : <define>WEBCPP_HASH_DETAIL_TEST_WIPE_RECORD ;
 hash-run pbkdf2_hash2 : pbkdf2_hash2_test.cpp ;
 hash-run pbkdf2_rfc6070_long : pbkdf2_rfc6070_long_test.cpp ;
 hash-run pbkdf2_guards : pbkdf2_guards_test.cpp ;
+
+# HKDF on backends::bearssl: RFC 5869's seven cases through hkdf, the four
+# other hmacs against backends::hash2, the guards, and the wipe of BearSSL's
+# context, reported through the seam WEBCPP_HASH_DETAIL_TEST_WIPE_RECORD.
+hash-run hkdf_bearssl : hkdf_bearssl_test.cpp
+  : <library>/third_party//bearssl <define>WEBCPP_HASH_DETAIL_TEST_WIPE_RECORD ;
+# Its read of webcpp::hash's canary survives optimisation: with the library it
+# links and runs; with another commit's canary it does not link.
+hash-run hkdf_bearssl_canary : hkdf_bearssl_canary_test.cpp
+  : <library>/third_party//bearssl <optimization>speed ;
+webcpp.link-fail hkdf_bearssl_canary_other_commit : hkdf_bearssl_canary_test.cpp
+  : <library>/third_party//bearssl <optimization>speed
+    <define>WEBCPP_HASH_BEARSSL_CANARY_COMMIT=0000000 ;
 
 build-project messages ;
 

@@ -33,6 +33,12 @@
 #include <webcpp/hash/error.hpp>
 #include <webcpp/hash/kdf.hpp>
 
+// The backends the program links, each under its WEBCPP_HASH_HAS_<NAME>: default_kdf_backend
+// names only a backend whose engines are visible here.
+#ifdef WEBCPP_HASH_HAS_BEARSSL
+#include <webcpp/hash/backends/bearssl.hpp>
+#endif
+
 #include <boost/system/result.hpp>
 
 #include <cstddef>

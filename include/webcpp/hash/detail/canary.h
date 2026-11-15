@@ -38,6 +38,12 @@
 #define WEBCPP_HASH_BLAKE3_COMMIT f3149ec
 #endif
 
+#ifdef WEBCPP_HASH_BEARSSL_CANARY_COMMIT
+#define WEBCPP_HASH_BEARSSL_COMMIT WEBCPP_HASH_BEARSSL_CANARY_COMMIT
+#else
+#define WEBCPP_HASH_BEARSSL_COMMIT 7bea48e
+#endif
+
 #define WEBCPP_HASH_DETAIL_CANARY_I(name, commit, configuration) \
     webcpp_hash_##name##_##commit##_##configuration##__add_third_party_##name##_to_your_link
 #define WEBCPP_HASH_DETAIL_CANARY(name, commit, configuration) \
