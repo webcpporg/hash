@@ -32,11 +32,12 @@ inline bool exceeds(std::uint64_t value, std::uint64_t limit) noexcept {
 inline constexpr std::uint8_t nonnull_byte = 0;
 
 /**
- The pointer to pass for a parameter a C library declares `nonnull`: the span's `data()`, or the
- address of @ref nonnull_byte when the span is empty, since an empty span's `data()` may be null.
- The length passed with it stays the span's, zero. Only pointers libsodium declares nonnull
- go through it (SHA-256 HKDF-Extract's IKM, scrypt's password and salt, Argon2id's password;
- SHA-512's extract takes its IKM through it too, for symmetry).
+ The pointer to pass where a C library takes no null pointer: the span's `data()`, or the address
+ of @ref nonnull_byte when the span is empty, since an empty span's `data()` may be null. The
+ length passed with it stays the span's, zero. Two kinds of pointer go through it: those libsodium
+ declares nonnull (SHA-256 HKDF-Extract's IKM, scrypt's password and salt, Argon2id's password;
+ SHA-512's extract takes its IKM through it too, for symmetry), and BearSSL's HKDF inputs, which
+ it copies with C's `memcpy`, which takes no null pointer even for no byte.
 
  @param bytes The input.
  @return A pointer that is never null.

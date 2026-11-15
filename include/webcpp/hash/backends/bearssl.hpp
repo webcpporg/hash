@@ -29,6 +29,7 @@
 
 #include <webcpp/hash/detail/canary.h>
 #include <webcpp/hash/detail/engines.hpp>
+#include <webcpp/hash/detail/limits.hpp>
 #include <webcpp/hash/detail/wipe.hpp>
 #include <webcpp/hash/error.hpp>
 #include <webcpp/hash/hmac.hpp>
@@ -87,20 +88,6 @@ inline void touch_bearssl_canary() noexcept {
     // ("conversion to void will not access object").
     char const value = *static_cast<char const volatile*>(&WEBCPP_HASH_DETAIL_BEARSSL_CANARY);
     static_cast<void>(value);
-}
-
-/** The byte whose address stands for an empty input: BearSSL copies its inputs with `memcpy`. */
-inline constexpr std::uint8_t bearssl_no_input = 0;
-
-/**
- The address BearSSL is given for `bytes`: its first byte, or @ref bearssl_no_input when it is
- empty, since C's `memcpy` takes no null pointer, even for no byte.
-
- @param bytes An input.
- @return A pointer that is never null.
-*/
-inline void const* bearssl_input(std::span<std::uint8_t const> bytes) noexcept {
-    return bytes.empty() ? static_cast<void const*>(&bearssl_no_input) : bytes.data();
 }
 
 /**
@@ -221,11 +208,11 @@ struct hkdf_engine<backends::bearssl, Hmac> {
         std::span<std::uint8_t const> ikm, std::span<std::uint8_t const> info) noexcept {
         touch_bearssl_canary();
         br_hkdf_context context;
-        br_hkdf_init(&context, bearssl_hash_class<Hmac>::vtable(), bearssl_input(salt),
+        br_hkdf_init(&context, bearssl_hash_class<Hmac>::vtable(), nonnull(salt),
                      salt.size());
-        br_hkdf_inject(&context, bearssl_input(ikm), ikm.size());
+        br_hkdf_inject(&context, nonnull(ikm), ikm.size());
         br_hkdf_flip(&context);
-        const std::size_t produced = br_hkdf_produce(&context, bearssl_input(info), info.size(),
+        const std::size_t produced = br_hkdf_produce(&context, nonnull(info), info.size(),
                                                      output.data(), output.size());
         wipe_object(context);
         return produced == output.size() ? boost::system::result<void>()
