@@ -1,0 +1,51 @@
+// Copyright (c) 2026 WebCpp.org
+//
+// Distributed under the Boost Software License, Version 1.0. (See
+// accompanying file LICENSE_1_0.txt or copy at
+// https://www.boost.org/LICENSE_1_0.txt)
+
+[#hash-allocation]
+== Allocation
+
+hash's own code allocates nothing: no function of `webcpp::hash` calls the global
+`operator new`, and none calls the C library's allocator, on any target. Test
+`allocation` proves it for Keccak-256, BLAKE3, Boost.Hash2's digests and hmacs, and
+HKDF and PBKDF2 on `backends::hash2`, `backends::sodium` and `backends::bearssl`, by
+counting every form of `operator new` and, where the target lets a program count it,
+`malloc`, `calloc`, `realloc`, `aligned_alloc` and `posix_memalign`. A control that
+allocates once moves the counter, so a zero is a measurement.
+
+The C libraries are another matter, and the table says so plainly. Their allocations
+are the library's, outside the user's allocator, and hash does not hide them:
+
+[cols="2,3,3",options="header"]
+|===
+| What | Where it allocates | Measured (macOS arm64, native)
+
+| `argon2id` on `backends::sodium`
+| libsodium allocates the working memory (`memory` bytes, 64 MiB for
+  `argon2id_interactive`) with its own `malloc`.
+| `operator new`: 0. C library: 3 allocations for the 8 KiB case the test runs (4 on
+  Emscripten; on WASI the C library's allocator cannot be counted).
+
+| `scrypt` on `backends::sodium`
+| libsodium allocates 128 r (N + p) bytes, with `mmap` where the platform has it and
+  `malloc` otherwise.
+| `operator new`: 0. C library: 0 `malloc` calls here (`mmap`, which the test does not
+  count); 1 on Emscripten, which has no `mmap`.
+
+| HKDF and PBKDF2 on `backends::openssl`
+| OpenSSL allocates a key-derivation context and its digests through its own allocator
+  on every call.
+| HKDF: 24 allocations per call in steady state, 30 on the first call of a digest,
+  4,080 on the very first call of the program (provider setup). PBKDF2: 18 per call in
+  steady state, 30 on the first. The count is measured, never bounded.
+|===
+
+Test `allocation_openssl` replaces OpenSSL's allocator with `CRYPTO_set_mem_functions`
+before anything else, counts each call through it, prints the counts and asserts only
+that `operator new` is never called. The counts are those of OpenSSL 3.5.9 built by
+webcpp (native with assembly; wasip2 and wasip3 without it) and change with the
+version. The C library's allocator is counted on glibc, Emscripten and macOS; on WASI
+and MSVC a program cannot count it (the test prints `C library allocations counted on
+this target: no`), and there the test asserts `operator new` alone.

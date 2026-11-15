@@ -297,6 +297,20 @@ hash-run capabilities_emscripten : capabilities_test.cpp
   : emscripten ;
 hash-run overrides_list : overrides_list_test.cpp : $(.hash-tables) ;
 
+# No allocation in webcpp's code (spec section 7.7): operator new and, where
+# the target counts it, the C library's allocator are called zero times by
+# every public function and backend, on every target (a control moves the
+# counter). Argon2id and scrypt allocate inside libsodium and are asserted
+# free of operator new only. Each library's functions are exercised where it
+# is linked.
+hash-run allocation : allocation_test.cpp
+  : <library>/third_party//xkcp <library>/third_party//blake3
+    <library>/third_party//sodium <library>/third_party//bearssl ;
+# OpenSSL's own allocations per call, measured through
+# CRYPTO_set_mem_functions and printed, never bounded; operator new zero.
+hash-run allocation_openssl : allocation_openssl_test.cpp
+  : <library>/webcpp/hash//openssl : native wasip2 wasip3 ;
+
 build-project messages ;
 
 # The C libraries' own suites, in the own lane c-suites.
