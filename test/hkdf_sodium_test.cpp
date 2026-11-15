@@ -292,9 +292,43 @@ void test_empty_inputs() {
     BOOST_TEST(expanded == expanded_reference);
 }
 
+// A traits type of this test's own that records where the engine's extract writes the PRK.
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables): the probe's record
+std::uint8_t const* probe_written_at = nullptr;
+
+struct probe_traits {
+    using hmac_type = hash::hmac_sha2_256;
+    static constexpr std::size_t key_size = 32;
+
+    static int extract(std::uint8_t* prk, std::span<std::uint8_t const> /*salt*/,
+                       std::span<std::uint8_t const> /*ikm*/) noexcept {
+        probe_written_at = prk;
+        std::ranges::fill(std::span<std::uint8_t>(prk, key_size), std::uint8_t{0x42});
+        return 0;
+    }
+
+    static int expand(std::span<std::uint8_t> /*output*/, std::span<std::uint8_t const> /*prk*/,
+                      std::span<std::uint8_t const> /*info*/) noexcept {
+        return 0;
+    }
+};
+
+// The engine's extract returns the very object it wrote the PRK into (no copy and no move, which
+// would leave a PRK on the stack that nothing wipes): the address libsodium's call received is
+// the returned result's. A copy would be a second object at another address.
+void test_extract_builds_in_place() {
+    const auto prk = hash::detail::sodium_hkdf_engine<probe_traits>::extract({}, {});
+    if (!BOOST_TEST(prk.has_value())) {
+        return;
+    }
+    BOOST_TEST(probe_written_at == prk->data());
+    BOOST_TEST_EQ(prk->data()[0], 0x42);
+}
+
 }  // namespace
 
 int main() {
+    test_extract_builds_in_place();
     using webcpp::test::a1;
     using webcpp::test::a2;
     using webcpp::test::a3;

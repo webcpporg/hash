@@ -189,14 +189,13 @@ struct sodium_hkdf_engine {
     */
     static boost::system::result<digest_type> extract(std::span<std::uint8_t const> salt,
                                                       std::span<std::uint8_t const> ikm) noexcept {
-        if (!sodium_ready()) {
-            return error::backend_failure;
-        }
-        // The PRK is built in the result returned, whose wiping is the caller's: no local copy.
+        // The PRK is built in the result returned and libsodium writes into it: a single return
+        // path of the one named object, so that the result is constructed in the caller's place
+        // (no copy or move, which would leave a PRK behind that nothing wipes).
         boost::system::result<digest_type> prk(boost::system::in_place_value);
-        if (Traits::extract(prk.unsafe_value().data(), salt, ikm) != 0) {
+        if (!sodium_ready() || Traits::extract(prk.unsafe_value().data(), salt, ikm) != 0) {
             wipe_object(prk.unsafe_value());
-            return error::backend_failure;
+            prk = boost::system::result<digest_type>(error::backend_failure);
         }
         return prk;
     }

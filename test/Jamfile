@@ -99,6 +99,9 @@ hash-run wipe : wipe_test.cpp : <define>WEBCPP_HASH_DETAIL_TEST_WIPE_RECORD ;
 hash-run hkdf_sodium : hkdf_sodium_test.cpp : <library>/third_party//sodium ;
 # The engines' read of the canary survives optimisation: with the library it
 # links and runs; with another commit's canary it does not link.
+# The same test optimised: extract's result is built in place at -O2 too.
+hash-run hkdf_sodium_speed : hkdf_sodium_test.cpp
+  : <library>/third_party//sodium <optimization>speed ;
 hash-run hkdf_sodium_canary : hkdf_sodium_canary_test.cpp
   : <library>/third_party//sodium <optimization>speed ;
 webcpp.link-fail hkdf_sodium_canary_other_commit : hkdf_sodium_canary_test.cpp
