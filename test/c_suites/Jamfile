@@ -101,13 +101,13 @@ actions sodium-make-results
     xof_shake128 xof_shake256 xof_turboshake128 xof_turboshake256
     ;
 
-for local name in $(.sodium-tests)
+# The requirements of the program of one test, name, run by sodium_main.cpp.
+local rule sodium-requirements ( name )
 {
     local test-name = <define>TEST_NAME=\\\"$(name)\\\" ;
     make sodium_$(name).results : : @sodium-make-results : $(test-name) ;
     explicit sodium_$(name).results ;
-    webcpp.run sodium_$(name) : $(SODIUM_TESTS)/$(name).c sodium_main.cpp
-      : <library>/third_party//sodium-test-config <library>/third_party//sodium
+    return <library>/third_party//sodium-test-config <library>/third_party//sodium
         $(test-name) <define>main=sodium_test_main
         <define>"\"TEST_SRCDIR=\\\"$(.sodium-tests-dir)\\\"\""
         <define>"\"WEBCPP_SODIUM_TESTS=\\\"$(.sodium-tests-dir)\\\"\""
@@ -117,6 +117,17 @@ for local name in $(.sodium-tests)
         <toolset>emscripten:<linkflags>-sALLOW_MEMORY_GROWTH=1
         <warnings>off <warnings-as-errors>off ;
 }
+
+for local name in $(.sodium-tests)
+{
+    webcpp.run sodium_$(name) : $(SODIUM_TESTS)/$(name).c sodium_main.cpp
+      : [ sodium-requirements $(name) ] ;
+}
+
+# A test whose main succeeds and writes no <name>.res fails: sodium_main.cpp
+# would otherwise pass a run whose comparison never happened.
+webcpp.run-fail sodium_writes_nothing : sodium_writes_nothing.c sodium_main.cpp
+  : [ sodium-requirements writes_nothing ] ;
 
 # XKCP's unit tests of Keccak-p[1600] (--SnP), against /third_party//xkcp and
 # webcpp's config.h, which enables that one component: main.c then calls only
@@ -137,5 +148,5 @@ webcpp.run xkcp_unit_tests : $(XKCP)/tests/UnitTests/main.c
 
 # The lane names its targets, so that the CI runs it on each (an own lane that
 # names none runs natively alone, tools/webcpp.jam's lane rule).
-webcpp.lane c-suites : xkcp_unit_tests sodium_$(.sodium-tests)
-  : native wasip2 wasip3 emscripten ;
+webcpp.lane c-suites : xkcp_unit_tests sodium_$(.sodium-tests) sodium_writes_nothing
+    : native wasip2 wasip3 emscripten ;

@@ -14,6 +14,10 @@
 // /test-data. A run that leaves no <name>.res fails: cmptest.h's main would then have compared
 // nothing.
 
+// The Jamfile renames cmptest.h's main to sodium_test_main for every source of the program; no
+// header of this one sees the macro.
+#undef main
+
 #include <webcpp/test/exit_status.hpp>
 
 #include <cstdio>
@@ -27,8 +31,6 @@
 #ifdef __EMSCRIPTEN__
 #include <emscripten.h>
 #endif
-
-#undef main
 
 // The directory of this test's results.
 #define WEBCPP_SODIUM_DIRECTORY WEBCPP_SODIUM_RESULTS "/" TEST_NAME
