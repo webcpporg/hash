@@ -208,12 +208,11 @@ struct hkdf_engine<backends::bearssl, Hmac> {
         std::span<std::uint8_t const> ikm, std::span<std::uint8_t const> info) noexcept {
         touch_bearssl_canary();
         br_hkdf_context context;
-        br_hkdf_init(&context, bearssl_hash_class<Hmac>::vtable(), nonnull(salt),
-                     salt.size());
+        br_hkdf_init(&context, bearssl_hash_class<Hmac>::vtable(), nonnull(salt), salt.size());
         br_hkdf_inject(&context, nonnull(ikm), ikm.size());
         br_hkdf_flip(&context);
-        const std::size_t produced = br_hkdf_produce(&context, nonnull(info), info.size(),
-                                                     output.data(), output.size());
+        const std::size_t produced =
+            br_hkdf_produce(&context, nonnull(info), info.size(), output.data(), output.size());
         wipe_object(context);
         return produced == output.size() ? boost::system::result<void>()
                                          : boost::system::result<void>(error::backend_failure);
