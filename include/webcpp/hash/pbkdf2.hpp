@@ -60,10 +60,12 @@ namespace webcpp::hash {
 
  @tparam Hmac The pseudorandom function, as `hmac_sha2_512`. @tparam Backend The backend.
  @param output The derived key, 1 to (2^32 - 1) times the digest size.
- @param password The password, any bytes. @param salt The salt, any bytes.
+ @param password The password, any bytes the backend takes. @param salt The salt, likewise.
  @param iterations The iteration count, at least 1.
  @return Success, or the error of the first guard that fails (`invalid_output_size`,
- `invalid_iterations`), `output` untouched; or the backend's failure, `output` zeroed.
+ `invalid_iterations`, then the backend's own limits: `invalid_output_size`, `input_too_long`;
+ for `backends::openssl` an output, a password or a salt of more than `INT_MAX` bytes), `output`
+ untouched; or the backend's failure, `output` zeroed.
 */
 template <class Hmac, class Backend = default_kdf_backend<Hmac, kdfs::pbkdf2>>
 boost::system::result<void> pbkdf2(std::span<std::uint8_t> output,
@@ -79,6 +81,14 @@ boost::system::result<void> pbkdf2(std::span<std::uint8_t> output,
         }
         if (iterations == 0) {
             return error::invalid_iterations;
+        }
+        using limits = detail::backend_limits<Backend>;
+        if (detail::exceeds(output.size(), limits::pbkdf2_output)) {
+            return error::invalid_output_size;
+        }
+        if (detail::exceeds(password.size(), limits::pbkdf2_password) ||
+            detail::exceeds(salt.size(), limits::pbkdf2_salt)) {
+            return error::input_too_long;
         }
         auto done =
             detail::pbkdf2_engine<Backend, Hmac>::derive(output, password, salt, iterations);

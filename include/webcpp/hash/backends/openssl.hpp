@@ -12,10 +12,19 @@
 
  Each call fetches the KDF, makes a context, sets the parameters, derives and frees both
  (spec section 3.4): OpenSSL allocates them through its own allocator, and webcpp keeps no
- OpenSSL object between calls (spec section 6.2). OpenSSL copies the key, the salt and the info
- into its context and clears them when the context is freed. Its default initialisation, on the
- first call, reads the configuration file of the directory it was configured with, as any
- program of OpenSSL does.
+ OpenSSL object between calls (spec section 6.2). OpenSSL copies the inputs into its context:
+ the key (HKDF's IKM or PRK, PBKDF2's password) and the info are cleared when the context is
+ freed; the salt is freed without being cleared (OpenSSL clears it only when built with
+ `OPENSSL_PEDANTIC_ZEROIZATION`). Its default initialisation, on the first call, reads the
+ configuration file of the directory it was configured with, as any program of OpenSSL does.
+
+ Its limits (ruling R24): OpenSSL 3.5.9 holds some lengths in an `int`, so the public functions
+ refuse, before OpenSSL is called, PBKDF2's output (`invalid_output_size`), password and salt
+ (`input_too_long`) and HKDF's salt (`input_too_long`) of more than `INT_MAX` bytes. PBKDF2 keeps
+ the output's and the salt's lengths in `int`s, and HMAC, through `HMAC_Init_ex`, its key's
+ length, which is PBKDF2's password and HKDF-Extract's salt; HKDF-Expand's key, the PRK, takes
+ the same path and is limited alike, though it is always one digest. HKDF's IKM, info and output
+ stay in `size_t`.
 
  The thread's error queue is left as the backend found it, through a mark set before the fetch
  and a pop after the frees. The queue is a ring of 16 slots (`ERR_NUM_ERRORS`), which holds 15
@@ -50,6 +59,7 @@
 #include <openssl/params.h>
 
 #include <array>
+#include <climits>
 #include <cstddef>
 #include <cstdint>
 #include <span>
@@ -64,6 +74,33 @@ struct openssl {};
 }  // namespace webcpp::hash::backends
 
 namespace webcpp::hash::detail {
+
+/** OpenSSL's `INT_MAX`, the longest length it holds in an `int`. */
+inline constexpr std::uint64_t openssl_int_max = INT_MAX;
+
+/**
+ The limits of backends::openssl (ruling R24): `INT_MAX` bytes wherever OpenSSL 3.5.9 holds a
+ length in an `int` (this header's comment lists them); no limit elsewhere.
+*/
+template <>
+struct backend_limits<backends::openssl> {
+    /** HKDF-Extract's salt is HMAC's key, whose length `HMAC_Init_ex` takes as an `int`. */
+    static constexpr std::uint64_t hkdf_salt = openssl_int_max;
+    /** HKDF's IKM goes to `HMAC_Update` and its parameter in `size_t`s. */
+    static constexpr std::uint64_t hkdf_ikm = no_limit;
+    /** HKDF-Expand's PRK is HMAC's key, as the salt is (always one digest). */
+    static constexpr std::uint64_t hkdf_prk = openssl_int_max;
+    /** HKDF's info stays in a `size_t`, within OpenSSL's 32,768 bytes, `hkdf_max_info_size`. */
+    static constexpr std::uint64_t hkdf_info = no_limit;
+    /** HKDF-Expand's output stays in a `size_t`, within 255 digests. */
+    static constexpr std::uint64_t hkdf_output = no_limit;
+    /** PBKDF2's password is HMAC's key. */
+    static constexpr std::uint64_t pbkdf2_password = openssl_int_max;
+    /** PBKDF2's salt length is an `int` in `pbkdf2_derive`. */
+    static constexpr std::uint64_t pbkdf2_salt = openssl_int_max;
+    /** PBKDF2's output length is an `int` (`tkeylen`) in `pbkdf2_derive`. */
+    static constexpr std::uint64_t pbkdf2_output = openssl_int_max;
+};
 
 /**
  OpenSSL's name of the digest of `Hmac` (spec section 3.2), its `value`. The primary template is
@@ -300,14 +337,15 @@ struct hkdf_engine<backends::openssl, Hmac> {
             OSSL_PARAM_construct_int("mode", &mode),
             OSSL_PARAM_construct_end(),
         };
-        // The PRK is stored in the result returned, whose wiping is the caller's.
+        // The PRK is derived into the result returned, whose wiping is the caller's: one return of
+        // that one object, so that it is constructed in the caller's slot and no copy is left here.
         boost::system::result<digest_type> prk(boost::system::in_place_value);
         digest_type& key = prk.unsafe_value();
         const auto done =
             openssl_kdf("HKDF", std::span<std::uint8_t>(key.data(), key.size()), params);
         if (!done) {
             wipe_object(key);
-            return done.error();
+            prk = done.error();
         }
         return prk;
     }

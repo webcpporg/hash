@@ -29,6 +29,7 @@
 
 #include <webcpp/hash/backends/hash2.hpp>
 #include <webcpp/hash/detail/engines.hpp>
+#include <webcpp/hash/detail/limits.hpp>
 #include <webcpp/hash/detail/wipe.hpp>
 #include <webcpp/hash/error.hpp>
 #include <webcpp/hash/kdf.hpp>
@@ -60,10 +61,11 @@ inline constexpr std::size_t hkdf_max_info_size = 32768;
  HKDF-Extract (RFC 5869, section 2.2): the pseudorandom key of `ikm` under `salt`.
 
  @tparam Hmac The hmac, as `hmac_sha2_256`. @tparam Backend The backend.
- @param salt The salt, any length; empty means `Hmac`'s digest size of zeros.
- @param ikm The input keying material, any length.
- @return The pseudorandom key, an `Hmac::result_type` of the hmac's digest size, or the backend's
- failure.
+ @param salt The salt, any length the backend takes; empty means `Hmac`'s digest size of zeros.
+ @param ikm The input keying material, any length the backend takes.
+ @return The pseudorandom key, an `Hmac::result_type` of the hmac's digest size; or
+ `input_too_long` for a salt or an IKM longer than the backend takes (`backends::openssl`: a salt
+ of more than `INT_MAX` bytes); or the backend's failure.
 */
 template <class Hmac, class Backend = default_kdf_backend<Hmac>>
 boost::system::result<typename detail::hmac_result<Hmac>::type> hkdf_extract(
@@ -71,6 +73,11 @@ boost::system::result<typename detail::hmac_result<Hmac>::type> hkdf_extract(
     if constexpr (!detail::takes_hmac<Hmac>()) {
         return error::backend_failure;  // unreachable: takes_hmac has stopped the build
     } else {
+        using limits = detail::backend_limits<Backend>;
+        if (detail::exceeds(salt.size(), limits::hkdf_salt) ||
+            detail::exceeds(ikm.size(), limits::hkdf_ikm)) {
+            return error::input_too_long;
+        }
         return detail::hkdf_engine<Backend, Hmac>::extract(salt, ikm);
     }
 }
@@ -83,8 +90,8 @@ boost::system::result<typename detail::hmac_result<Hmac>::type> hkdf_extract(
  @param prk The pseudorandom key, of exactly the digest size.
  @param info The context, at most `hkdf_max_info_size` bytes.
  @return Success, or the error of the first guard that fails (`invalid_output_size`,
- `invalid_key_size`, `input_too_long`), `output` untouched; or the backend's failure, `output`
- zeroed.
+ `invalid_key_size`, `input_too_long`, then the backend's own limits: `invalid_output_size`,
+ `input_too_long`), `output` untouched; or the backend's failure, `output` zeroed.
 */
 template <class Hmac, class Backend = default_kdf_backend<Hmac>>
 boost::system::result<void> hkdf_expand(std::span<std::uint8_t> output,
@@ -104,6 +111,14 @@ boost::system::result<void> hkdf_expand(std::span<std::uint8_t> output,
         if (info.size() > hkdf_max_info_size) {
             return error::input_too_long;
         }
+        using limits = detail::backend_limits<Backend>;
+        if (detail::exceeds(output.size(), limits::hkdf_output)) {
+            return error::invalid_output_size;
+        }
+        if (detail::exceeds(prk.size(), limits::hkdf_prk) ||
+            detail::exceeds(info.size(), limits::hkdf_info)) {
+            return error::input_too_long;
+        }
         auto done = detail::hkdf_engine<Backend, Hmac>::expand(output, prk, info);
         if (!done) {
             detail::wipe(output);
@@ -117,11 +132,13 @@ boost::system::result<void> hkdf_expand(std::span<std::uint8_t> output,
 
  @tparam Hmac The hmac. @tparam Backend The backend.
  @param output The output keying material, 1 to 255 times the digest size.
- @param salt The salt, any length; empty means `Hmac`'s digest size of zeros.
- @param ikm The input keying material, any length.
+ @param salt The salt, any length the backend takes; empty means `Hmac`'s digest size of zeros.
+ @param ikm The input keying material, any length the backend takes.
  @param info The context, at most `hkdf_max_info_size` bytes.
  @return Success, or the error of the first guard that fails (`invalid_output_size`,
- `input_too_long`), `output` untouched; or the backend's failure, `output` zeroed.
+ `input_too_long`, then the backend's own limits: `invalid_output_size`, `input_too_long`; for
+ `backends::openssl` a salt of more than `INT_MAX` bytes), `output` untouched; or the backend's
+ failure, `output` zeroed.
 */
 template <class Hmac, class Backend = default_kdf_backend<Hmac>>
 boost::system::result<void> hkdf(std::span<std::uint8_t> output, std::span<std::uint8_t const> salt,
@@ -135,6 +152,15 @@ boost::system::result<void> hkdf(std::span<std::uint8_t> output, std::span<std::
             return error::invalid_output_size;
         }
         if (info.size() > hkdf_max_info_size) {
+            return error::input_too_long;
+        }
+        using limits = detail::backend_limits<Backend>;
+        if (detail::exceeds(output.size(), limits::hkdf_output)) {
+            return error::invalid_output_size;
+        }
+        if (detail::exceeds(salt.size(), limits::hkdf_salt) ||
+            detail::exceeds(ikm.size(), limits::hkdf_ikm) ||
+            detail::exceeds(info.size(), limits::hkdf_info)) {
             return error::input_too_long;
         }
         auto done = detail::hkdf_engine<Backend, Hmac>::extract_and_expand(output, salt, ikm, info);

@@ -148,14 +148,20 @@ hash-run openssl_failure : openssl_failure_test.cpp
   : <library>/webcpp/hash//openssl
     <define>"\"WEBCPP_HASH_DETAIL_TEST_OPENSSL_DIGEST=\\\"NO-SUCH-DIGEST\\\"\""
   : native wasip2 wasip3 ;
+# backends::openssl's limits (ruling R24), natively: spans of INT_MAX + 1
+# bytes over a few, which the guards refuse before anything reads them.
+hash-run openssl_limits : openssl_limits_test.cpp
+  : <library>/webcpp/hash//openssl : native ;
 # hash's and crypto's OpenSSL in one program: one provider, each archive once
 # (spec section 5.5; tools/test/openssl_one_copy_test.py reads the link line).
 hash-run openssl_one_copy : openssl_one_copy_test.cpp
   : <library>/webcpp/hash//openssl <library>/webcpp/crypto//openssl
   : native wasip2 wasip3 ;
 # Naming the alias refuses an Emscripten program, by the forced include (its
-# message is a fixture of tools/test/hash_jamfiles_test.py).
-webcpp.compile-fail openssl_named_on_emscripten : hkdf_openssl_test.cpp
+# message is a fixture of tools/test/hash_jamfiles_test.py). The source is
+# one that builds and runs on Emscripten without the alias (hkdf_hash2), so
+# the forced include is the only thing that can stop it.
+webcpp.compile-fail openssl_named_on_emscripten : hkdf_hash2_test.cpp
   : <library>/webcpp/hash//openssl : emscripten ;
 
 build-project messages ;

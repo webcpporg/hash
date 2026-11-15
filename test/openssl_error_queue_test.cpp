@@ -6,7 +6,8 @@
 
 // OpenSSL's error queue (spec section 3.4): on an empty queue, hkdf_extract, hkdf_expand, hkdf and
 // pbkdf2 on backends::openssl leave it empty, OpenSSL's first fetch and initialisation among them;
-// an entry of the caller's survives each, and nothing of webcpp's is left beside it.
+// an entry of the caller's survives each, and nothing of webcpp's is left beside it; a mark the
+// caller set on its own entry survives them too, and the caller's pop to it still finds it.
 // openssl_failure_test.cpp checks the same around a failure.
 
 #include <webcpp/hash/backends/openssl.hpp>
@@ -72,5 +73,19 @@ int main() {
     unsigned long first = 0;
     BOOST_TEST_EQ(drain(first), 1U);
     BOOST_TEST_EQ(first, ours);
+
+    // The caller's own mark on its entry: the backend's marks count on the same entry, and its pop
+    // removes its own alone.
+    // NOLINTNEXTLINE(bugprone-signed-bitwise): OpenSSL's reason macro ORs signed flags
+    ERR_raise(ERR_LIB_USER, ERR_R_PASSED_INVALID_ARGUMENT);
+    unsigned long const marked = ERR_peek_last_error();
+    BOOST_TEST_EQ(ERR_set_mark(), 1);
+    call_each();
+    BOOST_TEST_EQ(ERR_count_to_mark(), 0);
+    BOOST_TEST_EQ(ERR_pop_to_mark(), 1);
+    BOOST_TEST_EQ(drain(first), 1U);
+    BOOST_TEST_EQ(first, marked);
+    // The caller's mark was its own: no second one is left for a pop to find.
+    BOOST_TEST_EQ(ERR_pop_to_mark(), 0);
     return webcpp::test::exit_status(boost::report_errors());
 }

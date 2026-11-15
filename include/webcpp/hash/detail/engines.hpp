@@ -12,6 +12,8 @@
 #include <boost/hash2/has_constant_size.hpp>
 #include <boost/hash2/hmac.hpp>
 
+#include <cstdint>
+#include <limits>
 #include <type_traits>
 
 namespace webcpp::hash::detail {
@@ -19,6 +21,39 @@ namespace webcpp::hash::detail {
 /** False for every `T`: a `static_assert` that fires only when its template is instantiated. */
 template <class T>
 inline constexpr bool always_false = false;
+
+/** No limit beyond the spec's own: the largest 64-bit size. */
+inline constexpr std::uint64_t no_limit = std::numeric_limits<std::uint64_t>::max();
+
+/**
+ The longest input and output a backend's C library takes, in bytes, where its interface holds a
+ length in a narrower type than `std::size_t` (ruling R24). The public functions' guards read it
+ after the spec's own guards and before any call of the backend, and refuse a longer output with
+ `invalid_output_size` and a longer input with `input_too_long`, the output untouched. The
+ primary template, every backend's unless its header specialises it, has no limit; a
+ specialisation gives every member.
+
+ @tparam Backend A backend of `backends`.
+*/
+template <class Backend>
+struct backend_limits {
+    /** HKDF's salt (`hkdf_extract`, `hkdf`). */
+    static constexpr std::uint64_t hkdf_salt = no_limit;
+    /** HKDF's input keying material (`hkdf_extract`, `hkdf`). */
+    static constexpr std::uint64_t hkdf_ikm = no_limit;
+    /** HKDF's pseudorandom key (`hkdf_expand`). */
+    static constexpr std::uint64_t hkdf_prk = no_limit;
+    /** HKDF's info (`hkdf_expand`, `hkdf`), within `hkdf_max_info_size`. */
+    static constexpr std::uint64_t hkdf_info = no_limit;
+    /** HKDF's output (`hkdf_expand`, `hkdf`), within 255 digests. */
+    static constexpr std::uint64_t hkdf_output = no_limit;
+    /** PBKDF2's password. */
+    static constexpr std::uint64_t pbkdf2_password = no_limit;
+    /** PBKDF2's salt. */
+    static constexpr std::uint64_t pbkdf2_salt = no_limit;
+    /** PBKDF2's output, within (2^32 - 1) digests. */
+    static constexpr std::uint64_t pbkdf2_output = no_limit;
+};
 
 /**
  The HKDF of a backend over an hmac (spec section 2.12), which the backend's header specialises
