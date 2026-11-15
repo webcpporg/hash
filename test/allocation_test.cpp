@@ -115,7 +115,6 @@ void hmac_allocates_nothing(char const* name) {
     });
 }
 
-// `split`: the backend has HKDF's extract and expand apart (BearSSL has the whole function alone).
 // HKDF's two steps alone: the pair (1), and two refusals of Expand (2).
 template <class Hmac, class Backend>
 void hkdf_steps_allocate_nothing(char const* name, std::span<std::uint8_t> okm,
@@ -141,6 +140,7 @@ void hkdf_steps_allocate_nothing(char const* name, std::span<std::uint8_t> okm,
 }
 
 // HKDF whole: a derivation (1) and two refusals (2), then the steps when the backend has them.
+// `split`: the backend has HKDF's extract and expand apart (BearSSL has the whole function alone).
 template <class Hmac, class Backend, bool split>
 void hkdf_allocates_nothing(char const* name) {
     std::array<std::uint8_t, 42> okm{};

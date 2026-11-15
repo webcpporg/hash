@@ -63,4 +63,4 @@ What each backend states on constant time, as the capability table read it:
 | hash2
 |===
 
-The orders shown are those over `hmac_sha2_256`, and over every hmac measured with none of its own; `hmac_sha2_512` has its own orders, which can differ (<<hash-measurements>>). Each order is measured with every backend linked; a backend the program does not link is skipped. A named profile, `WEBCPP_HASH_PROFILE_BACKEND_<NAME>`, or an override, `WEBCPP_HASH_DEFAULT_BACKEND_PBKDF2_<NAME>`, takes its backend where it has the function (<<hash-profile>>).
+The orders shown are those over `hmac_sha2_256`, and over every hmac the table does not measure; `hmac_sha2_512` has its own orders, which can differ (<<hash-measurements>>). Each order is measured with every backend linked; a backend the program does not link is skipped. A named profile, `WEBCPP_HASH_PROFILE_BACKEND_<NAME>`, or an override, `WEBCPP_HASH_DEFAULT_BACKEND_PBKDF2_<NAME>`, takes its backend where it has the function (<<hash-profile>>).
