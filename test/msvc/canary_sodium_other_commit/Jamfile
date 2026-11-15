@@ -8,7 +8,7 @@ import webcpp ;
 
 webcpp.link-fail canary_sodium_other_commit
   : ../../link/sodium.cpp
-  : <library>/webcpp/hash//hash
+  : <library>/webcpp/hash//hash <optimization>speed
     <library>/third_party//sodium
     <define>WEBCPP_HASH_SODIUM_CANARY_COMMIT=0000000
   : native ;

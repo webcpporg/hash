@@ -8,7 +8,7 @@ import webcpp ;
 
 webcpp.link-fail canary_sodium_missing
   : ../../link/sodium.cpp
-  : <library>/webcpp/hash//hash
+  : <library>/webcpp/hash//hash <optimization>speed
     <define>WEBCPP_HASH_HAS_SODIUM=1
     <include>../../../../../third_party/libs/libsodium/src/libsodium/include
   : native ;

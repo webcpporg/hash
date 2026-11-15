@@ -8,7 +8,7 @@ import webcpp ;
 
 webcpp.link-fail canary_bearssl_other_commit
   : ../../link/bearssl.cpp
-  : <library>/webcpp/hash//hash
+  : <library>/webcpp/hash//hash <optimization>speed
     <library>/third_party//bearssl
     <define>WEBCPP_HASH_BEARSSL_CANARY_COMMIT=0000000
   : native ;

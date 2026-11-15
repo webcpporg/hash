@@ -8,6 +8,6 @@ import webcpp ;
 
 webcpp.link-fail canary_xkcp_missing
   : ../../link/xkcp.cpp
-  : <library>/webcpp/hash//hash
+  : <library>/webcpp/hash//hash <optimization>speed
     <define>WEBCPP_HASH_HAS_XKCP=1
   : native ;

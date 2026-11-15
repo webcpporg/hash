@@ -15,12 +15,16 @@ webcpp.same-program unused_xkcp : app.cpp : /third_party//xkcp
   : : <library>/webcpp/hash//hash ;
 webcpp.same-program unused_blake3 : app.cpp : /third_party//blake3
   : : <library>/webcpp/hash//hash ;
-# On Emscripten /third_party//sodium links its programs with
-# -sALLOW_MEMORY_GROWTH=1 (third_party/Jamfile), a link flag and no code of
-# libsodium's: both programs get it there, so that the pair compares the code.
 webcpp.same-program unused_sodium : app.cpp : /third_party//sodium
-  : : <library>/webcpp/hash//hash
-    <toolset>emscripten:<linkflags>-sALLOW_MEMORY_GROWTH=1 ;
+  : native wasip2 wasip3 : <library>/webcpp/hash//hash ;
+# On Emscripten /third_party//sodium links its programs with
+# -sALLOW_MEMORY_GROWTH=1 (third_party/Jamfile; ruling R32): there the flag is
+# naming libsodium's one difference. The program without the library gets the
+# flag explicitly (the one with it gets it from the library too), and the two
+# must be the same bytes: nothing of libsodium's code is added, only the flag.
+webcpp.same-program unused_sodium_emscripten : app.cpp : /third_party//sodium
+  : emscripten : <library>/webcpp/hash//hash
+    <linkflags>-sALLOW_MEMORY_GROWTH=1 ;
 webcpp.same-program unused_bearssl : app.cpp : /third_party//bearssl
   : : <library>/webcpp/hash//hash ;
 webcpp.same-program unused_openssl : app.cpp : /webcpp/hash//openssl

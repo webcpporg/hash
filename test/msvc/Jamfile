@@ -10,8 +10,9 @@
 # the canaries' names on GNU ld, Apple's ld and wasm-ld by
 # tools/test/hash_jamfiles_test.py; MSVC's are not checked (CODING-GUIDELINES.md
 # chapter 19). A message's case compiles that message's own source, a canary's
-# the source of test/link. Elsewhere than MSVC nothing here is built: the
-# project's requirements make every case <build>no.
+# the source of test/link, optimised as there; a two-files case links on any
+# other linker and fails on MSVC by LNK2038 alone. Elsewhere than MSVC nothing
+# here is built: the project's requirements make every case <build>no.
 rule msvc-only ( properties * )
 {
     if ! ( <toolset>msvc in $(properties) )

@@ -4,13 +4,12 @@
 // accompanying file LICENSE_1_0.txt or copy at
 // https://www.boost.org/LICENSE_1_0.txt)
 
-// The translation unit of backend_two_files with the define (see main.cpp).
+// The translation unit of backend_two_files under another configuration of XKCP (see
+// main.cpp): it includes keccak.hpp and calls nothing of it.
 
 #define WEBCPP_HASH_XKCP_CANARY_CONFIGURATION unconfigured
 #include <webcpp/hash/keccak.hpp>
 
 int with() {
-    webcpp::hash::keccak_256 hasher;
-    hasher.update("abc", 3);
-    return hasher.result()[0] == 0x4e ? 0 : 1;
+    return 0;
 }

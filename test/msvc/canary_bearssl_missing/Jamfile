@@ -8,7 +8,7 @@ import webcpp ;
 
 webcpp.link-fail canary_bearssl_missing
   : ../../link/bearssl.cpp
-  : <library>/webcpp/hash//hash
+  : <library>/webcpp/hash//hash <optimization>speed
     <define>WEBCPP_HASH_HAS_BEARSSL=1
     <include>../../../../../third_party/libs/bearssl/inc
   : native ;

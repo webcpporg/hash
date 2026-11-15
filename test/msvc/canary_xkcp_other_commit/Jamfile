@@ -8,7 +8,7 @@ import webcpp ;
 
 webcpp.link-fail canary_xkcp_other_commit
   : ../../link/xkcp.cpp
-  : <library>/webcpp/hash//hash
+  : <library>/webcpp/hash//hash <optimization>speed
     <library>/third_party//xkcp
     <define>WEBCPP_HASH_XKCP_CANARY_COMMIT=0000000
   : native ;

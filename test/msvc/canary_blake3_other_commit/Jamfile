@@ -8,7 +8,7 @@ import webcpp ;
 
 webcpp.link-fail canary_blake3_other_commit
   : ../../link/blake3.cpp
-  : <library>/webcpp/hash//hash
+  : <library>/webcpp/hash//hash <optimization>speed
     <library>/third_party//blake3
     <define>WEBCPP_HASH_BLAKE3_CANARY_COMMIT=0000000
   : native ;
