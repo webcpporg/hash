@@ -63,10 +63,10 @@ void counting_free(void* p, char const* /*file*/, int /*line*/) {
     WEBCPP_TEST_OPENSSL_C(free)(p);
 }
 
-std::array<std::uint8_t, 64> const bytes = [] {
+constexpr std::array<std::uint8_t, 64> bytes = [] {
     std::array<std::uint8_t, 64> filled{};
     for (std::size_t i = 0; i != filled.size(); ++i) {
-        filled[i] = static_cast<std::uint8_t>(i * 5 + 3);
+        filled[i] = static_cast<std::uint8_t>((i * 5) + 3);
     }
     return filled;
 }();
@@ -85,7 +85,7 @@ void measured(char const* operation, char const* hmac, int call, F&& call_it) {
 
 template <class Hmac>
 void measure_one(char const* name) {
-    using openssl = hash::backends::openssl;
+    using hash::backends::openssl;
     if constexpr (!hash::backend_has_v<openssl, hash::kdfs::hkdf, Hmac>) {
         std::printf("record operation=none hmac=%s backend=openssl target=%s\n", name,
                     webcpp::test::target_name);

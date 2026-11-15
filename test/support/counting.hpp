@@ -69,7 +69,7 @@ inline constexpr bool c_allocations_counted =
 
 /** The target's name, as the records of the allocation tests print it. */
 inline constexpr char const* target_name =
-#if defined(WEBCPP_TARGET_WASIP2)
+#ifdef WEBCPP_TARGET_WASIP2
     "wasip2";
 #elif defined(WEBCPP_TARGET_WASIP3)
     "wasip3";

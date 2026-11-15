@@ -52,7 +52,7 @@ template <std::size_t N>
 constexpr std::array<std::uint8_t, N> pattern(unsigned a, unsigned b) {
     std::array<std::uint8_t, N> bytes{};
     for (std::size_t i = 0; i < N; ++i) {
-        bytes[i] = static_cast<std::uint8_t>((a * i + b) % 256U);
+        bytes[i] = static_cast<std::uint8_t>(((a * i) + b) % 256U);
     }
     return bytes;
 }
@@ -139,11 +139,11 @@ std::span<std::uint8_t const> first(std::array<std::uint8_t, N> const& bytes, st
 
 // Prints `result <hex>`.
 inline void print(result const& r) {
-    std::fputs("result ", stdout);
+    (void)std::fputs("result ", stdout);
     for (std::size_t i = 0; i < r.size; ++i) {
-        std::printf("%02x", static_cast<unsigned>(r.bytes[i]));
+        (void)std::printf("%02x", static_cast<unsigned>(r.bytes[i]));
     }
-    std::fputs("\n", stdout);
+    (void)std::fputs("\n", stdout);
 }
 
 // The main of a program: fills the message, computes once and prints the result; with `--time`,
@@ -152,11 +152,11 @@ inline void print(result const& r) {
 template <class Compute>
 int run(int argc, char** argv, unsigned repetitions, Compute compute) {
     for (std::size_t i = 0; i < message.size(); ++i) {
-        message[i] = static_cast<std::uint8_t>((31U * i + 7U) % 256U);
+        message[i] = static_cast<std::uint8_t>(((31U * i) + 7U) % 256U);
     }
     result const first = compute();
     if (first.size == 0) {
-        std::fputs("the computation failed\n", stderr);
+        (void)std::fputs("the computation failed\n", stderr);
         return 1;
     }
     print(first);

@@ -19,9 +19,9 @@ int main(int argc, char** argv) {
     namespace measure = webcpp::test::measure;
     return measure::run(argc, argv, 1, [] {
         return measure::derive([](std::span<std::uint8_t> output) {
-            return hash::scrypt<hash::backends::sodium>(output, measure::first(measure::secret, 16),
-                                                        measure::first(measure::salt, 16),
-                                                        hash::scrypt_parameters{16384, 8, 1});
+            return hash::scrypt<hash::backends::sodium>(
+                output, measure::first(measure::secret, 16), measure::first(measure::salt, 16),
+                hash::scrypt_parameters{.n = 16384, .r = 8, .p = 1});
         });
     });
 }

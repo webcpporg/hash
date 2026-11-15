@@ -57,10 +57,10 @@ namespace hash = webcpp::hash;
 
 namespace {
 
-std::array<std::uint8_t, 100> const message = [] {
+constexpr std::array<std::uint8_t, 100> message = [] {
     std::array<std::uint8_t, 100> bytes{};
     for (std::size_t i = 0; i != bytes.size(); ++i) {
-        bytes[i] = static_cast<std::uint8_t>(i * 7 + 1);
+        bytes[i] = static_cast<std::uint8_t>((i * 7) + 1);
     }
     return bytes;
 }();
@@ -72,13 +72,12 @@ struct window {
     std::size_t new_before = webcpp::test::counted_new.load();
     std::size_t c_before = webcpp::test::counted_c.load();
 
-    std::size_t news() const { return webcpp::test::counted_new.load() - new_before; }
+    [[nodiscard]] std::size_t news() const { return webcpp::test::counted_new.load() - new_before; }
 
-    std::size_t cs() const { return webcpp::test::counted_c.load() - c_before; }
+    [[nodiscard]] std::size_t cs() const { return webcpp::test::counted_c.load() - c_before; }
 };
 
-// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables): the calls made under the
-// counter
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables): calls under the counter
 std::size_t calls_made = 0;
 
 /** Whether a call allocated nothing at all; says which one when it did. */
@@ -117,6 +116,72 @@ void hmac_allocates_nothing(char const* name) {
 }
 
 // `split`: the backend has HKDF's extract and expand apart (BearSSL has the whole function alone).
+// HKDF's two steps alone: the pair (1), and two refusals of Expand (2).
+template <class Hmac, class Backend>
+void hkdf_steps_allocate_nothing(char const* name, std::span<std::uint8_t> okm,
+                                 std::span<std::uint8_t const> long_info) {
+    allocates_nothing(name, [&] {
+        auto const prk = hash::hkdf_extract<Hmac, Backend>(input.first(20), input);
+        BOOST_TEST(prk.has_value());
+        if (!prk) {
+            return;
+        }
+        auto const expanded = hash::hkdf_expand<Hmac, Backend>(
+            okm, std::span<std::uint8_t const>(prk->data(), prk->size()), input.last(10));
+        BOOST_TEST(expanded.has_value());
+    });
+    allocates_nothing(name, [&] {
+        auto const refused = hash::hkdf_expand<Hmac, Backend>(okm, input.first(3), {});
+        BOOST_TEST(!refused.has_value());
+    });
+    allocates_nothing(name, [&] {
+        auto const refused = hash::hkdf_expand<Hmac, Backend>(okm, input.first(3), long_info);
+        BOOST_TEST(!refused.has_value());
+    });
+}
+
+// HKDF whole: a derivation (1) and two refusals (2), then the steps when the backend has them.
+template <class Hmac, class Backend, bool split>
+void hkdf_allocates_nothing(char const* name) {
+    std::array<std::uint8_t, 42> okm{};
+    std::span<std::uint8_t> const no_output;
+    // One byte over the limit, in a real buffer: the guard refuses on the size alone.
+    static std::array<std::uint8_t, hash::hkdf_max_info_size + 1> const long_buffer{};
+    std::span<std::uint8_t const> const long_info(long_buffer);
+    allocates_nothing(name, [&] {
+        auto const full = hash::hkdf<Hmac, Backend>(okm, input.first(20), input, input.last(10));
+        auto const empty = hash::hkdf<Hmac, Backend>(okm, {}, {}, {});
+        BOOST_TEST(full.has_value());
+        BOOST_TEST(empty.has_value());
+    });
+    allocates_nothing(name, [&] {
+        auto const refused = hash::hkdf<Hmac, Backend>(no_output, input, input, input);
+        BOOST_TEST(!refused.has_value());
+    });
+    allocates_nothing(name, [&] {
+        auto const refused = hash::hkdf<Hmac, Backend>(okm, input, input, long_info);
+        BOOST_TEST(!refused.has_value());
+    });
+    if constexpr (split) {
+        hkdf_steps_allocate_nothing<Hmac, Backend>(name, okm, long_info);
+    }
+}
+
+// PBKDF2: a derivation (1) and a refusal (1).
+template <class Hmac, class Backend>
+void pbkdf2_allocates_nothing(char const* name) {
+    allocates_nothing(name, [] {
+        std::array<std::uint8_t, 70> key{};
+        auto const done = hash::pbkdf2<Hmac, Backend>(key, input.first(20), input.last(16), 3);
+        BOOST_TEST(done.has_value());
+    });
+    allocates_nothing(name, [] {
+        std::array<std::uint8_t, 70> key{};
+        auto const refused = hash::pbkdf2<Hmac, Backend>(key, input, input, 0);
+        BOOST_TEST(!refused.has_value());
+    });
+}
+
 // Per hmac the calls counted are, split: the pair (1), the whole function (1), four refusals (4);
 // not split: the whole function (1), two refusals (2); PBKDF2: a derivation (1), a refusal (1).
 // Expected totals: hash2 16 hmacs x (6 + 2) = 128; sodium 2 hmacs x 6 = 12; bearssl 6 hmacs x 3
@@ -124,61 +189,10 @@ void hmac_allocates_nothing(char const* name) {
 template <class Hmac, class Backend, bool split>
 void kdfs_allocate_nothing(char const* name) {
     if constexpr (hash::backend_has_v<Backend, hash::kdfs::hkdf, Hmac>) {
-        std::array<std::uint8_t, 42> okm{};
-        std::span<std::uint8_t> const no_output;
-        // One byte over the limit, in a real buffer: the guard refuses on the size alone.
-        static std::array<std::uint8_t, hash::hkdf_max_info_size + 1> const long_buffer{};
-        std::span<std::uint8_t const> const long_info(long_buffer);
-        if constexpr (split) {
-            allocates_nothing(name, [&] {
-                auto const prk = hash::hkdf_extract<Hmac, Backend>(input.first(20), input);
-                BOOST_TEST(prk.has_value());
-                if (!prk) {
-                    return;
-                }
-                auto const expanded = hash::hkdf_expand<Hmac, Backend>(
-                    okm, std::span<std::uint8_t const>(prk->data(), prk->size()), input.last(10));
-                BOOST_TEST(expanded.has_value());
-            });
-            allocates_nothing(name, [&] {
-                auto const refused = hash::hkdf_expand<Hmac, Backend>(okm, input.first(3), {});
-                BOOST_TEST(!refused.has_value());
-            });
-        }
-        allocates_nothing(name, [&] {
-            auto const full =
-                hash::hkdf<Hmac, Backend>(okm, input.first(20), input, input.last(10));
-            auto const empty = hash::hkdf<Hmac, Backend>(okm, {}, {}, {});
-            BOOST_TEST(full.has_value());
-            BOOST_TEST(empty.has_value());
-        });
-        allocates_nothing(name, [&] {
-            auto const refused = hash::hkdf<Hmac, Backend>(no_output, input, input, input);
-            BOOST_TEST(!refused.has_value());
-        });
-        allocates_nothing(name, [&] {
-            auto const refused = hash::hkdf<Hmac, Backend>(okm, input, input, long_info);
-            BOOST_TEST(!refused.has_value());
-        });
-        if constexpr (split) {
-            allocates_nothing(name, [&] {
-                auto const refused =
-                    hash::hkdf_expand<Hmac, Backend>(okm, input.first(3), long_info);
-                BOOST_TEST(!refused.has_value());
-            });
-        }
+        hkdf_allocates_nothing<Hmac, Backend, split>(name);
     }
     if constexpr (hash::backend_has_v<Backend, hash::kdfs::pbkdf2, Hmac>) {
-        allocates_nothing(name, [] {
-            std::array<std::uint8_t, 70> key{};
-            auto const done = hash::pbkdf2<Hmac, Backend>(key, input.first(20), input.last(16), 3);
-            BOOST_TEST(done.has_value());
-        });
-        allocates_nothing(name, [] {
-            std::array<std::uint8_t, 70> key{};
-            auto const refused = hash::pbkdf2<Hmac, Backend>(key, input, input, 0);
-            BOOST_TEST(!refused.has_value());
-        });
+        pbkdf2_allocates_nothing<Hmac, Backend>(name);
     }
 }
 
@@ -211,7 +225,7 @@ void control() {
     // The control: one allocation of every form the counter claims moves it, so a zero below is
     // a measurement and not a counter that does not work.
     namespace test = webcpp::test;
-    auto moves_new = [](char const* form, auto&& allocate) {
+    auto const moves_new = [](char const* form, auto&& allocate) {
         window const w;
         allocate();
         if (!BOOST_TEST_GE(w.news(), 1U)) {
@@ -244,7 +258,7 @@ void control() {
 #ifndef _WIN32
         void* (*volatile const do_aligned)(std::size_t, std::size_t) = &std::aligned_alloc;
 #endif
-        auto window_c = [](auto&& allocate, char const* form) {
+        auto const window_c = [](auto&& allocate, char const* form) {
             window const w;
             void* const block = allocate();
             if (!BOOST_TEST_GE(w.cs(), 1U)) {
@@ -349,7 +363,7 @@ void blake3() {
 }
 #endif
 
-#if defined(WEBCPP_HASH_HAS_SODIUM)
+#ifdef WEBCPP_HASH_HAS_SODIUM
 // libsodium's first call of the program runs sodium_init, which allocates on some targets (one C
 // allocator call measured on WASI): outside webcpp's code, measured here and kept out of the
 // zero windows of every other call.
@@ -372,7 +386,8 @@ void sodium_memory_hard() {
     std::array<std::uint8_t, 32> out{};
     std::array<std::uint8_t, 16> salt{};
     window const argon;
-    auto const argon_done = hash::argon2id<backends::sodium>(out, input.first(20), salt, {1, 8192});
+    auto const argon_done =
+        hash::argon2id<backends::sodium>(out, input.first(20), salt, {.passes = 1, .memory = 8192});
     BOOST_TEST(argon_done.has_value());
     BOOST_TEST_EQ(argon.news(), 0U);
     std::printf("record operation=argon2id backend=sodium target=%s new=%zu c=%zu counted=%d\n",
@@ -380,7 +395,7 @@ void sodium_memory_hard() {
                 webcpp::test::c_allocations_counted ? 1 : 0);
     window const scr;
     auto const scrypt_done =
-        hash::scrypt<backends::sodium>(out, input.first(20), salt, {1024, 8, 1});
+        hash::scrypt<backends::sodium>(out, input.first(20), salt, {.n = 1024, .r = 8, .p = 1});
     BOOST_TEST(scrypt_done.has_value());
     BOOST_TEST_EQ(scr.news(), 0U);
     std::printf("record operation=scrypt backend=sodium target=%s new=%zu c=%zu counted=%d\n",

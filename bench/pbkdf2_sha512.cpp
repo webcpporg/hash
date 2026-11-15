@@ -32,15 +32,15 @@
 
 #include <algorithm>
 #include <array>
-#include <cerrno>
+#include <charconv>
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
-#include <cstdlib>
 #include <span>
 #include <string>
 #include <string_view>
+#include <system_error>
 #include <vector>
 
 namespace hash = webcpp::hash;
@@ -124,18 +124,18 @@ struct variant {
 // The variants this program was built with, in the brief's order.
 std::vector<variant> variants() {
     std::vector<variant> all;
-    all.push_back({"hash2", derive_library<hash::backends::hash2>});
+    all.push_back({.name = "hash2", .derive = derive_library<hash::backends::hash2>});
 #ifdef WEBCPP_HASH_HAS_OPENSSL
-    all.push_back({"openssl", derive_library<hash::backends::openssl>});
+    all.push_back({.name = "openssl", .derive = derive_library<hash::backends::openssl>});
 #endif
 #ifdef WEBCPP_HASH_HAS_SODIUM
-    all.push_back({"sodium-hmac", derive_sodium_hmac});
+    all.push_back({.name = "sodium-hmac", .derive = derive_sodium_hmac});
 #endif
     return all;
 }
 
 constexpr std::string_view target_name() {
-#if defined(WEBCPP_TARGET_WASIP2)
+#ifdef WEBCPP_TARGET_WASIP2
     return "wasip2";
 #elif defined(WEBCPP_TARGET_WASIP3)
     return "wasip3";
@@ -163,17 +163,17 @@ bool agree_at_check_iterations(const std::vector<variant>& all) {
     key_bytes reference{};
     if (!derive_library<hash::backends::hash2>(reference, check_iterations) ||
         to_hex(reference) != expected_check) {
-        std::fprintf(stderr, "backends::hash2 disagrees with the independent value at %llu\n",
-                     static_cast<unsigned long long>(check_iterations));
+        (void)std::fprintf(stderr, "backends::hash2 disagrees with the independent value at %llu\n",
+                           static_cast<unsigned long long>(check_iterations));
         return false;
     }
     bool good = true;
     for (const variant& v : all) {
         double ignored = 0;
         if (!derive_checked(v, check_iterations, expected_check, ignored)) {
-            std::fprintf(stderr, "%.*s disagrees with backends::hash2 at %llu iterations\n",
-                         static_cast<int>(v.name.size()), v.name.data(),
-                         static_cast<unsigned long long>(check_iterations));
+            (void)std::fprintf(stderr, "%.*s disagrees with backends::hash2 at %llu iterations\n",
+                               static_cast<int>(v.name.size()), v.name.data(),
+                               static_cast<unsigned long long>(check_iterations));
             good = false;
         }
     }
@@ -189,7 +189,7 @@ int measure(const variant& v, int runs) {
         times.push_back(elapsed);
     }
     std::vector<double> sorted = times;
-    std::sort(sorted.begin(), sorted.end());
+    std::ranges::sort(sorted);
     const std::size_t n = sorted.size();
     const double median = n % 2 == 1 ? sorted[n / 2] : (sorted[(n / 2) - 1] + sorted[n / 2]) / 2;
 #ifdef __VERSION__
@@ -216,60 +216,88 @@ constexpr int exit_wrong_key = 1;
 constexpr int exit_usage = 64;
 constexpr int exit_no_variant = 65;
 
-// `--runs N` parsed whole, N a positive int; false otherwise.
-bool parse_runs(const char* text, int& runs) {
-    char* end = nullptr;
-    errno = 0;
-    const long value = std::strtol(text, &end, 10);
-    if (errno != 0 || end == text || *end != '\0' || value < 1 || value > 1000) {
+// `--runs N` parsed whole, N a positive int up to 1,000; false otherwise.
+bool parse_runs(std::string_view text, int& runs) {
+    int value = 0;
+    const char* const first = text.data();
+    const char* const last = first + text.size();
+    const auto [end, error] = std::from_chars(first, last, value);
+    if (error != std::errc{} || end != last || value < 1 || value > 1000) {
         return false;
     }
-    runs = static_cast<int>(value);
+    runs = value;
     return true;
+}
+
+// What the command line asks: every variant checked (no argument), the list, or one variant
+// measured over `runs` runs.
+struct request {
+    bool list = false;
+    std::string_view variant;
+    int runs = 3;
+};
+
+// The request of `args` (argv after the program's name); false on a usage error.
+bool parse(const std::vector<std::string_view>& args, request& asked) {
+    if (args.size() == 1 && args[0] == "--list") {
+        asked.list = true;
+        return true;
+    }
+    if (args.empty()) {
+        return true;
+    }
+    if (args[0].starts_with("--") || args.size() == 2 || args.size() > 3) {
+        return false;
+    }
+    if (args.size() == 3 && (args[1] != "--runs" || !parse_runs(args[2], asked.runs))) {
+        return false;
+    }
+    asked.variant = args[0];
+    return true;
+}
+
+// Each variant at the full count of iterations derives the expected key; prints one line each.
+int check_every(const std::vector<variant>& all) {
+    bool good = true;
+    for (const variant& v : all) {
+        double elapsed = 0;
+        const bool same = derive_checked(v, full_iterations, expected_full, elapsed);
+        std::printf("%.*s: key %s\n", static_cast<int>(v.name.size()), v.name.data(),
+                    same ? "correct" : "WRONG");
+        good = good && same;
+    }
+    return good ? 0 : exit_wrong_key;
 }
 
 }  // namespace
 
+// NOLINTNEXTLINE(bugprone-exception-escape): a bad_alloc of the vectors ends the program, a failure
 int main(int argc, char** argv) {
     const std::vector<variant> all = variants();
     const std::vector<std::string_view> args(argv + 1, argv + argc);
-    if (args.size() == 1 && args[0] == "--list") {
+    request asked;
+    if (!parse(args, asked)) {
+        (void)std::fprintf(stderr, "usage: pbkdf2_sha512 [--list | <variant> [--runs N]]\n");
+        return exit_usage;
+    }
+    if (asked.list) {
         for (const variant& v : all) {
             std::printf("%.*s\n", static_cast<int>(v.name.size()), v.name.data());
         }
         return 0;
     }
-    int runs = 3;
-    const bool measuring = !args.empty();
-    if (measuring && args[0].starts_with("--")) {
-        std::fprintf(stderr, "usage: pbkdf2_sha512 [--list | <variant> [--runs N]]\n");
-        return exit_usage;
-    }
-    const bool with_runs = args.size() == 3 && args[1] == "--runs";
-    if (args.size() > 3 || args.size() == 2 || (args.size() == 3 && !with_runs) ||
-        (with_runs && !parse_runs(argv[3], runs))) {
-        std::fprintf(stderr, "usage: pbkdf2_sha512 [--list | <variant> [--runs N]]\n");
-        return exit_usage;
-    }
     if (!agree_at_check_iterations(all)) {
         return exit_wrong_key;
     }
-    if (!measuring) {
-        bool good = true;
-        for (const variant& v : all) {
-            double elapsed = 0;
-            const bool same = derive_checked(v, full_iterations, expected_full, elapsed);
-            std::printf("%.*s: key %s\n", static_cast<int>(v.name.size()), v.name.data(),
-                        same ? "correct" : "WRONG");
-            good = good && same;
-        }
-        return good ? 0 : exit_wrong_key;
+    if (asked.variant.empty()) {
+        return check_every(all);
     }
     for (const variant& v : all) {
-        if (v.name == args[0]) {
-            return measure(v, runs) == 0 ? 0 : exit_wrong_key;
+        if (v.name == asked.variant) {
+            return measure(v, asked.runs) == 0 ? 0 : exit_wrong_key;
         }
     }
-    std::fprintf(stderr, "this build has no variant '%s'\n", argv[1]);
+    (void)std::fprintf(stderr, "this build has no variant '%.*s'\n",
+                       static_cast<int>(asked.variant.size()), asked.variant.data());
     return exit_no_variant;
 }
