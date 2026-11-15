@@ -1,0 +1,604 @@
+{
+  "measurement": "allocations per call, native with the C allocator counted where it can be",
+  "date": "2026-11-15",
+  "machine": {
+    "os": "macOS-27.0-arm64-arm-64bit-Mach-O",
+    "cpu": "arm"
+  },
+  "c_allocator_counted": {
+    "native": true,
+    "wasip2": true,
+    "wasip3": true,
+    "emscripten": true
+  },
+  "cases": [
+    {
+      "operation": "sodium_init",
+      "backend": "sodium",
+      "target": "native",
+      "implementation": "backends::sodium",
+      "operator_new": 0,
+      "c_allocator_calls": 0,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "argon2id",
+      "backend": "sodium",
+      "target": "native",
+      "implementation": "backends::sodium",
+      "operator_new": 0,
+      "c_allocator_calls": 3,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "scrypt",
+      "backend": "sodium",
+      "target": "native",
+      "implementation": "backends::sodium",
+      "operator_new": 0,
+      "c_allocator_calls": 0,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf",
+      "backend": "openssl",
+      "target": "native",
+      "implementation": "backends::openssl",
+      "operator_new": 0,
+      "hmac": "hmac_sha2_256",
+      "call": 1,
+      "openssl_allocations": 4080
+    },
+    {
+      "operation": "pbkdf2",
+      "backend": "openssl",
+      "target": "native",
+      "implementation": "backends::openssl",
+      "operator_new": 0,
+      "hmac": "hmac_sha2_256",
+      "call": 1,
+      "openssl_allocations": 30
+    },
+    {
+      "operation": "hkdf",
+      "backend": "openssl",
+      "target": "native",
+      "implementation": "backends::openssl",
+      "operator_new": 0,
+      "hmac": "hmac_sha2_256",
+      "call": 2,
+      "openssl_allocations": 24
+    },
+    {
+      "operation": "pbkdf2",
+      "backend": "openssl",
+      "target": "native",
+      "implementation": "backends::openssl",
+      "operator_new": 0,
+      "hmac": "hmac_sha2_256",
+      "call": 2,
+      "openssl_allocations": 18
+    },
+    {
+      "operation": "hkdf",
+      "backend": "openssl",
+      "target": "native",
+      "implementation": "backends::openssl",
+      "operator_new": 0,
+      "hmac": "hmac_sha2_512",
+      "call": 1,
+      "openssl_allocations": 30
+    },
+    {
+      "operation": "pbkdf2",
+      "backend": "openssl",
+      "target": "native",
+      "implementation": "backends::openssl",
+      "operator_new": 0,
+      "hmac": "hmac_sha2_512",
+      "call": 1,
+      "openssl_allocations": 18
+    },
+    {
+      "operation": "hkdf",
+      "backend": "openssl",
+      "target": "native",
+      "implementation": "backends::openssl",
+      "operator_new": 0,
+      "hmac": "hmac_sha2_512",
+      "call": 2,
+      "openssl_allocations": 24
+    },
+    {
+      "operation": "pbkdf2",
+      "backend": "openssl",
+      "target": "native",
+      "implementation": "backends::openssl",
+      "operator_new": 0,
+      "hmac": "hmac_sha2_512",
+      "call": 2,
+      "openssl_allocations": 18
+    },
+    {
+      "operation": "hkdf",
+      "backend": "openssl",
+      "target": "native",
+      "implementation": "backends::openssl",
+      "operator_new": 0,
+      "hmac": "hmac_sha3_256",
+      "call": 1,
+      "openssl_allocations": 30
+    },
+    {
+      "operation": "pbkdf2",
+      "backend": "openssl",
+      "target": "native",
+      "implementation": "backends::openssl",
+      "operator_new": 0,
+      "hmac": "hmac_sha3_256",
+      "call": 1,
+      "openssl_allocations": 18
+    },
+    {
+      "operation": "hkdf",
+      "backend": "openssl",
+      "target": "native",
+      "implementation": "backends::openssl",
+      "operator_new": 0,
+      "hmac": "hmac_sha3_256",
+      "call": 2,
+      "openssl_allocations": 24
+    },
+    {
+      "operation": "pbkdf2",
+      "backend": "openssl",
+      "target": "native",
+      "implementation": "backends::openssl",
+      "operator_new": 0,
+      "hmac": "hmac_sha3_256",
+      "call": 2,
+      "openssl_allocations": 18
+    },
+    {
+      "operation": "hkdf",
+      "backend": "openssl",
+      "target": "native",
+      "implementation": "backends::openssl",
+      "operator_new": 0,
+      "hmac": "hmac_blake2b_512",
+      "call": 1,
+      "openssl_allocations": 30
+    },
+    {
+      "operation": "pbkdf2",
+      "backend": "openssl",
+      "target": "native",
+      "implementation": "backends::openssl",
+      "operator_new": 0,
+      "hmac": "hmac_blake2b_512",
+      "call": 1,
+      "openssl_allocations": 18
+    },
+    {
+      "operation": "hkdf",
+      "backend": "openssl",
+      "target": "native",
+      "implementation": "backends::openssl",
+      "operator_new": 0,
+      "hmac": "hmac_blake2b_512",
+      "call": 2,
+      "openssl_allocations": 24
+    },
+    {
+      "operation": "pbkdf2",
+      "backend": "openssl",
+      "target": "native",
+      "implementation": "backends::openssl",
+      "operator_new": 0,
+      "hmac": "hmac_blake2b_512",
+      "call": 2,
+      "openssl_allocations": 18
+    },
+    {
+      "operation": "sodium_init",
+      "backend": "sodium",
+      "target": "wasip2",
+      "implementation": "backends::sodium",
+      "operator_new": 0,
+      "c_allocator_calls": 1,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "argon2id",
+      "backend": "sodium",
+      "target": "wasip2",
+      "implementation": "backends::sodium",
+      "operator_new": 0,
+      "c_allocator_calls": 5,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "scrypt",
+      "backend": "sodium",
+      "target": "wasip2",
+      "implementation": "backends::sodium",
+      "operator_new": 0,
+      "c_allocator_calls": 1,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf",
+      "backend": "openssl",
+      "target": "wasip2",
+      "implementation": "backends::openssl",
+      "operator_new": 0,
+      "hmac": "hmac_sha2_256",
+      "call": 1,
+      "openssl_allocations": 3960
+    },
+    {
+      "operation": "pbkdf2",
+      "backend": "openssl",
+      "target": "wasip2",
+      "implementation": "backends::openssl",
+      "operator_new": 0,
+      "hmac": "hmac_sha2_256",
+      "call": 1,
+      "openssl_allocations": 30
+    },
+    {
+      "operation": "hkdf",
+      "backend": "openssl",
+      "target": "wasip2",
+      "implementation": "backends::openssl",
+      "operator_new": 0,
+      "hmac": "hmac_sha2_256",
+      "call": 2,
+      "openssl_allocations": 24
+    },
+    {
+      "operation": "pbkdf2",
+      "backend": "openssl",
+      "target": "wasip2",
+      "implementation": "backends::openssl",
+      "operator_new": 0,
+      "hmac": "hmac_sha2_256",
+      "call": 2,
+      "openssl_allocations": 18
+    },
+    {
+      "operation": "hkdf",
+      "backend": "openssl",
+      "target": "wasip2",
+      "implementation": "backends::openssl",
+      "operator_new": 0,
+      "hmac": "hmac_sha2_512",
+      "call": 1,
+      "openssl_allocations": 30
+    },
+    {
+      "operation": "pbkdf2",
+      "backend": "openssl",
+      "target": "wasip2",
+      "implementation": "backends::openssl",
+      "operator_new": 0,
+      "hmac": "hmac_sha2_512",
+      "call": 1,
+      "openssl_allocations": 18
+    },
+    {
+      "operation": "hkdf",
+      "backend": "openssl",
+      "target": "wasip2",
+      "implementation": "backends::openssl",
+      "operator_new": 0,
+      "hmac": "hmac_sha2_512",
+      "call": 2,
+      "openssl_allocations": 24
+    },
+    {
+      "operation": "pbkdf2",
+      "backend": "openssl",
+      "target": "wasip2",
+      "implementation": "backends::openssl",
+      "operator_new": 0,
+      "hmac": "hmac_sha2_512",
+      "call": 2,
+      "openssl_allocations": 18
+    },
+    {
+      "operation": "hkdf",
+      "backend": "openssl",
+      "target": "wasip2",
+      "implementation": "backends::openssl",
+      "operator_new": 0,
+      "hmac": "hmac_sha3_256",
+      "call": 1,
+      "openssl_allocations": 30
+    },
+    {
+      "operation": "pbkdf2",
+      "backend": "openssl",
+      "target": "wasip2",
+      "implementation": "backends::openssl",
+      "operator_new": 0,
+      "hmac": "hmac_sha3_256",
+      "call": 1,
+      "openssl_allocations": 18
+    },
+    {
+      "operation": "hkdf",
+      "backend": "openssl",
+      "target": "wasip2",
+      "implementation": "backends::openssl",
+      "operator_new": 0,
+      "hmac": "hmac_sha3_256",
+      "call": 2,
+      "openssl_allocations": 24
+    },
+    {
+      "operation": "pbkdf2",
+      "backend": "openssl",
+      "target": "wasip2",
+      "implementation": "backends::openssl",
+      "operator_new": 0,
+      "hmac": "hmac_sha3_256",
+      "call": 2,
+      "openssl_allocations": 18
+    },
+    {
+      "operation": "hkdf",
+      "backend": "openssl",
+      "target": "wasip2",
+      "implementation": "backends::openssl",
+      "operator_new": 0,
+      "hmac": "hmac_blake2b_512",
+      "call": 1,
+      "openssl_allocations": 30
+    },
+    {
+      "operation": "pbkdf2",
+      "backend": "openssl",
+      "target": "wasip2",
+      "implementation": "backends::openssl",
+      "operator_new": 0,
+      "hmac": "hmac_blake2b_512",
+      "call": 1,
+      "openssl_allocations": 18
+    },
+    {
+      "operation": "hkdf",
+      "backend": "openssl",
+      "target": "wasip2",
+      "implementation": "backends::openssl",
+      "operator_new": 0,
+      "hmac": "hmac_blake2b_512",
+      "call": 2,
+      "openssl_allocations": 24
+    },
+    {
+      "operation": "pbkdf2",
+      "backend": "openssl",
+      "target": "wasip2",
+      "implementation": "backends::openssl",
+      "operator_new": 0,
+      "hmac": "hmac_blake2b_512",
+      "call": 2,
+      "openssl_allocations": 18
+    },
+    {
+      "operation": "sodium_init",
+      "backend": "sodium",
+      "target": "wasip3",
+      "implementation": "backends::sodium",
+      "operator_new": 0,
+      "c_allocator_calls": 1,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "argon2id",
+      "backend": "sodium",
+      "target": "wasip3",
+      "implementation": "backends::sodium",
+      "operator_new": 0,
+      "c_allocator_calls": 5,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "scrypt",
+      "backend": "sodium",
+      "target": "wasip3",
+      "implementation": "backends::sodium",
+      "operator_new": 0,
+      "c_allocator_calls": 1,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf",
+      "backend": "openssl",
+      "target": "wasip3",
+      "implementation": "backends::openssl",
+      "operator_new": 0,
+      "hmac": "hmac_sha2_256",
+      "call": 1,
+      "openssl_allocations": 3960
+    },
+    {
+      "operation": "pbkdf2",
+      "backend": "openssl",
+      "target": "wasip3",
+      "implementation": "backends::openssl",
+      "operator_new": 0,
+      "hmac": "hmac_sha2_256",
+      "call": 1,
+      "openssl_allocations": 30
+    },
+    {
+      "operation": "hkdf",
+      "backend": "openssl",
+      "target": "wasip3",
+      "implementation": "backends::openssl",
+      "operator_new": 0,
+      "hmac": "hmac_sha2_256",
+      "call": 2,
+      "openssl_allocations": 24
+    },
+    {
+      "operation": "pbkdf2",
+      "backend": "openssl",
+      "target": "wasip3",
+      "implementation": "backends::openssl",
+      "operator_new": 0,
+      "hmac": "hmac_sha2_256",
+      "call": 2,
+      "openssl_allocations": 18
+    },
+    {
+      "operation": "hkdf",
+      "backend": "openssl",
+      "target": "wasip3",
+      "implementation": "backends::openssl",
+      "operator_new": 0,
+      "hmac": "hmac_sha2_512",
+      "call": 1,
+      "openssl_allocations": 30
+    },
+    {
+      "operation": "pbkdf2",
+      "backend": "openssl",
+      "target": "wasip3",
+      "implementation": "backends::openssl",
+      "operator_new": 0,
+      "hmac": "hmac_sha2_512",
+      "call": 1,
+      "openssl_allocations": 18
+    },
+    {
+      "operation": "hkdf",
+      "backend": "openssl",
+      "target": "wasip3",
+      "implementation": "backends::openssl",
+      "operator_new": 0,
+      "hmac": "hmac_sha2_512",
+      "call": 2,
+      "openssl_allocations": 24
+    },
+    {
+      "operation": "pbkdf2",
+      "backend": "openssl",
+      "target": "wasip3",
+      "implementation": "backends::openssl",
+      "operator_new": 0,
+      "hmac": "hmac_sha2_512",
+      "call": 2,
+      "openssl_allocations": 18
+    },
+    {
+      "operation": "hkdf",
+      "backend": "openssl",
+      "target": "wasip3",
+      "implementation": "backends::openssl",
+      "operator_new": 0,
+      "hmac": "hmac_sha3_256",
+      "call": 1,
+      "openssl_allocations": 30
+    },
+    {
+      "operation": "pbkdf2",
+      "backend": "openssl",
+      "target": "wasip3",
+      "implementation": "backends::openssl",
+      "operator_new": 0,
+      "hmac": "hmac_sha3_256",
+      "call": 1,
+      "openssl_allocations": 18
+    },
+    {
+      "operation": "hkdf",
+      "backend": "openssl",
+      "target": "wasip3",
+      "implementation": "backends::openssl",
+      "operator_new": 0,
+      "hmac": "hmac_sha3_256",
+      "call": 2,
+      "openssl_allocations": 24
+    },
+    {
+      "operation": "pbkdf2",
+      "backend": "openssl",
+      "target": "wasip3",
+      "implementation": "backends::openssl",
+      "operator_new": 0,
+      "hmac": "hmac_sha3_256",
+      "call": 2,
+      "openssl_allocations": 18
+    },
+    {
+      "operation": "hkdf",
+      "backend": "openssl",
+      "target": "wasip3",
+      "implementation": "backends::openssl",
+      "operator_new": 0,
+      "hmac": "hmac_blake2b_512",
+      "call": 1,
+      "openssl_allocations": 30
+    },
+    {
+      "operation": "pbkdf2",
+      "backend": "openssl",
+      "target": "wasip3",
+      "implementation": "backends::openssl",
+      "operator_new": 0,
+      "hmac": "hmac_blake2b_512",
+      "call": 1,
+      "openssl_allocations": 18
+    },
+    {
+      "operation": "hkdf",
+      "backend": "openssl",
+      "target": "wasip3",
+      "implementation": "backends::openssl",
+      "operator_new": 0,
+      "hmac": "hmac_blake2b_512",
+      "call": 2,
+      "openssl_allocations": 24
+    },
+    {
+      "operation": "pbkdf2",
+      "backend": "openssl",
+      "target": "wasip3",
+      "implementation": "backends::openssl",
+      "operator_new": 0,
+      "hmac": "hmac_blake2b_512",
+      "call": 2,
+      "openssl_allocations": 18
+    },
+    {
+      "operation": "sodium_init",
+      "backend": "sodium",
+      "target": "emscripten",
+      "implementation": "backends::sodium",
+      "operator_new": 0,
+      "c_allocator_calls": 0,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "argon2id",
+      "backend": "sodium",
+      "target": "emscripten",
+      "implementation": "backends::sodium",
+      "operator_new": 0,
+      "c_allocator_calls": 4,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "scrypt",
+      "backend": "sodium",
+      "target": "emscripten",
+      "implementation": "backends::sodium",
+      "operator_new": 0,
+      "c_allocator_calls": 1,
+      "c_allocator_counted": true
+    }
+  ]
+}

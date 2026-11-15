@@ -303,13 +303,18 @@ hash-run overrides_list : overrides_list_test.cpp : $(.hash-tables) ;
 # counter). Argon2id and scrypt allocate inside libsodium and are asserted
 # free of operator new only. Each library's functions are exercised where it
 # is linked.
+# On WASI the C allocator is counted through the linker's --wrap
+# (support/counting.hpp), for the references of this program and its libraries.
 hash-run allocation : allocation_test.cpp
   : <library>/third_party//xkcp <library>/third_party//blake3
-    <library>/third_party//sodium <library>/third_party//bearssl ;
+    <library>/third_party//sodium <library>/third_party//bearssl
+    <target-os>wasi:<linkflags>-Wl,--wrap=malloc,--wrap=calloc,--wrap=realloc,--wrap=aligned_alloc,--wrap=posix_memalign ;
 # OpenSSL's own allocations per call, measured through
 # CRYPTO_set_mem_functions and printed, never bounded; operator new zero.
 hash-run allocation_openssl : allocation_openssl_test.cpp
-  : <library>/webcpp/hash//openssl : native wasip2 wasip3 ;
+  : <library>/webcpp/hash//openssl
+    <target-os>wasi:<linkflags>-Wl,--wrap=malloc,--wrap=calloc,--wrap=realloc,--wrap=aligned_alloc,--wrap=posix_memalign
+  : native wasip2 wasip3 ;
 
 build-project messages ;
 

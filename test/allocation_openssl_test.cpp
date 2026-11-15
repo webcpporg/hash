@@ -7,8 +7,9 @@
 // On backends::openssl webcpp's code allocates nothing, and OpenSSL's own allocations are
 // measured, printed and not bounded (spec section 7.7): the test sets OpenSSL's allocator with
 // CRYPTO_set_mem_functions before anything, counts each call OpenSSL makes through it per
-// function (HKDF and PBKDF2 over four hmacs), prints the counts (reported in doc/allocation.adoc)
-// and asserts only that operator new is never called: the count of OpenSSL's allocator is a
+// function (HKDF and PBKDF2 over four hmacs), prints the counts as records (collected by
+// bench/allocation_collect.py into doc/measurements.allocation.json and doc/allocation.adoc) and
+// asserts only that operator new is never called: the count of OpenSSL's allocator is a
 // measurement, never a bound. OpenSSL's allocations are outside the user's allocator (the accepted
 // departure); they are measured on OpenSSL 3.5.9 (native with assembly, wasip2 and wasip3 without
 // it).
@@ -70,38 +71,37 @@ std::array<std::uint8_t, 64> const bytes = [] {
     return filled;
 }();
 
-/** A call's allocations through OpenSSL, printed; operator new's must stay zero. */
+/** A call's allocations through OpenSSL, as one record; operator new's must stay zero. */
 template <class F>
-void measured(char const* name, F&& call) {
+void measured(char const* operation, char const* hmac, int call, F&& call_it) {
     std::size_t const own_before = openssl_allocations.load();
     std::size_t const new_before = webcpp::test::counted_new.load();
-    call();
+    call_it();
     std::size_t const own = openssl_allocations.load() - own_before;
     BOOST_TEST_EQ(webcpp::test::counted_new.load(), new_before);
-    std::printf("%s: %zu allocations through OpenSSL's functions\n", name, own);
+    std::printf("record operation=%s hmac=%s backend=openssl target=%s call=%d openssl=%zu new=0\n",
+                operation, hmac, webcpp::test::target_name, call, own);
 }
 
 template <class Hmac>
 void measure_one(char const* name) {
     using openssl = hash::backends::openssl;
     if constexpr (!hash::backend_has_v<openssl, hash::kdfs::hkdf, Hmac>) {
-        std::printf("%s: not on backends::openssl\n", name);
+        std::printf("record operation=none hmac=%s backend=openssl target=%s\n", name,
+                    webcpp::test::target_name);
         return;
     }
     std::array<std::uint8_t, 42> okm{};
     std::array<std::uint8_t, 40> key{};
     std::span<std::uint8_t const> const input(bytes);
     // The first call of each function pays OpenSSL's one-time setup; the second is steady state.
-    for (int round = 0; round != 2; ++round) {
-        char label[64];
-        std::snprintf(label, sizeof label, "%s hkdf, call %d", name, round + 1);
-        measured(label, [&] {
+    for (int round = 1; round != 3; ++round) {
+        measured("hkdf", name, round, [&] {
             auto const done =
                 hash::hkdf<Hmac, openssl>(okm, input.first(20), input, input.last(10));
             BOOST_TEST(done.has_value());
         });
-        std::snprintf(label, sizeof label, "%s pbkdf2, call %d", name, round + 1);
-        measured(label, [&] {
+        measured("pbkdf2", name, round, [&] {
             auto const done = hash::pbkdf2<Hmac, openssl>(key, input.first(20), input.last(16), 3);
             BOOST_TEST(done.has_value());
         });
@@ -117,7 +117,7 @@ int main() {
     measure_one<hash::hmac_sha2_512>("hmac_sha2_512");
     measure_one<hash::hmac_sha3_256>("hmac_sha3_256");
     measure_one<hash::hmac_blake2b_512>("hmac_blake2b_512");
-    std::printf("C library allocations counted on this target: %s\n",
-                webcpp::test::c_allocations_counted ? "yes" : "no");
+    std::printf("record operation=counter backend=none target=%s c_counted=%d\n",
+                webcpp::test::target_name, webcpp::test::c_allocations_counted ? 1 : 0);
     return webcpp::test::exit_status(boost::report_errors());
 }

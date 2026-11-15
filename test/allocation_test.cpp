@@ -9,10 +9,14 @@
 // zero times by every public function and every backend this program links: Keccak-256, BLAKE3,
 // Boost.Hash2's digests and hmacs, HKDF and PBKDF2 on hash2, libsodium (HKDF) and BearSSL, on
 // every target. A control that allocates once moves the counter, so a zero is not a broken
-// counter. Argon2id and scrypt are the one exception, and it is libsodium's: they allocate their
-// working memory (64 MiB and more for Argon2id, 128 r N bytes for scrypt) inside libsodium with
-// its own malloc, which is the C library's, not webcpp's; the test asserts only that operator
-// new is not called, and prints how many C allocations it saw where the target counts them.
+// counter. Every call is counted and the totals asserted exactly per backend, so a backend a
+// wrong trait or a dropped define leaves out fails, and the refusals of every guard run under the
+// counter too. Argon2id and scrypt are the one exception, and it is libsodium's: their working
+// memory (Argon2id's matrix, 128 r N bytes of scrypt) comes from libsodium's own mmap, else
+// posix_memalign, else malloc, outside webcpp's code; the test asserts only that operator new is
+// not called, and prints the C allocator calls it saw (mmap is not among the calls the counter
+// sees, so those are libsodium's small bookkeeping blocks, not the memory). Every printed result
+// is one `record key=value ...` line, collected by bench/allocation_collect.py.
 
 #include <webcpp/hash/algorithms.hpp>
 #include <webcpp/hash/argon2.hpp>
@@ -73,9 +77,14 @@ struct window {
     std::size_t cs() const { return webcpp::test::counted_c.load() - c_before; }
 };
 
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables): the calls made under the
+// counter
+std::size_t calls_made = 0;
+
 /** Whether a call allocated nothing at all; says which one when it did. */
 template <class F>
 void allocates_nothing(char const* name, F&& call) {
+    ++calls_made;
     window const w;
     call();
     if (!BOOST_TEST_EQ(w.news(), 0U) || !BOOST_TEST_EQ(w.cs(), 0U)) {
@@ -108,30 +117,54 @@ void hmac_allocates_nothing(char const* name) {
 }
 
 // `split`: the backend has HKDF's extract and expand apart (BearSSL has the whole function alone).
+// Per hmac the calls counted are, split: the pair (1), the whole function (1), four refusals (4);
+// not split: the whole function (1), two refusals (2); PBKDF2: a derivation (1), a refusal (1).
+// Expected totals: hash2 16 hmacs x (6 + 2) = 128; sodium 2 hmacs x 6 = 12; bearssl 6 hmacs x 3
+// = 18.
 template <class Hmac, class Backend, bool split>
 void kdfs_allocate_nothing(char const* name) {
-    if constexpr (split && hash::backend_has_v<Backend, hash::kdfs::hkdf, Hmac>) {
-        allocates_nothing(name, [] {
-            auto const prk = hash::hkdf_extract<Hmac, Backend>(input.first(20), input);
-            BOOST_TEST(prk.has_value());
-            if (!prk) {
-                return;
-            }
-            std::array<std::uint8_t, 42> okm{};
-            auto const expanded = hash::hkdf_expand<Hmac, Backend>(
-                okm, std::span<std::uint8_t const>(prk->data(), prk->size()), input.last(10));
-            BOOST_TEST(expanded.has_value());
-        });
-    }
     if constexpr (hash::backend_has_v<Backend, hash::kdfs::hkdf, Hmac>) {
-        allocates_nothing(name, [] {
-            std::array<std::uint8_t, 42> okm{};
+        std::array<std::uint8_t, 42> okm{};
+        std::span<std::uint8_t> const no_output;
+        std::span<std::uint8_t const> const long_info(message.data(), hash::hkdf_max_info_size + 1);
+        if constexpr (split) {
+            allocates_nothing(name, [&] {
+                auto const prk = hash::hkdf_extract<Hmac, Backend>(input.first(20), input);
+                BOOST_TEST(prk.has_value());
+                if (!prk) {
+                    return;
+                }
+                auto const expanded = hash::hkdf_expand<Hmac, Backend>(
+                    okm, std::span<std::uint8_t const>(prk->data(), prk->size()), input.last(10));
+                BOOST_TEST(expanded.has_value());
+            });
+            allocates_nothing(name, [&] {
+                auto const refused = hash::hkdf_expand<Hmac, Backend>(okm, input.first(3), {});
+                BOOST_TEST(!refused.has_value());
+            });
+        }
+        allocates_nothing(name, [&] {
             auto const full =
                 hash::hkdf<Hmac, Backend>(okm, input.first(20), input, input.last(10));
             auto const empty = hash::hkdf<Hmac, Backend>(okm, {}, {}, {});
             BOOST_TEST(full.has_value());
             BOOST_TEST(empty.has_value());
         });
+        allocates_nothing(name, [&] {
+            auto const refused = hash::hkdf<Hmac, Backend>(no_output, input, input, input);
+            BOOST_TEST(!refused.has_value());
+        });
+        allocates_nothing(name, [&] {
+            auto const refused = hash::hkdf<Hmac, Backend>(okm, input, input, long_info);
+            BOOST_TEST(!refused.has_value());
+        });
+        if constexpr (split) {
+            allocates_nothing(name, [&] {
+                auto const refused =
+                    hash::hkdf_expand<Hmac, Backend>(okm, input.first(3), long_info);
+                BOOST_TEST(!refused.has_value());
+            });
+        }
     }
     if constexpr (hash::backend_has_v<Backend, hash::kdfs::pbkdf2, Hmac>) {
         allocates_nothing(name, [] {
@@ -139,11 +172,17 @@ void kdfs_allocate_nothing(char const* name) {
             auto const done = hash::pbkdf2<Hmac, Backend>(key, input.first(20), input.last(16), 3);
             BOOST_TEST(done.has_value());
         });
+        allocates_nothing(name, [] {
+            std::array<std::uint8_t, 70> key{};
+            auto const refused = hash::pbkdf2<Hmac, Backend>(key, input, input, 0);
+            BOOST_TEST(!refused.has_value());
+        });
     }
 }
 
 template <class Backend, bool split = true>
-void all_hmacs(char const* name) {
+void all_hmacs(char const* name, std::size_t expected_calls) {
+    std::size_t const before = calls_made;
     kdfs_allocate_nothing<hash::hmac_md5_128, Backend, split>(name);
     kdfs_allocate_nothing<hash::hmac_sha1_160, Backend, split>(name);
     kdfs_allocate_nothing<hash::hmac_sha2_224, Backend, split>(name);
@@ -160,23 +199,68 @@ void all_hmacs(char const* name) {
     kdfs_allocate_nothing<hash::hmac_ripemd_160, Backend, split>(name);
     kdfs_allocate_nothing<hash::hmac_blake2b_512, Backend, split>(name);
     kdfs_allocate_nothing<hash::hmac_blake2s_256, Backend, split>(name);
+    // A backend that fell out (a wrong trait, a dropped define) makes fewer calls than it should.
+    BOOST_TEST_EQ(calls_made - before, expected_calls);
+    std::printf("record operation=kdf-calls backend=%s target=%s calls=%zu expected=%zu\n", name,
+                webcpp::test::target_name, calls_made - before, expected_calls);
 }
 
 void control() {
-    // The control: one allocation of each kind moves the counter by (at least) one, so a zero
-    // below is a measurement and not a counter that does not work.
-    window const w;
-    void* const block = ::operator new(16);
-    BOOST_TEST_GE(w.news(), 1U);
-    ::operator delete(block);
-    if (webcpp::test::c_allocations_counted) {
-        void* const c_block = std::malloc(16);
-        BOOST_TEST_GE(w.cs(), 1U);
-        std::free(c_block);
+    // The control: one allocation of every form the counter claims moves it, so a zero below is
+    // a measurement and not a counter that does not work.
+    namespace test = webcpp::test;
+    auto moves_new = [](char const* form, auto&& allocate) {
+        window const w;
+        allocate();
+        if (!BOOST_TEST_GE(w.news(), 1U)) {
+            std::printf("operator new form not counted: %s\n", form);
+        }
+    };
+    moves_new("new", [] { ::operator delete(::operator new(16)); });
+    moves_new("new[]", [] { ::operator delete[](::operator new[](16)); });
+    moves_new("new aligned", [] {
+        ::operator delete(::operator new(16, std::align_val_t{64}), std::align_val_t{64});
+    });
+    moves_new("new[] aligned", [] {
+        ::operator delete[](::operator new[](16, std::align_val_t{64}), std::align_val_t{64});
+    });
+    moves_new("new nothrow", [] { ::operator delete(::operator new(16, std::nothrow)); });
+    moves_new("new[] nothrow", [] { ::operator delete[](::operator new[](16, std::nothrow)); });
+    moves_new("new aligned nothrow", [] {
+        ::operator delete(::operator new(16, std::align_val_t{64}, std::nothrow),
+                          std::align_val_t{64});
+    });
+    moves_new("new[] aligned nothrow", [] {
+        ::operator delete[](::operator new[](16, std::align_val_t{64}, std::nothrow),
+                            std::align_val_t{64});
+    });
+    if (test::c_allocations_counted) {
+        // Through volatile pointers so that the calls stay calls.
+        void* (*volatile const do_malloc)(std::size_t) = &std::malloc;
+        void* (*volatile const do_calloc)(std::size_t, std::size_t) = &std::calloc;
+        void* (*volatile const do_realloc)(void*, std::size_t) = &std::realloc;
+        void* (*volatile const do_aligned)(std::size_t, std::size_t) = &std::aligned_alloc;
+        auto window_c = [](auto&& allocate, char const* form) {
+            window const w;
+            void* const block = allocate();
+            if (!BOOST_TEST_GE(w.cs(), 1U)) {
+                std::printf("C allocator form not counted: %s\n", form);
+            }
+            std::free(block);
+        };
+        window_c([&] { return do_malloc(16); }, "malloc");
+        window_c([&] { return do_calloc(1, 16); }, "calloc");
+        window_c([&] { return do_realloc(nullptr, 16); }, "realloc");
+        window_c([&] { return do_aligned(64, 64); }, "aligned_alloc");
+        void* (*volatile const do_posix)(std::size_t) = [](std::size_t size) {
+            void* block = nullptr;
+            return posix_memalign(&block, 64, size) == 0 ? block : nullptr;
+        };
+        window_c([&] { return do_posix(64); }, "posix_memalign");
     }
-    std::size_t const total = webcpp::test::allocations();
+    std::size_t const total = test::allocations();
     void* const again = ::operator new(16);
-    BOOST_TEST_GT(webcpp::test::allocations(), total);
+    BOOST_TEST_GT(test::allocations(), total);
     ::operator delete(again);
 }
 
@@ -217,6 +301,7 @@ void digests() {
 
 #ifdef WEBCPP_HASH_HAS_XKCP
 void keccak() {
+    std::size_t const before = calls_made;
     allocates_nothing("keccak_256", [] {
         hash::keccak_256 h;
         h.update(message.data(), message.size());
@@ -229,11 +314,13 @@ void keccak() {
         BOOST_TEST(first.size() == second.size());
         BOOST_TEST(seeded.result().size() == bytes.result().size());
     });
+    BOOST_TEST_EQ(calls_made - before, 1U);
 }
 #endif
 
 #ifdef WEBCPP_HASH_HAS_BLAKE3
 void blake3() {
+    std::size_t const before = calls_made;
     allocates_nothing("blake3", [] {
         hash::blake3 h;
         h.update(message.data(), message.size());
@@ -252,12 +339,28 @@ void blake3() {
         BOOST_TEST(derived.result().size() == seeded.result().size());
         BOOST_TEST(bytes.result().size() == 32);
     });
+    BOOST_TEST_EQ(calls_made - before, 1U);
 }
 #endif
 
 #if defined(WEBCPP_HASH_HAS_SODIUM)
-// Argon2id and scrypt allocate inside libsodium, which is the C library's; the assertion is
-// that webcpp's code (operator new) is not called, and the count is stated, never hidden.
+// libsodium's first call of the program runs sodium_init, which allocates on some targets (one C
+// allocator call measured on WASI): outside webcpp's code, measured here and kept out of the
+// zero windows of every other call.
+void sodium_first_call() {
+    std::array<std::uint8_t, 32> okm{};
+    window const w;
+    auto const done = hash::hkdf<hash::hmac_sha2_256, hash::backends::sodium>(okm, {}, input, {});
+    BOOST_TEST(done.has_value());
+    BOOST_TEST_EQ(w.news(), 0U);
+    std::printf("record operation=sodium_init backend=sodium target=%s new=%zu c=%zu counted=%d\n",
+                webcpp::test::target_name, w.news(), w.cs(),
+                webcpp::test::c_allocations_counted ? 1 : 0);
+}
+
+// Argon2id and scrypt allocate inside libsodium (mmap, posix_memalign or malloc), outside webcpp;
+// the assertion is that webcpp's code (operator new) is not called, and the count is stated, never
+// hidden.
 void sodium_memory_hard() {
     namespace backends = hash::backends;
     std::array<std::uint8_t, 32> out{};
@@ -266,17 +369,17 @@ void sodium_memory_hard() {
     auto const argon_done = hash::argon2id<backends::sodium>(out, input.first(20), salt, {1, 8192});
     BOOST_TEST(argon_done.has_value());
     BOOST_TEST_EQ(argon.news(), 0U);
-    std::printf("argon2id (libsodium's own allocation): operator new %zu, C library %zu%s\n",
-                argon.news(), argon.cs(),
-                webcpp::test::c_allocations_counted ? "" : " (not counted on this target)");
+    std::printf("record operation=argon2id backend=sodium target=%s new=%zu c=%zu counted=%d\n",
+                webcpp::test::target_name, argon.news(), argon.cs(),
+                webcpp::test::c_allocations_counted ? 1 : 0);
     window const scr;
     auto const scrypt_done =
         hash::scrypt<backends::sodium>(out, input.first(20), salt, {1024, 8, 1});
     BOOST_TEST(scrypt_done.has_value());
     BOOST_TEST_EQ(scr.news(), 0U);
-    std::printf("scrypt (libsodium's own allocation): operator new %zu, C library %zu%s\n",
-                scr.news(), scr.cs(),
-                webcpp::test::c_allocations_counted ? "" : " (not counted on this target)");
+    std::printf("record operation=scrypt backend=sodium target=%s new=%zu c=%zu counted=%d\n",
+                webcpp::test::target_name, scr.news(), scr.cs(),
+                webcpp::test::c_allocations_counted ? 1 : 0);
 }
 #endif
 
@@ -285,7 +388,7 @@ void sodium_memory_hard() {
 int main() {
     control();
     digests();
-    all_hmacs<hash::backends::hash2>("hash2");
+    all_hmacs<hash::backends::hash2>("hash2", 128);
 #ifdef WEBCPP_HASH_HAS_XKCP
     keccak();
 #endif
@@ -293,13 +396,14 @@ int main() {
     blake3();
 #endif
 #ifdef WEBCPP_HASH_HAS_SODIUM
-    all_hmacs<hash::backends::sodium>("sodium");
+    sodium_first_call();
+    all_hmacs<hash::backends::sodium>("sodium", 12);
     sodium_memory_hard();
 #endif
 #ifdef WEBCPP_HASH_HAS_BEARSSL
-    all_hmacs<hash::backends::bearssl, false>("bearssl");
+    all_hmacs<hash::backends::bearssl, false>("bearssl", 18);
 #endif
-    std::printf("C library allocations counted on this target: %s\n",
-                webcpp::test::c_allocations_counted ? "yes" : "no");
+    std::printf("record operation=counter backend=none target=%s c_counted=%d\n",
+                webcpp::test::target_name, webcpp::test::c_allocations_counted ? 1 : 0);
     return webcpp::test::exit_status(boost::report_errors());
 }

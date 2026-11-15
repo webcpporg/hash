@@ -8,44 +8,61 @@
 == Allocation
 
 hash's own code allocates nothing: no function of `webcpp::hash` calls the global
-`operator new`, and none calls the C library's allocator, on any target. Test
-`allocation` proves it for Keccak-256, BLAKE3, Boost.Hash2's digests and hmacs, and
-HKDF and PBKDF2 on `backends::hash2`, `backends::sodium` and `backends::bearssl`, by
-counting every form of `operator new` and, where the target lets a program count it,
-`malloc`, `calloc`, `realloc`, `aligned_alloc` and `posix_memalign`. A control that
-allocates once moves the counter, so a zero is a measurement.
+`operator new`, on any target, and none calls the C library's allocator on the targets
+where a program can count it. Test `allocation` proves it for Keccak-256, BLAKE3,
+Boost.Hash2's digests and hmacs, and HKDF and PBKDF2 on `backends::hash2`,
+`backends::sodium` and `backends::bearssl`, the failing calls (every guard's refusal)
+included. It counts every form of `operator new` and the C library's `malloc`, `calloc`,
+`realloc`, `aligned_alloc` and `posix_memalign` on glibc, macOS, Emscripten and WASI (on
+WASI through the linker's `--wrap`, which sees the calls of the program and of its
+libraries but not those wasi-libc's own functions make to one another); a program cannot
+count them on MSVC, where the proof is `operator new` alone. A control allocates once
+through every form and moves the counter, and the test asserts the exact number of calls
+made per backend, so a backend that silently dropped out fails. What the counter does
+not see is `mmap`, which the C libraries below use.
 
-The C libraries are another matter, and the table says so plainly. Their allocations
-are the library's, outside the user's allocator, and hash does not hide them:
+The C libraries are another matter, and the table says so plainly. Their allocations are
+the library's, outside the user's allocator, and hash does not hide them.
 
-[cols="2,3,3",options="header"]
+* libsodium's Argon2id takes its memory matrix (`memory` bytes, 64 MiB for
+  `argon2id_interactive`) from `mmap` where there is one, else `posix_memalign`, else
+  `malloc`. The calls the table counts for it are small bookkeeping blocks, not the matrix:
+  the matrix is invisible to the counter wherever `mmap` supplies it.
+* libsodium's scrypt takes its 128 r (N + p) bytes from `mmap` where there is one, else
+  from `malloc`.
+* libsodium's first call of a program runs `sodium_init`, whose allocations are the
+  `sodium_init` rows.
+* OpenSSL allocates a key-derivation context and its digests through its own allocator on
+  every call; test `allocation_openssl` replaces that allocator with
+  `CRYPTO_set_mem_functions` before anything else and counts each call through it. The
+  counts are those of OpenSSL 3.5.9 as webcpp builds it, are measured and never bounded,
+  and change with the version.
+
+The table is generated from `measurements.allocation.json` by
+`bench/allocation_collect.py`; the figures are those of the machine the file records.
+
+// tag::table[]
+[cols="1,1,1,1,3",options="header"]
 |===
-| What | Where it allocates | Measured (macOS arm64, native)
+| Operation | Backend | Target | `operator new` | The C library's own allocations
 
-| `argon2id` on `backends::sodium`
-| libsodium allocates the working memory (`memory` bytes, 64 MiB for
-  `argon2id_interactive`) with its own `malloc`.
-| `operator new`: 0. C library: 3 allocations for the 8 KiB case the test runs (4 on
-  Emscripten; on WASI the C library's allocator cannot be counted).
-
-| `scrypt` on `backends::sodium`
-| libsodium allocates 128 r (N + p) bytes, with `mmap` where the platform has it and
-  `malloc` otherwise.
-| `operator new`: 0. C library: 0 `malloc` calls here (`mmap`, which the test does not
-  count); 1 on Emscripten, which has no `mmap`.
-
-| HKDF and PBKDF2 on `backends::openssl`
-| OpenSSL allocates a key-derivation context and its digests through its own allocator
-  on every call.
-| HKDF: 24 allocations per call in steady state, 30 on the first call of a digest,
-  4,080 on the very first call of the program (provider setup). PBKDF2: 18 per call in
-  steady state, 30 on the first. The count is measured, never bounded.
+| `sodium_init` | `sodium` | native | 0 | C library calls: 0
+| `argon2id` | `sodium` | native | 0 | C library calls: 3
+| `scrypt` | `sodium` | native | 0 | C library calls: 0
+| `hkdf` | `openssl` | native | 0 | OpenSSL: 4080 first call (hmac_sha2_256), 30 first call (hmac_sha2_512), 24 steady state
+| `pbkdf2` | `openssl` | native | 0 | OpenSSL: 30 first call (hmac_sha2_256), 18 first call (hmac_sha2_512), 18 steady state
+| `sodium_init` | `sodium` | wasip2 | 0 | C library calls: 1
+| `argon2id` | `sodium` | wasip2 | 0 | C library calls: 5
+| `scrypt` | `sodium` | wasip2 | 0 | C library calls: 1
+| `hkdf` | `openssl` | wasip2 | 0 | OpenSSL: 3960 first call (hmac_sha2_256), 30 first call (hmac_sha2_512), 24 steady state
+| `pbkdf2` | `openssl` | wasip2 | 0 | OpenSSL: 30 first call (hmac_sha2_256), 18 first call (hmac_sha2_512), 18 steady state
+| `sodium_init` | `sodium` | wasip3 | 0 | C library calls: 1
+| `argon2id` | `sodium` | wasip3 | 0 | C library calls: 5
+| `scrypt` | `sodium` | wasip3 | 0 | C library calls: 1
+| `hkdf` | `openssl` | wasip3 | 0 | OpenSSL: 3960 first call (hmac_sha2_256), 30 first call (hmac_sha2_512), 24 steady state
+| `pbkdf2` | `openssl` | wasip3 | 0 | OpenSSL: 30 first call (hmac_sha2_256), 18 first call (hmac_sha2_512), 18 steady state
+| `sodium_init` | `sodium` | emscripten | 0 | C library calls: 0
+| `argon2id` | `sodium` | emscripten | 0 | C library calls: 4
+| `scrypt` | `sodium` | emscripten | 0 | C library calls: 1
 |===
-
-Test `allocation_openssl` replaces OpenSSL's allocator with `CRYPTO_set_mem_functions`
-before anything else, counts each call through it, prints the counts and asserts only
-that `operator new` is never called. The counts are those of OpenSSL 3.5.9 built by
-webcpp (native with assembly; wasip2 and wasip3 without it) and change with the
-version. The C library's allocator is counted on glibc, Emscripten and macOS; on WASI
-and MSVC a program cannot count it (the test prints `C library allocations counted on
-this target: no`), and there the test asserts `operator new` alone.
+// end::table[]

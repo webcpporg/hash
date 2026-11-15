@@ -12,7 +12,8 @@
 // malloc_logger, the hook libsystem_malloc calls on every allocation. The glibc functions
 // memalign, valloc, pvalloc and reallocarray are not replaced and so not counted. WASI's
 // wasi-libc defines malloc and its __libc_malloc in one object (dlmalloc.c.obj, measured with
-// nm), so a program cannot replace one and keep the other, and MSVC's C runtime has no hook:
+// nm), so a program cannot replace one and keep the other: this copy counts it through the
+// linker's --wrap instead (see below), and MSVC's C runtime has no hook:
 // there the C library's allocations are not counted, and c_allocations_counted says so, which
 // the tests print.
 // A block of operator new is counted twice where the C library is counted (once by new, once
@@ -28,6 +29,8 @@
 
 #ifndef WEBCPP_TEST_HASH_SUPPORT_COUNTING_HPP
 #define WEBCPP_TEST_HASH_SUPPORT_COUNTING_HPP
+
+#include <webcpp/config.hpp>
 
 #include <algorithm>
 #include <atomic>
@@ -58,10 +61,22 @@ inline std::size_t allocations() {
 
 /** Whether this target counts the C library's allocations too. */
 inline constexpr bool c_allocations_counted =
-#if defined(__GLIBC__) || defined(__EMSCRIPTEN__) || defined(__APPLE__)
+#if defined(__GLIBC__) || defined(__EMSCRIPTEN__) || defined(__APPLE__) || defined(__wasi__)
     true;
 #else
     false;
+#endif
+
+/** The target's name, as the records of the allocation tests print it. */
+inline constexpr char const* target_name =
+#if defined(WEBCPP_TARGET_WASIP2)
+    "wasip2";
+#elif defined(WEBCPP_TARGET_WASIP3)
+    "wasip3";
+#elif defined(WEBCPP_TARGET_EMSCRIPTEN)
+        "emscripten";
+#else
+        "native";
 #endif
 
 inline void count_c() noexcept {
@@ -273,6 +288,48 @@ void free(void* p) WEBCPP_TEST_C_NOEXCEPT {
 }
 }
 // NOLINTEND(readability-inconsistent-declaration-parameter-name,cert-dcl58-cpp)
+#elif defined(__wasi__)
+// wasi-libc defines malloc and its __libc_malloc in one object, so a program cannot replace
+// malloc; the linker's --wrap redirects every reference to it from the other objects (this
+// program, libsodium, libc++) to these, and __real_ is wasi-libc's own. The program must link
+// with -Wl,--wrap=malloc,--wrap=calloc,--wrap=realloc,--wrap=aligned_alloc,
+// --wrap=posix_memalign (the test Jamfile's requirement). A call made inside wasi-libc's own
+// object, one allocator function calling another there, is not seen.
+extern "C" {
+void* __real_malloc(std::size_t);
+void* __real_calloc(std::size_t, std::size_t);
+void* __real_realloc(void*, std::size_t);
+void* __real_aligned_alloc(std::size_t, std::size_t);
+int __real_posix_memalign(void**, std::size_t, std::size_t);
+
+// NOLINTBEGIN(bugprone-reserved-identifier,cert-dcl37-c,cert-dcl51-cpp)
+void* __wrap_malloc(std::size_t size) {
+    webcpp::test::count_c();
+    return __real_malloc(size);
+}
+
+void* __wrap_calloc(std::size_t count, std::size_t size) {
+    webcpp::test::count_c();
+    return __real_calloc(count, size);
+}
+
+void* __wrap_realloc(void* p, std::size_t size) {
+    webcpp::test::count_c();
+    return __real_realloc(p, size);
+}
+
+void* __wrap_aligned_alloc(std::size_t alignment, std::size_t size) {
+    webcpp::test::count_c();
+    return __real_aligned_alloc(alignment, size);
+}
+
+int __wrap_posix_memalign(void** p, std::size_t alignment, std::size_t size) {
+    webcpp::test::count_c();
+    return __real_posix_memalign(p, alignment, size);
+}
+
+// NOLINTEND(bugprone-reserved-identifier,cert-dcl37-c,cert-dcl51-cpp)
+}
 #elif defined(__APPLE__)
 // libsystem_malloc's hook, called on every allocation and release of the process.
 using webcpp_test_malloc_logger = void(std::uint32_t, std::uintptr_t, std::uintptr_t,
