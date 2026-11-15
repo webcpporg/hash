@@ -55,69 +55,78 @@ struct hkdf_engine<backends::hash2, Hmac> {
      RFC 5869, 2.2: PRK = HMAC-Hash(salt, IKM). An empty salt is HashLen zeros, which Hash2's
      hmac keys as zeros of the block, the same key.
 
-     @param salt The salt. @param ikm The input keying material.
+     @param salt_bytes The salt. @param ikm_bytes The input keying material.
      @return The PRK.
     */
     [[nodiscard]] static boost::system::result<digest_type> extract(
-        std::span<std::uint8_t const> salt, std::span<std::uint8_t const> ikm) noexcept {
-        Hmac mac(salt.data(), salt.size());
-        mac.update(ikm.data(), ikm.size());
+        std::span<std::uint8_t const> salt_bytes,
+        std::span<std::uint8_t const> ikm_bytes) noexcept {
+        Hmac mac_state(salt_bytes.data(), salt_bytes.size());
+        mac_state.update(ikm_bytes.data(), ikm_bytes.size());
         // The PRK is stored in the result returned, whose wiping is the caller's.
-        boost::system::result<digest_type> prk{boost::system::in_place_value, mac.result()};
-        wipe_object(mac);
-        return prk;
+        boost::system::result<digest_type> prk_bytes{
+            boost::system::in_place_value,
+            mac_state.result(),
+        };
+        wipe_object(mac_state);
+        return prk_bytes;
     }
 
     /**
      RFC 5869, 2.3: T(0) = empty; T(i) = HMAC-Hash(PRK, T(i-1) | info | i); OKM = the first L
      octets of T(1) | T(2) | ... | T(N), N = ceil(L/HashLen).
 
-     @param output The OKM, its size L. @param prk The PRK. @param info The info.
+     @param output_bytes The OKM, its size L. @param prk_bytes The PRK. @param info_bytes The info.
      @return Success.
     */
     [[nodiscard]] static boost::system::result<void> expand(
-        std::span<std::uint8_t> output, std::span<std::uint8_t const> prk,
-        std::span<std::uint8_t const> info) noexcept {
-        Hmac keyed(prk.data(), prk.size());  // not const: it is wiped at the end
-        digest_type t{};
-        std::size_t written = 0;
-        for (unsigned counter = 1; written < output.size(); ++counter) {
-            Hmac mac = keyed;
-            if (counter > 1) {
-                mac.update(t.data(), t.size());
+        std::span<std::uint8_t> output_bytes, std::span<std::uint8_t const> prk_bytes,
+        std::span<std::uint8_t const> info_bytes) noexcept {
+        Hmac keyed_mac(prk_bytes.data(), prk_bytes.size());  // not const: it is wiped at the end
+        digest_type t_block{};
+        std::size_t written_count = 0;
+        for (unsigned block_counter = 1; written_count < output_bytes.size(); ++block_counter) {
+            Hmac mac_state = keyed_mac;
+            if (block_counter > 1) {
+                mac_state.update(t_block.data(), t_block.size());
             }
-            mac.update(info.data(), info.size());
-            const auto octet = static_cast<unsigned char>(counter);
-            mac.update(&octet, 1);
-            t = mac.result();
-            wipe_object(mac);
-            const std::size_t n = std::min(t.size(), output.size() - written);
-            std::memcpy(output.data() + written, t.data(), n);
-            written += n;
+            mac_state.update(info_bytes.data(), info_bytes.size());
+            const auto octet_value = static_cast<unsigned char>(block_counter);
+            mac_state.update(&octet_value, 1);
+            t_block = mac_state.result();
+            wipe_object(mac_state);
+            const std::size_t copied_count =
+                std::min(t_block.size(), output_bytes.size() - written_count);
+            std::memcpy(output_bytes.data() + written_count, t_block.data(), copied_count);
+            written_count += copied_count;
         }
-        wipe_object(t);
-        wipe_object(keyed);
+        wipe_object(t_block);
+        wipe_object(keyed_mac);
         return {};
     }
 
     /**
      RFC 5869, 2: HKDF-Extract, then HKDF-Expand; the PRK is wiped.
 
-     @param output The OKM. @param salt The salt. @param ikm The input keying material.
-     @param info The info.
+     @param output_bytes The OKM. @param salt_bytes The salt. @param ikm_bytes The input keying
+     material.
+     @param info_bytes The info.
      @return Success.
     */
     [[nodiscard]] static boost::system::result<void> extract_and_expand(
-        std::span<std::uint8_t> output, std::span<std::uint8_t const> salt,
-        std::span<std::uint8_t const> ikm, std::span<std::uint8_t const> info) noexcept {
-        auto prk = extract(salt, ikm);
-        if (!prk) {
-            return prk.error();
+        std::span<std::uint8_t> output_bytes, std::span<std::uint8_t const> salt_bytes,
+        std::span<std::uint8_t const> ikm_bytes,
+        std::span<std::uint8_t const> info_bytes) noexcept {
+        auto prk_bytes = extract(salt_bytes, ikm_bytes);
+        if (!prk_bytes) {
+            return prk_bytes.error();
         }
-        digest_type& key = prk.unsafe_value();
-        auto done = expand(output, std::span<std::uint8_t const>(key.data(), key.size()), info);
-        wipe_object(key);
-        return done;
+        digest_type& prk_digest = prk_bytes.unsafe_value();
+        auto derive_result =
+            expand(output_bytes,
+                   std::span<std::uint8_t const>(prk_digest.data(), prk_digest.size()), info_bytes);
+        wipe_object(prk_digest);
+        return derive_result;
     }
 };
 
@@ -132,48 +141,50 @@ struct pbkdf2_engine<backends::hash2, Hmac> {
      RFC 8018, 5.2: T_i = F(P, S, c, i) = U_1 ^ U_2 ^ ... ^ U_c, with U_1 = PRF(P, S || INT(i))
      and U_j = PRF(P, U_{j-1}); DK = the first dkLen octets of T_1 || T_2 || ... || T_l.
 
-     @param output DK, its size dkLen. @param password P. @param salt S.
-     @param iterations c.
+     @param output_bytes DK, its size dkLen. @param password_bytes P. @param salt_bytes S.
+     @param iteration_count c.
      @return Success.
     */
-    [[nodiscard]] static boost::system::result<void> derive(std::span<std::uint8_t> output,
-                                                            std::span<std::uint8_t const> password,
-                                                            std::span<std::uint8_t const> salt,
-                                                            std::uint64_t iterations) noexcept {
+    [[nodiscard]] static boost::system::result<void> derive(
+        std::span<std::uint8_t> output_bytes, std::span<std::uint8_t const> password_bytes,
+        std::span<std::uint8_t const> salt_bytes, std::uint64_t iteration_count) noexcept {
         using digest_type = Hmac::result_type;
-        Hmac keyed(password.data(), password.size());  // not const: it is wiped at the end
-        digest_type u{};
-        digest_type t{};
-        std::size_t written = 0;
-        for (std::uint32_t block = 1; written < output.size(); ++block) {
+        Hmac keyed_mac(password_bytes.data(),
+                       password_bytes.size());  // not const: it is wiped at the end
+        digest_type u_block{};
+        digest_type t_block{};
+        std::size_t written_count = 0;
+        for (std::uint32_t block_number = 1; written_count < output_bytes.size(); ++block_number) {
             // INT(i): the block's index, four octets, most significant first.
-            const std::array<unsigned char, 4> index{
-                static_cast<unsigned char>(block >> 24U),
-                static_cast<unsigned char>(block >> 16U),
-                static_cast<unsigned char>(block >> 8U),
-                static_cast<unsigned char>(block),
+            const std::array<unsigned char, 4> block_index_bytes{
+                static_cast<unsigned char>(block_number >> 24U),
+                static_cast<unsigned char>(block_number >> 16U),
+                static_cast<unsigned char>(block_number >> 8U),
+                static_cast<unsigned char>(block_number),
             };
-            Hmac mac = keyed;
-            mac.update(salt.data(), salt.size());
-            mac.update(index.data(), index.size());
-            u = mac.result();
-            t = u;
-            for (std::uint64_t j = 1; j < iterations; ++j) {
-                mac = keyed;
-                mac.update(u.data(), u.size());
-                u = mac.result();
-                for (std::size_t k = 0; k < t.size(); ++k) {
-                    t[k] ^= u[k];
+            Hmac mac_state = keyed_mac;
+            mac_state.update(salt_bytes.data(), salt_bytes.size());
+            mac_state.update(block_index_bytes.data(), block_index_bytes.size());
+            u_block = mac_state.result();
+            t_block = u_block;
+            for (std::uint64_t iteration_index = 1; iteration_index < iteration_count;
+                 ++iteration_index) {
+                mac_state = keyed_mac;
+                mac_state.update(u_block.data(), u_block.size());
+                u_block = mac_state.result();
+                for (std::size_t byte_index = 0; byte_index < t_block.size(); ++byte_index) {
+                    t_block[byte_index] ^= u_block[byte_index];
                 }
             }
-            wipe_object(mac);
-            const std::size_t n = std::min(t.size(), output.size() - written);
-            std::memcpy(output.data() + written, t.data(), n);
-            written += n;
+            wipe_object(mac_state);
+            const std::size_t copied_count =
+                std::min(t_block.size(), output_bytes.size() - written_count);
+            std::memcpy(output_bytes.data() + written_count, t_block.data(), copied_count);
+            written_count += copied_count;
         }
-        wipe_object(u);
-        wipe_object(t);
-        wipe_object(keyed);
+        wipe_object(u_block);
+        wipe_object(t_block);
+        wipe_object(keyed_mac);
         return {};
     }
 };

@@ -56,48 +56,50 @@
 namespace webcpp::hash {
 
 /**
- PBKDF2 (RFC 8018, section 5.2): fills `output` from `password` and `salt` by `iterations`
- rounds of `Hmac`.
+ PBKDF2 (RFC 8018, section 5.2): fills `output_bytes` from `password_bytes` and `salt_bytes` by
+ `iteration_count` rounds of `Hmac`.
 
  @tparam Hmac The pseudorandom function, as `hmac_sha2_512`. @tparam Backend The backend.
- @param output The derived key, 1 to (2^32 - 1) times the digest size.
- @param password The password, any bytes the backend takes. @param salt The salt, likewise.
- @param iterations The iteration count, at least 1.
+ @param output_bytes The derived key, 1 to (2^32 - 1) times the digest size.
+ @param password_bytes The password, any bytes the backend takes. @param salt_bytes The salt,
+ likewise.
+ @param iteration_count The iteration count, at least 1.
  @return Success, or the error of the first guard that fails (`invalid_output_size`,
  `invalid_iterations`, then the backend's own limits: `invalid_output_size`, `input_too_long`;
- for `backends::openssl` an output, a password or a salt of more than `INT_MAX` bytes), `output`
- untouched; or the backend's failure, `output` zeroed.
+ for `backends::openssl` an output, a password or a salt of more than `INT_MAX` bytes),
+ `output_bytes` untouched; or the backend's failure, `output_bytes` zeroed.
 */
 template <class Hmac, class Backend = default_kdf_backend<Hmac, kdfs::pbkdf2>>
-[[nodiscard]] boost::system::result<void> pbkdf2(std::span<std::uint8_t> output,
-                                                 std::span<std::uint8_t const> password,
-                                                 std::span<std::uint8_t const> salt,
-                                                 std::uint64_t iterations) {
+[[nodiscard]] boost::system::result<void> pbkdf2(std::span<std::uint8_t> output_bytes,
+                                                 std::span<std::uint8_t const> password_bytes,
+                                                 std::span<std::uint8_t const> salt_bytes,
+                                                 std::uint64_t iteration_count) {
     if constexpr (!detail::takes_hmac<Hmac>()) {
         return error::backend_failure;  // unreachable: takes_hmac has stopped the build
     } else {
-        constexpr std::uint64_t digest_size = typename Hmac::result_type().size();
+        constexpr std::uint64_t digest_length = typename Hmac::result_type().size();
         // RFC 8018 5.2, step 1: dkLen at most (2^32 - 1) * hLen, wider than size_t on wasm32.
-        if (output.empty() || detail::exceeds(output.size(), 0xffffffffULL * digest_size)) {
+        if (output_bytes.empty() ||
+            detail::exceeds(output_bytes.size(), 0xffffffffULL * digest_length)) {
             return error::invalid_output_size;
         }
-        if (iterations == 0) {
+        if (iteration_count == 0) {
             return error::invalid_iterations;
         }
         using limits = detail::backend_limits<Backend>;
-        if (detail::exceeds(output.size(), limits::pbkdf2_output)) {
+        if (detail::exceeds(output_bytes.size(), limits::pbkdf2_output)) {
             return error::invalid_output_size;
         }
-        if (detail::exceeds(password.size(), limits::pbkdf2_password) ||
-            detail::exceeds(salt.size(), limits::pbkdf2_salt)) {
+        if (detail::exceeds(password_bytes.size(), limits::pbkdf2_password) ||
+            detail::exceeds(salt_bytes.size(), limits::pbkdf2_salt)) {
             return error::input_too_long;
         }
-        auto done =
-            detail::pbkdf2_engine<Backend, Hmac>::derive(output, password, salt, iterations);
-        if (!done) {
-            detail::wipe(output);
+        auto derive_result = detail::pbkdf2_engine<Backend, Hmac>::derive(
+            output_bytes, password_bytes, salt_bytes, iteration_count);
+        if (!derive_result) {
+            detail::wipe(output_bytes);
         }
-        return done;
+        return derive_result;
     }
 }
 

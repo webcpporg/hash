@@ -65,72 +65,74 @@ inline constexpr std::uint64_t scrypt_max_rp = std::uint64_t{1} << 30U;
 /**
  Whether N is a power of two above 1 and below 2^(16 r) (RFC 7914, section 2: N < 2^(128 r / 8)).
 
- @param n N. @param r r, at least 1.
+ @param cost_n N. @param block_size_r r, at least 1.
  @return Whether RFC 7914 allows N.
 */
-constexpr bool scrypt_valid_n(std::uint64_t n, std::uint32_t r) noexcept {
-    if (n < 2 || (n & (n - 1)) != 0) {
+constexpr bool scrypt_valid_n(std::uint64_t cost_n, std::uint32_t block_size_r) noexcept {
+    if (cost_n < 2 || (cost_n & (cost_n - 1)) != 0) {
         return false;
     }
     // From r = 4 on, 2^(16 r) is past every 64-bit N.
-    constexpr std::uint32_t wide_r = 4;
-    return r >= wide_r || n < (std::uint64_t{1} << (16U * r));
+    constexpr std::uint32_t wide_block_size_r = 4;
+    return block_size_r >= wide_block_size_r || cost_n < (std::uint64_t{1} << (16U * block_size_r));
 }
 
 }  // namespace detail
 
 /**
- scrypt (RFC 7914): fills `output` from `password` and `salt`.
+ scrypt (RFC 7914): fills `output_bytes` from `password_bytes` and `salt_bytes`.
 
  @tparam Backend The backend; by default @ref default_backend of `kdfs::scrypt` (spec 4.1):
  the one an override `WEBCPP_HASH_DEFAULT_BACKEND_SCRYPT_<NAME>` names, else
  `backends::sodium`, the only one that has it.
- @param output The derived key, 1 to (2^32 - 1) times 32 bytes; it must not overlap `password`
- or `salt`.
- @param password The password. @param salt The salt.
- @param parameters The costs.
+ @param output_bytes The derived key, 1 to (2^32 - 1) times 32 bytes; it must not overlap
+ `password_bytes` or `salt_bytes`.
+ @param password_bytes The password. @param salt_bytes The salt.
+ @param cost_parameters The costs.
  @return Success, or the error of the first guard that fails (`invalid_output_size`,
- `invalid_parameters`, `input_too_long`), `output` untouched; or `errc::not_enough_memory` when the
- 128 r N bytes cannot be allocated, or `backend_failure`, `output` zeroed.
+ `invalid_parameters`, `input_too_long`), `output_bytes` untouched; or `errc::not_enough_memory`
+ when the 128 r N bytes cannot be allocated, or `backend_failure`, `output_bytes` zeroed.
 */
 template <class Backend = default_backend<kdfs::scrypt>>
-[[nodiscard]] boost::system::result<void> scrypt(std::span<std::uint8_t> output,
-                                                 std::span<std::uint8_t const> password,
-                                                 std::span<std::uint8_t const> salt,
-                                                 scrypt_parameters const& parameters) {
+[[nodiscard]] boost::system::result<void> scrypt(std::span<std::uint8_t> output_bytes,
+                                                 std::span<std::uint8_t const> password_bytes,
+                                                 std::span<std::uint8_t const> salt_bytes,
+                                                 scrypt_parameters const& cost_parameters) {
     using engine = detail::scrypt_engine<Backend>;
     using limits = detail::backend_limits<Backend>;
-    auto const [n, r, p] = parameters;
-    if (output.empty() || detail::exceeds(output.size(), detail::scrypt_max_output_size)) {
+    auto const [cost_n, block_size_r, parallelism_p] = cost_parameters;
+    if (output_bytes.empty() ||
+        detail::exceeds(output_bytes.size(), detail::scrypt_max_output_size)) {
         return error::invalid_output_size;
     }
-    if (r == 0 || p == 0 || !detail::scrypt_valid_n(n, r) ||
-        std::uint64_t{r} * p >= detail::scrypt_max_rp) {
+    if (block_size_r == 0 || parallelism_p == 0 || !detail::scrypt_valid_n(cost_n, block_size_r) ||
+        std::uint64_t{block_size_r} * parallelism_p >= detail::scrypt_max_rp) {
         return error::invalid_parameters;
     }
     // 128 r (N + p) bytes must fit size_t: N + p cannot wrap, N being at most 2^63.
-    constexpr std::uint64_t block = 128;
-    constexpr std::uint64_t most = std::numeric_limits<std::size_t>::max();
-    if (detail::exceeds(n + p, most / block / r)) {
+    constexpr std::uint64_t block_bytes_count = 128;
+    constexpr std::uint64_t size_max = std::numeric_limits<std::size_t>::max();
+    if (detail::exceeds(cost_n + parallelism_p, size_max / block_bytes_count / block_size_r)) {
         return error::invalid_parameters;
     }
     // The backend's own limits, where its C interface holds a length in a narrower type, after
     // the spec's.
-    if (detail::exceeds(n, engine::limits.n)) {
+    if (detail::exceeds(cost_n, engine::limits.n)) {
         return error::invalid_parameters;
     }
-    if (detail::exceeds(output.size(), limits::scrypt_output)) {
+    if (detail::exceeds(output_bytes.size(), limits::scrypt_output)) {
         return error::invalid_output_size;
     }
-    if (detail::exceeds(password.size(), limits::scrypt_password) ||
-        detail::exceeds(salt.size(), limits::scrypt_salt)) {
+    if (detail::exceeds(password_bytes.size(), limits::scrypt_password) ||
+        detail::exceeds(salt_bytes.size(), limits::scrypt_salt)) {
         return error::input_too_long;
     }
-    auto done = engine::derive(output, password, salt, n, r, p);
-    if (!done) {
-        detail::wipe(output);
+    auto derive_result = engine::derive(output_bytes, password_bytes, salt_bytes, cost_n,
+                                        block_size_r, parallelism_p);
+    if (!derive_result) {
+        detail::wipe(output_bytes);
     }
-    return done;
+    return derive_result;
 }
 
 }  // namespace webcpp::hash

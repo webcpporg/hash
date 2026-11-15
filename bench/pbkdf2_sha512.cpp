@@ -59,13 +59,13 @@ constexpr std::string_view expected_check =
     "afe6c5530785b6cc6b1c6453384731bd5ee432ee549fd42fb6695779ad8a1c5bf59de69c48f774efc4007d5298f903"
     "3c0241d5ab69305e7b64eceeb8d834cfec";
 
-using key_bytes = std::array<std::uint8_t, key_size>;
+using derived_key_array = std::array<std::uint8_t, key_size>;
 
 std::span<std::uint8_t const> bytes_of(std::string_view text) {
     return {reinterpret_cast<std::uint8_t const*>(text.data()), text.size()};
 }
 
-std::string to_hex(key_bytes const& key) {
+std::string to_hex(derived_key_array const& key) {
     constexpr std::string_view digits = "0123456789abcdef";
     std::string out;
     for (const std::uint8_t b : key) {
@@ -77,7 +77,7 @@ std::string to_hex(key_bytes const& key) {
 
 // Derives the key by backend Backend; false when the library refused.
 template <class Backend>
-bool derive_library(key_bytes& key, std::uint64_t iterations) {
+bool derive_library(derived_key_array& key, std::uint64_t iterations) {
     return hash::pbkdf2<hash::hmac_sha2_512, Backend>(key, bytes_of("password"), bytes_of("salt"),
                                                       iterations)
         .has_value();
@@ -87,7 +87,7 @@ bool derive_library(key_bytes& key, std::uint64_t iterations) {
 // RFC 8018's PBKDF2 for one block (the key is one HMAC-SHA-512 output) over libsodium's streaming
 // HMAC-SHA-512. The keyed state is built once and copied for each iteration, the shape the other
 // two backends have, so that the measurement is of the hash and not of the key schedule.
-bool derive_sodium_hmac(key_bytes& key, std::uint64_t iterations) {
+bool derive_sodium_hmac(derived_key_array& key, std::uint64_t iterations) {
     const std::string_view password = "password";
     const std::string_view salt = "salt";
     crypto_auth_hmacsha512_state keyed;
@@ -95,7 +95,7 @@ bool derive_sodium_hmac(key_bytes& key, std::uint64_t iterations) {
         return false;
     }
     const std::array<std::uint8_t, 4> block_index{0, 0, 0, 1};
-    key_bytes u{};
+    derived_key_array u{};
     {
         crypto_auth_hmacsha512_state state = keyed;
         crypto_auth_hmacsha512_update(&state, bytes_of(salt).data(), salt.size());
@@ -118,7 +118,7 @@ bool derive_sodium_hmac(key_bytes& key, std::uint64_t iterations) {
 
 struct variant {
     std::string_view name;
-    bool (*derive)(key_bytes&, std::uint64_t);
+    bool (*derive)(derived_key_array&, std::uint64_t);
 };
 
 // The variants this program was built with, in the brief's order.
@@ -150,7 +150,7 @@ constexpr std::string_view target_name() {
 // milliseconds goes to `elapsed`.
 bool derive_checked(const variant& v, std::uint64_t iterations, std::string_view expected,
                     double& elapsed) {
-    key_bytes key{};
+    derived_key_array key{};
     const auto start = std::chrono::steady_clock::now();
     const bool done = v.derive(key, iterations);
     const auto stop = std::chrono::steady_clock::now();
@@ -160,7 +160,7 @@ bool derive_checked(const variant& v, std::uint64_t iterations, std::string_view
 
 // Each variant at 1,000 iterations equals the independent value, hence backends::hash2's too.
 bool agree_at_check_iterations(const std::vector<variant>& all) {
-    key_bytes reference{};
+    derived_key_array reference{};
     if (!derive_library<hash::backends::hash2>(reference, check_iterations) ||
         to_hex(reference) != expected_check) {
         (void)std::fprintf(stderr, "backends::hash2 disagrees with the independent value at %llu\n",

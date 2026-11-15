@@ -247,11 +247,11 @@ struct openssl_digest_name<hmac_blake2s_256> {
 */
 template <class Hmac>
 constexpr char const* openssl_digest() noexcept {
-    [[maybe_unused]] constexpr char const* name = openssl_digest_name<Hmac>::value;
+    [[maybe_unused]] constexpr char const* digest_name = openssl_digest_name<Hmac>::value;
 #ifdef WEBCPP_HASH_DETAIL_TEST_OPENSSL_DIGEST
     return WEBCPP_HASH_DETAIL_TEST_OPENSSL_DIGEST;
 #else
-    return name;
+    return digest_name;
 #endif
 }
 
@@ -262,55 +262,59 @@ constexpr char const* openssl_digest() noexcept {
 inline constexpr std::uint8_t openssl_empty = 0;
 
 /**
- An octet-string parameter over `bytes`, which OpenSSL only reads.
+ An octet-string parameter over `octet_bytes`, which OpenSSL only reads.
 
- @param key The parameter's name. @param bytes Its value, possibly empty.
+ @param param_name The parameter's name. @param octet_bytes Its value, possibly empty.
  @return The parameter.
 */
-inline OSSL_PARAM openssl_octets(char const* key, std::span<std::uint8_t const> bytes) noexcept {
-    void* data = const_cast<std::uint8_t*>(bytes.empty() ? &openssl_empty : bytes.data());
-    return OSSL_PARAM_construct_octet_string(key, data, bytes.size());
+inline OSSL_PARAM openssl_octets(char const* param_name,
+                                 std::span<std::uint8_t const> octet_bytes) noexcept {
+    void* data_bytes =
+        const_cast<std::uint8_t*>(octet_bytes.empty() ? &openssl_empty : octet_bytes.data());
+    return OSSL_PARAM_construct_octet_string(param_name, data_bytes, octet_bytes.size());
 }
 
 /**
- A UTF-8 string parameter over `text`, which OpenSSL only reads.
+ A UTF-8 string parameter over `text_value`, which OpenSSL only reads.
 
- @param key The parameter's name. @param text Its value.
+ @param param_name The parameter's name. @param text_value Its value.
  @return The parameter.
 */
-inline OSSL_PARAM openssl_text(char const* key, char const* text) noexcept {
-    return OSSL_PARAM_construct_utf8_string(key, const_cast<char*>(text), 0);
+inline OSSL_PARAM openssl_text(char const* param_name, char const* text_value) noexcept {
+    return OSSL_PARAM_construct_utf8_string(param_name, const_cast<char*>(text_value), 0);
 }
 
 /**
- Fetches the KDF named `kdf`, makes a context, and derives `output` from `params` (spec section
- 3.4), freeing both; the thread's error queue is left as it was found.
+ Fetches the KDF named `kdf_name`, makes a context, and derives `output_bytes` from `ossl_params`
+ (spec section 3.4), freeing both; the thread's error queue is left as it was found.
 
- @param kdf OpenSSL's name of the KDF, "HKDF" or "PBKDF2".
- @param output What is derived, its whole size.
- @param params The parameters, ending with `OSSL_PARAM_construct_end()`.
+ @param kdf_name OpenSSL's name of the KDF, "HKDF" or "PBKDF2".
+ @param output_bytes What is derived, its whole size.
+ @param ossl_params The parameters, ending with `OSSL_PARAM_construct_end()`.
  @return Success; `errc::not_enough_memory` when the last error OpenSSL raised is an allocation's;
  `error::backend_failure` for any other failure.
 */
 [[nodiscard]] inline boost::system::result<void> openssl_kdf(
-    char const* kdf, std::span<std::uint8_t> output, std::span<OSSL_PARAM> params) noexcept {
+    char const* kdf_name, std::span<std::uint8_t> output_bytes,
+    std::span<OSSL_PARAM> ossl_params) noexcept {
     ERR_set_mark();
-    EVP_KDF* algorithm = EVP_KDF_fetch(nullptr, kdf, nullptr);
-    EVP_KDF_CTX* context = algorithm != nullptr ? EVP_KDF_CTX_new(algorithm) : nullptr;
-    const bool derived = context != nullptr &&
-                         EVP_KDF_derive(context, output.data(), output.size(), params.data()) == 1;
+    EVP_KDF* kdf_algorithm = EVP_KDF_fetch(nullptr, kdf_name, nullptr);
+    EVP_KDF_CTX* kdf_context = kdf_algorithm != nullptr ? EVP_KDF_CTX_new(kdf_algorithm) : nullptr;
+    const bool derive_status =
+        kdf_context != nullptr && EVP_KDF_derive(kdf_context, output_bytes.data(),
+                                                 output_bytes.size(), ossl_params.data()) == 1;
     // Only an error raised since the mark is OpenSSL's answer: an older one is the caller's.
     // NOLINTNEXTLINE(bugprone-signed-bitwise): OpenSSL's macro ORs signed constants
-    constexpr int malloc_failure = ERR_R_MALLOC_FAILURE;
-    const bool out_of_memory = !derived && ERR_count_to_mark() > 0 &&
-                               ERR_GET_REASON(ERR_peek_last_error()) == malloc_failure;
-    EVP_KDF_CTX_free(context);
-    EVP_KDF_free(algorithm);
+    constexpr int malloc_failure_reason = ERR_R_MALLOC_FAILURE;
+    const bool is_out_of_memory = !derive_status && ERR_count_to_mark() > 0 &&
+                                  ERR_GET_REASON(ERR_peek_last_error()) == malloc_failure_reason;
+    EVP_KDF_CTX_free(kdf_context);
+    EVP_KDF_free(kdf_algorithm);
     ERR_pop_to_mark();
-    if (derived) {
+    if (derive_status) {
         return {};
     }
-    if (out_of_memory) {
+    if (is_out_of_memory) {
         return boost::system::errc::make_error_code(boost::system::errc::not_enough_memory);
     }
     return error::backend_failure;
@@ -338,72 +342,75 @@ struct hkdf_engine<backends::openssl, Hmac> {
      RFC 5869, 2.2, in extract-only mode, which writes the PRK, HashLen bytes, into the digest.
      An empty salt is HashLen zeros, as OpenSSL's HMAC pads it.
 
-     @param salt The salt. @param ikm The input keying material.
+     @param salt_bytes The salt. @param ikm_bytes The input keying material.
      @return The PRK, or OpenSSL's failure.
     */
     [[nodiscard]] static boost::system::result<digest_type> extract(
-        std::span<std::uint8_t const> salt, std::span<std::uint8_t const> ikm) noexcept {
-        int mode = extract_only;
-        std::array<OSSL_PARAM, 5> params{
+        std::span<std::uint8_t const> salt_bytes,
+        std::span<std::uint8_t const> ikm_bytes) noexcept {
+        int hkdf_mode = extract_only;
+        std::array<OSSL_PARAM, 5> ossl_params{
             openssl_text("digest", openssl_digest<Hmac>()),
-            openssl_octets("key", ikm),
-            openssl_octets("salt", salt),
-            OSSL_PARAM_construct_int("mode", &mode),
+            openssl_octets("key", ikm_bytes),
+            openssl_octets("salt", salt_bytes),
+            OSSL_PARAM_construct_int("mode", &hkdf_mode),
             OSSL_PARAM_construct_end(),
         };
         // The PRK is derived into the result returned, whose wiping is the caller's: one return of
         // that one object, so that it is constructed in the caller's slot and no copy is left here.
-        boost::system::result<digest_type> prk{boost::system::in_place_value};
-        digest_type& key = prk.unsafe_value();
-        const auto done =
-            openssl_kdf("HKDF", std::span<std::uint8_t>(key.data(), key.size()), params);
-        if (!done) {
-            wipe_object(key);
-            prk = done.error();
+        boost::system::result<digest_type> prk_bytes{boost::system::in_place_value};
+        digest_type& param_name = prk_bytes.unsafe_value();
+        const auto derive_result = openssl_kdf(
+            "HKDF", std::span<std::uint8_t>(param_name.data(), param_name.size()), ossl_params);
+        if (!derive_result) {
+            wipe_object(param_name);
+            prk_bytes = derive_result.error();
         }
-        return prk;
+        return prk_bytes;
     }
 
     /**
      RFC 5869, 2.3, in expand-only mode.
 
-     @param output The OKM, its size L. @param prk The PRK. @param info The info.
+     @param output_bytes The OKM, its size L. @param prk_bytes The PRK. @param info_bytes The info.
      @return Success, or OpenSSL's failure.
     */
     [[nodiscard]] static boost::system::result<void> expand(
-        std::span<std::uint8_t> output, std::span<std::uint8_t const> prk,
-        std::span<std::uint8_t const> info) noexcept {
-        int mode = expand_only;
-        std::array<OSSL_PARAM, 5> params{
+        std::span<std::uint8_t> output_bytes, std::span<std::uint8_t const> prk_bytes,
+        std::span<std::uint8_t const> info_bytes) noexcept {
+        int hkdf_mode = expand_only;
+        std::array<OSSL_PARAM, 5> ossl_params{
             openssl_text("digest", openssl_digest<Hmac>()),
-            openssl_octets("key", prk),
-            openssl_octets("info", info),
-            OSSL_PARAM_construct_int("mode", &mode),
+            openssl_octets("key", prk_bytes),
+            openssl_octets("info", info_bytes),
+            OSSL_PARAM_construct_int("mode", &hkdf_mode),
             OSSL_PARAM_construct_end(),
         };
-        return openssl_kdf("HKDF", output, params);
+        return openssl_kdf("HKDF", output_bytes, ossl_params);
     }
 
     /**
      RFC 5869, 2, in extract-and-expand mode: the PRK stays inside OpenSSL's context.
 
-     @param output The OKM. @param salt The salt. @param ikm The input keying material.
-     @param info The info.
+     @param output_bytes The OKM. @param salt_bytes The salt. @param ikm_bytes The input keying
+     material.
+     @param info_bytes The info.
      @return Success, or OpenSSL's failure.
     */
     [[nodiscard]] static boost::system::result<void> extract_and_expand(
-        std::span<std::uint8_t> output, std::span<std::uint8_t const> salt,
-        std::span<std::uint8_t const> ikm, std::span<std::uint8_t const> info) noexcept {
-        int mode = both;
-        std::array<OSSL_PARAM, 6> params{
+        std::span<std::uint8_t> output_bytes, std::span<std::uint8_t const> salt_bytes,
+        std::span<std::uint8_t const> ikm_bytes,
+        std::span<std::uint8_t const> info_bytes) noexcept {
+        int hkdf_mode = both;
+        std::array<OSSL_PARAM, 6> ossl_params{
             openssl_text("digest", openssl_digest<Hmac>()),
-            openssl_octets("key", ikm),
-            openssl_octets("salt", salt),
-            openssl_octets("info", info),
-            OSSL_PARAM_construct_int("mode", &mode),
+            openssl_octets("key", ikm_bytes),
+            openssl_octets("salt", salt_bytes),
+            openssl_octets("info", info_bytes),
+            OSSL_PARAM_construct_int("mode", &hkdf_mode),
             OSSL_PARAM_construct_end(),
         };
-        return openssl_kdf("HKDF", output, params);
+        return openssl_kdf("HKDF", output_bytes, ossl_params);
     }
 };
 
@@ -419,24 +426,23 @@ struct pbkdf2_engine<backends::openssl, Hmac> {
     /**
      RFC 8018, 5.2.
 
-     @param output DK, its size dkLen. @param password P. @param salt S.
-     @param iterations c.
+     @param output_bytes DK, its size dkLen. @param password_bytes P. @param salt_bytes S.
+     @param iteration_count c.
      @return Success, or OpenSSL's failure.
     */
-    [[nodiscard]] static boost::system::result<void> derive(std::span<std::uint8_t> output,
-                                                            std::span<std::uint8_t const> password,
-                                                            std::span<std::uint8_t const> salt,
-                                                            std::uint64_t iterations) noexcept {
-        int pkcs5 = 1;
-        std::array<OSSL_PARAM, 6> params{
+    [[nodiscard]] static boost::system::result<void> derive(
+        std::span<std::uint8_t> output_bytes, std::span<std::uint8_t const> password_bytes,
+        std::span<std::uint8_t const> salt_bytes, std::uint64_t iteration_count) noexcept {
+        int pkcs5_status = 1;
+        std::array<OSSL_PARAM, 6> ossl_params{
             openssl_text("digest", openssl_digest<Hmac>()),
-            openssl_octets("pass", password),
-            openssl_octets("salt", salt),
-            OSSL_PARAM_construct_uint64("iter", &iterations),
-            OSSL_PARAM_construct_int("pkcs5", &pkcs5),
+            openssl_octets("pass", password_bytes),
+            openssl_octets("salt", salt_bytes),
+            OSSL_PARAM_construct_uint64("iter", &iteration_count),
+            OSSL_PARAM_construct_int("pkcs5", &pkcs5_status),
             OSSL_PARAM_construct_end(),
         };
-        return openssl_kdf("PBKDF2", output, params);
+        return openssl_kdf("PBKDF2", output_bytes, ossl_params);
     }
 };
 

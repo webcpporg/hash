@@ -203,16 +203,16 @@ The example's inputs are those of BLAKE3's official test vectors
 
 *Pitfalls.*
 
-* *Three modes, three results.* The plain hash, `keyed(key)` and
-`derive_key(context)` of the same input are unrelated; a verifier must use the
-mode the producer used.
+* *Three modes, three results.* The plain hash, `keyed(key_bytes)` and
+`derive_key(context_string)` of the same input are unrelated; a verifier must
+use the mode the producer used.
 * *A context names one purpose, forever.* BLAKE3's authors ask that a context
 string be hardcoded, globally unique and specific to one use, such as
 "example.com 2026-11-15 chat message keys": never a variable, never a secret.
 The key material goes through `update`.
-* *The seeded constructor is a keyed hash.* `blake3(seed)` and
-`blake3(p, n)` exist for Boost.Hash2's HashAlgorithm form and key the hash
-with the seed; for a MAC, call `keyed` with a 32-byte key.
+* *The seeded constructor is a keyed hash.* `blake3(seed_value)` and
+`blake3(input_data, input_size)` exist for Boost.Hash2's HashAlgorithm form
+and key the hash with the seed; for a MAC, call `keyed` with a 32-byte key.
 * *`blake3` does not wipe itself.* Like Hash2's types, it holds the key in
 its state until it is destroyed; a program that needs the key gone writes over
 the object.

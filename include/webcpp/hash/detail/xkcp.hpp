@@ -21,36 +21,44 @@
 
 extern "C" {
 
-/** Sets the 25 lanes at `state` to zero (XKCP's `KeccakP1600_Initialize`). @param state The state.
- */
-void webcpp_hash_xkcp_initialize(std::uint64_t* state);
+/**
+ Sets the 25 lanes at `permutation_state` to zero (XKCP's `KeccakP1600_Initialize`).
+
+ @param permutation_state The state.
+*/
+void webcpp_hash_xkcp_initialize(std::uint64_t* permutation_state);
 
 /**
- Adds, by exclusive or, the `length` bytes at `data` to the state's bytes from `offset`
- (XKCP's `KeccakP1600_AddBytes`).
+ Adds, by exclusive or, the `byte_length` bytes at `data_bytes` to the state's bytes from
+ `byte_offset` (XKCP's `KeccakP1600_AddBytes`).
 
- @param state The state.
- @param data The bytes.
- @param offset The first byte of the state they are added to.
- @param length Their number.
+ @param permutation_state The state.
+ @param data_bytes The bytes.
+ @param byte_offset The first byte of the state they are added to.
+ @param byte_length Their number.
 */
-void webcpp_hash_xkcp_add_bytes(std::uint64_t* state, unsigned char const* data, std::size_t offset,
-                                std::size_t length);
-
-/** Applies Keccak-f[1600], 24 rounds, to the state (XKCP's `KeccakP1600_Permute_24rounds`). @param
- * state The state. */
-void webcpp_hash_xkcp_permute(std::uint64_t* state);
+void webcpp_hash_xkcp_add_bytes(std::uint64_t* permutation_state, unsigned char const* data_bytes,
+                                std::size_t byte_offset, std::size_t byte_length);
 
 /**
- Copies the state's `length` bytes from `offset` to `data` (XKCP's `KeccakP1600_ExtractBytes`).
+ Applies Keccak-f[1600], 24 rounds, to the state (XKCP's `KeccakP1600_Permute_24rounds`).
 
- @param state The state.
- @param data Where the bytes go.
- @param offset The first byte of the state copied.
- @param length Their number.
+ @param permutation_state The state.
 */
-void webcpp_hash_xkcp_extract_bytes(std::uint64_t const* state, unsigned char* data,
-                                    std::size_t offset, std::size_t length);
+void webcpp_hash_xkcp_permute(std::uint64_t* permutation_state);
+
+/**
+ Copies the state's `byte_length` bytes from `byte_offset` to `data_bytes` (XKCP's
+ `KeccakP1600_ExtractBytes`).
+
+ @param permutation_state The state.
+ @param data_bytes Where the bytes go.
+ @param byte_offset The first byte of the state copied.
+ @param byte_length Their number.
+*/
+void webcpp_hash_xkcp_extract_bytes(std::uint64_t const* permutation_state,
+                                    unsigned char* data_bytes, std::size_t byte_offset,
+                                    std::size_t byte_length);
 }
 
 #endif  // WEBCPP_HASH_DETAIL_XKCP_HPP

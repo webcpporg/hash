@@ -78,8 +78,8 @@ namespace detail {
 inline void touch_blake3_canary() noexcept {
     // The volatile glvalue is converted to a value: a discarded one is not read by gcc
     // ("conversion to void will not access object").
-    char const value = *static_cast<char const volatile*>(&WEBCPP_HASH_DETAIL_BLAKE3_CANARY);
-    static_cast<void>(value);
+    char const canary_copy = *static_cast<char const volatile*>(&WEBCPP_HASH_DETAIL_BLAKE3_CANARY);
+    static_cast<void>(canary_copy);
 }
 
 }  // namespace detail
@@ -103,16 +103,16 @@ public:
     /** Constructs the plain hash. */
     blake3() noexcept;
     /**
-     Constructs a hash seeded by `seed`: plain when it is zero, else as from its 8 little-endian
-     bytes.
+     Constructs a hash seeded by `seed_value`: plain when it is zero, else as from its 8
+     little-endian bytes.
 
-     @param seed The seed.
+     @param seed_value The seed.
     */
-    explicit blake3(std::uint64_t seed) noexcept;
+    explicit blake3(std::uint64_t seed_value) noexcept;
     /**
-     Constructs a hash seeded by `n` bytes: plain when `n` is zero; else BLAKE3's keyed hash under
-     the first 32 bytes, zero-padded when there are fewer, with the bytes past them absorbed as the
-     start of the input and one result() taken.
+     Constructs a hash seeded by `input_size` bytes: plain when `input_size` is zero; else BLAKE3's
+     keyed hash under the first 32 bytes, zero-padded when there are fewer, with the bytes past them
+     absorbed as the start of the input and one result() taken.
 
      That result() only moves the output's position, which the next update() starts again: a seed
      of 32 bytes `K` and more bytes `R`, then the input `M`, hashes as the seed `K` then the input
@@ -120,25 +120,25 @@ public:
      the output of `K` over `R`, the next 64 to 95, and so on. Two seeds of at most 32 bytes that
      differ only by trailing zero bytes are the same key.
 
-     @param p The seed. @param n Its size.
+     @param input_data The seed. @param input_size Its size.
     */
-    blake3(void const* p, std::size_t n) noexcept;
-    /** The same, from bytes. @param p The seed. @param n Its size. */
-    blake3(unsigned char const* p, std::size_t n) noexcept;
+    blake3(void const* input_data, std::size_t input_size) noexcept;
+    /** The same, from bytes. @param input_data The seed. @param input_size Its size. */
+    blake3(unsigned char const* input_data, std::size_t input_size) noexcept;
 
-    /** The keyed hash, BLAKE3's `keyed_hash`. @param key The key. @return The hash. */
-    static blake3 keyed(std::span<std::uint8_t const, 32> key) noexcept;
+    /** The keyed hash, BLAKE3's `keyed_hash`. @param key_bytes The key. @return The hash. */
+    static blake3 keyed(std::span<std::uint8_t const, 32> key_bytes) noexcept;
     /**
-     The key derivation, BLAKE3's `derive_key`, under `context`.
+     The key derivation, BLAKE3's `derive_key`, under `context_string`.
 
-     @param context The context string, any bytes. @return The hash.
+     @param context_string The context string, any bytes. @return The hash.
     */
-    static blake3 derive_key(std::string_view context) noexcept;
+    static blake3 derive_key(std::string_view context_string) noexcept;
 
-    /** Absorbs `n` bytes. @param p The bytes. @param n Their number. */
-    void update(void const* p, std::size_t n) noexcept;
-    /** The same, from bytes. @param p The bytes. @param n Their number. */
-    void update(unsigned char const* p, std::size_t n) noexcept;
+    /** Absorbs `input_size` bytes. @param input_data The bytes. @param input_size Their number. */
+    void update(void const* input_data, std::size_t input_size) noexcept;
+    /** The same, from bytes. @param input_data The bytes. @param input_size Their number. */
+    void update(unsigned char const* input_data, std::size_t input_size) noexcept;
 
     /**
      Returns the next 32 bytes of the output: the digest the first time after input was added,
@@ -149,12 +149,14 @@ public:
     result_type result() noexcept;
 
     /**
-     Writes `output.size()` bytes of the extendable output, from byte `position` on, without
-     changing the hash.
+     Writes `output_bytes.size()` bytes of the extendable output, from byte `seek_position` on,
+     without changing the hash.
 
-     @param output Where to write. @param position The first byte's position in the output.
+     @param output_bytes Where to write. @param seek_position The first byte's position in the
+     output.
     */
-    void squeeze(std::span<std::uint8_t> output, std::uint64_t position = 0) const noexcept;
+    void squeeze(std::span<std::uint8_t> output_bytes,
+                 std::uint64_t seek_position = 0) const noexcept;
 
     /** Forgets the input, keeping the mode and its key or context. */
     void reset() noexcept;
@@ -179,78 +181,80 @@ inline blake3::blake3() noexcept {
     blake3_hasher_init(&hasher_);
 }
 
-inline blake3::blake3(std::uint64_t seed) noexcept {
+inline blake3::blake3(std::uint64_t seed_value) noexcept {
     detail::touch_blake3_canary();
-    if (seed == 0) {
+    if (seed_value == 0) {
         blake3_hasher_init(&hasher_);
         return;
     }
-    std::array<std::uint8_t, key_size> key{};
-    for (std::size_t i = 0; i < 8; ++i) {
-        key[i] = static_cast<std::uint8_t>(seed >> (8 * i));
+    std::array<std::uint8_t, key_size> key_bytes{};
+    for (std::size_t byte_index = 0; byte_index < 8; ++byte_index) {
+        key_bytes[byte_index] = static_cast<std::uint8_t>(seed_value >> (8 * byte_index));
     }
-    blake3_hasher_init_keyed(&hasher_, key.data());
+    blake3_hasher_init_keyed(&hasher_, key_bytes.data());
 }
 
-inline blake3::blake3(void const* p, std::size_t n) noexcept
-    : blake3(static_cast<unsigned char const*>(p), n) {}
+inline blake3::blake3(void const* input_data, std::size_t input_size) noexcept
+    : blake3(static_cast<unsigned char const*>(input_data), input_size) {}
 
-inline blake3::blake3(unsigned char const* p, std::size_t n) noexcept {
+inline blake3::blake3(unsigned char const* input_data, std::size_t input_size) noexcept {
     detail::touch_blake3_canary();
-    if (n == 0) {
+    if (input_size == 0) {
         blake3_hasher_init(&hasher_);
         return;
     }
-    std::array<std::uint8_t, key_size> key{};
-    std::copy_n(p, (std::min)(n, key_size), key.begin());
-    blake3_hasher_init_keyed(&hasher_, key.data());
-    if (n > key_size) {
+    std::array<std::uint8_t, key_size> key_bytes{};
+    std::copy_n(input_data, (std::min)(input_size, key_size), key_bytes.begin());
+    blake3_hasher_init_keyed(&hasher_, key_bytes.data());
+    if (input_size > key_size) {
         // result() only advances squeezed_, which the next update sets back to zero.
-        update(p + key_size, n - key_size);
+        update(input_data + key_size, input_size - key_size);
         result();
     }
 }
 
 // NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
-inline blake3 blake3::keyed(std::span<std::uint8_t const, 32> key) noexcept {
+inline blake3 blake3::keyed(std::span<std::uint8_t const, 32> key_bytes) noexcept {
     detail::touch_blake3_canary();
-    blake3 hasher{uninitialized{}};
-    blake3_hasher_init_keyed(&hasher.hasher_, key.data());
-    return hasher;
+    blake3 derived_hasher{uninitialized{}};
+    blake3_hasher_init_keyed(&derived_hasher.hasher_, key_bytes.data());
+    return derived_hasher;
 }
 
-inline blake3 blake3::derive_key(std::string_view context) noexcept {
+inline blake3 blake3::derive_key(std::string_view context_string) noexcept {
     detail::touch_blake3_canary();
-    blake3 hasher{uninitialized{}};
-    blake3_hasher_init_derive_key_raw(&hasher.hasher_, context.data(), context.size());
-    return hasher;
+    blake3 derived_hasher{uninitialized{}};
+    blake3_hasher_init_derive_key_raw(&derived_hasher.hasher_, context_string.data(),
+                                      context_string.size());
+    return derived_hasher;
 }
 
-inline void blake3::update(void const* p, std::size_t n) noexcept {
-    update(static_cast<unsigned char const*>(p), n);
+inline void blake3::update(void const* input_data, std::size_t input_size) noexcept {
+    update(static_cast<unsigned char const*>(input_data), input_size);
 }
 
-inline void blake3::update(unsigned char const* p, std::size_t n) noexcept {
+inline void blake3::update(unsigned char const* input_data, std::size_t input_size) noexcept {
     detail::touch_blake3_canary();
-    if (n == 0) {
+    if (input_size == 0) {
         return;
     }
-    blake3_hasher_update(&hasher_, p, n);
+    blake3_hasher_update(&hasher_, input_data, input_size);
     squeezed_ = 0;
 }
 
 inline blake3::result_type blake3::result() noexcept {
     detail::touch_blake3_canary();
-    result_type output;
-    blake3_hasher_finalize_seek(&hasher_, squeezed_, output.data(), output.size());
-    squeezed_ += output.size();
-    return output;
+    result_type output_bytes;
+    blake3_hasher_finalize_seek(&hasher_, squeezed_, output_bytes.data(), output_bytes.size());
+    squeezed_ += output_bytes.size();
+    return output_bytes;
 }
 
-inline void blake3::squeeze(std::span<std::uint8_t> output, std::uint64_t position) const noexcept {
+inline void blake3::squeeze(std::span<std::uint8_t> output_bytes,
+                            std::uint64_t seek_position) const noexcept {
     detail::touch_blake3_canary();
-    blake3_hasher_finalize_seek(&hasher_, position, output.data(), output.size());
+    blake3_hasher_finalize_seek(&hasher_, seek_position, output_bytes.data(), output_bytes.size());
 }
 
 inline void blake3::reset() noexcept {

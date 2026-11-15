@@ -84,62 +84,63 @@ inline constexpr std::size_t argon2id_memory_unit = 1024;
 
 /**
  Argon2id version 0x13 (RFC 9106) with one lane, no secret and no associated data: fills
- `output` from `password` and `salt`.
+ `output_bytes` from `password_bytes` and `salt_bytes`.
 
  @tparam Backend The backend; by default @ref default_backend of `kdfs::argon2id` (spec 4.1):
  the one an override `WEBCPP_HASH_DEFAULT_BACKEND_ARGON2ID_<NAME>` names, else
  `backends::sodium`, the only one that has it.
- @param output The tag, 16 to 4,294,967,295 bytes; it must not overlap `password` or `salt`
- (libsodium zeroes it before it reads them).
- @param password The password, at most 4,294,967,295 bytes.
- @param salt The salt, of `argon2id_salt_size` bytes.
- @param parameters The costs.
+ @param output_bytes The tag, 16 to 4,294,967,295 bytes; it must not overlap `password_bytes` or
+ `salt_bytes` (libsodium zeroes it before it reads them).
+ @param password_bytes The password, at most 4,294,967,295 bytes.
+ @param salt_bytes The salt, of `argon2id_salt_size` bytes.
+ @param cost_parameters The costs.
  @return Success, or the error of the first guard that fails (`invalid_output_size`,
- `invalid_salt_size`, `input_too_long`, `invalid_parameters`), `output` untouched; or
- `errc::not_enough_memory` when the memory cannot be allocated, or `backend_failure`, `output`
+ `invalid_salt_size`, `input_too_long`, `invalid_parameters`), `output_bytes` untouched; or
+ `errc::not_enough_memory` when the memory cannot be allocated, or `backend_failure`, `output_bytes`
  zeroed.
 */
 template <class Backend = default_backend<kdfs::argon2id>>
-[[nodiscard]] boost::system::result<void> argon2id(std::span<std::uint8_t> output,
-                                                   std::span<std::uint8_t const> password,
-                                                   std::span<std::uint8_t const> salt,
-                                                   argon2id_parameters const& parameters) {
+[[nodiscard]] boost::system::result<void> argon2id(std::span<std::uint8_t> output_bytes,
+                                                   std::span<std::uint8_t const> password_bytes,
+                                                   std::span<std::uint8_t const> salt_bytes,
+                                                   argon2id_parameters const& cost_parameters) {
     using engine = detail::argon2id_engine<Backend>;
     using limits = detail::backend_limits<Backend>;
-    if (output.size() < detail::argon2id_min_output_size ||
-        detail::exceeds(output.size(), detail::argon2id_max_size)) {
+    if (output_bytes.size() < detail::argon2id_min_output_size ||
+        detail::exceeds(output_bytes.size(), detail::argon2id_max_size)) {
         return error::invalid_output_size;
     }
-    if (salt.size() != argon2id_salt_size) {
+    if (salt_bytes.size() != argon2id_salt_size) {
         return error::invalid_salt_size;
     }
-    if (detail::exceeds(password.size(), detail::argon2id_max_size)) {
+    if (detail::exceeds(password_bytes.size(), detail::argon2id_max_size)) {
         return error::input_too_long;
     }
-    if (parameters.passes < detail::argon2id_min_passes ||
-        parameters.passes > detail::argon2id_max_passes) {
+    if (cost_parameters.passes < detail::argon2id_min_passes ||
+        cost_parameters.passes > detail::argon2id_max_passes) {
         return error::invalid_parameters;
     }
     // A memory that is not a whole number of blocks is refused: libsodium would round it down.
-    if (parameters.memory < detail::argon2id_min_memory ||
-        parameters.memory % detail::argon2id_memory_unit != 0 ||
-        detail::exceeds(parameters.memory, engine::limits.memory)) {
+    if (cost_parameters.memory < detail::argon2id_min_memory ||
+        cost_parameters.memory % detail::argon2id_memory_unit != 0 ||
+        detail::exceeds(cost_parameters.memory, engine::limits.memory)) {
         return error::invalid_parameters;
     }
     // The backend's own limits, where its C interface holds a length in a narrower type, after
     // the spec's.
-    if (detail::exceeds(output.size(), limits::argon2id_output)) {
+    if (detail::exceeds(output_bytes.size(), limits::argon2id_output)) {
         return error::invalid_output_size;
     }
-    if (detail::exceeds(password.size(), limits::argon2id_password) ||
-        detail::exceeds(salt.size(), limits::argon2id_salt)) {
+    if (detail::exceeds(password_bytes.size(), limits::argon2id_password) ||
+        detail::exceeds(salt_bytes.size(), limits::argon2id_salt)) {
         return error::input_too_long;
     }
-    auto done = engine::derive(output, password, salt, parameters.passes, parameters.memory);
-    if (!done) {
-        detail::wipe(output);
+    auto derive_result = engine::derive(output_bytes, password_bytes, salt_bytes,
+                                        cost_parameters.passes, cost_parameters.memory);
+    if (!derive_result) {
+        detail::wipe(output_bytes);
     }
-    return done;
+    return derive_result;
 }
 
 }  // namespace webcpp::hash

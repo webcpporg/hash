@@ -24,10 +24,10 @@ namespace webcpp::hash::detail::test {
  bytes are zero, with what it wiped. A program built without the macro neither declares nor
  calls it.
 
- @param data The first byte wiped, or null when `size` is 0.
- @param size How many bytes.
+ @param wiped_data The first byte wiped, or null when `byte_count` is 0.
+ @param byte_count How many bytes.
 */
-void wipe_record(void const* data, std::size_t size) noexcept;
+void wipe_record(void const* wiped_data, std::size_t byte_count) noexcept;
 
 }  // namespace webcpp::hash::detail::test
 #endif
@@ -35,22 +35,22 @@ void wipe_record(void const* data, std::size_t size) noexcept;
 namespace webcpp::hash::detail {
 
 /**
- Zeroes `size` bytes at `data` with stores the optimiser cannot drop.
+ Zeroes `byte_count` bytes at `wiped_data` with stores the optimiser cannot drop.
 
  Tip: a `memset` before an object dies is a dead store a compiler may remove; stores through a
  volatile pointer, then a signal fence, are kept (spec section 6.1).
 
- @param data The first byte, or null when `size` is 0.
- @param size How many bytes.
+ @param wiped_data The first byte, or null when `byte_count` is 0.
+ @param byte_count How many bytes.
 */
-inline void wipe(void* data, std::size_t size) noexcept {
-    auto* const bytes = static_cast<unsigned char volatile*>(data);
-    for (std::size_t i = 0; i < size; ++i) {
-        bytes[i] = 0;
+inline void wipe(void* wiped_data, std::size_t byte_count) noexcept {
+    auto* const wiped_bytes = static_cast<unsigned char volatile*>(wiped_data);
+    for (std::size_t byte_index = 0; byte_index < byte_count; ++byte_index) {
+        wiped_bytes[byte_index] = 0;
     }
     std::atomic_signal_fence(std::memory_order_seq_cst);
 #ifdef WEBCPP_HASH_DETAIL_TEST_WIPE_RECORD
-    test::wipe_record(data, size);
+    test::wipe_record(wiped_data, byte_count);
 #endif
 }
 
@@ -58,10 +58,10 @@ inline void wipe(void* data, std::size_t size) noexcept {
  Zeroes the bytes of a span, as @ref wipe(void*, std::size_t) does: an output a backend's failure
  leaves.
 
- @param bytes The bytes.
+ @param wiped_bytes The bytes.
 */
-inline void wipe(std::span<std::uint8_t> bytes) noexcept {
-    wipe(bytes.data(), bytes.size());
+inline void wipe(std::span<std::uint8_t> wiped_bytes) noexcept {
+    wipe(wiped_bytes.data(), wiped_bytes.size());
 }
 
 /**
@@ -69,12 +69,12 @@ inline void wipe(std::span<std::uint8_t> bytes) noexcept {
  derivation, a C library's context.
 
  @tparam T A trivially copyable type, whose bytes are all its state.
- @param object The object.
+ @param wiped_object The object.
 */
 template <class T>
-void wipe_object(T& object) noexcept {
+void wipe_object(T& wiped_object) noexcept {
     static_assert(std::is_trivially_copyable_v<T>, "only a plain object's bytes are wiped");
-    wipe(&object, sizeof object);
+    wipe(&wiped_object, sizeof wiped_object);
 }
 
 }  // namespace webcpp::hash::detail

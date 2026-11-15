@@ -90,16 +90,17 @@ bool apart(const std::vector<wipe_entry>& entries, std::size_t index,
 
 }  // namespace
 
-void webcpp::hash::detail::test::wipe_record(void const* data, std::size_t size) noexcept {
-    const auto* const bytes = static_cast<unsigned char const*>(data);
-    for (std::size_t i = 0; i < size; ++i) {
+void webcpp::hash::detail::test::wipe_record(void const* wiped_data,
+                                             std::size_t byte_count) noexcept {
+    const auto* const bytes = static_cast<unsigned char const*>(wiped_data);
+    for (std::size_t i = 0; i < byte_count; ++i) {
         if (bytes[i] != 0) {
             ++wipes.not_zero;
             break;
         }
     }
     if (wipes.count < wipes.entries.size()) {
-        wipes.entries[wipes.count] = wipe_entry{.at = data, .size = size};
+        wipes.entries[wipes.count] = wipe_entry{.at = wiped_data, .size = byte_count};
     }
     ++wipes.count;
 }

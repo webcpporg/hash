@@ -161,11 +161,12 @@ void guards() {
 
 }  // namespace
 
-void webcpp::hash::detail::test::wipe_record(void const* data, std::size_t size) noexcept {
-    const auto* const bytes = static_cast<unsigned char const*>(data);
+void webcpp::hash::detail::test::wipe_record(void const* wiped_data,
+                                             std::size_t byte_count) noexcept {
+    const auto* const bytes = static_cast<unsigned char const*>(wiped_data);
     ++wipes.count;
-    wipes.last_size = size;
-    if (!std::all_of(bytes, bytes + size, [](unsigned char b) { return b == 0; })) {
+    wipes.last_size = byte_count;
+    if (!std::all_of(bytes, bytes + byte_count, [](unsigned char b) { return b == 0; })) {
         ++wipes.not_zero;
     }
 }

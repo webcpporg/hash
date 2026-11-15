@@ -63,14 +63,14 @@ bool all_of(std::span<std::uint8_t const> bytes, std::uint8_t value) {
     return std::ranges::all_of(bytes, [value](std::uint8_t b) { return b == value; });
 }
 
-const std::array<std::uint8_t, 8> password{'p', 'a', 's', 's', 'w', 'o', 'r', 'd'};
-const std::array<std::uint8_t, 4> salt{'s', 'a', 'l', 't'};
+const std::array<std::uint8_t, 8> guard_password{'p', 'a', 's', 's', 'w', 'o', 'r', 'd'};
+const std::array<std::uint8_t, 4> guard_salt{'s', 'a', 'l', 't'};
 
 void test_output_size() {
     std::array<std::uint8_t, 33> buffer{};
     buffer.fill(untouched);
-    auto refused =
-        hash::pbkdf2<hmac, backend>(std::span<std::uint8_t>(buffer.data(), 0), password, salt, 1);
+    auto refused = hash::pbkdf2<hmac, backend>(std::span<std::uint8_t>(buffer.data(), 0),
+                                               guard_password, guard_salt, 1);
     BOOST_TEST(refused.has_error() && refused.error() == hash::error::invalid_output_size);
     BOOST_TEST(all_of(buffer, untouched));
 
@@ -83,28 +83,28 @@ void test_output_size() {
     if constexpr (std::numeric_limits<std::size_t>::max() > longest) {
         const auto past = static_cast<std::size_t>(longest + 1);
         refused = hash::pbkdf2<hmac, backend>(std::span<std::uint8_t>(buffer.data(), past),
-                                              password, salt, 1);
+                                              guard_password, guard_salt, 1);
         BOOST_TEST(refused.has_error() && refused.error() == hash::error::invalid_output_size);
         BOOST_TEST(all_of(buffer, untouched));
     }
 
     // One block and a byte: the second block is cut to one byte, the byte past it untouched.
-    BOOST_TEST(
-        (hash::pbkdf2<hmac, backend>(std::span<std::uint8_t>(buffer.data(), 33), password, salt, 1)
-             .has_value()));
+    BOOST_TEST((hash::pbkdf2<hmac, backend>(std::span<std::uint8_t>(buffer.data(), 33),
+                                            guard_password, guard_salt, 1)
+                    .has_value()));
     BOOST_TEST(!all_of(std::span<std::uint8_t const>(buffer.data(), 32), untouched));
 }
 
 void test_iterations() {
     std::array<std::uint8_t, 32> buffer{};
     buffer.fill(untouched);
-    auto refused = hash::pbkdf2<hmac, backend>(buffer, password, salt, 0);
+    auto refused = hash::pbkdf2<hmac, backend>(buffer, guard_password, guard_salt, 0);
     BOOST_TEST(refused.has_error() && refused.error() == hash::error::invalid_iterations);
     BOOST_TEST(all_of(buffer, untouched));
 
     // The output's guard comes first.
-    refused =
-        hash::pbkdf2<hmac, backend>(std::span<std::uint8_t>(buffer.data(), 0), password, salt, 0);
+    refused = hash::pbkdf2<hmac, backend>(std::span<std::uint8_t>(buffer.data(), 0), guard_password,
+                                          guard_salt, 0);
     BOOST_TEST(refused.has_error() && refused.error() == hash::error::invalid_output_size);
 }
 
@@ -119,13 +119,13 @@ void test_empty_inputs() {
 void test_backend_failure() {
     std::array<std::uint8_t, 32> buffer{};
     buffer.fill(untouched);
-    auto failed = hash::pbkdf2<hmac, test_backends::failing>(buffer, password, salt, 1);
+    auto failed = hash::pbkdf2<hmac, test_backends::failing>(buffer, guard_password, guard_salt, 1);
     BOOST_TEST(failed.has_error() && failed.error() == hash::error::backend_failure);
     BOOST_TEST(all_of(buffer, 0));
 
     // A guard's refusal reaches no backend: the failing one does not touch the output.
     buffer.fill(untouched);
-    failed = hash::pbkdf2<hmac, test_backends::failing>(buffer, password, salt, 0);
+    failed = hash::pbkdf2<hmac, test_backends::failing>(buffer, guard_password, guard_salt, 0);
     BOOST_TEST(failed.has_error() && failed.error() == hash::error::invalid_iterations);
     BOOST_TEST(all_of(buffer, untouched));
 }

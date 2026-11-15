@@ -60,8 +60,8 @@ namespace webcpp::hash::detail {
 inline void touch_xkcp_canary() noexcept {
     // The volatile glvalue is converted to a value: a discarded one is not read by gcc
     // ("conversion to void will not access object").
-    char const value = *static_cast<char const volatile*>(&WEBCPP_HASH_DETAIL_XKCP_CANARY);
-    static_cast<void>(value);
+    char const canary_copy = *static_cast<char const volatile*>(&WEBCPP_HASH_DETAIL_XKCP_CANARY);
+    static_cast<void>(canary_copy);
 }
 
 }  // namespace webcpp::hash::detail
@@ -84,19 +84,20 @@ public:
 
     /** Constructs the hash of nothing yet. */
     keccak_256() noexcept;
-    /** Constructs a hash seeded by `seed`, as Hash2's sha3_256 is: nothing when it is zero. @param
-     * seed The seed. */
-    explicit keccak_256(std::uint64_t seed) noexcept;
-    /** Constructs a hash seeded by the `n` bytes at `p`, as Hash2's sha3_256 is. @param p The seed.
-     * @param n Its size. */
-    keccak_256(void const* p, std::size_t n) noexcept;
-    /** The same, from bytes. @param p The seed. @param n Its size. */
-    keccak_256(unsigned char const* p, std::size_t n) noexcept;
+    /** Constructs a hash seeded by `seed_value`, as Hash2's sha3_256 is: nothing when it is zero.
+     * @param seed_value The seed. */
+    explicit keccak_256(std::uint64_t seed_value) noexcept;
+    /** Constructs a hash seeded by the `input_size` bytes at `input_data`, as Hash2's sha3_256 is.
+     * @param input_data The seed.
+     * @param input_size Its size. */
+    keccak_256(void const* input_data, std::size_t input_size) noexcept;
+    /** The same, from bytes. @param input_data The seed. @param input_size Its size. */
+    keccak_256(unsigned char const* input_data, std::size_t input_size) noexcept;
 
-    /** Absorbs `n` bytes. @param p The bytes. @param n Their number. */
-    void update(void const* p, std::size_t n) noexcept;
-    /** The same, from bytes. @param p The bytes. @param n Their number. */
-    void update(unsigned char const* p, std::size_t n) noexcept;
+    /** Absorbs `input_size` bytes. @param input_data The bytes. @param input_size Their number. */
+    void update(void const* input_data, std::size_t input_size) noexcept;
+    /** The same, from bytes. @param input_data The bytes. @param input_size Their number. */
+    void update(unsigned char const* input_data, std::size_t input_size) noexcept;
 
     /**
      Pads, if nothing was padded since the last update, permutes and returns the first 32 bytes
@@ -117,80 +118,81 @@ inline keccak_256::keccak_256() noexcept : state_{} {
     webcpp_hash_xkcp_initialize(state_.data());
 }
 
-inline keccak_256::keccak_256(std::uint64_t seed) noexcept : keccak_256() {
-    if (seed == 0) {
+inline keccak_256::keccak_256(std::uint64_t seed_value) noexcept : keccak_256() {
+    if (seed_value == 0) {
         return;
     }
     // Hash2's detail::write64le: the seed's eight bytes, little-endian.
-    std::array<unsigned char, 8> tmp{};
-    for (std::size_t i = 0; i < tmp.size(); ++i) {
-        tmp[i] = static_cast<unsigned char>(seed >> (8 * i));
+    std::array<unsigned char, 8> seed_bytes{};
+    for (std::size_t byte_index = 0; byte_index < seed_bytes.size(); ++byte_index) {
+        seed_bytes[byte_index] = static_cast<unsigned char>(seed_value >> (8 * byte_index));
     }
-    update(tmp.data(), tmp.size());
+    update(seed_bytes.data(), seed_bytes.size());
     static_cast<void>(result());
-    update(tmp.data(), 0);  // clears finalized_
+    update(seed_bytes.data(), 0);  // clears finalized_
 }
 
-inline keccak_256::keccak_256(unsigned char const* p, std::size_t n) noexcept : keccak_256() {
-    if (n == 0) {
+inline keccak_256::keccak_256(unsigned char const* input_data, std::size_t input_size) noexcept
+    : keccak_256() {
+    if (input_size == 0) {
         return;
     }
-    update(p, n);
+    update(input_data, input_size);
     static_cast<void>(result());
-    update(p, 0);  // clears finalized_
+    update(input_data, 0);  // clears finalized_
 }
 
-inline keccak_256::keccak_256(void const* p, std::size_t n) noexcept
-    : keccak_256(static_cast<unsigned char const*>(p), n) {}
+inline keccak_256::keccak_256(void const* input_data, std::size_t input_size) noexcept
+    : keccak_256(static_cast<unsigned char const*>(input_data), input_size) {}
 
-inline void keccak_256::update(void const* p, std::size_t n) noexcept {
-    update(static_cast<unsigned char const*>(p), n);
+inline void keccak_256::update(void const* input_data, std::size_t input_size) noexcept {
+    update(static_cast<unsigned char const*>(input_data), input_size);
 }
 
-inline void keccak_256::update(unsigned char const* p, std::size_t n) noexcept {
+inline void keccak_256::update(unsigned char const* input_data, std::size_t input_size) noexcept {
     detail::touch_xkcp_canary();
     finalized_ = false;
-    if (n == 0) {
+    if (input_size == 0) {
         return;
     }
     if (m_ > 0) {
-        std::size_t const k = std::min(n, block_size - m_);
-        webcpp_hash_xkcp_add_bytes(state_.data(), p, m_, k);
-        p += k;
-        n -= k;
-        m_ += k;
+        std::size_t const absorbed_count = std::min(input_size, block_size - m_);
+        webcpp_hash_xkcp_add_bytes(state_.data(), input_data, m_, absorbed_count);
+        input_data += absorbed_count;
+        input_size -= absorbed_count;
+        m_ += absorbed_count;
         if (m_ < block_size) {
             return;
         }
         webcpp_hash_xkcp_permute(state_.data());
         m_ = 0;
     }
-    while (n >= block_size) {
-        webcpp_hash_xkcp_add_bytes(state_.data(), p, 0, block_size);
+    while (input_size >= block_size) {
+        webcpp_hash_xkcp_add_bytes(state_.data(), input_data, 0, block_size);
         webcpp_hash_xkcp_permute(state_.data());
-        p += block_size;
-        n -= block_size;
+        input_data += block_size;
+        input_size -= block_size;
     }
-    if (n > 0) {
-        webcpp_hash_xkcp_add_bytes(state_.data(), p, 0, n);
-        m_ = n;
+    if (input_size > 0) {
+        webcpp_hash_xkcp_add_bytes(state_.data(), input_data, 0, input_size);
+        m_ = input_size;
     }
 }
 
 inline keccak_256::result_type keccak_256::result() noexcept {
     detail::touch_xkcp_canary();
     if (!finalized_) {
-        constexpr unsigned char first = 0x01;  // Keccak's original padding delimiter
-        constexpr unsigned char last = 0x80;
-        webcpp_hash_xkcp_add_bytes(state_.data(), &first, m_, 1);
-        webcpp_hash_xkcp_add_bytes(state_.data(), &last, block_size - 1, 1);
+        constexpr unsigned char first_delimiter = 0x01;  // Keccak's original padding delimiter
+        constexpr unsigned char last_delimiter = 0x80;
+        webcpp_hash_xkcp_add_bytes(state_.data(), &first_delimiter, m_, 1);
+        webcpp_hash_xkcp_add_bytes(state_.data(), &last_delimiter, block_size - 1, 1);
         m_ = 0;
         finalized_ = true;
     }
     webcpp_hash_xkcp_permute(state_.data());
-    result_type digest;
-    webcpp_hash_xkcp_extract_bytes(state_.data(), digest.data(), 0, digest.size());
-    return digest;
+    result_type digest_value;
+    webcpp_hash_xkcp_extract_bytes(state_.data(), digest_value.data(), 0, digest_value.size());
+    return digest_value;
 }
 
 }  // namespace webcpp::hash
