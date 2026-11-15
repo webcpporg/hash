@@ -2,10 +2,11 @@
     "boundaries": [
         {
             "headers": [
-                "include/webcpp/hash/config.hpp"
+                "include/webcpp/hash/config.hpp",
+                "include/webcpp/hash/error.hpp"
             ],
             "must-not-include": ["xkcp", "blake3", "sodium", "bearssl", "openssl/"],
-            "why": "a program that only configures webcpp::hash names no C library (spec section 2.1)"
+            "why": "a program that only configures webcpp::hash or names its errors names no C library (spec section 2.1)"
         }
     ]
 }

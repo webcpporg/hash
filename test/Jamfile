@@ -20,7 +20,7 @@ rule hash-run ( name : sources + : requirements * : targets * )
       : $(requirements) <exception-handling>off : $(targets) ;
 }
 
-webcpp.headers-alone hash : ../include : hash.hpp hash/config.hpp ;
+webcpp.headers-alone hash : ../include : hash.hpp hash/config.hpp hash/error.hpp ;
 
 # config.hpp defines WEBCPP_HASH_NO_EXCEPTIONS exactly when webcpp has no
 # exceptions, keeps it when a developer defines it, defines it when
@@ -31,3 +31,5 @@ webcpp.compile config_all_off : config_test.cpp
   : <define>WEBCPP_NO_EXCEPTIONS <define>WEBCPP_TEST_HASH_ALL_OFF ;
 webcpp.compile config_developer_defined : config_test.cpp
   : <define>WEBCPP_HASH_NO_EXCEPTIONS <define>WEBCPP_TEST_HASH_DEVELOPER_DEFINED ;
+
+hash-run error : error_test.cpp ;
