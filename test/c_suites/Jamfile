@@ -4,12 +4,119 @@
 # accompanying file LICENSE_1_0.txt or copy at
 # https://www.boost.org/LICENSE_1_0.txt)
 
-# The C libraries' own test programs, on webcpp's build of each, on every target
-# (CODING-GUIDELINES.md chapter 5, rule 11). One lane line lists every program;
-# each task that adds a suite adds its programs to it.
+# The C libraries' own test programs, built against webcpp's build of each, on
+# every target (CODING-GUIDELINES.md chapter 5, rule 11), in the own lane
+# c-suites, outside the ordinary lanes.
+import common ;
+import feature ;
+import path ;
+import project ;
+import regex ;
 import webcpp ;
+import webcpp-target ;
 
 webcpp.targets native wasip2 wasip3 emscripten ;
+
+# libsodium's own tests (101 at 77e1ce5), each a program of its own with
+# cmptest.h, which writes <name>.res in the working directory and compares it
+# with <name>.exp under TEST_SRCDIR (on Emscripten, /test-data, which
+# cmptest.h forces). Built against /third_party//sodium with its defines and
+# private headers (sodium-test-config), and run by sodium_main.cpp's main,
+# which runs cmptest.h's, renamed sodium_test_main, from the test's directory
+# of results. On Emscripten the memory grows, as dist-build/emscripten.sh
+# links upstream's tests: argon2's and scrypt's take more than the 16 MB a
+# program starts with.
+path-constant SODIUM_TESTS : ../../../../third_party/libs/libsodium/test/default ;
+.sodium-tests-dir = [ regex.replace $(SODIUM_TESTS) "\\\\" "/" ] ;
+
+# The directory of results of each test on each target, which the build makes
+# inside the lane's build directory, never in the tree or in b2's working
+# directory: sodium-results/<target>-<variant>/<name> in this Jamfile's build
+# directory, absolute, with forward slashes.
+.here = [ project.current ] ;
+.here = [ path.root [ $(.here).build-dir ] [ path.pwd ] ] ;
+.sodium-results = [ regex.replace $(.here)/sodium-results "\\\\" "/" ] ;
+
+# The directory of the results of a build's tests, sodium-results/<target>-
+# <variant>, which holds one directory per test.
+local rule sodium-results-of ( properties * )
+{
+    local target = [ webcpp-target.target-of $(properties) ] ;
+    local variant = [ feature.get-values <variant> : $(properties) ] ;
+    return $(.sodium-results)/$(target)-$(variant) ;
+}
+
+# What a test's program and run add: the directory of the results of the
+# build's tests, as WEBCPP_SODIUM_RESULTS, where the program enters the
+# directory of its own test, TEST_NAME; on WASI, wasmtime is given that
+# directory (--dir). A conditional reads no free property, the test's
+# TEST_NAME define among them, so the name is the program's to append.
+rule sodium-results ( properties * )
+{
+    local directory = [ sodium-results-of $(properties) ] ;
+    local result = <define>"\"WEBCPP_SODIUM_RESULTS=\\\"$(directory)\\\"\"" ;
+    if [ feature.get-values <target-os> : $(properties) ] = wasi
+    {
+        result += <webcpp-data>"--dir=\"$(directory)\"" ;
+    }
+    return $(result) ;
+}
+
+# The target sodium_<name>.results makes the directory of the test's results
+# before its run, <name> read from the test's TEST_NAME define, and writes its
+# path into a file of its own.
+rule sodium-make-results ( targets * : sources * : properties * )
+{
+    local name = [ MATCH "^TEST_NAME=\\\\\"(.*)\\\\\"$"
+        : [ feature.get-values <define> : $(properties) ] ] ;
+    local directory = [ sodium-results-of $(properties) ] ;
+    directory = [ path.native $(directory)/$(name) ] ;
+    common.MkDir $(directory) ;
+    DEPENDS $(targets) : $(directory) ;
+    DIRECTORY on $(targets) = $(directory) ;
+}
+
+actions sodium-make-results
+{
+    echo "$(DIRECTORY)" > "$(<)"
+}
+
+.sodium-tests =
+    aead_aegis128l aead_aegis256 aead_aes256gcm aead_aes256gcm2
+    aead_chacha20poly1305 aead_chacha20poly13052 aead_xchacha20poly1305 auth
+    auth2 auth3 auth5 auth6 auth7 box box2 box7 box8 box_easy box_easy2
+    box_seal box_seed chacha20 codecs codecs2 codecs3 core1 core2 core3
+    core4 core5 core6 core_ed25519 core_keccak1600 core_ristretto255
+    ed25519_convert generichash generichash2 generichash3 hash hash3
+    hash_sha3256 hash_sha3512 ipcrypt kdf kdf_hkdf kdf_hkdf2 kdf_hkdf3
+    kdf_hkdf4 kem kem_mlkem768 kem_xwing keygen kx metamorphic misuse
+    onetimeauth onetimeauth2 onetimeauth7 pwhash_argon2i pwhash_argon2id
+    pwhash_argon2id2 pwhash_scrypt pwhash_scrypt_ll randombytes scalarmult
+    scalarmult2 scalarmult5 scalarmult6 scalarmult7 scalarmult8
+    scalarmult_ed25519 scalarmult_ristretto255 secretbox secretbox2
+    secretbox7 secretbox8 secretbox_easy secretbox_easy2
+    secretstream_xchacha20poly1305 shorthash sign siphashx24 sodium_core
+    sodium_utils sodium_utils2 sodium_utils3 sodium_utils4 sodium_version
+    stream stream2 stream3 stream4 stream5 stream6 verify1 xchacha20 xof2
+    xof_shake128 xof_shake256 xof_turboshake128 xof_turboshake256
+    ;
+
+for local name in $(.sodium-tests)
+{
+    local test-name = <define>TEST_NAME=\\\"$(name)\\\" ;
+    make sodium_$(name).results : : @sodium-make-results : $(test-name) ;
+    explicit sodium_$(name).results ;
+    webcpp.run sodium_$(name) : $(SODIUM_TESTS)/$(name).c sodium_main.cpp
+      : <library>/third_party//sodium-test-config <library>/third_party//sodium
+        $(test-name) <define>main=sodium_test_main
+        <define>"\"TEST_SRCDIR=\\\"$(.sodium-tests-dir)\\\"\""
+        <define>"\"WEBCPP_SODIUM_TESTS=\\\"$(.sodium-tests-dir)\\\"\""
+        <include>$(SODIUM_TESTS) <include>$(SODIUM_TESTS)/../quirks
+        <dependency>sodium_$(name).results <conditional>@sodium-results
+        [ webcpp.data $(SODIUM_TESTS) ] <webcpp-node-raw-fs>off
+        <toolset>emscripten:<linkflags>-sALLOW_MEMORY_GROWTH=1
+        <warnings>off <warnings-as-errors>off ;
+}
 
 # XKCP's unit tests of Keccak-p[1600] (--SnP), against /third_party//xkcp and
 # webcpp's config.h, which enables that one component: main.c then calls only
@@ -28,4 +135,7 @@ webcpp.run xkcp_unit_tests : $(XKCP)/tests/UnitTests/main.c
     <include>$(XKCP)/lib/low/KeccakP-1600/plain-64bits/SnP
     <warnings>off <warnings-as-errors>off ;
 
-webcpp.lane c-suites : xkcp_unit_tests : native wasip2 wasip3 emscripten ;
+# The lane names its targets, so that the CI runs it on each (an own lane that
+# names none runs natively alone, tools/webcpp.jam's lane rule).
+webcpp.lane c-suites : xkcp_unit_tests sodium_$(.sodium-tests)
+  : native wasip2 wasip3 emscripten ;

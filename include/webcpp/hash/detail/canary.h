@@ -26,6 +26,12 @@
 #define WEBCPP_HASH_XKCP_COMMIT d20c8fc
 #endif
 
+#ifdef WEBCPP_HASH_SODIUM_CANARY_COMMIT
+#define WEBCPP_HASH_SODIUM_COMMIT WEBCPP_HASH_SODIUM_CANARY_COMMIT
+#else
+#define WEBCPP_HASH_SODIUM_COMMIT 77e1ce5
+#endif
+
 #define WEBCPP_HASH_DETAIL_CANARY_I(name, commit, configuration) \
     webcpp_hash_##name##_##commit##_##configuration##__add_third_party_##name##_to_your_link
 #define WEBCPP_HASH_DETAIL_CANARY(name, commit, configuration) \
