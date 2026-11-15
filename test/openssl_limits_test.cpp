@@ -4,7 +4,7 @@
 // accompanying file LICENSE_1_0.txt or copy at
 // https://www.boost.org/LICENSE_1_0.txt)
 
-// backends::openssl's limits (ruling R24): OpenSSL 3.5.9 holds PBKDF2's output and salt lengths
+// backends::openssl's limits: OpenSSL 3.5.9 holds PBKDF2's output and salt lengths
 // and HMAC's key length (PBKDF2's password, HKDF-Extract's salt, HKDF-Expand's PRK) in an int, so
 // the public functions refuse more than INT_MAX bytes of them before OpenSSL is called, after the
 // spec's own guards, the output untouched. Each long span is INT_MAX + 1 bytes over a buffer of a

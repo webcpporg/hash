@@ -18,7 +18,7 @@
  `OPENSSL_PEDANTIC_ZEROIZATION`). Its default initialisation, on the first call, reads the
  configuration file of the directory it was configured with, as any program of OpenSSL does.
 
- Its limits (ruling R24): OpenSSL 3.5.9 holds some lengths in an `int`, so the public functions
+ Its limits: OpenSSL 3.5.9 holds some lengths in an `int`, so the public functions
  refuse, before OpenSSL is called, PBKDF2's output (`invalid_output_size`), password and salt
  (`input_too_long`) and HKDF's salt (`input_too_long`) of more than `INT_MAX` bytes. PBKDF2 keeps
  the output's and the salt's lengths in `int`s, and HMAC, through `HMAC_Init_ex`, its key's
@@ -79,7 +79,7 @@ namespace webcpp::hash::detail {
 inline constexpr std::uint64_t openssl_int_max = INT_MAX;
 
 /**
- The limits of backends::openssl (ruling R24): `INT_MAX` bytes wherever OpenSSL 3.5.9 holds a
+ The limits of backends::openssl: `INT_MAX` bytes wherever OpenSSL 3.5.9 holds a
  length in an `int` (this header's comment lists them); no limit elsewhere.
 */
 template <>

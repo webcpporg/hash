@@ -8,7 +8,7 @@
 // backends::hash2 agrees with, through hkdf_extract, hkdf_expand and hkdf; the guards of spec 2.8
 // at their limits for both hashes; empty salt, IKM and info, whose spans' data() is null. The test
 // includes hkdf.hpp alone: a program that links libsodium and includes only the function's header
-// gets the backend's engines (ruling R22).
+// gets the backend's engines.
 
 #include <webcpp/hash/error.hpp>
 #include <webcpp/hash/hkdf.hpp>

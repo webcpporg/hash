@@ -9,7 +9,8 @@
 // and the program's links pick the backends: backends::hash2 always, then openssl where the
 // Jamfile links it (sodium and BearSSL have no PBKDF2; OpenSSL is absent on Emscripten, where
 // backends::hash2 alone remains: the test asserts that, and compares nothing there). A difference
-// is a bug of webcpp's code. The lengths stay within every backend's limits (ruling R24).
+// is a bug of webcpp's code. The lengths stay within every backend's limits, beyond which a
+// backend refuses before its library is called.
 
 #include <webcpp/hash/hmac.hpp>
 #include <webcpp/hash/pbkdf2.hpp>

@@ -7,7 +7,7 @@
 // WEBCPP_HASH_PROFILE_BACKEND_<NAME> (spec 4.1), with every library the target has, built once
 // with BEARSSL and once with SODIUM: the named backend for every operation and hmac it has, and
 // auto's choice for the others. With BearSSL named, hkdf over SHA-256 is BearSSL's while its two
-// steps alone keep auto's choice (ruling R23).
+// steps alone keep auto's choice, since BearSSL has them only together.
 
 #include <webcpp/hash/kdf.hpp>
 #include <webcpp/test/exit_status.hpp>

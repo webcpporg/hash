@@ -1,5 +1,5 @@
 {
-    "about": "webcpp::hash's capability table (spec section 3.5): which library implements each public name, over which hmacs, on which targets, and what upstream states about constant time. backend_has_v is the same table for the key derivations: test/capabilities_test.cpp compares them cell by cell, checks each type row against the code and each refusal text against its row; test/overrides_list_test.cpp checks detail/overrides.hpp against the overridable algorithms. The documentation renders from it (rulings R21, R25, R26).",
+    "about": "webcpp::hash's capability table (spec section 3.5): which library implements each public name, over which hmacs, on which targets, and what upstream states about constant time. backend_has_v is the same table for the key derivations: test/capabilities_test.cpp compares them cell by cell, checks each type row against the code and each refusal text against its row; test/overrides_list_test.cpp checks detail/overrides.hpp against the overridable algorithms. The documentation renders from it.",
     "version": 2,
     "layout": {
         "schema": "This description. The version of the layout is \"version\"; a change of layout raises it.",

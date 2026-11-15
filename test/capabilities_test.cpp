@@ -4,7 +4,7 @@
 // accompanying file LICENSE_1_0.txt or copy at
 // https://www.boost.org/LICENSE_1_0.txt)
 
-// The capability table is one fact in two places (Review Focus 11): doc/capabilities.json and
+// The capability table is one fact in two places, which must never drift: doc/capabilities.json and
 // backend_has_v agree on every cell, a function over an hmac (or over no hmac) for a backend; the
 // file names exactly the backends, hmacs and functions this test knows. And each refusal text of
 // the headers (spec 3.3) names exactly the backends of its row: those that have the function it
@@ -244,9 +244,10 @@ bool linked_here(std::string_view macro) {
 
 void check_cell_fields(json::object const& table, names const& tagged);
 
-// The backends' own fields, where the code can tell (review M6): a backend's targets hold this
+// The backends' own fields, where the code can tell: a backend's targets hold this
 // target exactly when the program links it here, `portable` is membership of portable_order for
-// a backend with a tag, and every cell is of increment 1 and states its constant time (R26).
+// a backend with a tag, and every cell is of increment 1 and states its constant time, which the
+// documentation renders.
 void check_backend_fields(json::object const& table) {
     names portable;
     [&portable]<class... Backend>(hash::detail::backend_list<Backend...>*) {
@@ -271,7 +272,7 @@ void check_backend_fields(json::object const& table) {
     check_cell_fields(table, tagged);
 }
 
-// Every cell is of increment 1, states its constant time (R26), and, for a function with a
+// Every cell is of increment 1, states its constant time, and, for a function with a
 // Backend parameter, names a backend with a tag.
 void check_cell_fields(json::object const& table, names const& tagged) {
     for (auto const* function : functions_of(table)) {

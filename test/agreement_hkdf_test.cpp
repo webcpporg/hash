@@ -9,8 +9,8 @@
 // and the program's links pick the backends: backends::hash2 always, then sodium, bearssl and
 // openssl as the Jamfile links them (OpenSSL is absent on Emscripten). Each backend's `hkdf` is
 // compared, and its `hkdf_extract` then `hkdf_expand` too, except BearSSL's, which has `hkdf`
-// alone. A difference is a bug of webcpp's code. The lengths stay within every backend's limits
-// (ruling R24).
+// alone. A difference is a bug of webcpp's code. The lengths stay within every backend's limits,
+// beyond which a backend refuses before its library is called.
 
 #include <webcpp/hash/hkdf.hpp>
 #include <webcpp/hash/hmac.hpp>

@@ -8,8 +8,7 @@
 // 800-132's lower bounds do not apply): RFC 6070's six cases, the fourth of 16,777,216 iterations
 // among them, and RFC 7914 section 11's two; every hmac of spec 3.2's OpenSSL column against
 // backends::hash2, the empty password and salt among the shapes; and the default backend. It
-// includes pbkdf2.hpp alone, which brings backends/openssl.hpp in when the program links OpenSSL
-// (ruling R22).
+// includes pbkdf2.hpp alone, which brings backends/openssl.hpp in when the program links OpenSSL.
 
 #include <webcpp/hash/hmac.hpp>
 #include <webcpp/hash/pbkdf2.hpp>

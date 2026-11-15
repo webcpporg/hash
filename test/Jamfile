@@ -158,8 +158,9 @@ hash-run openssl_failure : openssl_failure_test.cpp
   : <library>/webcpp/hash//openssl
     <define>"\"WEBCPP_HASH_DETAIL_TEST_OPENSSL_DIGEST=\\\"NO-SUCH-DIGEST\\\"\""
   : native wasip2 wasip3 ;
-# backends::openssl's limits (ruling R24), natively: spans of INT_MAX + 1
-# bytes over a few, which the guards refuse before anything reads them.
+# backends::openssl's limits (OpenSSL holds some lengths in an int), natively:
+# spans of INT_MAX + 1 bytes over a few, which the guards refuse before
+# anything reads them.
 hash-run openssl_limits : openssl_limits_test.cpp
   : <library>/webcpp/hash//openssl : native ;
 # hash's and crypto's OpenSSL in one program: one provider, each archive once
@@ -219,9 +220,9 @@ hash-run scrypt_rfc7914_large : scrypt_rfc7914_large_test.cpp
 # libsodium and BearSSL everywhere, OpenSSL where webcpp builds it. Without a
 # profile (and once with no library at all); with each library profile; with
 # a named backend (BearSSL, whose hkdf_extract and hkdf_expand keep auto's
-# choice, ruling R23; libsodium); with an override beside a profile; with
-# webcpp's umbrella profile, alone, under the library's, and under an
-# override.
+# choice, since BearSSL has them only together; libsodium); with an override
+# beside a profile; with webcpp's umbrella profile, alone, under the
+# library's, and under an override.
 rule hash-default ( name : sources + : requirements * )
 {
     hash-run $(name) : $(sources)
@@ -267,7 +268,8 @@ webcpp.compile-fail override_openssl_on_emscripten : hkdf_hash2_test.cpp
 # doc/capabilities.json against backend_has_v cell by cell, and the refusal
 # texts of the headers against its rows; detail/overrides.hpp against its
 # algorithms and backends. Read at run time from the directories the defines
-# give, quoted as wycheproof's are, with forward slashes (ruling R10).
+# give, quoted as wycheproof's are, with forward slashes, and preopened on
+# WASI.
 path-constant HASH_TEST_DOC : ../doc ;
 path-constant HASH_TEST_INCLUDE : ../include ;
 .hash-doc = [ regex.replace $(HASH_TEST_DOC) "\\\\" "/" ] ;

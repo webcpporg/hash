@@ -111,7 +111,8 @@ boost::system::result<void> scrypt(std::span<std::uint8_t> output,
     if (detail::exceeds(n + p, most / block / r)) {
         return error::invalid_parameters;
     }
-    // The backend's own limits (ruling R24), after the spec's.
+    // The backend's own limits, where its C interface holds a length in a narrower type, after
+    // the spec's.
     if (detail::exceeds(n, engine::limits.n)) {
         return error::invalid_parameters;
     }
@@ -131,8 +132,8 @@ boost::system::result<void> scrypt(std::span<std::uint8_t> output,
 
 }  // namespace webcpp::hash
 
-// backends::sodium when the program links libsodium (ruling R22): scrypt's default backend is
-// then complete here.
+// backends::sodium when the program links libsodium: a program that includes only this header
+// gets scrypt's default backend complete here.
 #ifdef WEBCPP_HASH_HAS_SODIUM
 #include <webcpp/hash/backends/sodium.hpp>
 #endif

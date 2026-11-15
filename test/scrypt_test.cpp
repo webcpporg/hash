@@ -9,8 +9,7 @@
 // guards of spec 2.11 at their limits, each one also
 // passed through to a recording backend of this test's own where a real run would take too much
 // memory; libsodium's own limit on N; a backend's failure. The test includes scrypt.hpp alone: a
-// program that links libsodium and includes only the function's header gets the backend's engine
-// (ruling R22).
+// program that links libsodium and includes only the function's header gets the backend's engine.
 
 #include <webcpp/hash/error.hpp>
 #include <webcpp/hash/scrypt.hpp>
@@ -188,7 +187,7 @@ void test_parameters_guard() {
     }
     constexpr hash::scrypt_parameters huge{.n = std::uint64_t{1} << 31U, .r = 1U << 29U, .p = 1};
     BOOST_TEST(refuses<test_backends::recording>(huge, invalid_parameters));
-    // libsodium's N is at most UINT32_MAX (ruling R24): 2^32 with r = 3 is RFC 7914's, and
+    // libsodium's N is at most UINT32_MAX, its uint32_t: 2^32 with r = 3 is RFC 7914's, and
     // refused before the call (natively 1.5 TiB fit size_t; on wasm32 the size refuses first).
     BOOST_TEST(refuses({.n = std::uint64_t{1} << 32U, .r = 3, .p = 1}, invalid_parameters));
     BOOST_TEST_EQ(hash::detail::scrypt_engine<hash::backends::sodium>::limits.n, 0xffffffffULL);

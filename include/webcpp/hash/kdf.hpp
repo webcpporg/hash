@@ -234,11 +234,11 @@ struct serves {
 };
 
 /**
- The first backend of `List` that the program links and that has `Algorithm` over `Hmac` (ruling
- R23: an order that puts backends::bearssl first never makes `hkdf_extract` or `hkdf_expand`
- refuse). When no linked backend has it, the first of `List` that has it, whose engine then
- refuses with the line to add to the Jamfile; when none has it at all (an `Hmac` that is not a
- digest hmac), backends::hash2, so that @ref takes_hmac's refusal is the only error.
+ The first backend of `List` that the program links and that has `Algorithm` over `Hmac`, so that
+ an order that puts backends::bearssl first never makes `hkdf_extract` or `hkdf_expand` refuse. When
+ no linked backend has it, the first of `List` that has it, whose engine then refuses with the line
+ to add to the Jamfile; when none has it at all (an `Hmac` that is not a digest hmac),
+ backends::hash2, so that @ref takes_hmac's refusal is the only error.
 
  @tparam Algorithm A tag of `kdfs`. @tparam Hmac The hmac, or `void`.
  @tparam List A @ref backend_list.

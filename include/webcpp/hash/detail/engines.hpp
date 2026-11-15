@@ -32,7 +32,7 @@ inline constexpr std::uint64_t no_limit = std::numeric_limits<std::uint64_t>::ma
 
 /**
  The longest input and output a backend's C library takes, in bytes, where its interface holds a
- length in a narrower type than `std::size_t` (ruling R24). The public functions' guards read it
+ length in a narrower type than `std::size_t`. The public functions' guards read it
  after the spec's own guards and before any call of the backend, and refuse a longer output with
  `invalid_output_size` and a longer input with `input_too_long`, the output untouched. The
  primary template, every backend's unless its header specialises it, has no limit; a

@@ -9,7 +9,7 @@
 // hkdf_expand and hkdf; every hmac of spec 3.2's OpenSSL column against backends::hash2, the empty
 // inputs and the longest output among the shapes; the info of 32,768 bytes through OpenSSL and of
 // 32,769 refused before it; and the default backend. It includes hkdf.hpp alone, which brings
-// backends/openssl.hpp in when the program links OpenSSL (ruling R22).
+// backends/openssl.hpp in when the program links OpenSSL.
 
 #include <webcpp/hash/hkdf.hpp>
 #include <webcpp/hash/hmac.hpp>

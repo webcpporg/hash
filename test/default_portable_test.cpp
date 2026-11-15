@@ -5,8 +5,8 @@
 // https://www.boost.org/LICENSE_1_0.txt)
 
 // WEBCPP_HASH_PROFILE_PORTABLE (spec 4.1), with every library the target has: the first of
-// hash2, sodium, bearssl (ruling R3) that has each operation over each hmac, never OpenSSL,
-// which is absent from Emscripten.
+// hash2, sodium, bearssl (increment 1's portable order) that has each operation over each hmac,
+// never OpenSSL, which is absent from Emscripten.
 
 #include <webcpp/hash/kdf.hpp>
 #include <webcpp/test/exit_status.hpp>

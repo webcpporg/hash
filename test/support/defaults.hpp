@@ -49,7 +49,8 @@ using kdf_hmacs = std::tuple<hash::hmac_md5_128, hash::hmac_sha1_160, hash::hmac
                              hash::hmac_ripemd_128, hash::hmac_ripemd_160, hash::hmac_blake2b_512,
                              hash::hmac_blake2s_256, hash::hmac<other_hash>>;
 
-// Increment 1's key derivation operations, each with a default of its own (ruling R23).
+// Increment 1's key derivation operations, each with a default of its own, so that a backend
+// without an operation never makes it refuse.
 using kdf_operations = std::tuple<kdfs::hkdf_extract, kdfs::hkdf_expand, kdfs::hkdf, kdfs::pbkdf2>;
 
 template <class Backend>
@@ -207,7 +208,7 @@ void expect_default(std::string_view expected) {
     }
 }
 
-// What holds whatever the profile and the measured order (Review Focus 4, ruling R23, spec 3.2):
+// What holds whatever the profile and the measured order (spec 3.2):
 // PBKDF2's default is never libsodium's or BearSSL's, which have no PBKDF2; the two steps of
 // HKDF are never BearSSL's, which has them only together; hmac_ripemd_128 is backends::hash2's
 // alone. An overridden algorithm is left out: its override answers for it.

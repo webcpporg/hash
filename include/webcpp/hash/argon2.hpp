@@ -123,7 +123,8 @@ boost::system::result<void> argon2id(std::span<std::uint8_t> output,
         detail::exceeds(parameters.memory, engine::limits.memory)) {
         return error::invalid_parameters;
     }
-    // The backend's own limits (ruling R24), after the spec's.
+    // The backend's own limits, where its C interface holds a length in a narrower type, after
+    // the spec's.
     if (detail::exceeds(output.size(), limits::argon2id_output)) {
         return error::invalid_output_size;
     }
@@ -140,8 +141,9 @@ boost::system::result<void> argon2id(std::span<std::uint8_t> output,
 
 }  // namespace webcpp::hash
 
-// backends::sodium when the program links libsodium (ruling R22), after the presets, which its
-// header checks against libsodium's macros: argon2id's default backend is then complete here.
+// backends::sodium when the program links libsodium, after the presets, which its header checks
+// against libsodium's macros: a program that includes only this header gets argon2id's default
+// backend complete here.
 #ifdef WEBCPP_HASH_HAS_SODIUM
 #include <webcpp/hash/backends/sodium.hpp>
 #endif

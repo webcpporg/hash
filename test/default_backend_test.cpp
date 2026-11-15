@@ -7,9 +7,9 @@
 // The default backends without a profile (`auto`, spec 4.1), built once per target with every
 // library the target has and once with none: natively the throughput order's first linked
 // backend that has each operation over each hmac, on WebAssembly the size order's; the
-// invariants of Review Focus 4 and ruling R23; the selection over an order that puts BearSSL
-// first; the selection's fallbacks, with and without libsodium; and each default called, agreeing
-// with backends::hash2 on RFC 5869's A.1.
+// invariants of support/defaults.hpp, each operation's default its own; the selection over an order
+// that puts BearSSL first; the selection's fallbacks, with and without libsodium; and each default
+// called, agreeing with backends::hash2 on RFC 5869's A.1.
 
 #include <webcpp/hash/hkdf.hpp>
 #include <webcpp/hash/kdf.hpp>
@@ -38,7 +38,7 @@ void check_auto() {
     test::check_invariants();
 }
 
-// Ruling R23: the first backend of an order that is linked and has the operation, so an order
+// Per operation, the first backend of an order that is linked and has the operation, so an order
 // that puts BearSSL first gives BearSSL's hkdf and never its two steps alone.
 void check_bearssl_first() {
     using order = backend_list<bearssl, hash2>;

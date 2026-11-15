@@ -8,7 +8,7 @@
 // libsodium's core argon2_ctx with one lane on 20 random cases, every guard of spec 2.10 at its
 // limits, a backend's failure, libsodium's -1 with and without ENOMEM, and the presets against
 // libsodium's. The test includes argon2.hpp alone for argon2id: a program that links libsodium and
-// includes only the function's header gets the backend's engine (ruling R22).
+// includes only the function's header gets the backend's engine.
 
 #include <webcpp/hash/argon2.hpp>
 #include <webcpp/hash/error.hpp>

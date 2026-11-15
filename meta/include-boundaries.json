@@ -29,7 +29,7 @@
                 "include/webcpp/hash/pbkdf2.hpp"
             ],
             "must-not-include": ["xkcp", "blake3", "sodium", "bearssl", "openssl/"],
-            "why": "the key derivations' layer and backends::hash2 include no C library's header: a linked backend's webcpp header comes in under its WEBCPP_HASH_HAS_<NAME> (ruling R22; spec sections 2.12 and 2.13)"
+            "why": "the key derivations' layer and backends::hash2 include no C library's header: a linked backend's webcpp header comes in under its WEBCPP_HASH_HAS_<NAME>, so that a program that includes only a function's header gets its engine (spec sections 2.12 and 2.13)"
         },
         {
             "headers": [
@@ -37,7 +37,7 @@
                 "include/webcpp/hash/scrypt.hpp"
             ],
             "must-not-include": ["xkcp", "blake3", "sodium", "bearssl", "openssl/"],
-            "why": "argon2id and scrypt include no C library's header: backends::sodium's webcpp header comes in under WEBCPP_HASH_HAS_SODIUM (ruling R22; spec sections 2.10 to 2.12)"
+            "why": "argon2id and scrypt include no C library's header: backends::sodium's webcpp header comes in under WEBCPP_HASH_HAS_SODIUM, so that a program that includes only argon2.hpp or scrypt.hpp gets its engine (spec sections 2.10 to 2.12)"
         },
         {
             "headers": [

@@ -181,8 +181,8 @@ struct sodium_hkdf_sha512 {
     */
     static int extract(std::uint8_t* prk, std::span<std::uint8_t const> salt,
                        std::span<std::uint8_t const> ikm) noexcept {
-        // SHA-512's extract declares no IKM nonnull; it is passed as SHA-256's is, so that the two
-        // traits are alike (a deliberate step past R11's letter, harmless).
+        // SHA-512's extract declares no IKM nonnull; it is passed as SHA-256's is all the same, so
+        // that the two traits are alike: a non-null pointer where null is allowed is harmless.
         return crypto_kdf_hkdf_sha512_extract(prk, salt.data(), salt.size(), nonnull(ikm),
                                               ikm.size());
     }
@@ -413,7 +413,7 @@ static_assert(argon2id_sensitive.passes == crypto_pwhash_argon2id_OPSLIMIT_SENSI
                   argon2id_sensitive.memory == crypto_pwhash_argon2id_MEMLIMIT_SENSITIVE,
               "argon2id_sensitive is libsodium's sensitive costs");
 // argon2.hpp's guards are libsodium's bounds, so that libsodium never refuses what they pass and
-// its uint32_t lengths never narrow (ruling R24).
+// its uint32_t lengths never narrow.
 static_assert(argon2id_salt_size == crypto_pwhash_argon2id_SALTBYTES);
 static_assert(argon2id_min_output_size == crypto_pwhash_argon2id_BYTES_MIN);
 static_assert(argon2id_max_size == crypto_pwhash_argon2id_BYTES_MAX);
