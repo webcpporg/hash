@@ -1,0 +1,33 @@
+# Copyright (c) 2026 WebCpp.org
+#
+# Distributed under the Boost Software License, Version 1.0. (See
+# accompanying file LICENSE_1_0.txt or copy at
+# https://www.boost.org/LICENSE_1_0.txt)
+
+# The throughput of PBKDF2-HMAC-SHA-512 at 1,000,000 iterations (spec 4.3).
+# pbkdf2_sha512_key is the correctness test of the measured program: each
+# variant's derived key against an independent value, on every target, never
+# failing on a time. The measurements themselves are made by collect.py, which
+# runs the program built here, doc/performance.adoc renders its data.
+
+project : requirements <library>/webcpp/hash//hash ;
+
+import webcpp ;
+import webcpp-target ;
+
+webcpp.targets native wasip2 wasip3 emscripten ;
+
+# OpenSSL on the targets that have it; Emscripten has none (spec section 5.6).
+rule with-openssl ( properties * )
+{
+    if [ webcpp-target.target-of $(properties) ] in native wasip2 wasip3
+    {
+        return <library>/webcpp/hash//openssl ;
+    }
+}
+
+# Optimised, as a measurement is: collect.py builds it with variant=release
+# optimization=speed too.
+webcpp.run pbkdf2_sha512_key : pbkdf2_sha512.cpp
+  : <library>/third_party//sodium <conditional>@with-openssl
+    <optimization>speed ;
