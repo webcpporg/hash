@@ -1,0 +1,15 @@
+# The bench inherits the superproject's configuration and switches off one
+# option.
+#
+# bugprone-exception-escape.CheckMain treats the bench's main as a function
+# that should not throw. The bench is a short program that lets what the
+# standard library may throw, a std::bad_alloc from a vector that grows, end
+# the process uncaught, as the examples and the tests do (their own
+# .clang-tidy); a measurement that dies so is a failed run, not a defect. The
+# check stays on for everything else: a noexcept function, a destructor, a
+# move or a swap.
+---
+InheritParentConfig: true
+CheckOptions:
+  - key: bugprone-exception-escape.CheckMain
+    value: 'false'

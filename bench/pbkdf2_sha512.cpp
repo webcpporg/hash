@@ -271,7 +271,6 @@ int check_every(const std::vector<variant>& all) {
 
 }  // namespace
 
-// NOLINTNEXTLINE(bugprone-exception-escape): a bad_alloc of the vectors ends the program, a failure
 int main(int argc, char** argv) {
     const std::vector<variant> all = variants();
     const std::vector<std::string_view> args(argv + 1, argv + argc);
