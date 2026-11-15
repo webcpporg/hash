@@ -164,6 +164,14 @@ hash-run openssl_one_copy : openssl_one_copy_test.cpp
 webcpp.compile-fail openssl_named_on_emscripten : hkdf_hash2_test.cpp
   : <library>/webcpp/hash//openssl : emscripten ;
 
+# WebCrypto, node's crypto.subtle, as an outside oracle (Emscripten only, the
+# default JSPI link): 200 random cases per function and hash, SHA-1, SHA-256,
+# SHA-384 and SHA-512, of the digests, the hmacs, HKDF and PBKDF2, against
+# Boost.Hash2 and every backend linked there (libsodium's two HKDFs, BearSSL).
+hash-run webcrypto_oracle : webcrypto_oracle_test.cpp
+  : <library>/third_party//sodium <library>/third_party//bearssl
+    <linkflags>-sJSPI : emscripten ;
+
 build-project messages ;
 
 # The C libraries' own suites, in the own lane c-suites.
