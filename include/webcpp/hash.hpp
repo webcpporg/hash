@@ -12,6 +12,9 @@
 #define WEBCPP_HASH_HPP
 
 #include <webcpp/hash/config.hpp>
+
+#include <webcpp/hash/algorithms.hpp>
 #include <webcpp/hash/error.hpp>
+#include <webcpp/hash/hmac.hpp>
 
 #endif  // WEBCPP_HASH_HPP

@@ -7,6 +7,14 @@
             ],
             "must-not-include": ["xkcp", "blake3", "sodium", "bearssl", "openssl/"],
             "why": "a program that only configures webcpp::hash or names its errors names no C library (spec section 2.1)"
+        },
+        {
+            "headers": [
+                "include/webcpp/hash/algorithms.hpp",
+                "include/webcpp/hash/hmac.hpp"
+            ],
+            "must-not-include": ["xkcp", "blake3", "sodium", "bearssl", "openssl/"],
+            "why": "Boost.Hash2's algorithms and HMAC need nothing but Boost (spec section 2.1)"
         }
     ]
 }
