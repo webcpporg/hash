@@ -61,9 +61,9 @@ on Emscripten. A program defines these for every translation unit, in its
 Jamfile (`<define>WEBCPP_HASH_PROFILE_SMALLEST`); on MSVC the linker refuses
 two translation units that choose differently.
 
-The default is chosen per function: `hkdf_extract` and `hkdf_expand` follow
-HKDF's order but skip a backend that has HKDF only whole (BearSSL), so that no
-profile makes them refuse. `backends::hash2` is always a candidate, so every
+The default is chosen per function: `hkdf_extract` and `hkdf_expand` each
+have their own measured order, never a backend that has HKDF only whole
+(BearSSL), so that no profile makes them refuse. `backends::hash2` is always a candidate, so every
 function has a default with no library linked. The order of each profile on
 each target, for each function, is in the function's section (as
 <<hash-hkdf>>), generated from the measured data below; the data is measured

@@ -185,14 +185,14 @@ struct algorithm_of {
     using type = Algorithm;
 };
 
-/** HKDF-Extract follows HKDF. */
+/** HKDF-Extract follows HKDF's override. */
 template <>
 struct algorithm_of<kdfs::hkdf_extract> {
     /** HKDF. */
     using type = kdfs::hkdf;
 };
 
-/** HKDF-Expand follows HKDF. */
+/** HKDF-Expand follows HKDF's override. */
 template <>
 struct algorithm_of<kdfs::hkdf_expand> {
     /** HKDF. */

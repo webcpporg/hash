@@ -231,7 +231,8 @@ struct hkdf;
 
  A tag, declared and never defined: @ref webcpp::hash::backend_has_v and @ref
  webcpp::hash::default_backend answer for the step through it, so that a backend that has HKDF only
- whole (`backends::bearssl`) is never its default. It follows HKDF's ranking and HKDF's override.
+ whole (`backends::bearssl`) is never its default. The step has its own measured ranking and
+ follows HKDF's override.
 */
 struct hkdf_extract;
 /**
