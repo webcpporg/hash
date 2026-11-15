@@ -58,8 +58,14 @@ webcpp.headers-alone hash : ../include : hash/backends/sodium.hpp
 
 # backends/openssl.hpp compiles alone only with /webcpp/hash//openssl, which
 # defines WEBCPP_HASH_HAS_OPENSSL, on the targets where webcpp builds OpenSSL.
+# Every other C library is linked too, so that every public header compiles
+# with these options (the lint's aggregate translation unit,
+# tools/lint/compile_commands.py).
 webcpp.headers-alone hash : ../include : hash/backends/openssl.hpp
-  : <library>/webcpp/hash//openssl : native wasip2 wasip3 ;
+  : <library>/webcpp/hash//openssl <library>/third_party//xkcp
+    <library>/third_party//blake3 <library>/third_party//bearssl
+    <library>/third_party//sodium
+  : native wasip2 wasip3 ;
 
 # config.hpp defines WEBCPP_HASH_NO_EXCEPTIONS exactly when webcpp has no
 # exceptions, keeps it when a developer defines it, defines it when
