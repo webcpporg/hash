@@ -8,4 +8,4 @@ project : requirements <library>/webcpp/hash//hash ;
 
 import webcpp ;
 
-webcpp.compile-diagnostic blake3_not_linked : blake3_not_linked.cpp : : native wasip2 ;
+webcpp.compile-diagnostic blake3_not_linked : blake3_not_linked.cpp : : native wasip2 wasip3 ;

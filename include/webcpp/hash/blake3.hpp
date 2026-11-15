@@ -110,9 +110,12 @@ public:
     */
     explicit blake3(std::uint64_t seed) noexcept;
     /**
-     Constructs a hash seeded by `n` bytes, as Hash2's blake2b_512 is: plain when `n` is zero;
-     else keyed by the first 32 bytes, zero-padded when there are fewer, the bytes past them
-     absorbed and finalized.
+     Constructs a hash seeded by `n` bytes: plain when `n` is zero; else BLAKE3's keyed hash
+     under the first 32 bytes, zero-padded when there are fewer, with the bytes past them
+     absorbed as the start of the input and one result() taken. That result() only moves the
+     output's position, which the next update() starts again: a seed of 32 bytes `K` and more
+     bytes `R`, then the input `M`, hashes as the seed `K` then the input `R` and `M`. Two seeds
+     of at most 32 bytes that differ only by trailing zero bytes are the same key.
 
      @param p The seed. @param n Its size.
     */
@@ -199,8 +202,7 @@ inline blake3::blake3(unsigned char const* p, std::size_t n) noexcept {
     std::copy_n(p, (std::min)(n, key_size), key.begin());
     blake3_hasher_init_keyed(&hasher_, key.data());
     if (n > key_size) {
-        // The next update sets squeezed_ back to zero, as Hash2's seeded blake2b_512 starts
-        // its output again after its own finalization.
+        // result() only advances squeezed_, which the next update sets back to zero.
         update(p + key_size, n - key_size);
         result();
     }

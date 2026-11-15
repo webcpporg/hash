@@ -146,7 +146,26 @@ webcpp.run xkcp_unit_tests : $(XKCP)/tests/UnitTests/main.c
     <include>$(XKCP)/lib/low/KeccakP-1600/plain-64bits/SnP
     <warnings>off <warnings-as-errors>off ;
 
+# BLAKE3's c/main.c on webcpp's build of BLAKE3, with BLAKE3_TESTING where
+# blake3_dispatch.c reads it (webcpp-blake3-testing=on, a build of the library
+# of its own), driven as BLAKE3's c/test.py drives c/blake3 over every case of
+# test_vectors.json: blake3_main.c compiles main.c with its main and its I/O
+# renamed, and blake3_c_suite.cpp gives it each case's input and argument list
+# and compares every line it prints. cpu_features.c defines, off x86, the two
+# names main.c reads that blake3_dispatch.c defines on x86 alone.
+# blake3_c_suite_corrupted is the same program with one expected line changed,
+# which passes only when exactly that line is reported.
+.blake3-c-suite = blake3_main.c cpu_features.c blake3_c_suite.cpp ;
+.blake3-c-suite-requirements =
+    <library>/third_party//blake3/<webcpp-blake3-testing>on
+    <library>/third_party//blake3_vectors <library>/webcpp//boost_json
+    <warnings>off <warnings-as-errors>off ;
+webcpp.run blake3_c_suite : $(.blake3-c-suite) : $(.blake3-c-suite-requirements) ;
+webcpp.run blake3_c_suite_corrupted : $(.blake3-c-suite)
+  : $(.blake3-c-suite-requirements) <define>WEBCPP_TEST_BLAKE3_CORRUPTED ;
+
 # The lane names its targets, so that the CI runs it on each (an own lane that
 # names none runs natively alone, tools/webcpp.jam's lane rule).
-webcpp.lane c-suites : xkcp_unit_tests sodium_$(.sodium-tests) sodium_writes_nothing
+webcpp.lane c-suites : xkcp_unit_tests blake3_c_suite blake3_c_suite_corrupted
+    sodium_$(.sodium-tests) sodium_writes_nothing
     : native wasip2 wasip3 emscripten ;
