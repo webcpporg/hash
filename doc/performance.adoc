@@ -19,10 +19,13 @@ Measured on 2026-11-15 on Apple M5 Max, 18 cores,
 wasmtime 47.0.3 (5554cc1a6 2026-07-31) (wasip2, wasip3) and node v26.13.0
 (Emscripten); built with variant=release optimization=speed.
 
-WARNING: the machine was shared and loaded (many builds ran at once; load averages
-164/174/164 before and 193/176/167
-after, on 18 cores). Each case is the median of its invocations' medians, with the
-fastest and slowest single run beside it: the spread is the honest part of the table.
+Each case is the median of its invocations' medians, with the fastest and slowest
+single run beside it: the spread is part of the result.
+
+WARNING: the machine was shared and loaded while this was measured (many builds
+ran at once; 1, 5 and 15 minute load averages 14/19/42 before and
+40/28/43 after, on 18 cores; rule: the larger of the two 1-minute load averages exceeds the core count).
+Read the spread, not a single figure.
 
 [cols="2,1,1,1,1,3",options="header"]
 |===
@@ -30,79 +33,79 @@ fastest and slowest single run beside it: the spread is the honest part of the t
 
 | backends::hash2
 | native
-| 726
-| 578
-| 808
+| 351
+| 342
+| 384
 | Apple LLVM 21.0.0 (clang-2100.4.1.1)
 
 | backends::hash2
 | wasip2
-| 1053
-| 881
-| 1122
+| 512
+| 486
+| 855
 | Clang 23.1.0-wasi-sdk (https://github.com/llvm/llvm-project 895aa2c896ada719451be2e3673c83da8ddf1141)
 
 | backends::hash2
 | wasip3
-| 1149
-| 934
-| 1439
+| 623
+| 502
+| 1092
 | Clang 23.1.0-wasi-sdk (https://github.com/llvm/llvm-project 895aa2c896ada719451be2e3673c83da8ddf1141)
 
 | backends::hash2
 | emscripten
-| 1075
-| 1038
-| 1906
+| 583
+| 501
+| 798
 | Clang 24.0.0git (https:/github.com/llvm/llvm-project f718ebe873411a562ef6e5c27da36d75b7aaec98)
 
 | backends::openssl
 | native
-| 323
-| 207
-| 428
+| 177
+| 174
+| 244
 | Apple LLVM 21.0.0 (clang-2100.4.1.1)
 
 | backends::openssl
 | wasip2
-| 1083
-| 932
-| 1284
+| 686
+| 479
+| 782
 | Clang 23.1.0-wasi-sdk (https://github.com/llvm/llvm-project 895aa2c896ada719451be2e3673c83da8ddf1141)
 
 | backends::openssl
 | wasip3
-| 1056
-| 845
-| 2190
+| 511
+| 484
+| 658
 | Clang 23.1.0-wasi-sdk (https://github.com/llvm/llvm-project 895aa2c896ada719451be2e3673c83da8ddf1141)
 
-| libsodium HMAC-SHA-512 in PBKDF2's loop
+| sodium crypto_auth_hmacsha512 loop
 | native
-| 810
-| 656
-| 903
+| 517
+| 417
+| 625
 | Apple LLVM 21.0.0 (clang-2100.4.1.1)
 
-| libsodium HMAC-SHA-512 in PBKDF2's loop
+| sodium crypto_auth_hmacsha512 loop
 | wasip2
-| 1961
-| 1643
-| 2149
+| 963
+| 876
+| 1697
 | Clang 23.1.0-wasi-sdk (https://github.com/llvm/llvm-project 895aa2c896ada719451be2e3673c83da8ddf1141)
 
-| libsodium HMAC-SHA-512 in PBKDF2's loop
+| sodium crypto_auth_hmacsha512 loop
 | wasip3
-| 1920
-| 1624
-| 3735
+| 993
+| 860
+| 1666
 | Clang 23.1.0-wasi-sdk (https://github.com/llvm/llvm-project 895aa2c896ada719451be2e3673c83da8ddf1141)
 
-| libsodium HMAC-SHA-512 in PBKDF2's loop
+| sodium crypto_auth_hmacsha512 loop
 | emscripten
-| 1159
-| 1066
-| 1695
+| 579
+| 509
+| 1005
 | Clang 24.0.0git (https:/github.com/llvm/llvm-project f718ebe873411a562ef6e5c27da36d75b7aaec98)
 |===
 

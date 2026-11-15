@@ -10,6 +10,11 @@
     collect.py --exe native=<path> --exe wasip2=<path> ... --invocations 5 \
         --data doc/measurements.throughput.json --page doc/performance.adoc
 
+Run from the superproject's root (the launchers' paths, tools/boost/asio-wasip2/run.sh and
+its wasip3 twin, are relative to it), with the programs bench/Jamfile builds at
+variant=release optimization=speed; --data and --page are relative to the same root, as
+libs/hash/doc/... .
+
 Each case (a variant on a target) is run INVOCATIONS times, round-robin over the
 cases so that a change of load on the shared machine falls on all of them alike;
 each invocation derives the key three times and reports its median. The data
@@ -34,12 +39,17 @@ LAUNCHERS = {
     "emscripten": ["node"],
 }
 TARGETS = ["native", "wasip2", "wasip3", "emscripten"]
-VARIANTS = ["hash2", "openssl", "sodium-hmac"]
-LABELS = {
+# Per variant (the program's argument): the library backend it measures, or None for the
+# benchmark's own loop, and the implementation, which is the column of the page.
+OPERATION = "pbkdf2"
+HMAC = "hmac_sha2_512"
+BACKENDS = {"hash2": "hash2", "openssl": "openssl", "sodium-hmac": None}
+IMPLEMENTATIONS = {
     "hash2": "backends::hash2",
     "openssl": "backends::openssl",
-    "sodium-hmac": "libsodium HMAC-SHA-512 in PBKDF2's loop",
+    "sodium-hmac": "sodium crypto_auth_hmacsha512 loop",
 }
+VARIANTS = list(BACKENDS)
 
 
 def median(values):
@@ -83,18 +93,20 @@ def run_case(target, exe, variant):
     return json.loads(done.stdout.strip().splitlines()[-1])
 
 
-def has_variant(target, exe, variant):
-    command = LAUNCHERS[target] + [exe, variant, "--runs", "1"]
+def variants_of(target, exe):
+    """The variants the program was built with, which it lists without deriving a key."""
+    command = LAUNCHERS[target] + [exe, "--list"]
     done = subprocess.run(command, capture_output=True, text=True, check=False)
-    return done.returncode != 2
+    if done.returncode != 0:
+        sys.exit(f"{target}: --list exit {done.returncode}\n{done.stdout}{done.stderr}")
+    return done.stdout.split()
 
 
 def measure(exes, invocations):
     cases = {}
     for target, exe in exes.items():
-        for variant in VARIANTS:
-            if has_variant(target, exe, variant):
-                cases[(target, variant)] = {"exe": exe, "results": []}
+        for variant in variants_of(target, exe):
+            cases[(target, variant)] = {"exe": exe, "results": []}
     loads = [os.getloadavg()]
     for _ in range(invocations):
         for (target, variant), case in cases.items():
@@ -110,8 +122,12 @@ def measure(exes, invocations):
         runs = [t for r in results for t in r["runs_ms"]]
         out.append(
             {
-                "backend": variant,
+                "operation": OPERATION,
+                "hmac": HMAC,
                 "target": target,
+                "backend": BACKENDS[variant],
+                "implementation": IMPLEMENTATIONS[variant],
+                "variant": variant,
                 "compiler": results[0]["compiler"],
                 "iterations": results[0]["iterations"],
                 "derived_bytes": 64,
@@ -124,14 +140,15 @@ def measure(exes, invocations):
                 "key_correct": True,
             }
         )
+    cores = os.cpu_count() or 1
+    peak = max(loads[0][0], loads[1][0])
     return {
         "measurement": "pbkdf2-hmac-sha-512, 1,000,000 iterations, 64 bytes",
         "date": datetime.date.today().isoformat(),
         "machine": machine(),
         "load_average_before_after": [list(loads[0]), list(loads[1])],
-        "shared_and_loaded": True,
-        "note": "Measured on a shared machine under heavy load from many concurrent builds: "
-        "read the spread, not a single figure. A time is a measurement, never a pass or fail.",
+        "loaded": peak > cores,
+        "loaded_rule": "the larger of the two 1-minute load averages exceeds the core count",
         "build": "variant=release optimization=speed",
         "cases": out,
     }
@@ -143,7 +160,7 @@ def fmt_load(load):
 
 def render(data, page):
     machine_info = data["machine"]
-    cases = {(c["backend"], c["target"]): c for c in data["cases"]}
+    cases = {(c["variant"], c["target"]): c for c in data["cases"]}
     lines = [
         "// Copyright (c) 2026 WebCpp.org",
         "//",
@@ -166,12 +183,21 @@ def render(data, page):
         f"{machine_info['wasmtime']} (wasip2, wasip3) and node {machine_info['node']}",
         f"(Emscripten); built with {data['build']}.",
         "",
-        "WARNING: the machine was shared and loaded (many builds ran at once; load averages",
-        f"{fmt_load(data['load_average_before_after'][0])} before and "
-        f"{fmt_load(data['load_average_before_after'][1])}",
-        f"after, on {machine_info['cores']} cores). Each case is the median of its invocations' medians, with the",
-        "fastest and slowest single run beside it: the spread is the honest part of the table.",
+        "Each case is the median of its invocations' medians, with the fastest and slowest",
+        "single run beside it: the spread is part of the result.",
         "",
+    ]
+    if data["loaded"]:
+        load = data["load_average_before_after"]
+        lines += [
+            "WARNING: the machine was shared and loaded while this was measured (many builds",
+            f"ran at once; 1, 5 and 15 minute load averages {fmt_load(load[0])} before and",
+            f"{fmt_load(load[1])} after, on {machine_info['cores']} cores; rule: "
+            f"{data['loaded_rule']}).",
+            "Read the spread, not a single figure.",
+            "",
+        ]
+    lines += [
         '[cols="2,1,1,1,1,3",options="header"]',
         "|===",
         "| Backend | Target | Median (ms) | Fastest run (ms) | Slowest run (ms) | Compiler",
@@ -183,7 +209,7 @@ def render(data, page):
                 continue
             lines += [
                 "",
-                f"| {LABELS[variant]}",
+                f"| {c['implementation']}",
                 f"| {target}",
                 f"| {c['median_ms']:.0f}",
                 f"| {c['min_ms']:.0f}",
@@ -204,7 +230,7 @@ def render(data, page):
 
 
 def main():
-    parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
+    parser = argparse.ArgumentParser(description="Measures bench/pbkdf2_sha512.cpp on each target.")
     parser.add_argument("--exe", action="append", default=[], metavar="TARGET=PATH")
     parser.add_argument("--invocations", type=int, default=5)
     parser.add_argument("--data", required=True)

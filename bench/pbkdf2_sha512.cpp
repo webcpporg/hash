@@ -13,13 +13,14 @@
 //                target: a measurement of libsodium's HMAC-SHA-512 in PBKDF2's shape, never part
 //                of the library (libsodium has no PBKDF2).
 //
-// Run with a variant, `pbkdf2_sha512 <variant> [--runs N]`, it derives the key N times (3 by
-// default) and prints one JSON line: the variant, target, compiler, iterations, every run's
-// milliseconds, their median, minimum and maximum, and whether every derived key equals the
-// independent value. Run with no argument, it is the correctness test: every variant the program
-// has derives the key once, after agreeing with backends::hash2 at 1,000 iterations, and the
-// program exits 0 only when each key equals the independent value (Python's hashlib.pbkdf2_hmac
-// over OpenSSL, computed outside this repository's code). A measurement never fails on its time.
+// Run with a variant, `pbkdf2_sha512 <variant> [--runs N]` (or `--list`, which prints the variants
+// this build has), it derives the key N times (3 by default) and prints one JSON line: the variant,
+// target, compiler, iterations, every run's milliseconds, their median, minimum and maximum, and
+// whether every derived key equals the independent value. Run with no argument, it is the
+// correctness test: every variant the program has derives the key once, after agreeing with
+// backends::hash2 at 1,000 iterations, and the program exits 0 only when each key equals the
+// independent value (Python's hashlib.pbkdf2_hmac over OpenSSL, computed outside this repository's
+// code). A measurement never fails on its time.
 
 #include <webcpp/hash/hmac.hpp>
 #include <webcpp/hash/pbkdf2.hpp>
@@ -31,12 +32,12 @@
 
 #include <algorithm>
 #include <array>
+#include <cerrno>
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
-#include <cstring>
 #include <span>
 #include <string>
 #include <string_view>
@@ -209,14 +210,51 @@ int measure(const variant& v, int runs) {
     return correct ? 0 : 1;
 }
 
+// The exit codes: 0 the keys are right, 1 a wrong key, 64 a usage error, 65 a variant this build
+// does not have. A time is never an exit code.
+constexpr int exit_wrong_key = 1;
+constexpr int exit_usage = 64;
+constexpr int exit_no_variant = 65;
+
+// `--runs N` parsed whole, N a positive int; false otherwise.
+bool parse_runs(const char* text, int& runs) {
+    char* end = nullptr;
+    errno = 0;
+    const long value = std::strtol(text, &end, 10);
+    if (errno != 0 || end == text || *end != '\0' || value < 1 || value > 1000) {
+        return false;
+    }
+    runs = static_cast<int>(value);
+    return true;
+}
+
 }  // namespace
 
 int main(int argc, char** argv) {
     const std::vector<variant> all = variants();
-    if (!agree_at_check_iterations(all)) {
-        return 1;
+    const std::vector<std::string_view> args(argv + 1, argv + argc);
+    if (args.size() == 1 && args[0] == "--list") {
+        for (const variant& v : all) {
+            std::printf("%.*s\n", static_cast<int>(v.name.size()), v.name.data());
+        }
+        return 0;
     }
-    if (argc < 2) {
+    int runs = 3;
+    const bool measuring = !args.empty();
+    if (measuring && args[0].starts_with("--")) {
+        std::fprintf(stderr, "usage: pbkdf2_sha512 [--list | <variant> [--runs N]]\n");
+        return exit_usage;
+    }
+    const bool with_runs = args.size() == 3 && args[1] == "--runs";
+    if (args.size() > 3 || args.size() == 2 || (args.size() == 3 && !with_runs) ||
+        (with_runs && !parse_runs(argv[3], runs))) {
+        std::fprintf(stderr, "usage: pbkdf2_sha512 [--list | <variant> [--runs N]]\n");
+        return exit_usage;
+    }
+    if (!agree_at_check_iterations(all)) {
+        return exit_wrong_key;
+    }
+    if (!measuring) {
         bool good = true;
         for (const variant& v : all) {
             double elapsed = 0;
@@ -225,21 +263,13 @@ int main(int argc, char** argv) {
                         same ? "correct" : "WRONG");
             good = good && same;
         }
-        return good ? 0 : 1;
-    }
-    int runs = 3;
-    if (argc >= 4 && std::strcmp(argv[2], "--runs") == 0) {
-        runs = std::atoi(argv[3]);
-    }
-    if (runs < 1) {
-        std::fprintf(stderr, "usage: pbkdf2_sha512 [<variant> [--runs N]]\n");
-        return 2;
+        return good ? 0 : exit_wrong_key;
     }
     for (const variant& v : all) {
-        if (v.name == argv[1]) {
-            return measure(v, runs);
+        if (v.name == args[0]) {
+            return measure(v, runs) == 0 ? 0 : exit_wrong_key;
         }
     }
     std::fprintf(stderr, "this build has no variant '%s'\n", argv[1]);
-    return 2;
+    return exit_no_variant;
 }
