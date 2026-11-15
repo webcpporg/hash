@@ -3,6 +3,7 @@
         {
             "headers": [
                 "include/webcpp/hash/config.hpp",
+                "include/webcpp/hash/detail/overrides.hpp",
                 "include/webcpp/hash/error.hpp"
             ],
             "must-not-include": ["xkcp", "blake3", "sodium", "bearssl", "openssl/"],

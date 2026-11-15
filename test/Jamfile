@@ -6,6 +6,7 @@
 
 project : requirements <library>/webcpp/hash//hash ;
 
+import regex ;
 import webcpp ;
 
 webcpp.targets native wasip2 wasip3 emscripten ;
@@ -28,6 +29,7 @@ webcpp.headers-alone hash : ../include :
     hash/config.hpp
     hash/detail/engines.hpp
     hash/detail/limits.hpp
+    hash/detail/overrides.hpp
     hash/detail/ranking.hpp
     hash/detail/wipe.hpp
     hash/detail/xkcp.hpp
@@ -206,6 +208,76 @@ hash-run scrypt : scrypt_test.cpp : <library>/third_party//sodium ;
 # each in 5 to 25 seconds unoptimised (wasmtime 47.0.3, node 26.13).
 hash-run scrypt_rfc7914_large : scrypt_rfc7914_large_test.cpp
   : <library>/third_party//sodium ;
+
+# The default backends (spec 4.1), each with every library the target has:
+# libsodium and BearSSL everywhere, OpenSSL where webcpp builds it. Without a
+# profile (and once with no library at all); with each library profile; with
+# a named backend (BearSSL, whose hkdf_extract and hkdf_expand keep auto's
+# choice, ruling R23; libsodium); with an override beside a profile; with
+# webcpp's umbrella profile, alone, under the library's, and under an
+# override.
+rule hash-default ( name : sources + : requirements * )
+{
+    hash-run $(name) : $(sources)
+      : $(requirements) <library>/third_party//sodium
+        <library>/third_party//bearssl <library>/webcpp/hash//openssl
+      : native wasip2 wasip3 ;
+    hash-run $(name)_emscripten : $(sources)
+      : $(requirements) <library>/third_party//sodium
+        <library>/third_party//bearssl
+      : emscripten ;
+}
+hash-default default_backend : default_backend_test.cpp ;
+hash-run default_backend_hash2 : default_backend_test.cpp ;
+hash-default default_fastest : default_fastest_test.cpp
+  : <define>WEBCPP_HASH_PROFILE_FASTEST ;
+hash-default default_smallest : default_smallest_test.cpp
+  : <define>WEBCPP_HASH_PROFILE_SMALLEST ;
+hash-default default_portable : default_portable_test.cpp
+  : <define>WEBCPP_HASH_PROFILE_PORTABLE ;
+hash-default default_named_bearssl : default_named_test.cpp
+  : <define>WEBCPP_HASH_PROFILE_BACKEND_BEARSSL ;
+hash-default default_named_sodium : default_named_test.cpp
+  : <define>WEBCPP_HASH_PROFILE_BACKEND_SODIUM ;
+hash-default default_override : default_override_test.cpp
+  : <define>WEBCPP_HASH_DEFAULT_BACKEND_HKDF_SODIUM
+    <define>WEBCPP_HASH_PROFILE_FASTEST ;
+hash-default default_umbrella : default_umbrella_test.cpp
+  : <define>WEBCPP_PROFILE_SMALLEST ;
+hash-default default_umbrella_library : default_umbrella_test.cpp
+  : <define>WEBCPP_PROFILE_SMALLEST <define>WEBCPP_HASH_PROFILE_PORTABLE ;
+hash-run default_umbrella_override : default_umbrella_test.cpp
+  : <define>WEBCPP_PROFILE_SMALLEST <define>WEBCPP_HASH_PROFILE_PORTABLE
+    <define>WEBCPP_HASH_DEFAULT_BACKEND_HKDF_OPENSSL
+    <library>/third_party//sodium <library>/third_party//bearssl
+    <library>/webcpp/hash//openssl
+  : native wasip2 wasip3 ;
+# An override that selects OpenSSL refuses an Emscripten program (its message,
+# as the profile's, is a fixture of tools/test/hash_jamfiles_test.py); the
+# source builds and runs there without the define.
+webcpp.compile-fail override_openssl_on_emscripten : hkdf_hash2_test.cpp
+  : <define>WEBCPP_HASH_DEFAULT_BACKEND_HKDF_OPENSSL : emscripten ;
+
+# doc/capabilities.json against backend_has_v cell by cell, and the refusal
+# texts of the headers against its rows; detail/overrides.hpp against its
+# algorithms and backends. Read at run time from the directories the defines
+# give, quoted as wycheproof's are, with forward slashes (ruling R10).
+path-constant HASH_TEST_DOC : ../doc ;
+path-constant HASH_TEST_INCLUDE : ../include ;
+.hash-doc = [ regex.replace $(HASH_TEST_DOC) "\\\\" "/" ] ;
+.hash-include = [ regex.replace $(HASH_TEST_INCLUDE) "\\\\" "/" ] ;
+.hash-tables =
+    <library>/webcpp//boost_json
+    <define>"\"WEBCPP_TEST_HASH_DOC=\\\"$(.hash-doc)\\\"\""
+    <define>"\"WEBCPP_TEST_HASH_INCLUDE=\\\"$(.hash-include)\\\"\""
+    [ webcpp.data $(HASH_TEST_DOC) $(HASH_TEST_INCLUDE) ]
+    <dependency>../doc/capabilities.json
+    <dependency>../include/webcpp/hash/backends/bearssl.hpp
+    <dependency>../include/webcpp/hash/backends/openssl.hpp
+    <dependency>../include/webcpp/hash/backends/sodium.hpp
+    <dependency>../include/webcpp/hash/detail/overrides.hpp ;
+hash-run capabilities : capabilities_test.cpp : $(.hash-tables) ;
+hash-run overrides_list : overrides_list_test.cpp : $(.hash-tables) ;
 
 build-project messages ;
 

@@ -35,14 +35,15 @@
 #include <webcpp/hash/kdf.hpp>
 
 // The backends the program links, each under its WEBCPP_HASH_HAS_<NAME>: default_kdf_backend
-// names only a backend whose engines are visible here.
-#ifdef WEBCPP_HASH_HAS_BEARSSL
+// names only a backend whose engines are visible here. A backend an override names comes in too,
+// so that an override of a backend the program does not link stops with its header's message.
+#if defined(WEBCPP_HASH_HAS_BEARSSL) || defined(WEBCPP_HASH_DETAIL_OVERRIDES_BEARSSL)
 #include <webcpp/hash/backends/bearssl.hpp>
 #endif
-#ifdef WEBCPP_HASH_HAS_SODIUM
+#if defined(WEBCPP_HASH_HAS_SODIUM) || defined(WEBCPP_HASH_DETAIL_OVERRIDES_SODIUM)
 #include <webcpp/hash/backends/sodium.hpp>
 #endif
-#ifdef WEBCPP_HASH_HAS_OPENSSL
+#if defined(WEBCPP_HASH_HAS_OPENSSL) || defined(WEBCPP_HASH_DETAIL_OVERRIDES_OPENSSL)
 #include <webcpp/hash/backends/openssl.hpp>
 #endif
 
@@ -60,14 +61,15 @@ inline constexpr std::size_t hkdf_max_info_size = 32768;
 /**
  HKDF-Extract (RFC 5869, section 2.2): the pseudorandom key of `ikm` under `salt`.
 
- @tparam Hmac The hmac, as `hmac_sha2_256`. @tparam Backend The backend.
+ @tparam Hmac The hmac, as `hmac_sha2_256`. @tparam Backend The backend; by default the one
+ `default_kdf_backend<Hmac, kdfs::hkdf_extract>` chooses, never one that has HKDF only whole.
  @param salt The salt, any length the backend takes; empty means `Hmac`'s digest size of zeros.
  @param ikm The input keying material, any length the backend takes.
  @return The pseudorandom key, an `Hmac::result_type` of the hmac's digest size; or
  `input_too_long` for a salt or an IKM longer than the backend takes (`backends::openssl`: a salt
  of more than `INT_MAX` bytes); or the backend's failure.
 */
-template <class Hmac, class Backend = default_kdf_backend<Hmac>>
+template <class Hmac, class Backend = default_kdf_backend<Hmac, kdfs::hkdf_extract>>
 boost::system::result<typename detail::hmac_result<Hmac>::type> hkdf_extract(
     std::span<std::uint8_t const> salt, std::span<std::uint8_t const> ikm) {
     if constexpr (!detail::takes_hmac<Hmac>()) {
@@ -85,7 +87,8 @@ boost::system::result<typename detail::hmac_result<Hmac>::type> hkdf_extract(
 /**
  HKDF-Expand (RFC 5869, section 2.3): fills `output` from `prk` and `info`.
 
- @tparam Hmac The hmac. @tparam Backend The backend.
+ @tparam Hmac The hmac. @tparam Backend The backend; by default the one
+ `default_kdf_backend<Hmac, kdfs::hkdf_expand>` chooses, never one that has HKDF only whole.
  @param output The output keying material, 1 to 255 times the digest size.
  @param prk The pseudorandom key, of exactly the digest size.
  @param info The context, at most `hkdf_max_info_size` bytes.
@@ -93,7 +96,7 @@ boost::system::result<typename detail::hmac_result<Hmac>::type> hkdf_extract(
  `invalid_key_size`, `input_too_long`, then the backend's own limits: `invalid_output_size`,
  `input_too_long`), `output` untouched; or the backend's failure, `output` zeroed.
 */
-template <class Hmac, class Backend = default_kdf_backend<Hmac>>
+template <class Hmac, class Backend = default_kdf_backend<Hmac, kdfs::hkdf_expand>>
 boost::system::result<void> hkdf_expand(std::span<std::uint8_t> output,
                                         std::span<std::uint8_t const> prk,
                                         std::span<std::uint8_t const> info) {

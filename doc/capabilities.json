@@ -1,0 +1,159 @@
+{
+    "about": "webcpp::hash's capability table (spec section 3.5): which backend implements each public function, over which hmacs, on which targets. backend_has_v is the same table; test/capabilities_test.cpp compares them cell by cell and checks that each refusal text names exactly the backends of its row, and test/overrides_list_test.cpp checks the overrides of detail/overrides.hpp against its algorithms and backends. The documentation renders from it: the backends of each function, and the matrices of functions, backends and targets. A cell holds on every target of its backend.",
+    "schema": 1,
+    "targets": ["native", "wasip2", "wasip3", "emscripten"],
+    "backends": [
+        {
+            "name": "hash2",
+            "tag": "backends::hash2",
+            "macro": "HASH2",
+            "library": "Boost.Hash2's hmac<H>, under webcpp's own HKDF and PBKDF2",
+            "licence": "BSL-1.0",
+            "jamfile": "/webcpp/hash//hash",
+            "targets": ["native", "wasip2", "wasip3", "emscripten"],
+            "portable": true
+        },
+        {
+            "name": "sodium",
+            "tag": "backends::sodium",
+            "macro": "SODIUM",
+            "library": "libsodium 1.0.22",
+            "licence": "ISC",
+            "jamfile": "/third_party//sodium",
+            "targets": ["native", "wasip2", "wasip3", "emscripten"],
+            "portable": true
+        },
+        {
+            "name": "bearssl",
+            "tag": "backends::bearssl",
+            "macro": "BEARSSL",
+            "library": "BearSSL at webcpp::crypto's pin",
+            "licence": "MIT",
+            "jamfile": "/third_party//bearssl",
+            "targets": ["native", "wasip2", "wasip3", "emscripten"],
+            "portable": true
+        },
+        {
+            "name": "openssl",
+            "tag": "backends::openssl",
+            "macro": "OPENSSL",
+            "library": "OpenSSL 3.5.9",
+            "licence": "Apache-2.0",
+            "jamfile": "/webcpp/hash//openssl",
+            "targets": ["native", "wasip2", "wasip3"],
+            "portable": false
+        }
+    ],
+    "hmacs": [
+        "hmac_md5_128",
+        "hmac_sha1_160",
+        "hmac_sha2_224",
+        "hmac_sha2_256",
+        "hmac_sha2_384",
+        "hmac_sha2_512",
+        "hmac_sha2_512_224",
+        "hmac_sha2_512_256",
+        "hmac_sha3_224",
+        "hmac_sha3_256",
+        "hmac_sha3_384",
+        "hmac_sha3_512",
+        "hmac_ripemd_128",
+        "hmac_ripemd_160",
+        "hmac_blake2b_512",
+        "hmac_blake2s_256",
+        "other"
+    ],
+    "hmacs_about": "The aliases of <webcpp/hash/hmac.hpp>; \"other\" is hmac<H> over any other Boost.Hash2 hash whose result is a digest.",
+    "algorithms": [
+        {
+            "name": "hkdf",
+            "macro": "HKDF",
+            "tag": "kdfs::hkdf",
+            "namespace": "kdfs",
+            "standard": "RFC 5869",
+            "header": "webcpp/hash/hkdf.hpp",
+            "functions": [
+                {
+                    "name": "hkdf_extract",
+                    "tag": "kdfs::hkdf_extract",
+                    "backends": {
+                        "hash2": {"since": 1, "hmacs": ["hmac_md5_128", "hmac_sha1_160", "hmac_sha2_224", "hmac_sha2_256", "hmac_sha2_384", "hmac_sha2_512", "hmac_sha2_512_224", "hmac_sha2_512_256", "hmac_sha3_224", "hmac_sha3_256", "hmac_sha3_384", "hmac_sha3_512", "hmac_ripemd_128", "hmac_ripemd_160", "hmac_blake2b_512", "hmac_blake2s_256", "other"]},
+                        "sodium": {"since": 1, "hmacs": ["hmac_sha2_256", "hmac_sha2_512"]},
+                        "openssl": {"since": 1, "hmacs": ["hmac_md5_128", "hmac_sha1_160", "hmac_sha2_224", "hmac_sha2_256", "hmac_sha2_384", "hmac_sha2_512", "hmac_sha2_512_224", "hmac_sha2_512_256", "hmac_sha3_224", "hmac_sha3_256", "hmac_sha3_384", "hmac_sha3_512", "hmac_ripemd_160", "hmac_blake2b_512", "hmac_blake2s_256"]}
+                    }
+                },
+                {
+                    "name": "hkdf_expand",
+                    "tag": "kdfs::hkdf_expand",
+                    "backends": {
+                        "hash2": {"since": 1, "hmacs": ["hmac_md5_128", "hmac_sha1_160", "hmac_sha2_224", "hmac_sha2_256", "hmac_sha2_384", "hmac_sha2_512", "hmac_sha2_512_224", "hmac_sha2_512_256", "hmac_sha3_224", "hmac_sha3_256", "hmac_sha3_384", "hmac_sha3_512", "hmac_ripemd_128", "hmac_ripemd_160", "hmac_blake2b_512", "hmac_blake2s_256", "other"]},
+                        "sodium": {"since": 1, "hmacs": ["hmac_sha2_256", "hmac_sha2_512"]},
+                        "openssl": {"since": 1, "hmacs": ["hmac_md5_128", "hmac_sha1_160", "hmac_sha2_224", "hmac_sha2_256", "hmac_sha2_384", "hmac_sha2_512", "hmac_sha2_512_224", "hmac_sha2_512_256", "hmac_sha3_224", "hmac_sha3_256", "hmac_sha3_384", "hmac_sha3_512", "hmac_ripemd_160", "hmac_blake2b_512", "hmac_blake2s_256"]}
+                    }
+                },
+                {
+                    "name": "hkdf",
+                    "tag": "kdfs::hkdf",
+                    "backends": {
+                        "hash2": {"since": 1, "hmacs": ["hmac_md5_128", "hmac_sha1_160", "hmac_sha2_224", "hmac_sha2_256", "hmac_sha2_384", "hmac_sha2_512", "hmac_sha2_512_224", "hmac_sha2_512_256", "hmac_sha3_224", "hmac_sha3_256", "hmac_sha3_384", "hmac_sha3_512", "hmac_ripemd_128", "hmac_ripemd_160", "hmac_blake2b_512", "hmac_blake2s_256", "other"]},
+                        "sodium": {"since": 1, "hmacs": ["hmac_sha2_256", "hmac_sha2_512"]},
+                        "bearssl": {"since": 1, "hmacs": ["hmac_md5_128", "hmac_sha1_160", "hmac_sha2_224", "hmac_sha2_256", "hmac_sha2_384", "hmac_sha2_512"]},
+                        "openssl": {"since": 1, "hmacs": ["hmac_md5_128", "hmac_sha1_160", "hmac_sha2_224", "hmac_sha2_256", "hmac_sha2_384", "hmac_sha2_512", "hmac_sha2_512_224", "hmac_sha2_512_256", "hmac_sha3_224", "hmac_sha3_256", "hmac_sha3_384", "hmac_sha3_512", "hmac_ripemd_160", "hmac_blake2b_512", "hmac_blake2s_256"]}
+                    }
+                }
+            ]
+        },
+        {
+            "name": "pbkdf2",
+            "macro": "PBKDF2",
+            "tag": "kdfs::pbkdf2",
+            "namespace": "kdfs",
+            "standard": "RFC 8018",
+            "header": "webcpp/hash/pbkdf2.hpp",
+            "functions": [
+                {
+                    "name": "pbkdf2",
+                    "tag": "kdfs::pbkdf2",
+                    "backends": {
+                        "hash2": {"since": 1, "hmacs": ["hmac_md5_128", "hmac_sha1_160", "hmac_sha2_224", "hmac_sha2_256", "hmac_sha2_384", "hmac_sha2_512", "hmac_sha2_512_224", "hmac_sha2_512_256", "hmac_sha3_224", "hmac_sha3_256", "hmac_sha3_384", "hmac_sha3_512", "hmac_ripemd_128", "hmac_ripemd_160", "hmac_blake2b_512", "hmac_blake2s_256", "other"]},
+                        "openssl": {"since": 1, "hmacs": ["hmac_md5_128", "hmac_sha1_160", "hmac_sha2_224", "hmac_sha2_256", "hmac_sha2_384", "hmac_sha2_512", "hmac_sha2_512_224", "hmac_sha2_512_256", "hmac_sha3_224", "hmac_sha3_256", "hmac_sha3_384", "hmac_sha3_512", "hmac_ripemd_160", "hmac_blake2b_512", "hmac_blake2s_256"]}
+                    }
+                }
+            ]
+        },
+        {
+            "name": "argon2id",
+            "macro": "ARGON2ID",
+            "tag": "kdfs::argon2id",
+            "namespace": "kdfs",
+            "standard": "RFC 9106",
+            "header": "webcpp/hash/argon2.hpp",
+            "functions": [
+                {
+                    "name": "argon2id",
+                    "tag": "kdfs::argon2id",
+                    "backends": {
+                        "sodium": {"since": 1, "hmacs": null}
+                    }
+                }
+            ]
+        },
+        {
+            "name": "scrypt",
+            "macro": "SCRYPT",
+            "tag": "kdfs::scrypt",
+            "namespace": "kdfs",
+            "standard": "RFC 7914",
+            "header": "webcpp/hash/scrypt.hpp",
+            "functions": [
+                {
+                    "name": "scrypt",
+                    "tag": "kdfs::scrypt",
+                    "backends": {
+                        "sodium": {"since": 1, "hmacs": null}
+                    }
+                }
+            ]
+        }
+    ]
+}

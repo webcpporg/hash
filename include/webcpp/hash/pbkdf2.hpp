@@ -35,14 +35,15 @@
 #include <webcpp/hash/kdf.hpp>
 
 // The backends the program links, each under its WEBCPP_HASH_HAS_<NAME>: default_kdf_backend
-// names only a backend whose engines are visible here.
-#ifdef WEBCPP_HASH_HAS_BEARSSL
+// names only a backend whose engines are visible here. A backend an override names comes in too,
+// so that an override of a backend the program does not link stops with its header's message.
+#if defined(WEBCPP_HASH_HAS_BEARSSL) || defined(WEBCPP_HASH_DETAIL_OVERRIDES_BEARSSL)
 #include <webcpp/hash/backends/bearssl.hpp>
 #endif
-#ifdef WEBCPP_HASH_HAS_SODIUM
+#if defined(WEBCPP_HASH_HAS_SODIUM) || defined(WEBCPP_HASH_DETAIL_OVERRIDES_SODIUM)
 #include <webcpp/hash/backends/sodium.hpp>
 #endif
-#ifdef WEBCPP_HASH_HAS_OPENSSL
+#if defined(WEBCPP_HASH_HAS_OPENSSL) || defined(WEBCPP_HASH_DETAIL_OVERRIDES_OPENSSL)
 #include <webcpp/hash/backends/openssl.hpp>
 #endif
 

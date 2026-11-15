@@ -28,4 +28,5 @@ of every version are on webcpp's index page.
 * Added bench/pbkdf2_sha512.cpp and doc/performance.adoc: PBKDF2-HMAC-SHA-512 at 1,000,000 iterations measured on every backend and target, with the data in doc/measurements.throughput.json.
 * Added argon2id (RFC 9106, one lane) on backends::sodium, with libsodium's three presets.
 * Added scrypt (RFC 7914) on backends::sodium.
+* Added the default backend's profiles (WEBCPP_HASH_PROFILE_FASTEST, _SMALLEST, _PORTABLE, _BACKEND_<NAME>, and webcpp's WEBCPP_PROFILE_*), the per-algorithm overrides WEBCPP_HASH_DEFAULT_BACKEND_<ALGORITHM>_<NAME>, a default chosen per function (hkdf_extract and hkdf_expand never on a backend that has HKDF only whole), and the capability table doc/capabilities.json.
 // end::unreleased[]

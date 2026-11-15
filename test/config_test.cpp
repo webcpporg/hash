@@ -44,7 +44,9 @@ constexpr bool declared = sizeof(T*) != 0;
 static_assert(declared<webcpp::hash::backends::hash2> && declared<webcpp::hash::backends::sodium> &&
               declared<webcpp::hash::backends::bearssl> &&
               declared<webcpp::hash::backends::openssl> && declared<webcpp::hash::kdfs::hkdf> &&
-              declared<webcpp::hash::kdfs::pbkdf2>);
+              declared<webcpp::hash::kdfs::pbkdf2> && declared<webcpp::hash::kdfs::hkdf_extract> &&
+              declared<webcpp::hash::kdfs::hkdf_expand> && declared<webcpp::hash::kdfs::argon2id> &&
+              declared<webcpp::hash::kdfs::scrypt>);
 
 int main() {
     return 0;
