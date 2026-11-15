@@ -50,6 +50,62 @@ struct ranking {
 };
 
 /**
+ hkdf_extract on wasip2, over hmac_sha2_256, and over every hmac the table does not measure: by size
+ hash2, sodium, openssl; by throughput hash2, sodium, openssl (measured on wasip2).
+*/
+template <class Hmac>
+struct ranking<kdfs::hkdf_extract, Hmac> {
+    /** The smallest program first. */
+    using by_size =
+        backend_list<backends::hash2, backends::sodium, backends::openssl, backends::bearssl>;
+    /** The fastest first. */
+    using by_throughput =
+        backend_list<backends::hash2, backends::sodium, backends::openssl, backends::bearssl>;
+};
+
+/**
+ hkdf_extract on wasip2, over hmac_sha2_512: by size hash2, sodium, openssl; by throughput hash2,
+ sodium, openssl (measured on wasip2).
+*/
+template <>
+struct ranking<kdfs::hkdf_extract, hmac_sha2_512> {
+    /** The smallest program first. */
+    using by_size =
+        backend_list<backends::hash2, backends::sodium, backends::openssl, backends::bearssl>;
+    /** The fastest first. */
+    using by_throughput =
+        backend_list<backends::hash2, backends::sodium, backends::openssl, backends::bearssl>;
+};
+
+/**
+ hkdf_expand on wasip2, over hmac_sha2_256, and over every hmac the table does not measure: by size
+ hash2, sodium, openssl; by throughput hash2, sodium, openssl (measured on wasip2).
+*/
+template <class Hmac>
+struct ranking<kdfs::hkdf_expand, Hmac> {
+    /** The smallest program first. */
+    using by_size =
+        backend_list<backends::hash2, backends::sodium, backends::openssl, backends::bearssl>;
+    /** The fastest first. */
+    using by_throughput =
+        backend_list<backends::hash2, backends::sodium, backends::openssl, backends::bearssl>;
+};
+
+/**
+ hkdf_expand on wasip2, over hmac_sha2_512: by size hash2, sodium, openssl; by throughput hash2,
+ sodium, openssl (measured on wasip2).
+*/
+template <>
+struct ranking<kdfs::hkdf_expand, hmac_sha2_512> {
+    /** The smallest program first. */
+    using by_size =
+        backend_list<backends::hash2, backends::sodium, backends::openssl, backends::bearssl>;
+    /** The fastest first. */
+    using by_throughput =
+        backend_list<backends::hash2, backends::sodium, backends::openssl, backends::bearssl>;
+};
+
+/**
  hkdf on wasip2, over hmac_sha2_256, and over every hmac the table does not measure: by size
  bearssl, hash2, sodium, openssl; by throughput hash2, bearssl, sodium, openssl (measured on
  wasip2).
@@ -65,8 +121,8 @@ struct ranking<kdfs::hkdf, Hmac> {
 };
 
 /**
- hkdf on wasip2, over hmac_sha2_512: by size bearssl, hash2, sodium, openssl; by throughput hash2,
- bearssl, sodium, openssl (measured on wasip2).
+ hkdf on wasip2, over hmac_sha2_512: by size bearssl, hash2, sodium, openssl; by throughput bearssl,
+ hash2, sodium, openssl (measured on wasip2).
 */
 template <>
 struct ranking<kdfs::hkdf, hmac_sha2_512> {
@@ -75,7 +131,7 @@ struct ranking<kdfs::hkdf, hmac_sha2_512> {
         backend_list<backends::bearssl, backends::hash2, backends::sodium, backends::openssl>;
     /** The fastest first. */
     using by_throughput =
-        backend_list<backends::hash2, backends::bearssl, backends::sodium, backends::openssl>;
+        backend_list<backends::bearssl, backends::hash2, backends::sodium, backends::openssl>;
 };
 
 /**
@@ -93,7 +149,7 @@ struct ranking<kdfs::pbkdf2, Hmac> {
 };
 
 /**
- pbkdf2 on wasip2, over hmac_sha2_512: by size hash2, openssl; by throughput hash2, openssl
+ pbkdf2 on wasip2, over hmac_sha2_512: by size hash2, openssl; by throughput openssl, hash2
  (measured on wasip2).
 */
 template <>
@@ -103,7 +159,7 @@ struct ranking<kdfs::pbkdf2, hmac_sha2_512> {
         backend_list<backends::hash2, backends::openssl, backends::sodium, backends::bearssl>;
     /** The fastest first. */
     using by_throughput =
-        backend_list<backends::hash2, backends::openssl, backends::sodium, backends::bearssl>;
+        backend_list<backends::openssl, backends::hash2, backends::sodium, backends::bearssl>;
 };
 
 /**
@@ -153,6 +209,62 @@ struct ranking {
 };
 
 /**
+ hkdf_extract on wasip3, over hmac_sha2_256, and over every hmac the table does not measure: by size
+ hash2, sodium, openssl; by throughput hash2, sodium, openssl (measured on wasip3).
+*/
+template <class Hmac>
+struct ranking<kdfs::hkdf_extract, Hmac> {
+    /** The smallest program first. */
+    using by_size =
+        backend_list<backends::hash2, backends::sodium, backends::openssl, backends::bearssl>;
+    /** The fastest first. */
+    using by_throughput =
+        backend_list<backends::hash2, backends::sodium, backends::openssl, backends::bearssl>;
+};
+
+/**
+ hkdf_extract on wasip3, over hmac_sha2_512: by size hash2, sodium, openssl; by throughput hash2,
+ sodium, openssl (measured on wasip3).
+*/
+template <>
+struct ranking<kdfs::hkdf_extract, hmac_sha2_512> {
+    /** The smallest program first. */
+    using by_size =
+        backend_list<backends::hash2, backends::sodium, backends::openssl, backends::bearssl>;
+    /** The fastest first. */
+    using by_throughput =
+        backend_list<backends::hash2, backends::sodium, backends::openssl, backends::bearssl>;
+};
+
+/**
+ hkdf_expand on wasip3, over hmac_sha2_256, and over every hmac the table does not measure: by size
+ hash2, sodium, openssl; by throughput hash2, sodium, openssl (measured on wasip3).
+*/
+template <class Hmac>
+struct ranking<kdfs::hkdf_expand, Hmac> {
+    /** The smallest program first. */
+    using by_size =
+        backend_list<backends::hash2, backends::sodium, backends::openssl, backends::bearssl>;
+    /** The fastest first. */
+    using by_throughput =
+        backend_list<backends::hash2, backends::sodium, backends::openssl, backends::bearssl>;
+};
+
+/**
+ hkdf_expand on wasip3, over hmac_sha2_512: by size hash2, sodium, openssl; by throughput hash2,
+ sodium, openssl (measured on wasip3).
+*/
+template <>
+struct ranking<kdfs::hkdf_expand, hmac_sha2_512> {
+    /** The smallest program first. */
+    using by_size =
+        backend_list<backends::hash2, backends::sodium, backends::openssl, backends::bearssl>;
+    /** The fastest first. */
+    using by_throughput =
+        backend_list<backends::hash2, backends::sodium, backends::openssl, backends::bearssl>;
+};
+
+/**
  hkdf on wasip3, over hmac_sha2_256, and over every hmac the table does not measure: by size
  bearssl, hash2, sodium, openssl; by throughput hash2, bearssl, sodium, openssl (measured on
  wasip3).
@@ -196,7 +308,7 @@ struct ranking<kdfs::pbkdf2, Hmac> {
 };
 
 /**
- pbkdf2 on wasip3, over hmac_sha2_512: by size hash2, openssl; by throughput hash2, openssl
+ pbkdf2 on wasip3, over hmac_sha2_512: by size hash2, openssl; by throughput openssl, hash2
  (measured on wasip3).
 */
 template <>
@@ -206,7 +318,7 @@ struct ranking<kdfs::pbkdf2, hmac_sha2_512> {
         backend_list<backends::hash2, backends::openssl, backends::sodium, backends::bearssl>;
     /** The fastest first. */
     using by_throughput =
-        backend_list<backends::hash2, backends::openssl, backends::sodium, backends::bearssl>;
+        backend_list<backends::openssl, backends::hash2, backends::sodium, backends::bearssl>;
 };
 
 /**
@@ -253,6 +365,62 @@ struct ranking {
     /** The fastest first. */
     using by_throughput =
         backend_list<backends::hash2, backends::sodium, backends::bearssl, backends::openssl>;
+};
+
+/**
+ hkdf_extract on emscripten, over hmac_sha2_256, and over every hmac the table does not measure: by
+ size hash2, sodium; by throughput hash2, sodium (measured on emscripten).
+*/
+template <class Hmac>
+struct ranking<kdfs::hkdf_extract, Hmac> {
+    /** The smallest program first. */
+    using by_size =
+        backend_list<backends::hash2, backends::sodium, backends::bearssl, backends::openssl>;
+    /** The fastest first. */
+    using by_throughput =
+        backend_list<backends::hash2, backends::sodium, backends::bearssl, backends::openssl>;
+};
+
+/**
+ hkdf_extract on emscripten, over hmac_sha2_512: by size sodium, hash2; by throughput hash2, sodium
+ (measured on emscripten).
+*/
+template <>
+struct ranking<kdfs::hkdf_extract, hmac_sha2_512> {
+    /** The smallest program first. */
+    using by_size =
+        backend_list<backends::sodium, backends::hash2, backends::bearssl, backends::openssl>;
+    /** The fastest first. */
+    using by_throughput =
+        backend_list<backends::hash2, backends::sodium, backends::bearssl, backends::openssl>;
+};
+
+/**
+ hkdf_expand on emscripten, over hmac_sha2_256, and over every hmac the table does not measure: by
+ size sodium, hash2; by throughput hash2, sodium (measured on emscripten).
+*/
+template <class Hmac>
+struct ranking<kdfs::hkdf_expand, Hmac> {
+    /** The smallest program first. */
+    using by_size =
+        backend_list<backends::sodium, backends::hash2, backends::bearssl, backends::openssl>;
+    /** The fastest first. */
+    using by_throughput =
+        backend_list<backends::hash2, backends::sodium, backends::bearssl, backends::openssl>;
+};
+
+/**
+ hkdf_expand on emscripten, over hmac_sha2_512: by size sodium, hash2; by throughput sodium, hash2
+ (measured on emscripten).
+*/
+template <>
+struct ranking<kdfs::hkdf_expand, hmac_sha2_512> {
+    /** The smallest program first. */
+    using by_size =
+        backend_list<backends::sodium, backends::hash2, backends::bearssl, backends::openssl>;
+    /** The fastest first. */
+    using by_throughput =
+        backend_list<backends::sodium, backends::hash2, backends::bearssl, backends::openssl>;
 };
 
 /**
@@ -360,8 +528,64 @@ struct ranking {
 };
 
 /**
+ hkdf_extract on native, over hmac_sha2_256, and over every hmac the table does not measure: by size
+ hash2, sodium, openssl; by throughput hash2, sodium, openssl (measured on native).
+*/
+template <class Hmac>
+struct ranking<kdfs::hkdf_extract, Hmac> {
+    /** The smallest program first. */
+    using by_size =
+        backend_list<backends::hash2, backends::sodium, backends::openssl, backends::bearssl>;
+    /** The fastest first. */
+    using by_throughput =
+        backend_list<backends::hash2, backends::sodium, backends::openssl, backends::bearssl>;
+};
+
+/**
+ hkdf_extract on native, over hmac_sha2_512: by size hash2, sodium, openssl; by throughput sodium,
+ hash2, openssl (measured on native).
+*/
+template <>
+struct ranking<kdfs::hkdf_extract, hmac_sha2_512> {
+    /** The smallest program first. */
+    using by_size =
+        backend_list<backends::hash2, backends::sodium, backends::openssl, backends::bearssl>;
+    /** The fastest first. */
+    using by_throughput =
+        backend_list<backends::sodium, backends::hash2, backends::openssl, backends::bearssl>;
+};
+
+/**
+ hkdf_expand on native, over hmac_sha2_256, and over every hmac the table does not measure: by size
+ hash2, sodium, openssl; by throughput sodium, hash2, openssl (measured on native).
+*/
+template <class Hmac>
+struct ranking<kdfs::hkdf_expand, Hmac> {
+    /** The smallest program first. */
+    using by_size =
+        backend_list<backends::hash2, backends::sodium, backends::openssl, backends::bearssl>;
+    /** The fastest first. */
+    using by_throughput =
+        backend_list<backends::sodium, backends::hash2, backends::openssl, backends::bearssl>;
+};
+
+/**
+ hkdf_expand on native, over hmac_sha2_512: by size hash2, sodium, openssl; by throughput sodium,
+ openssl, hash2 (measured on native).
+*/
+template <>
+struct ranking<kdfs::hkdf_expand, hmac_sha2_512> {
+    /** The smallest program first. */
+    using by_size =
+        backend_list<backends::hash2, backends::sodium, backends::openssl, backends::bearssl>;
+    /** The fastest first. */
+    using by_throughput =
+        backend_list<backends::sodium, backends::openssl, backends::hash2, backends::bearssl>;
+};
+
+/**
  hkdf on native, over hmac_sha2_256, and over every hmac the table does not measure: by size hash2,
- bearssl, sodium, openssl; by throughput hash2, sodium, bearssl, openssl (measured on native).
+ bearssl, sodium, openssl; by throughput sodium, hash2, openssl, bearssl (measured on native).
 */
 template <class Hmac>
 struct ranking<kdfs::hkdf, Hmac> {
@@ -370,12 +594,12 @@ struct ranking<kdfs::hkdf, Hmac> {
         backend_list<backends::hash2, backends::bearssl, backends::sodium, backends::openssl>;
     /** The fastest first. */
     using by_throughput =
-        backend_list<backends::hash2, backends::sodium, backends::bearssl, backends::openssl>;
+        backend_list<backends::sodium, backends::hash2, backends::openssl, backends::bearssl>;
 };
 
 /**
- hkdf on native, over hmac_sha2_512: by size hash2, bearssl, sodium, openssl; by throughput hash2,
- sodium, bearssl, openssl (measured on native).
+ hkdf on native, over hmac_sha2_512: by size hash2, bearssl, sodium, openssl; by throughput sodium,
+ openssl, hash2, bearssl (measured on native).
 */
 template <>
 struct ranking<kdfs::hkdf, hmac_sha2_512> {
@@ -384,7 +608,7 @@ struct ranking<kdfs::hkdf, hmac_sha2_512> {
         backend_list<backends::hash2, backends::bearssl, backends::sodium, backends::openssl>;
     /** The fastest first. */
     using by_throughput =
-        backend_list<backends::hash2, backends::sodium, backends::bearssl, backends::openssl>;
+        backend_list<backends::sodium, backends::openssl, backends::hash2, backends::bearssl>;
 };
 
 /**

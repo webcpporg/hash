@@ -19,6 +19,7 @@
 
 #include <webcpp/test/exit_status.hpp>
 
+#include "support/defaults.hpp"
 #include "support/hex.hpp"
 #include "support/rfc5869.hpp"
 
@@ -44,9 +45,8 @@ static_assert(hash::backend_has_v<libsodium, hash::kdfs::hkdf, hash::hmac_sha2_2
 static_assert(hash::backend_has_v<libsodium, hash::kdfs::hkdf, hash::hmac_sha2_512>);
 static_assert(!hash::backend_has_v<libsodium, hash::kdfs::hkdf, hash::hmac_sha1_160>);
 static_assert(!hash::backend_has_v<libsodium, hash::kdfs::pbkdf2, hash::hmac_sha2_512>);
-// With libsodium linked, the default is backends::hash2 or libsodium, whichever
-// detail/ranking.hpp's measured order puts first (on Emscripten libsodium's program is the
-// smaller); never a backend the program does not link.
+// With libsodium linked, the default is backends::hash2 or libsodium, never a backend the
+// program does not link; which one, main checks against the target's generated order.
 static_assert(
     std::is_same_v<hash::default_kdf_backend<hash::hmac_sha2_256>, hash::backends::hash2> ||
     std::is_same_v<hash::default_kdf_backend<hash::hmac_sha2_256>, libsodium>);
@@ -352,5 +352,13 @@ int main() {
     test_empty_inputs<hash::hmac_sha2_256>();
     test_empty_inputs<hash::hmac_sha2_512>();
 
+    // Each operation's default is the first of the target's generated order that the program
+    // links and that has it (natively by throughput, on WebAssembly by size).
+    webcpp::test::for_each_kdf_cell([]<class Operation, class Hmac> {
+        if constexpr (!std::is_same_v<Operation, hash::kdfs::pbkdf2>) {
+            BOOST_TEST_EQ((webcpp::test::name_of<hash::default_kdf_backend<Hmac, Operation>>()),
+                          (webcpp::test::auto_choice<Operation, Hmac>()));
+        }
+    });
     return webcpp::test::exit_status(boost::report_errors());
 }

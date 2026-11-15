@@ -21,7 +21,7 @@ int main() {
     namespace test = webcpp::test;
     BOOST_TEST((std::is_same_v<hash::detail::profile, hash::detail::profiles::fastest>));
     test::for_each_kdf_cell([]<class Operation, class Hmac> {
-        using ranking = hash::detail::ranking<test::algorithm_of<Operation>, Hmac>;
+        using ranking = hash::detail::ranking<Operation, Hmac>;
         test::expect_default<Operation, Hmac>(
             test::first_serving<Operation, Hmac>(typename ranking::by_throughput{}));
     });

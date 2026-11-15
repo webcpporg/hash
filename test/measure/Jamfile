@@ -17,18 +17,24 @@
 # throughput. Each is named with the toolset of its target (native: the
 # command's), so that one build makes them all. measure-programs-<target>-
 # <space|speed|bench>.txt lists them, and bench/'s correctness program
-# (ruling R31). The check runs tools/hash/measure.py --check over the lists:
-# it fails when a program of a cell is missing on a target, when a result is
-# wrong, when the order by size of any row differs from doc/measurements.json,
-# or when a generated file was edited by hand, naming
-# `python3 tools/hash/measure.py --write`, which measures and writes them.
-# A program b2 would skip (<build>no) skips the check with it, without a
-# word: the witness, built after it, stops the build when the check was not
-# generated. None of these targets is in the library's ordinary lanes.
+# (ruling R31). The lane builds the programs for size and bench's: its check,
+# tools/hash/measure.py --check over their lists, runs each once and fails
+# when a program of a cell is missing on a target, when a result is wrong,
+# when the order by size of a row differs from doc/measurements.json (the
+# native rows only when the native toolchain is the one that measured them,
+# ruling R34), or when a generated file was edited by hand, naming
+# `python3 tools/hash/measure.py --write`, which builds every program
+# (measure-programs), measures and writes them. A program b2 would skip
+# (<build>no) skips the check with it, without a word: the witness, built
+# after it, stops the build when the check was not generated. None of these
+# targets is in the library's ordinary lanes.
 import errors ;
+import modules ;
 import notfile ;
 import os ;
 import path ;
+import property-set ;
+import toolset ;
 import webcpp ;
 
 project : requirements <library>/webcpp/hash//hash ;
@@ -100,23 +106,65 @@ actions write-list
     @($(STDOUT):E=$(>:J=$(.nl))$(.nl)) > "$(<)"
 }
 
-local lists ;
+# The command that runs a program on emscripten: the node b2's emscripten
+# toolset was configured with, its testing LAUNCHER, which the target's
+# build gives it (on its own line: launcher "<node>").
+rule write-launcher ( targets * : sources * : properties * )
+{
+    toolset.set-target-variables testing.capture-output $(targets)
+      : [ property-set.create $(properties) ] ;
+}
+
+actions write-launcher
+{
+    @($(STDOUT):E=launcher $(LAUNCHER)$(.nl)) > "$(<)"
+}
+
+local space-lists ;
+local speed-lists ;
 for local target in $(.targets)
 {
-    for local optimization in $(.optimizations)
-    {
-        make measure-programs-$(target)-$(optimization).txt
-          : $(.programs.$(target).$(optimization)) : @write-list ;
-        lists += measure-programs-$(target)-$(optimization).txt ;
-    }
+    make measure-programs-$(target)-space.txt
+      : $(.programs.$(target).space) : @write-list ;
+    make measure-programs-$(target)-speed.txt
+      : $(.programs.$(target).speed) : @write-list ;
     make measure-programs-$(target)-bench.txt
       : ../../bench//pbkdf2_sha512$(.on.$(target)) : @write-list ;
-    lists += measure-programs-$(target)-bench.txt ;
+    space-lists += measure-programs-$(target)-space.txt
+        measure-programs-$(target)-bench.txt ;
+    speed-lists += measure-programs-$(target)-speed.txt ;
 }
-explicit $(lists) ;
+make measure-launcher-emscripten.txt : ../../bench//pbkdf2_sha512
+  : @write-launcher : <toolset>emscripten <target-os>none ;
+space-lists += measure-launcher-emscripten.txt ;
+explicit $(space-lists) $(speed-lists) ;
 
-# Every program, built: what tools/hash/measure.py --write builds.
-alias measure-programs : $(lists) ;
+# Every program, built, and the manifest of their lists: what
+# tools/hash/measure.py --write builds, giving b2
+# -sWEBCPP_HASH_MEASURE_MANIFEST=<file>, where the manifest is copied, so that
+# it reads the lists of this build alone.
+.manifest = [ modules.peek : WEBCPP_HASH_MEASURE_MANIFEST ] ;
+
+rule write-manifest ( targets * : sources * : properties * )
+{
+    ALWAYS $(targets) ;
+    COPY on $(targets) = $(.manifest) ;
+}
+
+actions write-manifest
+{
+    @($(STDOUT):E=$(>:J=$(.nl))$(.nl)) > "$(<)"
+    @($(STDOUT):E=$(>:J=$(.nl))$(.nl)) > "$(COPY)"
+}
+
+if $(.manifest)
+{
+    make measure-programs : $(space-lists) $(speed-lists) : @write-manifest ;
+}
+else
+{
+    alias measure-programs : $(space-lists) $(speed-lists) ;
+}
 explicit measure-programs ;
 
 # The check, which records that it was generated, for the witness. It runs
@@ -136,7 +184,7 @@ actions check
         --programs "$(>)" && echo checked > "$(<)"
 }
 
-make measure-check.txt : $(lists) : @check ;
+make measure-check.txt : $(space-lists) : @check ;
 explicit measure-check.txt ;
 
 # The witness: the check was generated, or the build stops (Review Focus 8:

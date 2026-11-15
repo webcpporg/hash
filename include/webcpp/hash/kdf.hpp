@@ -173,8 +173,9 @@ inline constexpr bool linked_v<backends::openssl> = true;
 #endif
 
 /**
- The algorithm whose ranking and override `Algorithm` follows: HKDF for its two steps, else
- `Algorithm` itself.
+ The algorithm whose override `Algorithm` follows (spec 4.1, ruling R29): HKDF for its two steps,
+ else `Algorithm` itself. Its ranking is its own: `ranking<Algorithm, Hmac>` holds a row per
+ operation.
 
  @tparam Algorithm A tag of `kdfs`.
 */
@@ -264,27 +265,22 @@ struct first_serving<Algorithm, Hmac, backend_list<Backends...>>
 template <class Profile, class Algorithm, class Hmac>
 struct profile_choice
 #ifdef WEBCPP_HASH_WEBASSEMBLY
-    : first_serving<Algorithm, Hmac,
-                    typename ranking<typename algorithm_of<Algorithm>::type, Hmac>::by_size> {
+    : first_serving<Algorithm, Hmac, typename ranking<Algorithm, Hmac>::by_size> {
 };
 #else
-    : first_serving<Algorithm, Hmac,
-                    typename ranking<typename algorithm_of<Algorithm>::type, Hmac>::by_throughput> {
+    : first_serving<Algorithm, Hmac, typename ranking<Algorithm, Hmac>::by_throughput> {
 };
 #endif
 
 /** The fastest on this target, by the measured order. */
 template <class Algorithm, class Hmac>
 struct profile_choice<profiles::fastest, Algorithm, Hmac>
-    : first_serving<Algorithm, Hmac,
-                    typename ranking<typename algorithm_of<Algorithm>::type, Hmac>::by_throughput> {
-};
+    : first_serving<Algorithm, Hmac, typename ranking<Algorithm, Hmac>::by_throughput> {};
 
 /** The smallest on this target, by the measured order. */
 template <class Algorithm, class Hmac>
 struct profile_choice<profiles::smallest, Algorithm, Hmac>
-    : first_serving<Algorithm, Hmac,
-                    typename ranking<typename algorithm_of<Algorithm>::type, Hmac>::by_size> {};
+    : first_serving<Algorithm, Hmac, typename ranking<Algorithm, Hmac>::by_size> {};
 
 /** The first of `portable_order` that serves. */
 template <class Algorithm, class Hmac>
@@ -333,8 +329,8 @@ using default_backend = detail::default_choice<Algorithm, Hmac>::type;
 /**
  The backend `hkdf_extract`, `hkdf_expand`, `hkdf` and `pbkdf2` use when the program names none:
  @ref default_backend of `Kdf` over `Hmac`. Without a profile, natively the fastest linked backend,
- on WebAssembly the smallest, by the measured orders of `detail/ranking.hpp` (the guide's
- measured table: OpenSSL natively for PBKDF2, backends::hash2 on WebAssembly).
+ on WebAssembly the smallest, by the measured orders of `detail/ranking.hpp`, which the guide's
+ measured table (doc/measurements.adoc) shows.
 
  @tparam Hmac A Boost.Hash2 hmac. @tparam Kdf `kdfs::hkdf` (the default), `kdfs::hkdf_extract`,
  `kdfs::hkdf_expand` or `kdfs::pbkdf2`.

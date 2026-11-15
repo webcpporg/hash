@@ -41,7 +41,7 @@ int main() {
         test::expect_default<Operation, Hmac>(
             test::first_serving<Operation, Hmac>(hash::detail::portable_order{}));
 #else
-        using ranking = hash::detail::ranking<test::algorithm_of<Operation>, Hmac>;
+        using ranking = hash::detail::ranking<Operation, Hmac>;
         test::expect_default<Operation, Hmac>(
             test::first_serving<Operation, Hmac>(typename ranking::by_size{}));
 #endif

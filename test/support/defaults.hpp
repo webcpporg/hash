@@ -125,12 +125,6 @@ constexpr std::string_view name_of_hmac() {
     return "other";
 }
 
-// The algorithm whose ranking and override an operation follows.
-template <class Operation>
-using algorithm_of = std::conditional_t<std::is_same_v<Operation, kdfs::hkdf_extract> ||
-                                            std::is_same_v<Operation, kdfs::hkdf_expand>,
-                                        kdfs::hkdf, Operation>;
-
 // Whether the program links each library, read from the HAS macros its target defines.
 #ifdef WEBCPP_HASH_HAS_SODIUM
 inline constexpr bool sodium_linked = true;
@@ -176,7 +170,7 @@ std::string_view first_serving(hash::detail::backend_list<Backend...> /*order*/)
 // the size order's.
 template <class Operation, class Hmac>
 std::string_view auto_choice() {
-    using ranking = hash::detail::ranking<algorithm_of<Operation>, Hmac>;
+    using ranking = hash::detail::ranking<Operation, Hmac>;
 #ifdef WEBCPP_HASH_WEBASSEMBLY
     return first_serving<Operation, Hmac>(typename ranking::by_size{});
 #else
