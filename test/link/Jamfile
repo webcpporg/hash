@@ -1,0 +1,36 @@
+# Copyright (c) 2026 WebCpp.org
+#
+# Distributed under the Boost Software License, Version 1.0. (See
+# accompanying file LICENSE_1_0.txt or copy at
+# https://www.boost.org/LICENSE_1_0.txt)
+
+# The canaries at link time (spec sections 5.4 and 7.6): for each C library, a
+# program that defines its WEBCPP_HASH_HAS_<NAME> by hand, so that its header
+# compiles, calls it, and links no library, fails to link; BLAKE3's of another
+# commit too (XKCP's, libsodium's and BearSSL's are in test/Jamfile, beside
+# their canary tests). Optimised, so that the canary's read is seen to
+# survive. The canary's name in the linker's message is checked on every
+# target by tools/test/hash_jamfiles_test.py (canary_<name>_missing and
+# canary_<name>_other_commit); on MSVC the same cases are under test/msvc/.
+project : requirements <library>/webcpp/hash//hash <optimization>speed ;
+
+import webcpp ;
+
+webcpp.targets native wasip2 wasip3 emscripten ;
+
+path-constant HASH_TEST_THIRD_PARTY : ../../../../third_party/libs ;
+
+webcpp.link-fail canary_xkcp_missing : xkcp.cpp
+  : <define>WEBCPP_HASH_HAS_XKCP=1 ;
+webcpp.link-fail canary_blake3_missing : blake3.cpp
+  : <define>WEBCPP_HASH_HAS_BLAKE3=1
+    <include>$(HASH_TEST_THIRD_PARTY)/blake3/c ;
+webcpp.link-fail canary_sodium_missing : sodium.cpp
+  : <define>WEBCPP_HASH_HAS_SODIUM=1
+    <include>$(HASH_TEST_THIRD_PARTY)/libsodium/src/libsodium/include ;
+webcpp.link-fail canary_bearssl_missing : bearssl.cpp
+  : <define>WEBCPP_HASH_HAS_BEARSSL=1
+    <include>$(HASH_TEST_THIRD_PARTY)/bearssl/inc ;
+webcpp.link-fail canary_blake3_other_commit : blake3.cpp
+  : <library>/third_party//blake3
+    <define>WEBCPP_HASH_BLAKE3_CANARY_COMMIT=0000000 ;

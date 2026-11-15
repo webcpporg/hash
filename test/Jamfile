@@ -318,5 +318,13 @@ hash-run allocation_openssl : allocation_openssl_test.cpp
 
 build-project messages ;
 
+# The canaries at link time, each C library's absence and another commit of
+# BLAKE3's (their names: tools/test/hash_jamfiles_test.py).
+build-project link ;
+# A C library named and not called adds no byte (spec section 7.8).
+build-project unused ;
+# The messages and the canaries on MSVC, built on the msvc lanes alone.
+build-project msvc ;
+
 # The C libraries' own suites, in the own lane c-suites.
 build-project c_suites ;

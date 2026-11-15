@@ -1,0 +1,13 @@
+# Copyright (c) 2026 WebCpp.org
+#
+# Distributed under the Boost Software License, Version 1.0. (See
+# accompanying file LICENSE_1_0.txt or copy at
+# https://www.boost.org/LICENSE_1_0.txt)
+
+import webcpp ;
+
+webcpp.compile-fail pbkdf2_on_sodium
+  : ../../messages/pbkdf2_on_sodium/pbkdf2_on_sodium.cpp
+  : <library>/webcpp/hash//hash
+    <library>/third_party//sodium
+  : native ;

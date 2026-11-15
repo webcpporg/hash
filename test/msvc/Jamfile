@@ -1,0 +1,54 @@
+# Copyright (c) 2026 WebCpp.org
+#
+# Distributed under the Boost Software License, Version 1.0. (See
+# accompanying file LICENSE_1_0.txt or copy at
+# https://www.boost.org/LICENSE_1_0.txt)
+
+# Each message of the build on MSVC (spec section 7.6), a directory per case:
+# on the CI's msvc lanes each case must fail to compile or to link. Their texts
+# are checked on clang (test/messages, a compile-diagnostic per message), and
+# the canaries' names on GNU ld, Apple's ld and wasm-ld by
+# tools/test/hash_jamfiles_test.py; MSVC's are not checked (CODING-GUIDELINES.md
+# chapter 19). A message's case compiles that message's own source, a canary's
+# the source of test/link. Elsewhere than MSVC nothing here is built: the
+# project's requirements make every case <build>no.
+rule msvc-only ( properties * )
+{
+    if ! ( <toolset>msvc in $(properties) )
+    {
+        return <build>no ;
+    }
+}
+
+project : requirements <conditional>@msvc-only ;
+
+build-project argon2id_on_hash2 ;
+build-project bearssl_hmac ;
+build-project bearssl_not_linked ;
+build-project blake3_not_linked ;
+build-project expand_on_bearssl ;
+build-project kdf_not_digest ;
+build-project kdf_not_hmac ;
+build-project openssl_not_linked ;
+build-project override_cannot_serve ;
+build-project pbkdf2_on_bearssl ;
+build-project pbkdf2_on_sodium ;
+build-project ripemd128_on_openssl ;
+build-project scrypt_on_hash2 ;
+build-project sodium_hmac ;
+build-project sodium_not_linked ;
+build-project two_overrides ;
+build-project two_profiles ;
+build-project two_umbrella_profiles ;
+build-project xkcp_not_linked ;
+build-project canary_xkcp_missing ;
+build-project canary_xkcp_other_commit ;
+build-project canary_blake3_missing ;
+build-project canary_blake3_other_commit ;
+build-project canary_sodium_missing ;
+build-project canary_sodium_other_commit ;
+build-project canary_bearssl_missing ;
+build-project canary_bearssl_other_commit ;
+build-project backend_two_files ;
+build-project profile_two_files ;
+build-project override_two_files ;
