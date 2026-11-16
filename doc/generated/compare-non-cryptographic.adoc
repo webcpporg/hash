@@ -77,52 +77,52 @@
 | Name | Fastest natively | Smallest on Emscripten | Where it is used | Choose it when
 
 | <<hash-non-cryptographic-functions,`fnv1a_32`>>
-| 924 MiB/s (hash2)
-| 10,651 bytes (hash2)
+| 1,095 MiB/s (hash2)
+| 5,612 bytes (hash2)
 | link:https://datatracker.ietf.org/doc/draft-eastlake-fnv/[the IETF draft that specifies it]
 | Small tables and identifiers no adversary chooses.
 
 | <<hash-non-cryptographic-functions,`fnv1a_64`>>
-| 924 MiB/s (hash2)
-| 10,661 bytes (hash2)
+| 1,095 MiB/s (hash2)
+| 5,621 bytes (hash2)
 | link:https://datatracker.ietf.org/doc/draft-eastlake-fnv/[the IETF draft that specifies it]
 | Tables and identifiers no adversary chooses.
 
 | <<hash-non-cryptographic-functions,`xxhash_32`>>
-| 10,292 MiB/s (hash2)
-| 11,479 bytes (hash2)
+| 13,461 MiB/s (hash2)
+| 6,369 bytes (hash2)
 | link:https://github.com/Cyan4973/xxHash[xxHash's own repository]
 | Fast checksums against accidents on 32-bit targets.
 
 | <<hash-non-cryptographic-functions,`xxhash_64`>>
-| 20,443 MiB/s (hash2)
-| 11,891 bytes (hash2)
+| 26,846 MiB/s (hash2)
+| 6,757 bytes (hash2)
 | link:https://www.rfc-editor.org/rfc/rfc8878#section-3.1.1[Zstandard's frame checksum]
 | Fast checksums against accidents, as Zstandard's.
 
 | <<hash-non-cryptographic-functions,`xxh3_128`>>
-| 16,075 MiB/s (hash2)
-| 15,996 bytes (hash2)
+| 33,995 MiB/s (hash2)
+| 10,431 bytes (hash2)
 | link:https://github.com/Cyan4973/xxHash[xxHash's own repository]
 | Checksums and identifiers of large data no adversary chooses.
 
 | <<hash-non-cryptographic-functions,`murmur3_32`>>
-| 2,924 MiB/s (hash2)
-| 11,187 bytes (hash2)
+| 3,479 MiB/s (hash2)
+| 6,099 bytes (hash2)
 | link:https://github.com/aappleby/smhasher[its author's SMHasher]
 | To match existing data that uses it.
 
 | <<hash-non-cryptographic-functions,`murmur3_128`>>
-| 7,203 MiB/s (hash2)
-| 11,422 bytes (hash2)
+| 8,618 MiB/s (hash2)
+| 6,315 bytes (hash2)
 | link:https://github.com/aappleby/smhasher[its author's SMHasher]
 | To match existing data that uses it.
 
 | <<hash-non-cryptographic-functions,`spooky2_128`>>
-| 16,349 MiB/s (hash2)
-| 13,571 bytes (hash2)
+| 22,325 MiB/s (hash2)
+| 8,388 bytes (hash2)
 | link:https://burtleburtle.net/bob/hash/spooky.html[its author's page]
 | To match existing data that uses it.
 |===
 
-The measured columns are doc/measurements.json's (2026-11-15, Apple M5 Max): the native throughput over 1 MiB, or the time of one derivation over `hmac_sha2_256`, of the fastest backend, and the smallest Emscripten program that calls the function; <<hash-measurements>> has every backend on every target. The data was measured on a loaded, shared machine, so close figures may swap at the next measurement.
+The measured columns are doc/measurements.json's (2026-11-16, Apple M5 Max): the native throughput over 1 MiB, or the time of one derivation over `hmac_sha2_256`, of the fastest backend, and the smallest Emscripten program that calls the function; <<hash-measurements>> has every backend on every target. The data was measured on a loaded, shared machine, so close figures may swap at the next measurement.

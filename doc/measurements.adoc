@@ -14,7 +14,7 @@ What each backend costs a program on each target, in bytes and in time, as webcp
 downloaded; its throughput is what matters natively. `detail/ranking.hpp`, generated from the
 same data, orders the backends of each key derivation by both, and the default backend follows it.
 
-Measured on 2026-11-15 on Apple M5 Max, 18 cores, 128 GiB, Darwin 27.0.0;
+Measured on 2026-11-16 on Apple M5 Max, 18 cores, 128 GiB, Darwin 27.0.0;
 WebAssembly under wasmtime 47.0.3 (5554cc1a6 2026-07-31) (wasip2, wasip3) and node v26.13.0 (Emscripten).
 Compilers: native: Apple LLVM 21.0.0 (clang-2100.4.1.1); wasip2: Clang 23.1.0-wasi-sdk (https://github.com/llvm/llvm-project 895aa2c896ada719451be2e3673c83da8ddf1141); wasip3: Clang 23.1.0-wasi-sdk (https://github.com/llvm/llvm-project 895aa2c896ada719451be2e3673c83da8ddf1141); emscripten: Clang 24.0.0git (https:/github.com/llvm/llvm-project f718ebe873411a562ef6e5c27da36d75b7aaec98).
 
@@ -22,7 +22,7 @@ The native rows hold for Apple LLVM 21.0.0 (clang-2100.4.1.1) on Darwin arm64, s
 native toolchain gives other native sizes and times.
 
 WARNING: the machine was shared and loaded while this was measured (many builds ran at once;
-1, 5 and 15 minute load averages 180/124/124 before and 217/154/136 after, on 18 cores).
+1, 5 and 15 minute load averages 24/30/21 before and 10/24/20 after, on 18 cores).
 Every time is a median with its spread; read the spread, not a single figure. Sizes do not
 depend on the load.
 
@@ -40,7 +40,7 @@ Sizes: the bytes of the program built at variant=release optimization=space: nat
 | 33768
 | 281545
 | 333340
-| 13160
+| 8039
 
 | sha1_160
 | -
@@ -48,7 +48,7 @@ Sizes: the bytes of the program built at variant=release optimization=space: nat
 | 33776
 | 283792
 | 335587
-| 15407
+| 10285
 
 | sha2_224
 | -
@@ -56,7 +56,7 @@ Sizes: the bytes of the program built at variant=release optimization=space: nat
 | 33776
 | 287715
 | 339510
-| 19237
+| 14116
 
 | sha2_256
 | -
@@ -64,7 +64,7 @@ Sizes: the bytes of the program built at variant=release optimization=space: nat
 | 33776
 | 287713
 | 339508
-| 19235
+| 14108
 
 | sha2_384
 | -
@@ -72,7 +72,7 @@ Sizes: the bytes of the program built at variant=release optimization=space: nat
 | 33776
 | 291186
 | 342981
-| 22704
+| 17579
 
 | sha2_512
 | -
@@ -80,7 +80,7 @@ Sizes: the bytes of the program built at variant=release optimization=space: nat
 | 33776
 | 291196
 | 342991
-| 22713
+| 17582
 
 | sha2_512_224
 | -
@@ -88,7 +88,7 @@ Sizes: the bytes of the program built at variant=release optimization=space: nat
 | 33776
 | 291260
 | 343055
-| 22766
+| 17645
 
 | sha2_512_256
 | -
@@ -96,7 +96,7 @@ Sizes: the bytes of the program built at variant=release optimization=space: nat
 | 33776
 | 291216
 | 343011
-| 22722
+| 17597
 
 | sha3_224
 | -
@@ -104,7 +104,7 @@ Sizes: the bytes of the program built at variant=release optimization=space: nat
 | 33744
 | 280795
 | 332590
-| 12296
+| 7175
 
 | sha3_256
 | -
@@ -112,7 +112,7 @@ Sizes: the bytes of the program built at variant=release optimization=space: nat
 | 33744
 | 280789
 | 332584
-| 12290
+| 7172
 
 | sha3_384
 | -
@@ -120,7 +120,7 @@ Sizes: the bytes of the program built at variant=release optimization=space: nat
 | 33744
 | 280756
 | 332551
-| 12257
+| 7140
 
 | sha3_512
 | -
@@ -128,7 +128,7 @@ Sizes: the bytes of the program built at variant=release optimization=space: nat
 | 33744
 | 280763
 | 332558
-| 12263
+| 7142
 
 | shake_128
 | -
@@ -136,7 +136,7 @@ Sizes: the bytes of the program built at variant=release optimization=space: nat
 | 33744
 | 280776
 | 332571
-| 12271
+| 7151
 
 | shake_256
 | -
@@ -144,7 +144,7 @@ Sizes: the bytes of the program built at variant=release optimization=space: nat
 | 33744
 | 280776
 | 332571
-| 12271
+| 7151
 
 | keccak_256
 | -
@@ -152,7 +152,7 @@ Sizes: the bytes of the program built at variant=release optimization=space: nat
 | 50896
 | 447339
 | 500115
-| 124708
+| 24057
 
 | blake2b_512
 | -
@@ -160,7 +160,7 @@ Sizes: the bytes of the program built at variant=release optimization=space: nat
 | 33824
 | 285501
 | 337296
-| 17106
+| 11982
 
 | blake2s_256
 | -
@@ -168,7 +168,7 @@ Sizes: the bytes of the program built at variant=release optimization=space: nat
 | 33824
 | 284500
 | 336295
-| 16105
+| 10974
 
 | blake3
 | -
@@ -176,7 +176,7 @@ Sizes: the bytes of the program built at variant=release optimization=space: nat
 | 50888
 | 444813
 | 497565
-| 122432
+| 21252
 
 | ripemd_128
 | -
@@ -184,7 +184,7 @@ Sizes: the bytes of the program built at variant=release optimization=space: nat
 | 33776
 | 282942
 | 334737
-| 14542
+| 9421
 
 | ripemd_160
 | -
@@ -192,7 +192,7 @@ Sizes: the bytes of the program built at variant=release optimization=space: nat
 | 33776
 | 285130
 | 336925
-| 16730
+| 11607
 
 | siphash_32
 | -
@@ -200,7 +200,7 @@ Sizes: the bytes of the program built at variant=release optimization=space: nat
 | 33936
 | 279721
 | 331516
-| 11335
+| 6206
 
 | siphash_64
 | -
@@ -208,7 +208,7 @@ Sizes: the bytes of the program built at variant=release optimization=space: nat
 | 33936
 | 279813
 | 331608
-| 11428
+| 6294
 
 | hmac
 | -
@@ -216,7 +216,7 @@ Sizes: the bytes of the program built at variant=release optimization=space: nat
 | 33896
 | 288505
 | 340300
-| 19781
+| 14437
 
 | hmac_md5_128
 | -
@@ -224,7 +224,7 @@ Sizes: the bytes of the program built at variant=release optimization=space: nat
 | 33904
 | 282174
 | 333969
-| 13624
+| 8330
 
 | hmac_sha1_160
 | -
@@ -232,7 +232,7 @@ Sizes: the bytes of the program built at variant=release optimization=space: nat
 | 33904
 | 284428
 | 336223
-| 15876
+| 10569
 
 | hmac_sha2_224
 | -
@@ -240,7 +240,7 @@ Sizes: the bytes of the program built at variant=release optimization=space: nat
 | 33904
 | 288520
 | 340315
-| 19787
+| 14444
 
 | hmac_sha2_256
 | -
@@ -248,7 +248,7 @@ Sizes: the bytes of the program built at variant=release optimization=space: nat
 | 33904
 | 288514
 | 340309
-| 19781
+| 14437
 
 | hmac_sha2_384
 | -
@@ -256,7 +256,7 @@ Sizes: the bytes of the program built at variant=release optimization=space: nat
 | 33904
 | 292121
 | 343916
-| 23384
+| 17975
 
 | hmac_sha2_512
 | -
@@ -264,7 +264,7 @@ Sizes: the bytes of the program built at variant=release optimization=space: nat
 | 33904
 | 292131
 | 343926
-| 23393
+| 17980
 
 | hmac_sha2_512_224
 | -
@@ -272,7 +272,7 @@ Sizes: the bytes of the program built at variant=release optimization=space: nat
 | 33912
 | 292211
 | 344006
-| 23450
+| 18041
 
 | hmac_sha2_512_256
 | -
@@ -280,7 +280,7 @@ Sizes: the bytes of the program built at variant=release optimization=space: nat
 | 33912
 | 292161
 | 343956
-| 23400
+| 17992
 
 | hmac_sha3_224
 | -
@@ -288,7 +288,7 @@ Sizes: the bytes of the program built at variant=release optimization=space: nat
 | 33904
 | 281352
 | 333147
-| 12686
+| 7427
 
 | hmac_sha3_256
 | -
@@ -296,7 +296,7 @@ Sizes: the bytes of the program built at variant=release optimization=space: nat
 | 33904
 | 281340
 | 333135
-| 12674
+| 7416
 
 | hmac_sha3_384
 | -
@@ -304,7 +304,7 @@ Sizes: the bytes of the program built at variant=release optimization=space: nat
 | 33904
 | 281307
 | 333102
-| 12641
+| 7383
 
 | hmac_sha3_512
 | -
@@ -312,7 +312,7 @@ Sizes: the bytes of the program built at variant=release optimization=space: nat
 | 33904
 | 281317
 | 333112
-| 12650
+| 7386
 
 | hmac_ripemd_128
 | -
@@ -320,7 +320,7 @@ Sizes: the bytes of the program built at variant=release optimization=space: nat
 | 33904
 | 283577
 | 335372
-| 15006
+| 9712
 
 | hmac_ripemd_160
 | -
@@ -328,7 +328,7 @@ Sizes: the bytes of the program built at variant=release optimization=space: nat
 | 33904
 | 285770
 | 337565
-| 17199
+| 11897
 
 | hmac_blake2b_512
 | -
@@ -336,7 +336,7 @@ Sizes: the bytes of the program built at variant=release optimization=space: nat
 | 33944
 | 286136
 | 337931
-| 17568
+| 12262
 
 | hmac_blake2s_256
 | -
@@ -344,7 +344,7 @@ Sizes: the bytes of the program built at variant=release optimization=space: nat
 | 33944
 | 285193
 | 336988
-| 16625
+| 11284
 
 | fnv1a_32
 | -
@@ -352,7 +352,7 @@ Sizes: the bytes of the program built at variant=release optimization=space: nat
 | 33728
 | 278890
 | 330685
-| 10651
+| 5612
 
 | fnv1a_64
 | -
@@ -360,7 +360,7 @@ Sizes: the bytes of the program built at variant=release optimization=space: nat
 | 33728
 | 278899
 | 330694
-| 10661
+| 5621
 
 | xxhash_32
 | -
@@ -368,7 +368,7 @@ Sizes: the bytes of the program built at variant=release optimization=space: nat
 | 33776
 | 279897
 | 331692
-| 11479
+| 6369
 
 | xxhash_64
 | -
@@ -376,7 +376,7 @@ Sizes: the bytes of the program built at variant=release optimization=space: nat
 | 33776
 | 280306
 | 332101
-| 11891
+| 6757
 
 | xxh3_128
 | -
@@ -384,7 +384,7 @@ Sizes: the bytes of the program built at variant=release optimization=space: nat
 | 33792
 | 286630
 | 338439
-| 15996
+| 10431
 
 | murmur3_32
 | -
@@ -392,7 +392,7 @@ Sizes: the bytes of the program built at variant=release optimization=space: nat
 | 33776
 | 279519
 | 331314
-| 11187
+| 6099
 
 | murmur3_128
 | -
@@ -400,7 +400,7 @@ Sizes: the bytes of the program built at variant=release optimization=space: nat
 | 33824
 | 279823
 | 331618
-| 11422
+| 6315
 
 | spooky2_128
 | -
@@ -408,7 +408,7 @@ Sizes: the bytes of the program built at variant=release optimization=space: nat
 | 33824
 | 282146
 | 333949
-| 13571
+| 8388
 
 | hkdf_extract
 | hmac_sha2_256
@@ -416,7 +416,7 @@ Sizes: the bytes of the program built at variant=release optimization=space: nat
 | 34288
 | 440872
 | 493623
-| 117928
+| 17499
 
 | hkdf_extract
 | hmac_sha2_256
@@ -424,7 +424,7 @@ Sizes: the bytes of the program built at variant=release optimization=space: nat
 | 70320
 | 524315
 | 578037
-| 118866
+| 24116
 
 | hkdf_extract
 | hmac_sha2_256
@@ -440,7 +440,7 @@ Sizes: the bytes of the program built at variant=release optimization=space: nat
 | 34288
 | 444461
 | 497212
-| 121510
+| 21083
 
 | hkdf_extract
 | hmac_sha2_512
@@ -448,7 +448,7 @@ Sizes: the bytes of the program built at variant=release optimization=space: nat
 | 70320
 | 524866
 | 578587
-| 119420
+| 24591
 
 | hkdf_extract
 | hmac_sha2_512
@@ -464,7 +464,7 @@ Sizes: the bytes of the program built at variant=release optimization=space: nat
 | 34272
 | 521493
 | 574621
-| 122568
+| 29214
 
 | hkdf_expand
 | hmac_sha2_256
@@ -472,7 +472,7 @@ Sizes: the bytes of the program built at variant=release optimization=space: nat
 | 70176
 | 525582
 | 579303
-| 119801
+| 24778
 
 | hkdf_expand
 | hmac_sha2_256
@@ -488,7 +488,7 @@ Sizes: the bytes of the program built at variant=release optimization=space: nat
 | 34272
 | 525076
 | 578204
-| 126145
+| 32787
 
 | hkdf_expand
 | hmac_sha2_512
@@ -496,7 +496,7 @@ Sizes: the bytes of the program built at variant=release optimization=space: nat
 | 70176
 | 526172
 | 579892
-| 120395
+| 25282
 
 | hkdf_expand
 | hmac_sha2_512
@@ -512,7 +512,7 @@ Sizes: the bytes of the program built at variant=release optimization=space: nat
 | 34392
 | 522511
 | 575640
-| 122990
+| 29549
 
 | hkdf
 | hmac_sha2_256
@@ -520,15 +520,15 @@ Sizes: the bytes of the program built at variant=release optimization=space: nat
 | 86984
 | 526820
 | 580540
-| 120437
+| 25335
 
 | hkdf
 | hmac_sha2_256
 | bearssl
-| 52680
+| 52664
 | 515782
 | 568909
-| 116952
+| 23281
 
 | hkdf
 | hmac_sha2_256
@@ -544,7 +544,7 @@ Sizes: the bytes of the program built at variant=release optimization=space: nat
 | 34392
 | 526068
 | 579197
-| 126540
+| 33104
 
 | hkdf
 | hmac_sha2_512
@@ -552,7 +552,7 @@ Sizes: the bytes of the program built at variant=release optimization=space: nat
 | 86984
 | 527393
 | 581113
-| 121015
+| 25822
 
 | hkdf
 | hmac_sha2_512
@@ -560,7 +560,7 @@ Sizes: the bytes of the program built at variant=release optimization=space: nat
 | 52648
 | 516311
 | 569422
-| 117451
+| 23792
 
 | hkdf
 | hmac_sha2_512
@@ -576,7 +576,7 @@ Sizes: the bytes of the program built at variant=release optimization=space: nat
 | 34280
 | 521629
 | 574756
-| 122671
+| 29235
 
 | pbkdf2
 | hmac_sha2_256
@@ -592,7 +592,7 @@ Sizes: the bytes of the program built at variant=release optimization=space: nat
 | 34280
 | 525164
 | 578291
-| 126200
+| 32747
 
 | pbkdf2
 | hmac_sha2_512
@@ -608,7 +608,7 @@ Sizes: the bytes of the program built at variant=release optimization=space: nat
 | 87872
 | 545485
 | 599118
-| 135312
+| 39690
 
 | scrypt
 | -
@@ -616,7 +616,7 @@ Sizes: the bytes of the program built at variant=release optimization=space: nat
 | 87384
 | 533938
 | 587562
-| 122881
+| 29540
 |===
 
 === Throughput
@@ -685,586 +685,586 @@ the range of its runs, the lower figure first. Per function, the workload:
 | md5_128
 | -
 | hash2
-| 787 MiB/s (778 to 821)
-| 646 MiB/s (438 to 657)
-| 489 MiB/s (449 to 657)
-| 647 MiB/s (580 to 679)
+| 919 MiB/s (870 to 936)
+| 776 MiB/s (718 to 783)
+| 780 MiB/s (720 to 783)
+| 772 MiB/s (490 to 779)
 
 | sha1_160
 | -
 | hash2
-| 858 MiB/s (841 to 894)
-| 590 MiB/s (531 to 607)
-| 594 MiB/s (550 to 608)
-| 616 MiB/s (480 to 651)
+| 1197 MiB/s (1157 to 1246)
+| 831 MiB/s (811 to 882)
+| 849 MiB/s (819 to 884)
+| 888 MiB/s (865 to 910)
 
 | sha2_224
 | -
 | hash2
-| 387 MiB/s (377 to 402)
-| 299 MiB/s (295 to 307)
-| 300 MiB/s (275 to 306)
-| 308 MiB/s (179 to 324)
+| 596 MiB/s (570 to 619)
+| 452 MiB/s (444 to 483)
+| 461 MiB/s (445 to 482)
+| 470 MiB/s (451 to 489)
 
 | sha2_256
 | -
 | hash2
-| 385 MiB/s (382 to 388)
-| 301 MiB/s (269 to 306)
-| 304 MiB/s (295 to 306)
-| 309 MiB/s (278 to 322)
+| 592 MiB/s (569 to 619)
+| 451 MiB/s (445 to 482)
+| 464 MiB/s (447 to 481)
+| 475 MiB/s (462 to 488)
 
 | sha2_384
 | -
 | hash2
-| 586 MiB/s (523 to 607)
-| 460 MiB/s (413 to 488)
-| 462 MiB/s (411 to 488)
-| 456 MiB/s (433 to 476)
+| 912 MiB/s (901 to 969)
+| 690 MiB/s (674 to 734)
+| 691 MiB/s (665 to 731)
+| 685 MiB/s (664 to 707)
 
 | sha2_512
 | -
 | hash2
-| 592 MiB/s (576 to 615)
-| 461 MiB/s (353 to 489)
-| 466 MiB/s (428 to 490)
-| 456 MiB/s (443 to 461)
+| 911 MiB/s (888 to 972)
+| 688 MiB/s (676 to 734)
+| 688 MiB/s (668 to 733)
+| 684 MiB/s (677 to 723)
 
 | sha2_512_224
 | -
 | hash2
-| 586 MiB/s (245 to 615)
-| 483 MiB/s (411 to 489)
-| 480 MiB/s (455 to 490)
-| 456 MiB/s (406 to 481)
+| 917 MiB/s (894 to 966)
+| 689 MiB/s (675 to 727)
+| 690 MiB/s (674 to 734)
+| 687 MiB/s (669 to 713)
 
 | sha2_512_256
 | -
 | hash2
-| 586 MiB/s (578 to 615)
-| 463 MiB/s (456 to 485)
-| 463 MiB/s (456 to 489)
-| 457 MiB/s (451 to 481)
+| 913 MiB/s (901 to 973)
+| 688 MiB/s (678 to 738)
+| 690 MiB/s (676 to 738)
+| 699 MiB/s (674 to 734)
 
 | sha3_224
 | -
 | hash2
-| 464 MiB/s (460 to 488)
-| 335 MiB/s (285 to 336)
-| 293 MiB/s (281 to 336)
-| 290 MiB/s (262 to 305)
+| 731 MiB/s (708 to 735)
+| 500 MiB/s (495 to 508)
+| 503 MiB/s (496 to 514)
+| 471 MiB/s (464 to 478)
 
 | sha3_256
 | -
 | hash2
-| 438 MiB/s (394 to 461)
-| 317 MiB/s (270 to 319)
-| 318 MiB/s (270 to 320)
-| 280 MiB/s (257 to 295)
+| 691 MiB/s (678 to 696)
+| 476 MiB/s (470 to 485)
+| 477 MiB/s (455 to 491)
+| 461 MiB/s (451 to 465)
 
 | sha3_384
 | -
 | hash2
-| 338 MiB/s (316 to 354)
-| 249 MiB/s (212 to 251)
-| 224 MiB/s (209 to 250)
-| 233 MiB/s (205 to 243)
+| 531 MiB/s (524 to 556)
+| 374 MiB/s (368 to 380)
+| 375 MiB/s (369 to 385)
+| 370 MiB/s (367 to 375)
 
 | sha3_512
 | -
 | hash2
-| 232 MiB/s (211 to 245)
-| 178 MiB/s (159 to 178)
-| 177 MiB/s (147 to 179)
-| 177 MiB/s (162 to 183)
+| 367 MiB/s (315 to 373)
+| 266 MiB/s (262 to 271)
+| 267 MiB/s (264 to 271)
+| 278 MiB/s (274 to 282)
 
 | shake_128
 | -
 | hash2
-| 541 MiB/s (228 to 561)
-| 382 MiB/s (322 to 385)
-| 359 MiB/s (325 to 386)
-| 337 MiB/s (310 to 344)
+| 846 MiB/s (834 to 852)
+| 575 MiB/s (567 to 586)
+| 579 MiB/s (570 to 592)
+| 522 MiB/s (514 to 530)
 
 | shake_256
 | -
 | hash2
-| 438 MiB/s (412 to 458)
-| 317 MiB/s (272 to 320)
-| 319 MiB/s (271 to 322)
-| 283 MiB/s (218 to 296)
+| 687 MiB/s (583 to 691)
+| 478 MiB/s (469 to 484)
+| 479 MiB/s (472 to 483)
+| 458 MiB/s (443 to 462)
 
 | keccak_256
 | -
 | xkcp
-| 567 MiB/s (553 to 591)
-| 468 MiB/s (449 to 522)
-| 457 MiB/s (454 to 524)
-| 533 MiB/s (461 to 599)
+| 996 MiB/s (974 to 1027)
+| 782 MiB/s (764 to 812)
+| 769 MiB/s (756 to 816)
+| 891 MiB/s (876 to 904)
 
 | blake2b_512
 | -
 | hash2
-| 1012 MiB/s (995 to 1058)
-| 937 MiB/s (734 to 987)
-| 928 MiB/s (878 to 940)
-| 946 MiB/s (932 to 1006)
+| 1616 MiB/s (1538 to 1657)
+| 1479 MiB/s (1452 to 1536)
+| 1477 MiB/s (1456 to 1521)
+| 1499 MiB/s (1471 to 1559)
 
 | blake2s_256
 | -
 | hash2
-| 600 MiB/s (592 to 625)
-| 541 MiB/s (534 to 571)
-| 544 MiB/s (537 to 572)
-| 579 MiB/s (551 to 593)
+| 923 MiB/s (894 to 981)
+| 854 MiB/s (829 to 907)
+| 855 MiB/s (837 to 912)
+| 877 MiB/s (849 to 914)
 
 | blake3
 | -
 | blake3
-| 2062 MiB/s (1410 to 2157)
-| 724 MiB/s (671 to 761)
-| 758 MiB/s (682 to 763)
-| 771 MiB/s (702 to 816)
+| 2410 MiB/s (2352 to 2512)
+| 1135 MiB/s (1100 to 1183)
+| 1140 MiB/s (1102 to 1207)
+| 1200 MiB/s (1142 to 1244)
 
 | ripemd_128
 | -
 | hash2
-| 685 MiB/s (621 to 715)
-| 354 MiB/s (317 to 443)
-| 361 MiB/s (317 to 444)
-| 444 MiB/s (351 to 462)
+| 992 MiB/s (934 to 999)
+| 562 MiB/s (528 to 567)
+| 563 MiB/s (525 to 567)
+| 562 MiB/s (541 to 567)
 
 | ripemd_160
 | -
 | hash2
-| 443 MiB/s (416 to 462)
-| 225 MiB/s (201 to 287)
-| 241 MiB/s (202 to 290)
-| 288 MiB/s (177 to 309)
+| 640 MiB/s (595 to 644)
+| 356 MiB/s (336 to 361)
+| 357 MiB/s (335 to 361)
+| 355 MiB/s (348 to 361)
 
 | siphash_32
 | -
 | hash2
-| 1126 MiB/s (1015 to 1128)
-| 1317 MiB/s (1076 to 1326)
-| 1083 MiB/s (963 to 1328)
-| 151 MiB/s (123 to 192)
+| 1612 MiB/s (1491 to 1627)
+| 1618 MiB/s (1576 to 1710)
+| 1630 MiB/s (1533 to 1700)
+| 223 MiB/s (211 to 225)
 
 | siphash_64
 | -
 | hash2
-| 2253 MiB/s (2199 to 2352)
-| 2648 MiB/s (2158 to 2656)
-| 2650 MiB/s (1939 to 2657)
-| 378 MiB/s (252 to 395)
+| 3272 MiB/s (2909 to 3284)
+| 3265 MiB/s (3084 to 3482)
+| 3252 MiB/s (2931 to 3356)
+| 431 MiB/s (410 to 443)
 
 | hmac
 | -
 | hash2
-| 385 MiB/s (381 to 387)
-| 271 MiB/s (222 to 306)
-| 302 MiB/s (270 to 311)
-| 315 MiB/s (294 to 325)
+| 595 MiB/s (567 to 619)
+| 452 MiB/s (446 to 480)
+| 461 MiB/s (447 to 482)
+| 482 MiB/s (462 to 495)
 
 | hmac_md5_128
 | -
 | hash2
-| 786 MiB/s (772 to 788)
-| 654 MiB/s (437 to 657)
-| 657 MiB/s (485 to 657)
-| 646 MiB/s (626 to 680)
+| 932 MiB/s (849 to 935)
+| 761 MiB/s (719 to 781)
+| 740 MiB/s (706 to 779)
+| 768 MiB/s (723 to 779)
 
 | hmac_sha1_160
 | -
 | hash2
-| 857 MiB/s (852 to 894)
-| 558 MiB/s (498 to 610)
-| 556 MiB/s (552 to 609)
-| 658 MiB/s (621 to 665)
+| 1170 MiB/s (1161 to 1244)
+| 833 MiB/s (811 to 886)
+| 828 MiB/s (814 to 882)
+| 887 MiB/s (876 to 942)
 
 | hmac_sha2_224
 | -
 | hash2
-| 384 MiB/s (377 to 395)
-| 300 MiB/s (269 to 305)
-| 303 MiB/s (269 to 317)
-| 305 MiB/s (160 to 324)
+| 582 MiB/s (566 to 618)
+| 463 MiB/s (447 to 481)
+| 464 MiB/s (451 to 481)
+| 468 MiB/s (461 to 502)
 
 | hmac_sha2_256
 | -
 | hash2
-| 384 MiB/s (361 to 402)
-| 301 MiB/s (255 to 307)
-| 301 MiB/s (271 to 307)
-| 313 MiB/s (294 to 324)
+| 598 MiB/s (569 to 614)
+| 466 MiB/s (450 to 483)
+| 468 MiB/s (448 to 483)
+| 468 MiB/s (459 to 497)
 
 | hmac_sha2_384
 | -
 | hash2
-| 585 MiB/s (572 to 605)
-| 457 MiB/s (410 to 488)
-| 484 MiB/s (410 to 511)
-| 458 MiB/s (447 to 479)
+| 914 MiB/s (896 to 973)
+| 691 MiB/s (674 to 724)
+| 701 MiB/s (685 to 737)
+| 698 MiB/s (678 to 728)
 
 | hmac_sha2_512
 | -
 | hash2
-| 585 MiB/s (565 to 590)
-| 461 MiB/s (411 to 489)
-| 482 MiB/s (413 to 491)
-| 462 MiB/s (330 to 480)
+| 913 MiB/s (884 to 971)
+| 687 MiB/s (672 to 736)
+| 697 MiB/s (677 to 740)
+| 689 MiB/s (675 to 718)
 
 | hmac_sha2_512_224
 | -
 | hash2
-| 585 MiB/s (571 to 613)
-| 482 MiB/s (411 to 489)
-| 487 MiB/s (414 to 503)
-| 460 MiB/s (398 to 480)
+| 912 MiB/s (878 to 971)
+| 685 MiB/s (675 to 735)
+| 701 MiB/s (672 to 741)
+| 696 MiB/s (682 to 726)
 
 | hmac_sha2_512_256
 | -
 | hash2
-| 587 MiB/s (562 to 607)
-| 456 MiB/s (408 to 484)
-| 464 MiB/s (412 to 491)
-| 462 MiB/s (449 to 480)
+| 950 MiB/s (877 to 973)
+| 698 MiB/s (665 to 727)
+| 701 MiB/s (677 to 735)
+| 691 MiB/s (678 to 716)
 
 | hmac_sha3_224
 | -
 | hash2
-| 464 MiB/s (455 to 486)
-| 282 MiB/s (276 to 327)
-| 310 MiB/s (278 to 339)
-| 294 MiB/s (279 to 310)
+| 734 MiB/s (714 to 744)
+| 497 MiB/s (476 to 504)
+| 505 MiB/s (495 to 518)
+| 470 MiB/s (459 to 475)
 
 | hmac_sha3_256
 | -
 | hash2
-| 440 MiB/s (409 to 459)
-| 283 MiB/s (227 to 316)
-| 314 MiB/s (271 to 323)
-| 290 MiB/s (249 to 299)
+| 689 MiB/s (681 to 692)
+| 472 MiB/s (464 to 483)
+| 481 MiB/s (471 to 489)
+| 452 MiB/s (443 to 458)
 
 | hmac_sha3_384
 | -
 | hash2
-| 337 MiB/s (319 to 353)
-| 223 MiB/s (203 to 248)
-| 233 MiB/s (215 to 252)
-| 236 MiB/s (224 to 246)
+| 526 MiB/s (520 to 551)
+| 372 MiB/s (365 to 376)
+| 375 MiB/s (372 to 388)
+| 371 MiB/s (366 to 377)
 
 | hmac_sha3_512
 | -
 | hash2
-| 244 MiB/s (233 to 245)
-| 159 MiB/s (153 to 177)
-| 160 MiB/s (158 to 178)
-| 175 MiB/s (149 to 185)
+| 367 MiB/s (362 to 373)
+| 265 MiB/s (263 to 268)
+| 267 MiB/s (265 to 271)
+| 278 MiB/s (274 to 286)
 
 | hmac_ripemd_128
 | -
 | hash2
-| 685 MiB/s (679 to 689)
-| 355 MiB/s (316 to 444)
-| 355 MiB/s (317 to 447)
-| 378 MiB/s (340 to 463)
+| 995 MiB/s (902 to 998)
+| 561 MiB/s (441 to 568)
+| 552 MiB/s (524 to 567)
+| 563 MiB/s (544 to 567)
 
 | hmac_ripemd_160
 | -
 | hash2
-| 442 MiB/s (360 to 462)
-| 215 MiB/s (201 to 288)
-| 225 MiB/s (202 to 291)
-| 296 MiB/s (209 to 304)
+| 632 MiB/s (588 to 644)
+| 355 MiB/s (336 to 360)
+| 356 MiB/s (335 to 361)
+| 358 MiB/s (334 to 361)
 
 | hmac_blake2b_512
 | -
 | hash2
-| 1013 MiB/s (995 to 1036)
-| 934 MiB/s (878 to 986)
-| 935 MiB/s (874 to 979)
-| 959 MiB/s (912 to 1002)
+| 1593 MiB/s (1505 to 1650)
+| 1483 MiB/s (1445 to 1537)
+| 1475 MiB/s (1441 to 1519)
+| 1506 MiB/s (1472 to 1583)
 
 | hmac_blake2s_256
 | -
 | hash2
-| 597 MiB/s (584 to 613)
-| 541 MiB/s (510 to 573)
-| 539 MiB/s (493 to 569)
-| 582 MiB/s (544 to 589)
+| 922 MiB/s (893 to 981)
+| 857 MiB/s (822 to 909)
+| 846 MiB/s (587 to 893)
+| 877 MiB/s (855 to 896)
 
 | fnv1a_32
 | -
 | hash2
-| 924 MiB/s (895 to 924)
-| 917 MiB/s (612 to 920)
-| 918 MiB/s (644 to 959)
-| 738 MiB/s (516 to 754)
+| 1095 MiB/s (1016 to 1099)
+| 1089 MiB/s (1022 to 1096)
+| 1035 MiB/s (1006 to 1096)
+| 1066 MiB/s (1011 to 1092)
 
 | fnv1a_64
 | -
 | hash2
-| 924 MiB/s (914 to 964)
-| 913 MiB/s (613 to 918)
-| 916 MiB/s (612 to 957)
-| 720 MiB/s (700 to 753)
+| 1095 MiB/s (1007 to 1099)
+| 1080 MiB/s (1026 to 1095)
+| 1042 MiB/s (991 to 1095)
+| 1051 MiB/s (993 to 1091)
 
 | xxhash_32
 | -
 | hash2
-| 10292 MiB/s (9588 to 10743)
-| 8011 MiB/s (7328 to 8348)
-| 8081 MiB/s (7818 to 8466)
-| 3249 MiB/s (1356 to 3454)
+| 13461 MiB/s (11994 to 13567)
+| 12500 MiB/s (11121 to 13333)
+| 12448 MiB/s (11782 to 13341)
+| 4685 MiB/s (4431 to 4865)
 
 | xxhash_64
 | -
 | hash2
-| 20443 MiB/s (19496 to 20566)
-| 14303 MiB/s (13777 to 16304)
-| 14397 MiB/s (13036 to 16316)
-| 5664 MiB/s (2840 to 6093)
+| 26846 MiB/s (23529 to 27088)
+| 24540 MiB/s (21858 to 26258)
+| 24415 MiB/s (21878 to 26059)
+| 7846 MiB/s (7164 to 8535)
 
 | xxh3_128
 | -
 | hash2
-| 16075 MiB/s (15779 to 16173)
-| 10034 MiB/s (9812 to 11829)
-| 10017 MiB/s (9662 to 11988)
-| 12320 MiB/s (9379 to 13994)
+| 33995 MiB/s (24390 to 34732)
+| 17621 MiB/s (16382 to 18913)
+| 17911 MiB/s (16371 to 19154)
+| 21779 MiB/s (14252 to 22749)
 
 | murmur3_32
 | -
 | hash2
-| 2924 MiB/s (2875 to 2926)
-| 2444 MiB/s (1812 to 2455)
-| 2451 MiB/s (1625 to 2556)
-| 1580 MiB/s (925 to 1656)
+| 3479 MiB/s (3273 to 3493)
+| 2877 MiB/s (2698 to 2909)
+| 2833 MiB/s (2586 to 2910)
+| 1998 MiB/s (1914 to 2143)
 
 | murmur3_128
 | -
 | hash2
-| 7203 MiB/s (7115 to 7262)
-| 5622 MiB/s (3857 to 5686)
-| 4340 MiB/s (4265 to 5924)
-| 4024 MiB/s (3462 to 4124)
+| 8618 MiB/s (7864 to 8639)
+| 6538 MiB/s (6237 to 6954)
+| 6702 MiB/s (6395 to 6946)
+| 4172 MiB/s (3936 to 4408)
 
 | spooky2_128
 | -
 | hash2
-| 16349 MiB/s (15863 to 16586)
-| 15646 MiB/s (11799 to 16021)
-| 15831 MiB/s (11834 to 16678)
-| 4077 MiB/s (2731 to 4280)
+| 22325 MiB/s (20779 to 22367)
+| 20356 MiB/s (18838 to 21720)
+| 20391 MiB/s (19246 to 21719)
+| 4594 MiB/s (4313 to 4955)
 
 | hkdf_extract
 | hmac_sha2_256
 | hash2
-| 732 ns (727 ns to 774 ns)
-| 973 ns (959 ns to 1.01 µs)
-| 971 ns (929 ns to 1.00 µs)
-| 989 ns (891 ns to 3.47 µs)
+| 464 ns (456 ns to 497 ns)
+| 650 ns (622 ns to 677 ns)
+| 658 ns (630 ns to 699 ns)
+| 673 ns (608 ns to 2.45 µs)
 
 | hkdf_extract
 | hmac_sha2_256
 | sodium
-| 774 ns (742 ns to 780 ns)
-| 1.43 µs (1.32 µs to 1.55 µs)
-| 1.39 µs (1.34 µs to 3.70 µs)
-| 1.08 µs (927 ns to 2.40 µs)
+| 479 ns (460 ns to 507 ns)
+| 882 ns (847 ns to 906 ns)
+| 894 ns (867 ns to 998 ns)
+| 644 ns (581 ns to 1.54 µs)
 
 | hkdf_extract
 | hmac_sha2_256
 | openssl
-| 1.09 µs (1.07 µs to 1.11 µs)
-| 3.32 µs (3.02 µs to 3.42 µs)
-| 3.11 µs (3.08 µs to 3.19 µs)
+| 798 ns (746 ns to 838 ns)
+| 1.99 µs (1.89 µs to 2.04 µs)
+| 2.06 µs (1.97 µs to 2.10 µs)
 | -
 
 | hkdf_extract
 | hmac_sha2_512
 | hash2
-| 997 ns (992 ns to 1.03 µs)
-| 1.27 µs (1.25 µs to 1.43 µs)
-| 1.32 µs (1.21 µs to 1.49 µs)
-| 1.35 µs (1.27 µs to 4.60 µs)
+| 646 ns (628 ns to 689 ns)
+| 873 ns (842 ns to 906 ns)
+| 881 ns (837 ns to 959 ns)
+| 926 ns (857 ns to 3.29 µs)
 
 | hkdf_extract
 | hmac_sha2_512
 | sodium
-| 989 ns (944 ns to 1.00 µs)
-| 2.14 µs (2.11 µs to 2.36 µs)
-| 2.16 µs (2.14 µs to 5.01 µs)
-| 1.52 µs (1.32 µs to 2.89 µs)
+| 630 ns (592 ns to 640 ns)
+| 1.41 µs (1.35 µs to 1.46 µs)
+| 1.43 µs (1.37 µs to 1.49 µs)
+| 865 ns (806 ns to 1.80 µs)
 
 | hkdf_extract
 | hmac_sha2_512
 | openssl
-| 1.30 µs (1.28 µs to 1.40 µs)
-| 3.15 µs (3.11 µs to 3.55 µs)
-| 3.20 µs (3.05 µs to 3.62 µs)
+| 956 ns (930 ns to 1.03 µs)
+| 2.07 µs (1.99 µs to 2.10 µs)
+| 2.14 µs (2.03 µs to 2.17 µs)
 | -
 
 | hkdf_expand
 | hmac_sha2_256
 | hash2
-| 808 ns (775 ns to 858 ns)
-| 1.01 µs (995 ns to 1.16 µs)
-| 1.04 µs (997 ns to 1.17 µs)
-| 976 ns (906 ns to 3.56 µs)
+| 526 ns (516 ns to 563 ns)
+| 688 ns (648 ns to 707 ns)
+| 688 ns (656 ns to 699 ns)
+| 700 ns (607 ns to 2.53 µs)
 
 | hkdf_expand
 | hmac_sha2_256
 | sodium
-| 774 ns (771 ns to 781 ns)
-| 1.40 µs (1.32 µs to 1.51 µs)
-| 1.39 µs (1.29 µs to 1.45 µs)
-| 1.06 µs (898 ns to 2.28 µs)
+| 461 ns (455 ns to 499 ns)
+| 887 ns (873 ns to 918 ns)
+| 870 ns (846 ns to 891 ns)
+| 616 ns (557 ns to 1.52 µs)
 
 | hkdf_expand
 | hmac_sha2_256
 | openssl
-| 840 ns (821 ns to 1.02 µs)
-| 2.46 µs (2.38 µs to 2.75 µs)
-| 2.49 µs (2.45 µs to 2.79 µs)
+| 594 ns (565 ns to 665 ns)
+| 1.61 µs (1.52 µs to 1.66 µs)
+| 1.64 µs (1.58 µs to 1.68 µs)
 | -
 
 | hkdf_expand
 | hmac_sha2_512
 | hash2
-| 1.13 µs (1.11 µs to 1.17 µs)
-| 1.34 µs (1.31 µs to 1.59 µs)
-| 1.35 µs (1.32 µs to 1.43 µs)
-| 1.34 µs (1.28 µs to 4.25 µs)
+| 744 ns (723 ns to 777 ns)
+| 940 ns (888 ns to 956 ns)
+| 932 ns (890 ns to 970 ns)
+| 934 ns (871 ns to 3.30 µs)
 
 | hkdf_expand
 | hmac_sha2_512
 | sodium
-| 977 ns (944 ns to 1000 ns)
-| 2.29 µs (2.26 µs to 2.54 µs)
-| 2.15 µs (2.12 µs to 2.41 µs)
-| 1.33 µs (1.31 µs to 2.77 µs)
+| 610 ns (583 ns to 638 ns)
+| 1.52 µs (1.43 µs to 1.55 µs)
+| 1.41 µs (1.34 µs to 1.46 µs)
+| 796 ns (779 ns to 1.78 µs)
 
 | hkdf_expand
 | hmac_sha2_512
 | openssl
-| 1.04 µs (1.03 µs to 1.24 µs)
-| 2.56 µs (2.41 µs to 3.85 µs)
-| 2.57 µs (2.55 µs to 2.61 µs)
+| 785 ns (738 ns to 815 ns)
+| 1.67 µs (1.59 µs to 1.72 µs)
+| 1.69 µs (1.61 µs to 1.73 µs)
 | -
 
 | hkdf
 | hmac_sha2_256
 | hash2
-| 1.55 µs (1.48 µs to 1.57 µs)
-| 1.96 µs (1.94 µs to 2.08 µs)
-| 2.02 µs (1.94 µs to 2.26 µs)
-| 1.85 µs (1.79 µs to 4.40 µs)
+| 1.02 µs (971 ns to 1.05 µs)
+| 1.33 µs (1.28 µs to 1.36 µs)
+| 1.33 µs (1.28 µs to 1.37 µs)
+| 1.26 µs (1.21 µs to 3.24 µs)
 
 | hkdf
 | hmac_sha2_256
 | sodium
-| 1.54 µs (1.47 µs to 1.55 µs)
-| 2.79 µs (2.55 µs to 2.87 µs)
-| 2.67 µs (2.60 µs to 2.93 µs)
-| 1.91 µs (1.77 µs to 3.52 µs)
+| 986 ns (927 ns to 1.00 µs)
+| 1.70 µs (1.66 µs to 1.74 µs)
+| 1.72 µs (1.68 µs to 1.77 µs)
+| 1.13 µs (1.09 µs to 2.17 µs)
 
 | hkdf
 | hmac_sha2_256
 | bearssl
-| 1.76 µs (1.69 µs to 1.99 µs)
-| 2.39 µs (2.31 µs to 2.60 µs)
-| 2.36 µs (2.33 µs to 2.64 µs)
-| 2.37 µs (2.22 µs to 5.58 µs)
+| 1.43 µs (1.26 µs to 1.52 µs)
+| 1.54 µs (1.44 µs to 1.67 µs)
+| 1.54 µs (1.44 µs to 1.57 µs)
+| 1.57 µs (1.53 µs to 2.43 µs)
 
 | hkdf
 | hmac_sha2_256
 | openssl
-| 1.56 µs (1.54 µs to 2.04 µs)
-| 4.83 µs (4.66 µs to 5.26 µs)
-| 4.75 µs (4.70 µs to 5.27 µs)
+| 1.14 µs (1.07 µs to 1.19 µs)
+| 3.08 µs (2.98 µs to 3.14 µs)
+| 3.14 µs (3.05 µs to 3.20 µs)
 | -
 
 | hkdf
 | hmac_sha2_512
 | hash2
-| 2.12 µs (2.10 µs to 2.17 µs)
-| 3.01 µs (2.53 µs to 3.04 µs)
-| 2.72 µs (2.49 µs to 2.97 µs)
-| 2.63 µs (2.55 µs to 5.68 µs)
+| 1.36 µs (1.34 µs to 1.46 µs)
+| 1.79 µs (1.68 µs to 1.83 µs)
+| 1.80 µs (1.69 µs to 1.89 µs)
+| 1.78 µs (1.70 µs to 4.26 µs)
 
 | hkdf
 | hmac_sha2_512
 | sodium
-| 1.97 µs (1.89 µs to 2.05 µs)
-| 4.56 µs (4.21 µs to 6.85 µs)
-| 4.45 µs (4.32 µs to 4.85 µs)
-| 2.66 µs (2.50 µs to 4.78 µs)
+| 1.26 µs (1.18 µs to 1.28 µs)
+| 2.83 µs (2.72 µs to 2.87 µs)
+| 2.88 µs (2.79 µs to 2.91 µs)
+| 1.56 µs (1.53 µs to 2.60 µs)
 
 | hkdf
 | hmac_sha2_512
 | bearssl
-| 2.16 µs (2.15 µs to 2.42 µs)
-| 2.91 µs (2.84 µs to 3.27 µs)
-| 2.94 µs (2.80 µs to 3.20 µs)
-| 3.13 µs (2.98 µs to 4.13 µs)
+| 1.57 µs (1.48 µs to 1.60 µs)
+| 1.90 µs (1.79 µs to 2.08 µs)
+| 1.96 µs (1.78 µs to 2.09 µs)
+| 1.99 µs (1.95 µs to 2.71 µs)
 
 | hkdf
 | hmac_sha2_512
 | openssl
-| 1.99 µs (1.97 µs to 2.37 µs)
-| 5.04 µs (4.63 µs to 5.46 µs)
-| 5.01 µs (4.81 µs to 5.67 µs)
+| 1.47 µs (1.39 µs to 1.63 µs)
+| 3.18 µs (3.13 µs to 3.24 µs)
+| 3.24 µs (3.14 µs to 3.35 µs)
 | -
 
 | pbkdf2
 | hmac_sha2_256
 | hash2
-| 33.10 ms (32.54 ms to 35.30 ms)
-| 49.09 ms (46.74 ms to 91.68 ms)
-| 47.74 ms (45.05 ms to 62.36 ms)
-| 47.03 ms (43.18 ms to 71.05 ms)
+| 20.85 ms (20.48 ms to 21.77 ms)
+| 30.50 ms (29.65 ms to 32.35 ms)
+| 30.73 ms (29.90 ms to 31.72 ms)
+| 28.09 ms (27.55 ms to 28.97 ms)
 
 | pbkdf2
 | hmac_sha2_256
 | openssl
-| 9.18 ms (8.50 ms to 10.30 ms)
-| 60.54 ms (53.73 ms to 117.59 ms)
-| 57.86 ms (53.63 ms to 101.65 ms)
+| 6.07 ms (5.87 ms to 6.21 ms)
+| 35.95 ms (35.30 ms to 36.62 ms)
+| 35.82 ms (35.18 ms to 37.84 ms)
 | -
 
 | pbkdf2
 | hmac_sha2_512
 | hash2
-| 42.19 ms (41.94 ms to 45.12 ms)
-| 67.65 ms (61.63 ms to 115.57 ms)
-| 66.30 ms (61.11 ms to 102.62 ms)
-| 77.16 ms (61.33 ms to 111.95 ms)
+| 27.18 ms (26.61 ms to 31.59 ms)
+| 40.86 ms (39.89 ms to 42.08 ms)
+| 41.59 ms (40.49 ms to 43.38 ms)
+| 39.81 ms (38.80 ms to 41.31 ms)
 
 | pbkdf2
 | hmac_sha2_512
 | openssl
-| 24.43 ms (20.04 ms to 26.83 ms)
-| 62.59 ms (60.99 ms to 116.09 ms)
-| 60.41 ms (58.05 ms to 98.56 ms)
+| 16.03 ms (15.43 ms to 16.32 ms)
+| 38.82 ms (38.30 ms to 39.46 ms)
+| 38.62 ms (38.36 ms to 39.50 ms)
 | -
 
 | argon2id
 | -
 | sodium
-| 63.59 ms (58.64 ms to 99.96 ms)
-| 117.89 ms (84.20 ms to 205.66 ms)
-| 107.16 ms (82.94 ms to 235.10 ms)
-| 125.97 ms (82.90 ms to 174.51 ms)
+| 37.82 ms (37.17 ms to 40.82 ms)
+| 52.52 ms (51.51 ms to 54.30 ms)
+| 53.09 ms (50.78 ms to 54.33 ms)
+| 49.29 ms (47.94 ms to 60.05 ms)
 
 | scrypt
 | -
 | sodium
-| 30.59 ms (29.28 ms to 40.78 ms)
-| 31.76 ms (30.61 ms to 35.70 ms)
-| 30.91 ms (30.24 ms to 32.09 ms)
-| 26.98 ms (25.94 ms to 35.02 ms)
+| 18.67 ms (18.30 ms to 21.84 ms)
+| 19.63 ms (19.24 ms to 20.40 ms)
+| 19.38 ms (18.98 ms to 19.93 ms)
+| 16.32 ms (15.99 ms to 17.14 ms)
 |===
 
 === The orders of the key derivations
@@ -1327,7 +1327,7 @@ The rows `detail/ranking.hpp` holds, one per operation: the default of `hkdf_ext
 | hkdf_extract
 | hmac_sha2_512
 | emscripten
-| sodium, hash2
+| hash2, sodium
 | hash2, sodium
 | emscripten
 
@@ -1356,7 +1356,7 @@ The rows `detail/ranking.hpp` holds, one per operation: the default of `hkdf_ext
 | hmac_sha2_256
 | emscripten
 | sodium, hash2
-| hash2, sodium
+| sodium, hash2
 | emscripten
 
 | hkdf_expand
@@ -1412,7 +1412,7 @@ The rows `detail/ranking.hpp` holds, one per operation: the default of `hkdf_ext
 | hmac_sha2_256
 | emscripten
 | bearssl, sodium, hash2
-| hash2, sodium, bearssl
+| sodium, hash2, bearssl
 | emscripten
 
 | hkdf
@@ -1440,7 +1440,7 @@ The rows `detail/ranking.hpp` holds, one per operation: the default of `hkdf_ext
 | hmac_sha2_512
 | emscripten
 | bearssl, sodium, hash2
-| hash2, sodium, bearssl
+| sodium, hash2, bearssl
 | emscripten
 
 | pbkdf2
@@ -1594,9 +1594,9 @@ its program, beside the smallest program of the function on that target:
 | hmac_sha2_256
 | emscripten
 | hash2
-| 117928
+| 17499
 | hash2
-| 117928
+| 17499
 
 | hkdf_extract
 | hmac_sha2_512
@@ -1625,10 +1625,10 @@ its program, beside the smallest program of the function on that target:
 | hkdf_extract
 | hmac_sha2_512
 | emscripten
-| sodium
-| 119420
-| sodium
-| 119420
+| hash2
+| 21083
+| hash2
+| 21083
 
 | hkdf_expand
 | hmac_sha2_256
@@ -1658,9 +1658,9 @@ its program, beside the smallest program of the function on that target:
 | hmac_sha2_256
 | emscripten
 | sodium
-| 119801
+| 24778
 | sodium
-| 119801
+| 24778
 
 | hkdf_expand
 | hmac_sha2_512
@@ -1690,9 +1690,9 @@ its program, beside the smallest program of the function on that target:
 | hmac_sha2_512
 | emscripten
 | sodium
-| 120395
+| 25282
 | sodium
-| 120395
+| 25282
 
 | hkdf
 | hmac_sha2_256
@@ -1722,9 +1722,9 @@ its program, beside the smallest program of the function on that target:
 | hmac_sha2_256
 | emscripten
 | bearssl
-| 116952
+| 23281
 | bearssl
-| 116952
+| 23281
 
 | hkdf
 | hmac_sha2_512
@@ -1754,9 +1754,9 @@ its program, beside the smallest program of the function on that target:
 | hmac_sha2_512
 | emscripten
 | bearssl
-| 117451
+| 23792
 | bearssl
-| 117451
+| 23792
 
 | pbkdf2
 | hmac_sha2_256
@@ -1786,9 +1786,9 @@ its program, beside the smallest program of the function on that target:
 | hmac_sha2_256
 | emscripten
 | hash2
-| 122671
+| 29235
 | hash2
-| 122671
+| 29235
 
 | pbkdf2
 | hmac_sha2_512
@@ -1818,9 +1818,9 @@ its program, beside the smallest program of the function on that target:
 | hmac_sha2_512
 | emscripten
 | hash2
-| 126200
+| 32747
 | hash2
-| 126200
+| 32747
 
 | argon2id
 | -
@@ -1850,9 +1850,9 @@ its program, beside the smallest program of the function on that target:
 | -
 | emscripten
 | sodium
-| 135312
+| 39690
 | sodium
-| 135312
+| 39690
 
 | scrypt
 | -
@@ -1882,7 +1882,7 @@ its program, beside the smallest program of the function on that target:
 | -
 | emscripten
 | sodium
-| 122881
+| 29540
 | sodium
-| 122881
+| 29540
 |===

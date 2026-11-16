@@ -146,7 +146,7 @@ What each backend states on constant time, as the capability table read it:
 
 | emscripten
 | sodium, hash2
-| hash2, sodium
+| sodium, hash2
 | sodium, hash2
 | hash2
 |===
@@ -176,7 +176,7 @@ What each backend states on constant time, as the capability table read it:
 
 | emscripten
 | bearssl, sodium, hash2
-| hash2, sodium, bearssl
+| sodium, hash2, bearssl
 | bearssl, sodium, hash2
 | hash2
 |===

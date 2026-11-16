@@ -11,7 +11,7 @@
     "orders[]": "per operation, hmac and target: by_size and by_throughput, the backends that have it there in order, and throughput_from, the target whose throughput ordered it; detail/ranking.hpp is generated from the rows of the key derivations, one per operation (hkdf_extract and hkdf_expand their own)",
     "rules": "how sizes, throughput and orders are made"
   },
-  "date": "2026-11-15",
+  "date": "2026-11-16",
   "machine": {
     "cpu": "Apple M5 Max",
     "cores": 18,
@@ -20,14 +20,14 @@
   },
   "load_average_before_after": [
     [
-      179.65,
-      123.92,
-      123.79
+      24.44,
+      30.02,
+      21.46
     ],
     [
-      217.13,
-      153.88,
-      135.56
+      9.8,
+      24.39,
+      20.01
     ]
   ],
   "loaded": true,
@@ -135,15 +135,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          1218875.0,
-          1271458.0,
-          1270833.0,
-          1272000.0,
-          1271292.0
+          1139875.0,
+          1071916.0,
+          1071792.0,
+          1097042.0,
+          1087667.0
         ],
-        "median_ns": 1271292.0,
-        "min_ns": 1218541.0,
-        "max_ns": 1285750.0
+        "median_ns": 1087667.0,
+        "min_ns": 1068750.0,
+        "max_ns": 1150042.0
       },
       "throughput_absent": null
     },
@@ -159,15 +159,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          1529000.0,
-          2046583.0,
-          2043916.0,
-          1527500.0,
-          1547042.0
+          1361458.0,
+          1385708.0,
+          1280666.0,
+          1287875.0,
+          1277958.0
         ],
-        "median_ns": 1547042.0,
-        "min_ns": 1521708.0,
-        "max_ns": 2282417.0
+        "median_ns": 1287875.0,
+        "min_ns": 1277458.0,
+        "max_ns": 1393541.0
       },
       "throughput_absent": null
     },
@@ -183,15 +183,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          2044542.0,
-          1521583.0,
-          2044333.0,
-          1521583.0,
-          2044125.0
+          1364875.0,
+          1282708.0,
+          1280666.0,
+          1277834.0,
+          1287167.0
         ],
-        "median_ns": 2044125.0,
-        "min_ns": 1521250.0,
-        "max_ns": 2227583.0
+        "median_ns": 1282708.0,
+        "min_ns": 1277541.0,
+        "max_ns": 1388958.0
       },
       "throughput_absent": null
     },
@@ -200,22 +200,22 @@
       "hmac": null,
       "backend": "hash2",
       "target": "emscripten",
-      "size_bytes": 13160,
+      "size_bytes": 8039,
       "result": "3f2c8bd9cfde6550fdff4b36617c3261",
       "throughput": {
         "repetitions": 1,
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          1549833.0,
-          1592750.0,
-          1545750.0,
-          1493292.0,
-          1492833.0
+          1376625.0,
+          1294666.0,
+          1289250.0,
+          1466833.0,
+          1289125.0
         ],
-        "median_ns": 1545750.0,
-        "min_ns": 1472708.0,
-        "max_ns": 1725125.0
+        "median_ns": 1294666.0,
+        "min_ns": 1284291.0,
+        "max_ns": 2041875.0
       },
       "throughput_absent": null
     },
@@ -231,15 +231,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          1164792.0,
-          1165458.0,
-          1165625.0,
-          1168833.0,
-          1165166.0
+          854959.0,
+          854833.0,
+          804292.0,
+          835458.0,
+          811792.0
         ],
-        "median_ns": 1165458.0,
-        "min_ns": 1118125.0,
-        "max_ns": 1189625.0
+        "median_ns": 835458.0,
+        "min_ns": 802417.0,
+        "max_ns": 864250.0
       },
       "throughput_absent": null
     },
@@ -255,15 +255,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          1653875.0,
-          1797375.0,
-          1661417.0,
-          1798375.0,
-          1695167.0
+          1204125.0,
+          1225667.0,
+          1194584.0,
+          1162333.0,
+          1203500.0
         ],
-        "median_ns": 1695167.0,
-        "min_ns": 1646208.0,
-        "max_ns": 1884375.0
+        "median_ns": 1203500.0,
+        "min_ns": 1134000.0,
+        "max_ns": 1233542.0
       },
       "throughput_absent": null
     },
@@ -279,15 +279,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          1681208.0,
-          1683875.0,
-          1658125.0,
-          1794083.0,
-          1807750.0
+          1210041.0,
+          1201709.0,
+          1177292.0,
+          1160792.0,
+          1162334.0
         ],
-        "median_ns": 1683875.0,
-        "min_ns": 1644625.0,
-        "max_ns": 1819541.0
+        "median_ns": 1177292.0,
+        "min_ns": 1131833.0,
+        "max_ns": 1220500.0
       },
       "throughput_absent": null
     },
@@ -296,22 +296,22 @@
       "hmac": null,
       "backend": "hash2",
       "target": "emscripten",
-      "size_bytes": 15407,
+      "size_bytes": 10285,
       "result": "95421610b8ddd86c86e3269bfd24d2a79199245f",
       "throughput": {
         "repetitions": 1,
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          1618666.0,
-          1630000.0,
-          1622542.0,
-          1792625.0,
-          1560083.0
+          1125792.0,
+          1121584.0,
+          1130667.0,
+          1125750.0,
+          1101625.0
         ],
-        "median_ns": 1622542.0,
-        "min_ns": 1535000.0,
-        "max_ns": 2083708.0
+        "median_ns": 1125750.0,
+        "min_ns": 1098875.0,
+        "max_ns": 1156583.0
       },
       "throughput_absent": null
     },
@@ -327,15 +327,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          2493375.0,
-          2491875.0,
-          2611875.0,
-          2595583.0,
-          2585875.0
+          1721917.0,
+          1720667.0,
+          1670167.0,
+          1677167.0,
+          1619250.0
         ],
-        "median_ns": 2585875.0,
-        "min_ns": 2487541.0,
-        "max_ns": 2650709.0
+        "median_ns": 1677167.0,
+        "min_ns": 1615500.0,
+        "max_ns": 1753083.0
       },
       "throughput_absent": null
     },
@@ -351,15 +351,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          3340750.0,
-          3342416.0,
-          3313792.0,
-          3280958.0,
-          3357042.0
+          2210667.0,
+          2217542.0,
+          2174875.0,
+          2111334.0,
+          2219834.0
         ],
-        "median_ns": 3340750.0,
-        "min_ns": 3256333.0,
-        "max_ns": 3388959.0
+        "median_ns": 2210667.0,
+        "min_ns": 2069375.0,
+        "max_ns": 2252125.0
       },
       "throughput_absent": null
     },
@@ -375,15 +375,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          3335834.0,
-          3275625.0,
-          3340666.0,
-          3356167.0,
-          3324500.0
+          2219542.0,
+          2177542.0,
+          2167458.0,
+          2146000.0,
+          2099083.0
         ],
-        "median_ns": 3335834.0,
-        "min_ns": 3266083.0,
-        "max_ns": 3640209.0
+        "median_ns": 2167458.0,
+        "min_ns": 2073541.0,
+        "max_ns": 2247917.0
       },
       "throughput_absent": null
     },
@@ -392,22 +392,22 @@
       "hmac": null,
       "backend": "hash2",
       "target": "emscripten",
-      "size_bytes": 19237,
+      "size_bytes": 14116,
       "result": "aeeb6559bb80ee5d2f1443ec79c83166512a0fc90f625e93cd0ddece",
       "throughput": {
         "repetitions": 1,
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          3255750.0,
-          3423666.0,
-          3248083.0,
-          3110791.0,
-          3133875.0
+          2150958.0,
+          2129167.0,
+          2104250.0,
+          2180750.0,
+          2054209.0
         ],
-        "median_ns": 3248083.0,
-        "min_ns": 3084792.0,
-        "max_ns": 5595417.0
+        "median_ns": 2129167.0,
+        "min_ns": 2046000.0,
+        "max_ns": 2216333.0
       },
       "throughput_absent": null
     },
@@ -423,15 +423,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          2593000.0,
-          2591250.0,
-          2606000.0,
-          2599583.0,
-          2607208.0
+          1721708.0,
+          1722125.0,
+          1676875.0,
+          1687792.0,
+          1687292.0
         ],
-        "median_ns": 2599583.0,
-        "min_ns": 2577375.0,
-        "max_ns": 2618542.0
+        "median_ns": 1687792.0,
+        "min_ns": 1614750.0,
+        "max_ns": 1758917.0
       },
       "throughput_absent": null
     },
@@ -447,15 +447,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          3325959.0,
-          3316792.0,
-          3320875.0,
-          3695709.0,
-          3315250.0
+          2215917.0,
+          2219791.0,
+          2152750.0,
+          2110000.0,
+          2214916.0
         ],
-        "median_ns": 3320875.0,
-        "min_ns": 3269500.0,
-        "max_ns": 3722792.0
+        "median_ns": 2214916.0,
+        "min_ns": 2073208.0,
+        "max_ns": 2245458.0
       },
       "throughput_absent": null
     },
@@ -471,15 +471,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          3284334.0,
-          3333292.0,
-          3326125.0,
-          3276083.0,
-          3283125.0
+          2212958.0,
+          2199417.0,
+          2152875.0,
+          2118083.0,
+          2110500.0
         ],
-        "median_ns": 3284334.0,
-        "min_ns": 3263417.0,
-        "max_ns": 3385375.0
+        "median_ns": 2152875.0,
+        "min_ns": 2078708.0,
+        "max_ns": 2236208.0
       },
       "throughput_absent": null
     },
@@ -488,22 +488,22 @@
       "hmac": null,
       "backend": "hash2",
       "target": "emscripten",
-      "size_bytes": 19235,
+      "size_bytes": 14108,
       "result": "06b7bbfb7824aa03382051691630eb26de85102d1b08a81e907ec0744cd8a286",
       "throughput": {
         "repetitions": 1,
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          3250333.0,
-          3234791.0,
-          3345917.0,
-          3136166.0,
-          3111041.0
+          2148292.0,
+          2149791.0,
+          2087542.0,
+          2106375.0,
+          2097792.0
         ],
-        "median_ns": 3234791.0,
-        "min_ns": 3107083.0,
-        "max_ns": 3596708.0
+        "median_ns": 2106375.0,
+        "min_ns": 2049458.0,
+        "max_ns": 2164375.0
       },
       "throughput_absent": null
     },
@@ -519,15 +519,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          1696542.0,
-          1706416.0,
-          1653834.0,
-          1707208.0,
-          1707125.0
+          1102542.0,
+          1096625.0,
+          1097000.0,
+          1039500.0,
+          1059500.0
         ],
-        "median_ns": 1706416.0,
-        "min_ns": 1647875.0,
-        "max_ns": 1913541.0
+        "median_ns": 1096625.0,
+        "min_ns": 1032084.0,
+        "max_ns": 1110166.0
       },
       "throughput_absent": null
     },
@@ -543,15 +543,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          2171625.0,
-          2177208.0,
-          2147292.0,
-          2412459.0,
-          2089500.0
+          1469583.0,
+          1448625.0,
+          1434541.0,
+          1404750.0,
+          1457667.0
         ],
-        "median_ns": 2171625.0,
-        "min_ns": 2051167.0,
-        "max_ns": 2424084.0
+        "median_ns": 1448625.0,
+        "min_ns": 1361875.0,
+        "max_ns": 1484417.0
       },
       "throughput_absent": null
     },
@@ -567,15 +567,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          2402250.0,
-          2163791.0,
-          2165333.0,
-          2061667.0,
-          2166375.0
+          1471875.0,
+          1478750.0,
+          1447750.0,
+          1426375.0,
+          1407292.0
         ],
-        "median_ns": 2165333.0,
-        "min_ns": 2048334.0,
-        "max_ns": 2434542.0
+        "median_ns": 1447750.0,
+        "min_ns": 1367292.0,
+        "max_ns": 1504167.0
       },
       "throughput_absent": null
     },
@@ -584,22 +584,22 @@
       "hmac": null,
       "backend": "hash2",
       "target": "emscripten",
-      "size_bytes": 22704,
+      "size_bytes": 17579,
       "result": "eda0f8952773f73b179c6aebadc93e97ceb2b8885502933d9958727fd27f7d5cff872d33df15f3e4df986983839b712e",
       "throughput": {
         "repetitions": 1,
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          2204958.0,
-          2212791.0,
-          2193709.0,
-          2136833.0,
-          2136584.0
+          1460250.0,
+          1467042.0,
+          1454459.0,
+          1468667.0,
+          1424417.0
         ],
-        "median_ns": 2193709.0,
-        "min_ns": 2100208.0,
-        "max_ns": 2311500.0
+        "median_ns": 1460250.0,
+        "min_ns": 1414958.0,
+        "max_ns": 1506583.0
       },
       "throughput_absent": null
     },
@@ -615,15 +615,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          1641042.0,
-          1639916.0,
-          1690167.0,
-          1706875.0,
-          1706208.0
+          1099000.0,
+          1097208.0,
+          1054000.0,
+          1046333.0,
+          1100292.0
         ],
-        "median_ns": 1690167.0,
-        "min_ns": 1626000.0,
-        "max_ns": 1737417.0
+        "median_ns": 1097208.0,
+        "min_ns": 1028708.0,
+        "max_ns": 1125709.0
       },
       "throughput_absent": null
     },
@@ -639,15 +639,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          2173541.0,
-          2165417.0,
-          2208916.0,
-          2055958.0,
-          2167875.0
+          1454542.0,
+          1462041.0,
+          1441875.0,
+          1391542.0,
+          1461750.0
         ],
-        "median_ns": 2167875.0,
-        "min_ns": 2045417.0,
-        "max_ns": 2833916.0
+        "median_ns": 1454542.0,
+        "min_ns": 1362042.0,
+        "max_ns": 1478667.0
       },
       "throughput_absent": null
     },
@@ -663,15 +663,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          2046916.0,
-          2143959.0,
-          2175958.0,
-          2106250.0,
-          2165625.0
+          1470334.0,
+          1468666.0,
+          1452625.0,
+          1416000.0,
+          1402583.0
         ],
-        "median_ns": 2143959.0,
-        "min_ns": 2040459.0,
-        "max_ns": 2334459.0
+        "median_ns": 1452625.0,
+        "min_ns": 1364208.0,
+        "max_ns": 1496625.0
       },
       "throughput_absent": null
     },
@@ -680,22 +680,22 @@
       "hmac": null,
       "backend": "hash2",
       "target": "emscripten",
-      "size_bytes": 22713,
+      "size_bytes": 17582,
       "result": "bbd88befcaa6abb0735609ac35e1dfbb5ab8064dca98effd5d493ccb0a0244cd88d5a01e86696eb17f0e7c087f89dd7f06161ecefd1776a74dfc60a27e89bc06",
       "throughput": {
         "repetitions": 1,
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          2188292.0,
-          2193625.0,
-          2197834.0,
-          2198167.0,
-          2194584.0
+          1465250.0,
+          1455083.0,
+          1462417.0,
+          1462000.0,
+          1400416.0
         ],
-        "median_ns": 2194584.0,
-        "min_ns": 2169458.0,
-        "max_ns": 2255458.0
+        "median_ns": 1462000.0,
+        "min_ns": 1383542.0,
+        "max_ns": 1478166.0
       },
       "throughput_absent": null
     },
@@ -711,15 +711,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          1682000.0,
-          1710125.0,
-          1699042.0,
-          1708792.0,
-          1705458.0
+          1104458.0,
+          1090584.0,
+          1068584.0,
+          1038125.0,
+          1102583.0
         ],
-        "median_ns": 1705458.0,
-        "min_ns": 1626542.0,
-        "max_ns": 4083625.0
+        "median_ns": 1090584.0,
+        "min_ns": 1035458.0,
+        "max_ns": 1118250.0
       },
       "throughput_absent": null
     },
@@ -735,15 +735,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          2064917.0,
-          2180500.0,
-          2066250.0,
-          2068834.0,
-          2178625.0
+          1453500.0,
+          1450750.0,
+          1447958.0,
+          1411833.0,
+          1471458.0
         ],
-        "median_ns": 2068834.0,
-        "min_ns": 2045542.0,
-        "max_ns": 2435958.0
+        "median_ns": 1450750.0,
+        "min_ns": 1375792.0,
+        "max_ns": 1481666.0
       },
       "throughput_absent": null
     },
@@ -759,15 +759,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          2053708.0,
-          2182875.0,
-          2179291.0,
-          2045500.0,
-          2083166.0
+          1465875.0,
+          1449667.0,
+          1449000.0,
+          1425750.0,
+          1392750.0
         ],
-        "median_ns": 2083166.0,
-        "min_ns": 2041500.0,
-        "max_ns": 2198667.0
+        "median_ns": 1449000.0,
+        "min_ns": 1363167.0,
+        "max_ns": 1483333.0
       },
       "throughput_absent": null
     },
@@ -776,22 +776,22 @@
       "hmac": null,
       "backend": "hash2",
       "target": "emscripten",
-      "size_bytes": 22766,
+      "size_bytes": 17645,
       "result": "aa9d93fee5d6841a7f8167c66d6639dc853fba792798e66c1d59f447",
       "throughput": {
         "repetitions": 1,
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          2411833.0,
-          2186583.0,
-          2192750.0,
-          2107750.0,
-          2192417.0
+          1464000.0,
+          1456625.0,
+          1465042.0,
+          1411959.0,
+          1415125.0
         ],
-        "median_ns": 2192417.0,
-        "min_ns": 2077333.0,
-        "max_ns": 2461667.0
+        "median_ns": 1456625.0,
+        "min_ns": 1403375.0,
+        "max_ns": 1493667.0
       },
       "throughput_absent": null
     },
@@ -807,15 +807,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          1705917.0,
-          1715292.0,
-          1707875.0,
-          1707000.0,
-          1708417.0
+          1099375.0,
+          1096833.0,
+          1073041.0,
+          1032000.0,
+          1095500.0
         ],
-        "median_ns": 1707875.0,
-        "min_ns": 1624917.0,
-        "max_ns": 1730166.0
+        "median_ns": 1095500.0,
+        "min_ns": 1027917.0,
+        "max_ns": 1109625.0
       },
       "throughput_absent": null
     },
@@ -831,15 +831,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          2161250.0,
-          2189500.0,
-          2073833.0,
-          2088750.0,
-          2172625.0
+          1454834.0,
+          1461291.0,
+          1441000.0,
+          1451000.0,
+          1453333.0
         ],
-        "median_ns": 2161250.0,
-        "min_ns": 2061916.0,
-        "max_ns": 2192125.0
+        "median_ns": 1453333.0,
+        "min_ns": 1355000.0,
+        "max_ns": 1475709.0
       },
       "throughput_absent": null
     },
@@ -855,15 +855,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          2086958.0,
-          2163250.0,
-          2159750.0,
-          2062292.0,
-          2163083.0
+          1460458.0,
+          1450500.0,
+          1449750.0,
+          1435750.0,
+          1427667.0
         ],
-        "median_ns": 2159750.0,
-        "min_ns": 2046042.0,
-        "max_ns": 2194125.0
+        "median_ns": 1449750.0,
+        "min_ns": 1354542.0,
+        "max_ns": 1480375.0
       },
       "throughput_absent": null
     },
@@ -872,22 +872,22 @@
       "hmac": null,
       "backend": "hash2",
       "target": "emscripten",
-      "size_bytes": 22722,
+      "size_bytes": 17597,
       "result": "aa5fb4892b837f375a6a389694bd3f132272673d62e3080f088e52b8dfd2da83",
       "throughput": {
         "repetitions": 1,
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          2190541.0,
-          2196500.0,
-          2191791.0,
-          2103625.0,
-          2106792.0
+          1465208.0,
+          1462167.0,
+          1431334.0,
+          1405167.0,
+          1378083.0
         ],
-        "median_ns": 2190541.0,
-        "min_ns": 2080125.0,
-        "max_ns": 2218750.0
+        "median_ns": 1431334.0,
+        "min_ns": 1363291.0,
+        "max_ns": 1483125.0
       },
       "throughput_absent": null
     },
@@ -903,15 +903,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          2154917.0,
-          2152000.0,
-          2062625.0,
-          2153500.0,
-          2154667.0
+          1367958.0,
+          1376583.0,
+          1361375.0,
+          1363542.0,
+          1374500.0
         ],
-        "median_ns": 2153500.0,
-        "min_ns": 2048208.0,
-        "max_ns": 2172584.0
+        "median_ns": 1367958.0,
+        "min_ns": 1360791.0,
+        "max_ns": 1412000.0
       },
       "throughput_absent": null
     },
@@ -927,15 +927,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          2985125.0,
-          2980666.0,
-          2986125.0,
-          3508500.0,
-          3394625.0
+          2000959.0,
+          1999958.0,
+          1983000.0,
+          2001625.0,
+          1994500.0
         ],
-        "median_ns": 2986125.0,
-        "min_ns": 2973083.0,
-        "max_ns": 3514208.0
+        "median_ns": 1999958.0,
+        "min_ns": 1970208.0,
+        "max_ns": 2020000.0
       },
       "throughput_absent": null
     },
@@ -951,15 +951,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          2986916.0,
-          3494042.0,
-          2983334.0,
-          3510666.0,
-          3411750.0
+          1994417.0,
+          1984917.0,
+          1985667.0,
+          1988500.0,
+          1991542.0
         ],
-        "median_ns": 3411750.0,
-        "min_ns": 2973125.0,
-        "max_ns": 3554625.0
+        "median_ns": 1988500.0,
+        "min_ns": 1946459.0,
+        "max_ns": 2017667.0
       },
       "throughput_absent": null
     },
@@ -968,22 +968,22 @@
       "hmac": null,
       "backend": "hash2",
       "target": "emscripten",
-      "size_bytes": 12296,
+      "size_bytes": 7175,
       "result": "202fd9482f824cd9476aca582f67e9af9b4a0aa3fce95fa6c7184f9d",
       "throughput": {
         "repetitions": 1,
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          3445542.0,
-          3451333.0,
-          3440625.0,
-          3306542.0,
-          3453333.0
+          2123875.0,
+          2109709.0,
+          2123458.0,
+          2126791.0,
+          2115917.0
         ],
-        "median_ns": 3445542.0,
-        "min_ns": 3274959.0,
-        "max_ns": 3810000.0
+        "median_ns": 2123458.0,
+        "min_ns": 2094167.0,
+        "max_ns": 2153083.0
       },
       "throughput_absent": null
     },
@@ -999,15 +999,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          2180667.0,
-          2283417.0,
-          2287542.0,
-          2279833.0,
-          2281250.0
+          1457792.0,
+          1454875.0,
+          1447000.0,
+          1446250.0,
+          1444500.0
         ],
-        "median_ns": 2281250.0,
-        "min_ns": 2168833.0,
-        "max_ns": 2540708.0
+        "median_ns": 1447000.0,
+        "min_ns": 1436792.0,
+        "max_ns": 1475000.0
       },
       "throughput_absent": null
     },
@@ -1023,15 +1023,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          3154208.0,
-          3140250.0,
-          3151833.0,
-          3509750.0,
-          3482625.0
+          2098750.0,
+          2101500.0,
+          2101500.0,
+          2103208.0,
+          2103708.0
         ],
-        "median_ns": 3154208.0,
-        "min_ns": 3130209.0,
-        "max_ns": 3700833.0
+        "median_ns": 2101500.0,
+        "min_ns": 2060500.0,
+        "max_ns": 2127833.0
       },
       "throughput_absent": null
     },
@@ -1047,15 +1047,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          3508000.0,
-          3148041.0,
-          3136292.0,
-          3509250.0,
-          3142458.0
+          2097666.0,
+          2097459.0,
+          2087333.0,
+          2082292.0,
+          2099875.0
         ],
-        "median_ns": 3148041.0,
-        "min_ns": 3125375.0,
-        "max_ns": 3709667.0
+        "median_ns": 2097459.0,
+        "min_ns": 2036833.0,
+        "max_ns": 2199500.0
       },
       "throughput_absent": null
     },
@@ -1064,22 +1064,22 @@
       "hmac": null,
       "backend": "hash2",
       "target": "emscripten",
-      "size_bytes": 12290,
+      "size_bytes": 7172,
       "result": "3dbadf7c02f2ceb29a8db91d16a363680ed9b7efefab60994b9dd1ca297d74f3",
       "throughput": {
         "repetitions": 1,
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          3687000.0,
-          3527250.0,
-          3591667.0,
-          3425666.0,
-          3571625.0
+          2188125.0,
+          2170709.0,
+          2168750.0,
+          2172708.0,
+          2163959.0
         ],
-        "median_ns": 3571625.0,
-        "min_ns": 3386000.0,
-        "max_ns": 3888208.0
+        "median_ns": 2170709.0,
+        "min_ns": 2149084.0,
+        "max_ns": 2217541.0
       },
       "throughput_absent": null
     },
@@ -1095,15 +1095,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          2835333.0,
-          2848458.0,
-          2958125.0,
-          2963666.0,
-          3066250.0
+          1880750.0,
+          1882334.0,
+          1887542.0,
+          1880791.0,
+          1887833.0
         ],
-        "median_ns": 2958125.0,
-        "min_ns": 2827250.0,
-        "max_ns": 3168417.0
+        "median_ns": 1882334.0,
+        "min_ns": 1798750.0,
+        "max_ns": 1909750.0
       },
       "throughput_absent": null
     },
@@ -1119,15 +1119,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          4018833.0,
-          3997166.0,
-          3995084.0,
-          4667375.0,
-          4466833.0
+          2684834.0,
+          2674750.0,
+          2690292.0,
+          2666041.0,
+          2668209.0
         ],
-        "median_ns": 4018833.0,
-        "min_ns": 3987208.0,
-        "max_ns": 4712417.0
+        "median_ns": 2674750.0,
+        "min_ns": 2631875.0,
+        "max_ns": 2718750.0
       },
       "throughput_absent": null
     },
@@ -1143,15 +1143,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          4007333.0,
-          4013750.0,
-          4469750.0,
-          4471959.0,
-          4729875.0
+          2687041.0,
+          2667667.0,
+          2667750.0,
+          2672958.0,
+          2662916.0
         ],
-        "median_ns": 4469750.0,
-        "min_ns": 4002417.0,
-        "max_ns": 4773958.0
+        "median_ns": 2667750.0,
+        "min_ns": 2600625.0,
+        "max_ns": 2708750.0
       },
       "throughput_absent": null
     },
@@ -1160,22 +1160,22 @@
       "hmac": null,
       "backend": "hash2",
       "target": "emscripten",
-      "size_bytes": 12257,
+      "size_bytes": 7140,
       "result": "a68891d0f0ed793516c56955574da4b5b4b8c69b9e01c4faa602c81bd005434d7379b1a24ed787eefe1a03095ac5ebfe",
       "throughput": {
         "repetitions": 1,
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          4263292.0,
-          4333500.0,
-          4292875.0,
-          4250000.0,
-          4376542.0
+          2708791.0,
+          2710375.0,
+          2692958.0,
+          2700791.0,
+          2696583.0
         ],
-        "median_ns": 4292875.0,
-        "min_ns": 4120042.0,
-        "max_ns": 4875958.0
+        "median_ns": 2700791.0,
+        "min_ns": 2665542.0,
+        "max_ns": 2726166.0
       },
       "throughput_absent": null
     },
@@ -1191,15 +1191,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          4302916.0,
-          4303542.0,
-          4329708.0,
-          4089084.0,
-          4305958.0
+          2735375.0,
+          2735083.0,
+          2712250.0,
+          2711500.0,
+          2721958.0
         ],
-        "median_ns": 4303542.0,
-        "min_ns": 4079500.0,
-        "max_ns": 4737334.0
+        "median_ns": 2721958.0,
+        "min_ns": 2682417.0,
+        "max_ns": 3171667.0
       },
       "throughput_absent": null
     },
@@ -1215,15 +1215,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          5632250.0,
-          5613125.0,
-          5625458.0,
-          5861334.0,
-          6126041.0
+          3762666.0,
+          3754500.0,
+          3788709.0,
+          3734250.0,
+          3730375.0
         ],
-        "median_ns": 5632250.0,
-        "min_ns": 5602334.0,
-        "max_ns": 6271792.0
+        "median_ns": 3754500.0,
+        "min_ns": 3692917.0,
+        "max_ns": 3817458.0
       },
       "throughput_absent": null
     },
@@ -1239,15 +1239,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          5945083.0,
-          5621875.0,
-          6260875.0,
-          5614708.0,
-          5653750.0
+          3750792.0,
+          3753417.0,
+          3743583.0,
+          3737417.0,
+          3728375.0
         ],
-        "median_ns": 5653750.0,
-        "min_ns": 5602000.0,
-        "max_ns": 6791709.0
+        "median_ns": 3743583.0,
+        "min_ns": 3694625.0,
+        "max_ns": 3790833.0
       },
       "throughput_absent": null
     },
@@ -1256,22 +1256,22 @@
       "hmac": null,
       "backend": "hash2",
       "target": "emscripten",
-      "size_bytes": 12263,
+      "size_bytes": 7142,
       "result": "47d0e125b9587370101c06c66758c7982514f6ed2e5436b3d0da9896aa88c666579a05b7cc2f13ced91679ed86304fb664b05d5305243a56e1d08c22cafe7a87",
       "throughput": {
         "repetitions": 1,
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          5625125.0,
-          5636875.0,
-          5491958.0,
-          5704042.0,
-          5931375.0
+          3612583.0,
+          3611209.0,
+          3582292.0,
+          3582333.0,
+          3590667.0
         ],
-        "median_ns": 5636875.0,
-        "min_ns": 5478542.0,
-        "max_ns": 6168875.0
+        "median_ns": 3590667.0,
+        "min_ns": 3550000.0,
+        "max_ns": 3646667.0
       },
       "throughput_absent": null
     },
@@ -1287,15 +1287,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          1848709.0,
-          1848833.0,
-          1856167.0,
-          1846208.0,
-          1846708.0
+          1178667.0,
+          1182583.0,
+          1181792.0,
+          1187209.0,
+          1180083.0
         ],
-        "median_ns": 1848709.0,
-        "min_ns": 1783709.0,
-        "max_ns": 4391708.0
+        "median_ns": 1181792.0,
+        "min_ns": 1173833.0,
+        "max_ns": 1198667.0
       },
       "throughput_absent": null
     },
@@ -1311,15 +1311,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          2618666.0,
-          2610333.0,
-          3049583.0,
-          2619125.0,
-          3044500.0
+          1740583.0,
+          1748542.0,
+          1739959.0,
+          1742667.0,
+          1728791.0
         ],
-        "median_ns": 2619125.0,
-        "min_ns": 2596500.0,
-        "max_ns": 3106375.0
+        "median_ns": 1740583.0,
+        "min_ns": 1706333.0,
+        "max_ns": 1763791.0
       },
       "throughput_absent": null
     },
@@ -1335,15 +1335,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          2787875.0,
-          3043166.0,
-          2603792.0,
-          3051208.0,
-          2597416.0
+          1742291.0,
+          1737750.0,
+          1725458.0,
+          1723417.0,
+          1727667.0
         ],
-        "median_ns": 2787875.0,
-        "min_ns": 2592417.0,
-        "max_ns": 3075834.0
+        "median_ns": 1727667.0,
+        "min_ns": 1688291.0,
+        "max_ns": 1753458.0
       },
       "throughput_absent": null
     },
@@ -1352,22 +1352,22 @@
       "hmac": null,
       "backend": "hash2",
       "target": "emscripten",
-      "size_bytes": 12271,
+      "size_bytes": 7151,
       "result": "cc2b4b915a2912fe9f2ead69a16628a9544c315099b5c8152cd80f61f65bd3edbb2faaaa62f0b7fb721be655aa04079f8ab11cdb75d3ce48e161b4767e2037bbe152b270164b4faec71a512b21468b064b7c264ac8787f557c8789f650ef1c59e9bd54c93cc0ed31c0ede7cf7dd174776f8579af9d841a852979539281c14c78c6c0666a8a945a70afc8873bc41f2d821b345c3efc00a5c81756e46373b50d9d4134ed4a6a3a845c",
       "throughput": {
         "repetitions": 1,
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          3074750.0,
-          2928750.0,
-          2967084.0,
-          2963458.0,
-          3099375.0
+          1920041.0,
+          1918917.0,
+          1904250.0,
+          1914709.0,
+          1912375.0
         ],
-        "median_ns": 2967084.0,
-        "min_ns": 2904500.0,
-        "max_ns": 3225250.0
+        "median_ns": 1914709.0,
+        "min_ns": 1888209.0,
+        "max_ns": 1947208.0
       },
       "throughput_absent": null
     },
@@ -1383,15 +1383,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          2291959.0,
-          2283791.0,
-          2291000.0,
-          2283750.0,
-          2285209.0
+          1453791.0,
+          1469500.0,
+          1451000.0,
+          1457125.0,
+          1456208.0
         ],
-        "median_ns": 2285209.0,
-        "min_ns": 2183375.0,
-        "max_ns": 2427041.0
+        "median_ns": 1456208.0,
+        "min_ns": 1446625.0,
+        "max_ns": 1714791.0
       },
       "throughput_absent": null
     },
@@ -1407,15 +1407,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          3142125.0,
-          3139000.0,
-          3519667.0,
-          3665083.0,
-          3151459.0
+          2100500.0,
+          2102084.0,
+          2093667.0,
+          2091792.0,
+          2086625.0
         ],
-        "median_ns": 3151459.0,
-        "min_ns": 3128000.0,
-        "max_ns": 3675917.0
+        "median_ns": 2093667.0,
+        "min_ns": 2066959.0,
+        "max_ns": 2133917.0
       },
       "throughput_absent": null
     },
@@ -1431,15 +1431,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          3144417.0,
-          3134375.0,
-          3122792.0,
-          3555084.0,
-          3123958.0
+          2082875.0,
+          2079417.0,
+          2089584.0,
+          2089250.0,
+          2091291.0
         ],
-        "median_ns": 3134375.0,
-        "min_ns": 3108250.0,
-        "max_ns": 3687750.0
+        "median_ns": 2089250.0,
+        "min_ns": 2072291.0,
+        "max_ns": 2120875.0
       },
       "throughput_absent": null
     },
@@ -1448,22 +1448,22 @@
       "hmac": null,
       "backend": "hash2",
       "target": "emscripten",
-      "size_bytes": 12271,
+      "size_bytes": 7151,
       "result": "421768deb973416dedf1885bb22b42dc2b1888e186b827941692a02e3add3b0c2973f6dc6b7f7ed07c122a1d14601f96f8f87912d9783d9023c2c36d6bf1110ada74d0234ae142992bc2aed7a5222131104c0469f90eef4a0908f23f4b01459e0dc5e1fedc216054916d42003c8645545d9098808372273ddef4ea31e2bc2b7e00ff7fc7f9f4521d",
       "throughput": {
         "repetitions": 1,
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          3536333.0,
-          3524542.0,
-          3631541.0,
-          3418542.0,
-          3592125.0
+          2181875.0,
+          2173792.0,
+          2197375.0,
+          2204541.0,
+          2178500.0
         ],
-        "median_ns": 3536333.0,
-        "min_ns": 3381458.0,
-        "max_ns": 4587167.0
+        "median_ns": 2181875.0,
+        "min_ns": 2166750.0,
+        "max_ns": 2256125.0
       },
       "throughput_absent": null
     },
@@ -1479,15 +1479,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          1696208.0,
-          1762542.0,
-          1806875.0,
-          1769500.0,
-          1763708.0
+          1003042.0,
+          1003916.0,
+          1004375.0,
+          1002625.0,
+          1004041.0
         ],
-        "median_ns": 1763708.0,
-        "min_ns": 1691542.0,
-        "max_ns": 1809792.0
+        "median_ns": 1003916.0,
+        "min_ns": 973750.0,
+        "max_ns": 1027083.0
       },
       "throughput_absent": null
     },
@@ -1503,15 +1503,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          2203042.0,
-          1924916.0,
-          2201167.0,
-          2135916.0,
-          1943833.0
+          1300792.0,
+          1306000.0,
+          1275500.0,
+          1279459.0,
+          1274375.0
         ],
-        "median_ns": 2135916.0,
-        "min_ns": 1917292.0,
-        "max_ns": 2224958.0
+        "median_ns": 1279459.0,
+        "min_ns": 1231209.0,
+        "max_ns": 1309000.0
       },
       "throughput_absent": null
     },
@@ -1527,15 +1527,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          2187417.0,
-          1916542.0,
-          2156375.0,
-          2190250.0,
-          2195375.0
+          1303541.0,
+          1301500.0,
+          1300416.0,
+          1294917.0,
+          1295417.0
         ],
-        "median_ns": 2187417.0,
-        "min_ns": 1909500.0,
-        "max_ns": 2203917.0
+        "median_ns": 1300416.0,
+        "min_ns": 1225583.0,
+        "max_ns": 1322417.0
       },
       "throughput_absent": null
     },
@@ -1544,22 +1544,22 @@
       "hmac": null,
       "backend": "xkcp",
       "target": "emscripten",
-      "size_bytes": 124708,
+      "size_bytes": 24057,
       "result": "83fbd18d9728845e498651fec13794b23c201f437c9efff4717306cec4305ed7",
       "throughput": {
         "repetitions": 1,
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          1876208.0,
-          1878042.0,
-          1733625.0,
-          1711000.0,
-          1894625.0
+          1124125.0,
+          1114417.0,
+          1120125.0,
+          1122959.0,
+          1123167.0
         ],
-        "median_ns": 1876208.0,
-        "min_ns": 1670208.0,
-        "max_ns": 2167875.0
+        "median_ns": 1122959.0,
+        "min_ns": 1106792.0,
+        "max_ns": 1142000.0
       },
       "throughput_absent": null
     },
@@ -1575,15 +1575,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          993583.0,
-          988458.0,
-          949083.0,
-          986417.0,
-          988875.0
+          648250.0,
+          644500.0,
+          614958.0,
+          618792.0,
+          604958.0
         ],
-        "median_ns": 988458.0,
-        "min_ns": 945375.0,
-        "max_ns": 1005458.0
+        "median_ns": 618792.0,
+        "min_ns": 603500.0,
+        "max_ns": 650209.0
       },
       "throughput_absent": null
     },
@@ -1599,15 +1599,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          1067708.0,
-          1015708.0,
-          1068083.0,
-          1067667.0,
-          1015292.0
+          676250.0,
+          678458.0,
+          676667.0,
+          673500.0,
+          663084.0
         ],
-        "median_ns": 1067667.0,
-        "min_ns": 1012750.0,
-        "max_ns": 1362291.0
+        "median_ns": 676250.0,
+        "min_ns": 651000.0,
+        "max_ns": 688500.0
       },
       "throughput_absent": null
     },
@@ -1623,15 +1623,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          1077416.0,
-          1068667.0,
-          1133500.0,
-          1064167.0,
-          1080000.0
+          685292.0,
+          677917.0,
+          676875.0,
+          666417.0,
+          660291.0
         ],
-        "median_ns": 1077416.0,
-        "min_ns": 1063333.0,
-        "max_ns": 1139084.0
+        "median_ns": 676875.0,
+        "min_ns": 657625.0,
+        "max_ns": 686583.0
       },
       "throughput_absent": null
     },
@@ -1640,22 +1640,22 @@
       "hmac": null,
       "backend": "hash2",
       "target": "emscripten",
-      "size_bytes": 17106,
+      "size_bytes": 11982,
       "result": "285c0b8fcbf598be3409fe78df91c2824dd9a297e00a24e9bc62ee0f93a85e4ad2cfc671f324db6b15d4b033149979417aa0954b4b6dd0c1bfb4a88f842bd972",
       "throughput": {
         "repetitions": 1,
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          1058167.0,
-          1062708.0,
-          1011750.0,
-          1013834.0,
-          1056625.0
+          672791.0,
+          673834.0,
+          665750.0,
+          667250.0,
+          663208.0
         ],
-        "median_ns": 1056625.0,
-        "min_ns": 993792.0,
-        "max_ns": 1072416.0
+        "median_ns": 667250.0,
+        "min_ns": 641542.0,
+        "max_ns": 679833.0
       },
       "throughput_absent": null
     },
@@ -1671,15 +1671,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          1602708.0,
-          1670083.0,
-          1670042.0,
-          1667792.0,
-          1667708.0
+          1091833.0,
+          1084292.0,
+          1083875.0,
+          1041083.0,
+          1044666.0
         ],
-        "median_ns": 1667792.0,
-        "min_ns": 1599750.0,
-        "max_ns": 1690250.0
+        "median_ns": 1083875.0,
+        "min_ns": 1018917.0,
+        "max_ns": 1118875.0
       },
       "throughput_absent": null
     },
@@ -1695,15 +1695,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          1866583.0,
-          1751792.0,
-          1759375.0,
-          1847791.0,
-          1848583.0
+          1170292.0,
+          1179875.0,
+          1171208.0,
+          1169500.0,
+          1162417.0
         ],
-        "median_ns": 1847791.0,
-        "min_ns": 1750250.0,
-        "max_ns": 1872792.0
+        "median_ns": 1170292.0,
+        "min_ns": 1102583.0,
+        "max_ns": 1206791.0
       },
       "throughput_absent": null
     },
@@ -1719,15 +1719,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          1771708.0,
-          1846833.0,
-          1748292.0,
-          1857959.0,
-          1836584.0
+          1173791.0,
+          1171959.0,
+          1170209.0,
+          1163042.0,
+          1134125.0
         ],
-        "median_ns": 1836584.0,
-        "min_ns": 1747042.0,
-        "max_ns": 1862125.0
+        "median_ns": 1170209.0,
+        "min_ns": 1096875.0,
+        "max_ns": 1194583.0
       },
       "throughput_absent": null
     },
@@ -1736,22 +1736,22 @@
       "hmac": null,
       "backend": "hash2",
       "target": "emscripten",
-      "size_bytes": 16105,
+      "size_bytes": 10974,
       "result": "65d6ee5210034ff3fb34c164819144cc11a16b85a8626ea87b97a4543f5e9125",
       "throughput": {
         "repetitions": 1,
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          1717958.0,
-          1785208.0,
-          1704250.0,
-          1727209.0,
-          1780959.0
+          1140250.0,
+          1141500.0,
+          1142333.0,
+          1116625.0,
+          1105041.0
         ],
-        "median_ns": 1727209.0,
-        "min_ns": 1686500.0,
-        "max_ns": 1815625.0
+        "median_ns": 1140250.0,
+        "min_ns": 1094542.0,
+        "max_ns": 1177666.0
       },
       "throughput_absent": null
     },
@@ -1767,15 +1767,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          485000.0,
-          484459.0,
-          464709.0,
-          485583.0,
-          695834.0
+          417833.0,
+          422291.0,
+          412750.0,
+          413333.0,
+          414875.0
         ],
-        "median_ns": 485000.0,
-        "min_ns": 463542.0,
-        "max_ns": 709375.0
+        "median_ns": 414875.0,
+        "min_ns": 398083.0,
+        "max_ns": 425250.0
       },
       "throughput_absent": null
     },
@@ -1791,15 +1791,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          1380708.0,
-          1319750.0,
-          1382000.0,
-          1457833.0,
-          1376417.0
+          880333.0,
+          892666.0,
+          881792.0,
+          865459.0,
+          881167.0
         ],
-        "median_ns": 1380708.0,
-        "min_ns": 1314292.0,
-        "max_ns": 1489292.0
+        "median_ns": 881167.0,
+        "min_ns": 845458.0,
+        "max_ns": 908750.0
       },
       "throughput_absent": null
     },
@@ -1815,15 +1815,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          1313625.0,
-          1313875.0,
-          1464333.0,
-          1368625.0,
-          1319250.0
+          873292.0,
+          877250.0,
+          877958.0,
+          877708.0,
+          837833.0
         ],
-        "median_ns": 1319250.0,
-        "min_ns": 1310458.0,
-        "max_ns": 1467208.0
+        "median_ns": 877250.0,
+        "min_ns": 828500.0,
+        "max_ns": 907666.0
       },
       "throughput_absent": null
     },
@@ -1832,22 +1832,22 @@
       "hmac": null,
       "backend": "blake3",
       "target": "emscripten",
-      "size_bytes": 122432,
+      "size_bytes": 21252,
       "result": "ec7c941fd6aaef5d85b287992a159da0e5a8068c000f0838c4b476c092f7d42c",
       "throughput": {
         "repetitions": 1,
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          1245750.0,
-          1296916.0,
-          1354292.0,
-          1265333.0,
-          1299166.0
+          836042.0,
+          836750.0,
+          833250.0,
+          827667.0,
+          822875.0
         ],
-        "median_ns": 1296916.0,
-        "min_ns": 1224917.0,
-        "max_ns": 1423583.0
+        "median_ns": 833250.0,
+        "min_ns": 803541.0,
+        "max_ns": 875625.0
       },
       "throughput_absent": null
     },
@@ -1863,15 +1863,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          1459625.0,
-          1457000.0,
-          1603416.0,
-          1459000.0,
-          1459500.0
+          1067709.0,
+          1065083.0,
+          1007584.0,
+          1004250.0,
+          1001375.0
         ],
-        "median_ns": 1459500.0,
-        "min_ns": 1398375.0,
-        "max_ns": 1609333.0
+        "median_ns": 1007584.0,
+        "min_ns": 1001291.0,
+        "max_ns": 1070250.0
       },
       "throughput_absent": null
     },
@@ -1887,15 +1887,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          2996917.0,
-          2822500.0,
-          2824500.0,
-          2260083.0,
-          2812875.0
+          1878125.0,
+          1776125.0,
+          1778958.0,
+          1766667.0,
+          1887208.0
         ],
-        "median_ns": 2822500.0,
-        "min_ns": 2258875.0,
-        "max_ns": 3153209.0
+        "median_ns": 1778958.0,
+        "min_ns": 1763334.0,
+        "max_ns": 1892584.0
       },
       "throughput_absent": null
     },
@@ -1911,15 +1911,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          3149375.0,
-          2771000.0,
-          2824792.0,
-          2265792.0,
-          2261500.0
+          1855875.0,
+          1775166.0,
+          1776625.0,
+          1889208.0,
+          1770417.0
         ],
-        "median_ns": 2771000.0,
-        "min_ns": 2254333.0,
-        "max_ns": 3153708.0
+        "median_ns": 1776625.0,
+        "min_ns": 1763042.0,
+        "max_ns": 1903583.0
       },
       "throughput_absent": null
     },
@@ -1928,22 +1928,22 @@
       "hmac": null,
       "backend": "hash2",
       "target": "emscripten",
-      "size_bytes": 14542,
+      "size_bytes": 9421,
       "result": "85e9a6d2c3753cb28f2de0ccaf7fb74d",
       "throughput": {
         "repetitions": 1,
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          2829417.0,
-          2193125.0,
-          2252792.0,
-          2182083.0,
-          2277042.0
+          1840583.0,
+          1784209.0,
+          1780042.0,
+          1769500.0,
+          1775750.0
         ],
-        "median_ns": 2252792.0,
-        "min_ns": 2162292.0,
-        "max_ns": 2845416.0
+        "median_ns": 1780042.0,
+        "min_ns": 1764125.0,
+        "max_ns": 1848125.0
       },
       "throughput_absent": null
     },
@@ -1959,15 +1959,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          2256000.0,
-          2319291.0,
-          2217125.0,
-          2258083.0,
-          2256291.0
+          1663500.0,
+          1640292.0,
+          1555666.0,
+          1563042.0,
+          1555625.0
         ],
-        "median_ns": 2256291.0,
-        "min_ns": 2164500.0,
-        "max_ns": 2401542.0
+        "median_ns": 1563042.0,
+        "min_ns": 1552333.0,
+        "max_ns": 1679958.0
       },
       "throughput_absent": null
     },
@@ -1983,15 +1983,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          4448167.0,
-          4432083.0,
-          4438292.0,
-          4620584.0,
-          4433167.0
+          2954750.0,
+          2808458.0,
+          2780292.0,
+          2803542.0,
+          2934875.0
         ],
-        "median_ns": 4438292.0,
-        "min_ns": 3479500.0,
-        "max_ns": 4964209.0
+        "median_ns": 2808458.0,
+        "min_ns": 2773084.0,
+        "max_ns": 2980291.0
       },
       "throughput_absent": null
     },
@@ -2007,15 +2007,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          4440083.0,
-          3478292.0,
-          4563459.0,
-          4127167.0,
-          4144958.0
+          2840958.0,
+          2796667.0,
+          2800625.0,
+          2975708.0,
+          2783125.0
         ],
-        "median_ns": 4144958.0,
-        "min_ns": 3446083.0,
-        "max_ns": 4955500.0
+        "median_ns": 2800625.0,
+        "min_ns": 2772708.0,
+        "max_ns": 2986292.0
       },
       "throughput_absent": null
     },
@@ -2024,22 +2024,22 @@
       "hmac": null,
       "backend": "hash2",
       "target": "emscripten",
-      "size_bytes": 16730,
+      "size_bytes": 11607,
       "result": "e1095cbc24baf2f65826cc4a98a221ab6304350e",
       "throughput": {
         "repetitions": 1,
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          3813000.0,
-          3496375.0,
-          3323958.0,
-          3403583.0,
-          3466208.0
+          2858125.0,
+          2785292.0,
+          2814292.0,
+          2814000.0,
+          2797083.0
         ],
-        "median_ns": 3466208.0,
-        "min_ns": 3240416.0,
-        "max_ns": 5644584.0
+        "median_ns": 2814000.0,
+        "min_ns": 2769417.0,
+        "max_ns": 2877209.0
       },
       "throughput_absent": null
     },
@@ -2055,15 +2055,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          984500.0,
-          984208.0,
-          887542.0,
-          887834.0,
-          887875.0
+          656500.0,
+          621000.0,
+          617750.0,
+          617667.0,
+          620416.0
         ],
-        "median_ns": 887875.0,
-        "min_ns": 886875.0,
-        "max_ns": 984958.0
+        "median_ns": 620416.0,
+        "min_ns": 614542.0,
+        "max_ns": 670750.0
       },
       "throughput_absent": null
     },
@@ -2079,15 +2079,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          759042.0,
-          925416.0,
-          757959.0,
-          761417.0,
-          757417.0
+          614625.0,
+          620167.0,
+          618375.0,
+          590084.0,
+          617958.0
         ],
-        "median_ns": 759042.0,
-        "min_ns": 754000.0,
-        "max_ns": 929666.0
+        "median_ns": 617958.0,
+        "min_ns": 584625.0,
+        "max_ns": 634333.0
       },
       "throughput_absent": null
     },
@@ -2103,15 +2103,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          1022875.0,
-          922375.0,
-          1032458.0,
-          756541.0,
-          922959.0
+          614958.0,
+          613375.0,
+          603333.0,
+          618792.0,
+          607125.0
         ],
-        "median_ns": 922959.0,
-        "min_ns": 753208.0,
-        "max_ns": 1038083.0
+        "median_ns": 613375.0,
+        "min_ns": 588084.0,
+        "max_ns": 652292.0
       },
       "throughput_absent": null
     },
@@ -2120,22 +2120,22 @@
       "hmac": null,
       "backend": "hash2",
       "target": "emscripten",
-      "size_bytes": 11335,
+      "size_bytes": 6206,
       "result": "677648dd",
       "throughput": {
         "repetitions": 1,
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          5439583.0,
-          7289209.0,
-          6611333.0,
-          7295625.0,
-          5492791.0
+          4729500.0,
+          4494291.0,
+          4526458.0,
+          4483958.0,
+          4470959.0
         ],
-        "median_ns": 6611333.0,
-        "min_ns": 5197000.0,
-        "max_ns": 8142334.0
+        "median_ns": 4494291.0,
+        "min_ns": 4442333.0,
+        "max_ns": 4736667.0
       },
       "throughput_absent": null
     },
@@ -2151,15 +2151,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          425750.0,
-          437708.0,
-          452083.0,
-          443916.0,
-          444416.0
+          324166.0,
+          305667.0,
+          307416.0,
+          305625.0,
+          304875.0
         ],
-        "median_ns": 443916.0,
-        "min_ns": 425250.0,
-        "max_ns": 454667.0
+        "median_ns": 305667.0,
+        "min_ns": 304500.0,
+        "max_ns": 343750.0
       },
       "throughput_absent": null
     },
@@ -2175,15 +2175,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          377625.0,
-          460875.0,
-          380709.0,
-          377250.0,
-          376750.0
+          306292.0,
+          309166.0,
+          293375.0,
+          287375.0,
+          306625.0
         ],
-        "median_ns": 377625.0,
-        "min_ns": 376458.0,
-        "max_ns": 463292.0
+        "median_ns": 306292.0,
+        "min_ns": 287209.0,
+        "max_ns": 324208.0
       },
       "throughput_absent": null
     },
@@ -2199,15 +2199,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          377417.0,
-          377084.0,
-          511750.0,
-          376583.0,
-          459583.0
+          305000.0,
+          308292.0,
+          298417.0,
+          307541.0,
+          307916.0
         ],
-        "median_ns": 377417.0,
-        "min_ns": 376417.0,
-        "max_ns": 515750.0
+        "median_ns": 307541.0,
+        "min_ns": 297958.0,
+        "max_ns": 341208.0
       },
       "throughput_absent": null
     },
@@ -2216,22 +2216,22 @@
       "hmac": null,
       "backend": "hash2",
       "target": "emscripten",
-      "size_bytes": 11428,
+      "size_bytes": 6294,
       "result": "5ca7776bb150172a",
       "throughput": {
         "repetitions": 1,
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          2644042.0,
-          2692459.0,
-          2552125.0,
-          2543167.0,
-          2675666.0
+          2401833.0,
+          2320250.0,
+          2321250.0,
+          2289917.0,
+          2287666.0
         ],
-        "median_ns": 2644042.0,
-        "min_ns": 2530084.0,
-        "max_ns": 3964375.0
+        "median_ns": 2320250.0,
+        "min_ns": 2257917.0,
+        "max_ns": 2441709.0
       },
       "throughput_absent": null
     },
@@ -2247,15 +2247,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          2601958.0,
-          2600166.0,
-          2598917.0,
-          2598250.0,
-          2600292.0
+          1727542.0,
+          1696333.0,
+          1664333.0,
+          1680792.0,
+          1624917.0
         ],
-        "median_ns": 2600166.0,
-        "min_ns": 2583292.0,
-        "max_ns": 2623250.0
+        "median_ns": 1680792.0,
+        "min_ns": 1616166.0,
+        "max_ns": 1764083.0
       },
       "throughput_absent": null
     },
@@ -2271,15 +2271,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          3698333.0,
-          3359583.0,
-          3693375.0,
-          3323292.0,
-          3691708.0
+          2219958.0,
+          2211959.0,
+          2164292.0,
+          2129500.0,
+          2226958.0
         ],
-        "median_ns": 3691708.0,
-        "min_ns": 3271250.0,
-        "max_ns": 4513709.0
+        "median_ns": 2211959.0,
+        "min_ns": 2085041.0,
+        "max_ns": 2239833.0
       },
       "throughput_absent": null
     },
@@ -2295,15 +2295,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          3306750.0,
-          3300125.0,
-          3683208.0,
-          3363417.0,
-          3305875.0
+          2203667.0,
+          2166916.0,
+          2114292.0,
+          2213166.0,
+          2097500.0
         ],
-        "median_ns": 3306750.0,
-        "min_ns": 3217709.0,
-        "max_ns": 3705500.0
+        "median_ns": 2166916.0,
+        "min_ns": 2072625.0,
+        "max_ns": 2238250.0
       },
       "throughput_absent": null
     },
@@ -2312,22 +2312,22 @@
       "hmac": null,
       "backend": "hash2",
       "target": "emscripten",
-      "size_bytes": 19781,
+      "size_bytes": 14437,
       "result": "c906e7f83df88f9c916d497143edb4869cd379e77f52f4f80665cdb376aa126c",
       "throughput": {
         "repetitions": 1,
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          3297417.0,
-          3176166.0,
-          3136500.0,
-          3100542.0,
-          3221625.0
+          2131417.0,
+          2136208.0,
+          2074083.0,
+          2064584.0,
+          2034041.0
         ],
-        "median_ns": 3176166.0,
-        "min_ns": 3079292.0,
-        "max_ns": 3402708.0
+        "median_ns": 2074083.0,
+        "min_ns": 2020708.0,
+        "max_ns": 2162875.0
       },
       "throughput_absent": null
     },
@@ -2343,15 +2343,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          1272208.0,
-          1272583.0,
-          1273125.0,
-          1271917.0,
-          1271792.0
+          1140959.0,
+          1073250.0,
+          1072417.0,
+          1152500.0,
+          1073375.0
         ],
-        "median_ns": 1272208.0,
-        "min_ns": 1269458.0,
-        "max_ns": 1294959.0
+        "median_ns": 1073375.0,
+        "min_ns": 1069375.0,
+        "max_ns": 1177875.0
       },
       "throughput_absent": null
     },
@@ -2367,15 +2367,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          1527917.0,
-          2044958.0,
-          2216083.0,
-          1524666.0,
-          1525750.0
+          1362000.0,
+          1280958.0,
+          1295125.0,
+          1313375.0,
+          1375625.0
         ],
-        "median_ns": 1527917.0,
-        "min_ns": 1521250.0,
-        "max_ns": 2290541.0
+        "median_ns": 1313375.0,
+        "min_ns": 1280875.0,
+        "max_ns": 1390958.0
       },
       "throughput_absent": null
     },
@@ -2391,15 +2391,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          1522792.0,
-          1522041.0,
-          2055083.0,
-          1522166.0,
-          2059125.0
+          1383375.0,
+          1302916.0,
+          1287291.0,
+          1376583.0,
+          1350917.0
         ],
-        "median_ns": 1522792.0,
-        "min_ns": 1521916.0,
-        "max_ns": 2062958.0
+        "median_ns": 1350917.0,
+        "min_ns": 1284208.0,
+        "max_ns": 1416666.0
       },
       "throughput_absent": null
     },
@@ -2408,22 +2408,22 @@
       "hmac": null,
       "backend": "hash2",
       "target": "emscripten",
-      "size_bytes": 13624,
+      "size_bytes": 8330,
       "result": "1ec7030375efa7c449ec40779bf94ab8",
       "throughput": {
         "repetitions": 1,
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          1572375.0,
-          1532791.0,
-          1547250.0,
-          1470583.0,
-          1552958.0
+          1376833.0,
+          1302584.0,
+          1287208.0,
+          1374042.0,
+          1291875.0
         ],
-        "median_ns": 1547250.0,
-        "min_ns": 1469542.0,
-        "max_ns": 1597584.0
+        "median_ns": 1302584.0,
+        "min_ns": 1284166.0,
+        "max_ns": 1382542.0
       },
       "throughput_absent": null
     },
@@ -2439,15 +2439,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          1121500.0,
-          1166625.0,
-          1167583.0,
-          1167792.0,
-          1166875.0
+          855583.0,
+          854917.0,
+          820083.0,
+          860167.0,
+          806792.0
         ],
-        "median_ns": 1166875.0,
-        "min_ns": 1118084.0,
-        "max_ns": 1173916.0
+        "median_ns": 854917.0,
+        "min_ns": 803833.0,
+        "max_ns": 861292.0
       },
       "throughput_absent": null
     },
@@ -2463,15 +2463,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          2000500.0,
-          1793375.0,
-          1640541.0,
-          1755042.0,
-          1793250.0
+          1201541.0,
+          1200917.0,
+          1200209.0,
+          1152166.0,
+          1212416.0
         ],
-        "median_ns": 1793250.0,
-        "min_ns": 1638500.0,
-        "max_ns": 2006667.0
+        "median_ns": 1200917.0,
+        "min_ns": 1128084.0,
+        "max_ns": 1232667.0
       },
       "throughput_absent": null
     },
@@ -2487,15 +2487,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          1805500.0,
-          1643167.0,
-          1799667.0,
-          1797708.0,
-          1641625.0
+          1216958.0,
+          1201958.0,
+          1170708.0,
+          1207667.0,
+          1218375.0
         ],
-        "median_ns": 1797708.0,
-        "min_ns": 1641208.0,
-        "max_ns": 1810542.0
+        "median_ns": 1207667.0,
+        "min_ns": 1133583.0,
+        "max_ns": 1228833.0
       },
       "throughput_absent": null
     },
@@ -2504,22 +2504,22 @@
       "hmac": null,
       "backend": "hash2",
       "target": "emscripten",
-      "size_bytes": 15876,
+      "size_bytes": 10569,
       "result": "9133d45845ca2940932122901d11238c6a3a8bd1",
       "throughput": {
         "repetitions": 1,
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          1519375.0,
-          1531250.0,
-          1507375.0,
-          1514083.0,
-          1578625.0
+          1129000.0,
+          1127250.0,
+          1119458.0,
+          1136416.0,
+          1078417.0
         ],
-        "median_ns": 1519375.0,
-        "min_ns": 1503875.0,
-        "max_ns": 1610375.0
+        "median_ns": 1127250.0,
+        "min_ns": 1061125.0,
+        "max_ns": 1141583.0
       },
       "throughput_absent": null
     },
@@ -2535,15 +2535,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          2615208.0,
-          2599208.0,
-          2585750.0,
-          2604125.0,
-          2600791.0
+          1728458.0,
+          1718709.0,
+          1668042.0,
+          1730958.0,
+          1631083.0
         ],
-        "median_ns": 2600791.0,
-        "min_ns": 2534000.0,
-        "max_ns": 2653958.0
+        "median_ns": 1718709.0,
+        "min_ns": 1617084.0,
+        "max_ns": 1768208.0
       },
       "throughput_absent": null
     },
@@ -2559,15 +2559,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          3342125.0,
-          3315084.0,
-          3702042.0,
-          3333334.0,
-          3310500.0
+          2206167.0,
+          2199750.0,
+          2159083.0,
+          2119417.0,
+          2119500.0
         ],
-        "median_ns": 3333334.0,
-        "min_ns": 3277834.0,
-        "max_ns": 3719584.0
+        "median_ns": 2159083.0,
+        "min_ns": 2077375.0,
+        "max_ns": 2237375.0
       },
       "throughput_absent": null
     },
@@ -2583,15 +2583,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          3261958.0,
-          3288208.0,
-          3685167.0,
-          3366875.0,
-          3302209.0
+          2210792.0,
+          2182167.0,
+          2154042.0,
+          2146166.0,
+          2128416.0
         ],
-        "median_ns": 3302209.0,
-        "min_ns": 3159083.0,
-        "max_ns": 3711916.0
+        "median_ns": 2154042.0,
+        "min_ns": 2077417.0,
+        "max_ns": 2217833.0
       },
       "throughput_absent": null
     },
@@ -2600,22 +2600,22 @@
       "hmac": null,
       "backend": "hash2",
       "target": "emscripten",
-      "size_bytes": 19787,
+      "size_bytes": 14444,
       "result": "989b7c558165595b219e1b23e038fe26a33d6c76045c623a1268bb29",
       "throughput": {
         "repetitions": 1,
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          3238042.0,
-          3392208.0,
-          3124375.0,
-          3286250.0,
-          3282750.0
+          2137625.0,
+          2139292.0,
+          2067584.0,
+          2148709.0,
+          2013125.0
         ],
-        "median_ns": 3282750.0,
-        "min_ns": 3084500.0,
-        "max_ns": 6238625.0
+        "median_ns": 2137625.0,
+        "min_ns": 1993916.0,
+        "max_ns": 2168625.0
       },
       "throughput_absent": null
     },
@@ -2631,15 +2631,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          2491542.0,
-          2594459.0,
-          2601000.0,
-          2606000.0,
-          2603917.0
+          1722542.0,
+          1703875.0,
+          1665125.0,
+          1671000.0,
+          1644292.0
         ],
-        "median_ns": 2601000.0,
-        "min_ns": 2486167.0,
-        "max_ns": 2771291.0
+        "median_ns": 1671000.0,
+        "min_ns": 1629625.0,
+        "max_ns": 1756750.0
       },
       "throughput_absent": null
     },
@@ -2655,15 +2655,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          3697667.0,
-          3328167.0,
-          3304584.0,
-          3289583.0,
-          3320042.0
+          2207625.0,
+          2215792.0,
+          2143792.0,
+          2089166.0,
+          2126041.0
         ],
-        "median_ns": 3320042.0,
-        "min_ns": 3257750.0,
-        "max_ns": 3927667.0
+        "median_ns": 2143792.0,
+        "min_ns": 2071708.0,
+        "max_ns": 2221875.0
       },
       "throughput_absent": null
     },
@@ -2679,15 +2679,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          3359208.0,
-          3307542.0,
-          3682666.0,
-          3324209.0,
-          3268083.0
+          2209500.0,
+          2196666.0,
+          2111542.0,
+          2137416.0,
+          2107375.0
         ],
-        "median_ns": 3324209.0,
-        "min_ns": 3256959.0,
-        "max_ns": 3695166.0
+        "median_ns": 2137416.0,
+        "min_ns": 2068792.0,
+        "max_ns": 2231583.0
       },
       "throughput_absent": null
     },
@@ -2696,22 +2696,22 @@
       "hmac": null,
       "backend": "hash2",
       "target": "emscripten",
-      "size_bytes": 19781,
+      "size_bytes": 14437,
       "result": "c906e7f83df88f9c916d497143edb4869cd379e77f52f4f80665cdb376aa126c",
       "throughput": {
         "repetitions": 1,
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          3225625.0,
-          3098042.0,
-          3195958.0,
-          3164125.0,
-          3226000.0
+          2146833.0,
+          2142625.0,
+          2034958.0,
+          2136791.0,
+          2070458.0
         ],
-        "median_ns": 3195958.0,
-        "min_ns": 3088709.0,
-        "max_ns": 3406209.0
+        "median_ns": 2136791.0,
+        "min_ns": 2010875.0,
+        "max_ns": 2180917.0
       },
       "throughput_absent": null
     },
@@ -2727,15 +2727,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          1707792.0,
-          1709708.0,
-          1706959.0,
-          1710958.0,
-          1707958.0
+          1100083.0,
+          1094083.0,
+          1099833.0,
+          1029541.0,
+          1070542.0
         ],
-        "median_ns": 1707958.0,
-        "min_ns": 1652500.0,
-        "max_ns": 1746833.0
+        "median_ns": 1094083.0,
+        "min_ns": 1028167.0,
+        "max_ns": 1116458.0
       },
       "throughput_absent": null
     },
@@ -2751,15 +2751,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          2425583.0,
-          2186125.0,
-          2427666.0,
-          2074208.0,
-          2173459.0
+          1459375.0,
+          1465625.0,
+          1433083.0,
+          1436875.0,
+          1446791.0
         ],
-        "median_ns": 2186125.0,
-        "min_ns": 2050333.0,
-        "max_ns": 2436083.0
+        "median_ns": 1446791.0,
+        "min_ns": 1380458.0,
+        "max_ns": 1484292.0
       },
       "throughput_absent": null
     },
@@ -2775,15 +2775,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          2166417.0,
-          2066417.0,
-          2423500.0,
-          2054834.0,
-          1968083.0
+          1456708.0,
+          1446917.0,
+          1425916.0,
+          1408083.0,
+          1414750.0
         ],
-        "median_ns": 2066417.0,
-        "min_ns": 1955167.0,
-        "max_ns": 2440417.0
+        "median_ns": 1425916.0,
+        "min_ns": 1356917.0,
+        "max_ns": 1460250.0
       },
       "throughput_absent": null
     },
@@ -2792,22 +2792,22 @@
       "hmac": null,
       "backend": "hash2",
       "target": "emscripten",
-      "size_bytes": 23384,
+      "size_bytes": 17975,
       "result": "3def7aa4d4ac51355af548e2bd8c1929b88295d29d4b95dbb0b2fba44e419cc0aafbe4c294fb7cdabaa1ebff7db82f29",
       "throughput": {
         "repetitions": 1,
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          2184083.0,
-          2184667.0,
-          2179208.0,
-          2107625.0,
-          2182792.0
+          1450792.0,
+          1448209.0,
+          1433041.0,
+          1429625.0,
+          1410917.0
         ],
-        "median_ns": 2182792.0,
-        "min_ns": 2086917.0,
-        "max_ns": 2236708.0
+        "median_ns": 1433041.0,
+        "min_ns": 1374459.0,
+        "max_ns": 1475875.0
       },
       "throughput_absent": null
     },
@@ -2823,15 +2823,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          1710917.0,
-          1710417.0,
-          1710709.0,
-          1708000.0,
-          1731750.0
+          1095667.0,
+          1094792.0,
+          1096792.0,
+          1066000.0,
+          1042583.0
         ],
-        "median_ns": 1710709.0,
-        "min_ns": 1696292.0,
-        "max_ns": 1769542.0
+        "median_ns": 1094792.0,
+        "min_ns": 1029750.0,
+        "max_ns": 1131583.0
       },
       "throughput_absent": null
     },
@@ -2847,15 +2847,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          2049750.0,
-          2186750.0,
-          2063125.0,
-          2167250.0,
-          2420542.0
+          1468959.0,
+          1465542.0,
+          1455833.0,
+          1440041.0,
+          1447625.0
         ],
-        "median_ns": 2167250.0,
-        "min_ns": 2043291.0,
-        "max_ns": 2434125.0
+        "median_ns": 1455833.0,
+        "min_ns": 1359208.0,
+        "max_ns": 1487125.0
       },
       "throughput_absent": null
     },
@@ -2871,15 +2871,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          2172750.0,
-          2075125.0,
-          2286083.0,
-          2042625.0,
-          2036500.0
+          1464542.0,
+          1436167.0,
+          1434917.0,
+          1428083.0,
+          1382000.0
         ],
-        "median_ns": 2075125.0,
-        "min_ns": 2035625.0,
-        "max_ns": 2419750.0
+        "median_ns": 1434917.0,
+        "min_ns": 1351667.0,
+        "max_ns": 1477042.0
       },
       "throughput_absent": null
     },
@@ -2888,22 +2888,22 @@
       "hmac": null,
       "backend": "hash2",
       "target": "emscripten",
-      "size_bytes": 23393,
+      "size_bytes": 17980,
       "result": "3e05c6476672988635608797dcf3a4ed22de67d2897cc89b786098578a57c445b966b2895c71ea871aa6ce6ce0b027be37e6c1c49113ea2690e5a1370334cff5",
       "throughput": {
         "repetitions": 1,
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          2165209.0,
-          2215417.0,
-          2094083.0,
-          2100583.0,
-          2186417.0
+          1466250.0,
+          1454875.0,
+          1430000.0,
+          1451291.0,
+          1409375.0
         ],
-        "median_ns": 2165209.0,
-        "min_ns": 2083208.0,
-        "max_ns": 3027875.0
+        "median_ns": 1451291.0,
+        "min_ns": 1392792.0,
+        "max_ns": 1481250.0
       },
       "throughput_absent": null
     },
@@ -2919,15 +2919,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          1637417.0,
-          1708375.0,
-          1716375.0,
-          1708125.0,
-          1646542.0
+          1098375.0,
+          1096584.0,
+          1096542.0,
+          1085708.0,
+          1031792.0
         ],
-        "median_ns": 1708125.0,
-        "min_ns": 1630792.0,
-        "max_ns": 1752834.0
+        "median_ns": 1096542.0,
+        "min_ns": 1029458.0,
+        "max_ns": 1139167.0
       },
       "throughput_absent": null
     },
@@ -2943,15 +2943,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          2060917.0,
-          2176125.0,
-          2087167.0,
-          2072667.0,
-          2049708.0
+          1473000.0,
+          1461500.0,
+          1459042.0,
+          1444417.0,
+          1417083.0
         ],
-        "median_ns": 2072667.0,
-        "min_ns": 2045625.0,
-        "max_ns": 2433666.0
+        "median_ns": 1459042.0,
+        "min_ns": 1360750.0,
+        "max_ns": 1482458.0
       },
       "throughput_absent": null
     },
@@ -2967,15 +2967,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          2051833.0,
-          2050625.0,
-          2377875.0,
-          2069000.0,
-          2041667.0
+          1461958.0,
+          1463750.0,
+          1413625.0,
+          1427250.0,
+          1400250.0
         ],
-        "median_ns": 2051833.0,
-        "min_ns": 1989875.0,
-        "max_ns": 2414625.0
+        "median_ns": 1427250.0,
+        "min_ns": 1350166.0,
+        "max_ns": 1487125.0
       },
       "throughput_absent": null
     },
@@ -2984,22 +2984,22 @@
       "hmac": null,
       "backend": "hash2",
       "target": "emscripten",
-      "size_bytes": 23450,
+      "size_bytes": 18041,
       "result": "e3ba69ff86aaee3faef83ebf31e56827bb18930ea0dd22370f584193",
       "throughput": {
         "repetitions": 1,
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          2225083.0,
-          2089875.0,
-          2098542.0,
-          2196417.0,
-          2175583.0
+          1448250.0,
+          1446750.0,
+          1435958.0,
+          1430541.0,
+          1398625.0
         ],
-        "median_ns": 2175583.0,
-        "min_ns": 2082459.0,
-        "max_ns": 2510584.0
+        "median_ns": 1435958.0,
+        "min_ns": 1378000.0,
+        "max_ns": 1465917.0
       },
       "throughput_absent": null
     },
@@ -3015,15 +3015,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          1707541.0,
-          1703625.0,
-          1704583.0,
-          1709583.0,
-          1655334.0
+          1104167.0,
+          1096458.0,
+          1053166.0,
+          1037500.0,
+          1035458.0
         ],
-        "median_ns": 1704583.0,
-        "min_ns": 1646875.0,
-        "max_ns": 1779917.0
+        "median_ns": 1053166.0,
+        "min_ns": 1028000.0,
+        "max_ns": 1139875.0
       },
       "throughput_absent": null
     },
@@ -3039,15 +3039,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          2350667.0,
-          2192750.0,
-          2447750.0,
-          2189833.0,
-          2073000.0
+          1461250.0,
+          1496667.0,
+          1433250.0,
+          1406208.0,
+          1413000.0
         ],
-        "median_ns": 2192750.0,
-        "min_ns": 2065042.0,
-        "max_ns": 2449833.0
+        "median_ns": 1433250.0,
+        "min_ns": 1375000.0,
+        "max_ns": 1504541.0
       },
       "throughput_absent": null
     },
@@ -3063,15 +3063,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          2154375.0,
-          2077917.0,
-          2182834.0,
-          2058417.0,
-          2173625.0
+          1468458.0,
+          1460375.0,
+          1427459.0,
+          1419459.0,
+          1421708.0
         ],
-        "median_ns": 2154375.0,
-        "min_ns": 2036084.0,
-        "max_ns": 2426791.0
+        "median_ns": 1427459.0,
+        "min_ns": 1360625.0,
+        "max_ns": 1477458.0
       },
       "throughput_absent": null
     },
@@ -3080,22 +3080,22 @@
       "hmac": null,
       "backend": "hash2",
       "target": "emscripten",
-      "size_bytes": 23400,
+      "size_bytes": 17992,
       "result": "7d5631cb4d8354a63643e5f7c965d9b24d8805c85413d6a0a013b65c0ab491c0",
       "throughput": {
         "repetitions": 1,
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          2097334.0,
-          2184917.0,
-          2099500.0,
-          2162167.0,
-          2196125.0
+          1454042.0,
+          1447375.0,
+          1456041.0,
+          1409292.0,
+          1416958.0
         ],
-        "median_ns": 2162167.0,
-        "min_ns": 2084500.0,
-        "max_ns": 2228875.0
+        "median_ns": 1447375.0,
+        "min_ns": 1397500.0,
+        "max_ns": 1475209.0
       },
       "throughput_absent": null
     },
@@ -3111,15 +3111,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          2153500.0,
-          2161167.0,
-          2108292.0,
-          2153542.0,
-          2153666.0
+          1362291.0,
+          1359458.0,
+          1361708.0,
+          1362625.0,
+          1364792.0
         ],
-        "median_ns": 2153542.0,
-        "min_ns": 2057666.0,
-        "max_ns": 2199709.0
+        "median_ns": 1362291.0,
+        "min_ns": 1344208.0,
+        "max_ns": 1400250.0
       },
       "throughput_absent": null
     },
@@ -3135,15 +3135,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          3389500.0,
-          3574250.0,
-          3549416.0,
-          3365292.0,
-          3566167.0
+          2009000.0,
+          2019958.0,
+          2027042.0,
+          2010375.0,
+          2012667.0
         ],
-        "median_ns": 3549416.0,
-        "min_ns": 3060459.0,
-        "max_ns": 3619334.0
+        "median_ns": 2012667.0,
+        "min_ns": 1982708.0,
+        "max_ns": 2100750.0
       },
       "throughput_absent": null
     },
@@ -3159,15 +3159,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          3513458.0,
-          2954333.0,
-          3302209.0,
-          3224375.0,
-          2959250.0
+          1998709.0,
+          1978375.0,
+          1979875.0,
+          1975792.0,
+          1965167.0
         ],
-        "median_ns": 3224375.0,
-        "min_ns": 2948417.0,
-        "max_ns": 3599708.0
+        "median_ns": 1978375.0,
+        "min_ns": 1929292.0,
+        "max_ns": 2018583.0
       },
       "throughput_absent": null
     },
@@ -3176,22 +3176,22 @@
       "hmac": null,
       "backend": "hash2",
       "target": "emscripten",
-      "size_bytes": 12686,
+      "size_bytes": 7427,
       "result": "3fd7c6b1ced933c885f31719fd0b69f1ce3e12c95a71d23f1ee0a5e6",
       "throughput": {
         "repetitions": 1,
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          3397333.0,
-          3318333.0,
-          3314708.0,
-          3455416.0,
-          3497708.0
+          2132792.0,
+          2121125.0,
+          2134209.0,
+          2115584.0,
+          2128917.0
         ],
-        "median_ns": 3397333.0,
-        "min_ns": 3227792.0,
-        "max_ns": 3584584.0
+        "median_ns": 2128917.0,
+        "min_ns": 2106916.0,
+        "max_ns": 2180625.0
       },
       "throughput_absent": null
     },
@@ -3207,15 +3207,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          2193833.0,
-          2182417.0,
-          2299458.0,
-          2280000.0,
-          2272250.0
+          1448708.0,
+          1452583.0,
+          1449792.0,
+          1451166.0,
+          1452375.0
         ],
-        "median_ns": 2272250.0,
-        "min_ns": 2179500.0,
-        "max_ns": 2447916.0
+        "median_ns": 1451166.0,
+        "min_ns": 1444917.0,
+        "max_ns": 1467792.0
       },
       "throughput_absent": null
     },
@@ -3231,15 +3231,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          3532625.0,
-          3547291.0,
-          3447459.0,
-          3790167.0,
-          3180084.0
+          2110125.0,
+          2142875.0,
+          2123958.0,
+          2111000.0,
+          2120834.0
         ],
-        "median_ns": 3532625.0,
-        "min_ns": 3168167.0,
-        "max_ns": 4406875.0
+        "median_ns": 2120834.0,
+        "min_ns": 2069125.0,
+        "max_ns": 2156291.0
       },
       "throughput_absent": null
     },
@@ -3255,15 +3255,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          3168292.0,
-          3283083.0,
-          3186917.0,
-          3115875.0,
-          3561417.0
+          2073125.0,
+          2078417.0,
+          2094209.0,
+          2079167.0,
+          2088000.0
         ],
-        "median_ns": 3186917.0,
-        "min_ns": 3097500.0,
-        "max_ns": 3687708.0
+        "median_ns": 2079167.0,
+        "min_ns": 2043625.0,
+        "max_ns": 2123375.0
       },
       "throughput_absent": null
     },
@@ -3272,22 +3272,22 @@
       "hmac": null,
       "backend": "hash2",
       "target": "emscripten",
-      "size_bytes": 12674,
+      "size_bytes": 7416,
       "result": "7aac1eaf15922cab3a67f8e07a1a3efb1047359670e8402f77a46d56482c955f",
       "throughput": {
         "repetitions": 1,
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          3361125.0,
-          3446792.0,
-          3450709.0,
-          3617417.0,
-          3707541.0
+          2216167.0,
+          2208542.0,
+          2209084.0,
+          2213500.0,
+          2214750.0
         ],
-        "median_ns": 3450709.0,
-        "min_ns": 3342750.0,
-        "max_ns": 4021125.0
+        "median_ns": 2213500.0,
+        "min_ns": 2181959.0,
+        "max_ns": 2257125.0
       },
       "throughput_absent": null
     },
@@ -3303,15 +3303,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          2875917.0,
-          2970666.0,
-          2935833.0,
-          2974083.0,
-          2975083.0
+          1907959.0,
+          1903083.0,
+          1898042.0,
+          1890916.0,
+          1902750.0
         ],
-        "median_ns": 2970666.0,
-        "min_ns": 2830417.0,
-        "max_ns": 3131583.0
+        "median_ns": 1902750.0,
+        "min_ns": 1815334.0,
+        "max_ns": 1924042.0
       },
       "throughput_absent": null
     },
@@ -3327,15 +3327,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          4492250.0,
-          4426000.0,
-          4764084.0,
-          4046167.0,
-          4554417.0
+          2684584.0,
+          2708542.0,
+          2697000.0,
+          2677125.0,
+          2690000.0
         ],
-        "median_ns": 4492250.0,
-        "min_ns": 4036875.0,
-        "max_ns": 4926500.0
+        "median_ns": 2690000.0,
+        "min_ns": 2658542.0,
+        "max_ns": 2737916.0
       },
       "throughput_absent": null
     },
@@ -3351,15 +3351,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          3984583.0,
-          4297459.0,
-          4441875.0,
-          4103834.0,
-          4500833.0
+          2681584.0,
+          2665084.0,
+          2685000.0,
+          2658875.0,
+          2639500.0
         ],
-        "median_ns": 4297459.0,
-        "min_ns": 3972500.0,
-        "max_ns": 4657625.0
+        "median_ns": 2665084.0,
+        "min_ns": 2574125.0,
+        "max_ns": 2689292.0
       },
       "throughput_absent": null
     },
@@ -3368,22 +3368,22 @@
       "hmac": null,
       "backend": "hash2",
       "target": "emscripten",
-      "size_bytes": 12641,
+      "size_bytes": 7383,
       "result": "ed4d44a64768214a5387efcafe302c0f11f57685e7f702c2a8659f3d9ec6e012026f41774f7bf724efea53fef490d338",
       "throughput": {
         "repetitions": 1,
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          4128792.0,
-          4230708.0,
-          4236125.0,
-          4411958.0,
-          4432583.0
+          2694875.0,
+          2682625.0,
+          2699000.0,
+          2699833.0,
+          2707375.0
         ],
-        "median_ns": 4236125.0,
-        "min_ns": 4066583.0,
-        "max_ns": 4458000.0
+        "median_ns": 2699000.0,
+        "min_ns": 2656000.0,
+        "max_ns": 2730875.0
       },
       "throughput_absent": null
     },
@@ -3399,15 +3399,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          4097250.0,
-          4269625.0,
-          4097791.0,
-          4275042.0,
-          4097500.0
+          2728208.0,
+          2732250.0,
+          2727000.0,
+          2716958.0,
+          2714708.0
         ],
-        "median_ns": 4097791.0,
-        "min_ns": 4086291.0,
-        "max_ns": 4288416.0
+        "median_ns": 2727000.0,
+        "min_ns": 2682125.0,
+        "max_ns": 2762958.0
       },
       "throughput_absent": null
     },
@@ -3423,15 +3423,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          6328708.0,
-          6300542.0,
-          6308875.0,
-          5669500.0,
-          6297875.0
+          3778458.0,
+          3777834.0,
+          3774584.0,
+          3756125.0,
+          3756791.0
         ],
-        "median_ns": 6300542.0,
-        "min_ns": 5652250.0,
-        "max_ns": 6522375.0
+        "median_ns": 3774584.0,
+        "min_ns": 3728875.0,
+        "max_ns": 3805458.0
       },
       "throughput_absent": null
     },
@@ -3447,15 +3447,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          6305750.0,
-          6249167.0,
-          6259625.0,
-          5756084.0,
-          5631708.0
+          3747000.0,
+          3757500.0,
+          3743625.0,
+          3750541.0,
+          3724833.0
         ],
-        "median_ns": 6249167.0,
-        "min_ns": 5610958.0,
-        "max_ns": 6330625.0
+        "median_ns": 3747000.0,
+        "min_ns": 3696042.0,
+        "max_ns": 3779875.0
       },
       "throughput_absent": null
     },
@@ -3464,22 +3464,22 @@
       "hmac": null,
       "backend": "hash2",
       "target": "emscripten",
-      "size_bytes": 12650,
+      "size_bytes": 7386,
       "result": "ad29ffe5fe3bca4d4e8200caa121e695a315817635914316d0c8192986c5ac774557f67884de7ef2e59ca2e7b582455d292cb2735ba16a5f08ec7e72775ef313",
       "throughput": {
         "repetitions": 1,
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          5579125.0,
-          5716500.0,
-          5423333.0,
-          5979500.0,
-          5826625.0
+          3615334.0,
+          3595625.0,
+          3593625.0,
+          3612791.0,
+          3589917.0
         ],
-        "median_ns": 5716500.0,
-        "min_ns": 5405084.0,
-        "max_ns": 6710916.0
+        "median_ns": 3595625.0,
+        "min_ns": 3497542.0,
+        "max_ns": 3653458.0
       },
       "throughput_absent": null
     },
@@ -3495,15 +3495,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          1458500.0,
-          1460167.0,
-          1460833.0,
-          1459833.0,
-          1458875.0
+          1073708.0,
+          1022291.0,
+          1005041.0,
+          1004875.0,
+          1004916.0
         ],
-        "median_ns": 1459833.0,
-        "min_ns": 1450459.0,
-        "max_ns": 1471792.0
+        "median_ns": 1005041.0,
+        "min_ns": 1001917.0,
+        "max_ns": 1108333.0
       },
       "throughput_absent": null
     },
@@ -3519,15 +3519,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          3148083.0,
-          2821458.0,
-          2264958.0,
-          2818542.0,
-          2258625.0
+          1873583.0,
+          1773209.0,
+          1780042.0,
+          1782542.0,
+          2063083.0
         ],
-        "median_ns": 2818542.0,
-        "min_ns": 2250750.0,
-        "max_ns": 3161834.0
+        "median_ns": 1782542.0,
+        "min_ns": 1761000.0,
+        "max_ns": 2267542.0
       },
       "throughput_absent": null
     },
@@ -3543,15 +3543,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          2257416.0,
-          2819958.0,
-          3150250.0,
-          2820125.0,
-          2254666.0
+          1812458.0,
+          1887542.0,
+          1786000.0,
+          1890208.0,
+          1775875.0
         ],
-        "median_ns": 2819958.0,
-        "min_ns": 2236917.0,
-        "max_ns": 3154250.0
+        "median_ns": 1812458.0,
+        "min_ns": 1764000.0,
+        "max_ns": 1906834.0
       },
       "throughput_absent": null
     },
@@ -3560,22 +3560,22 @@
       "hmac": null,
       "backend": "hash2",
       "target": "emscripten",
-      "size_bytes": 15006,
+      "size_bytes": 9712,
       "result": "7f40af263155bc26e7929c12e9c1b27d",
       "throughput": {
         "repetitions": 1,
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          2646833.0,
-          2831083.0,
-          2829291.0,
-          2167417.0,
-          2252291.0
+          1831291.0,
+          1774208.0,
+          1780417.0,
+          1767834.0,
+          1775625.0
         ],
-        "median_ns": 2646833.0,
-        "min_ns": 2158125.0,
-        "max_ns": 2940416.0
+        "median_ns": 1775625.0,
+        "min_ns": 1763209.0,
+        "max_ns": 1839583.0
       },
       "throughput_absent": null
     },
@@ -3591,15 +3591,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          2303583.0,
-          2259666.0,
-          2258792.0,
-          2291917.0,
-          2260292.0
+          1672375.0,
+          1640417.0,
+          1582792.0,
+          1562167.0,
+          1555750.0
         ],
-        "median_ns": 2260292.0,
-        "min_ns": 2164292.0,
-        "max_ns": 2774958.0
+        "median_ns": 1582792.0,
+        "min_ns": 1552584.0,
+        "max_ns": 1700292.0
       },
       "throughput_absent": null
     },
@@ -3615,15 +3615,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          4958916.0,
-          4644333.0,
-          4442375.0,
-          3791500.0,
-          4717833.0
+          2960166.0,
+          2794166.0,
+          2817167.0,
+          2800375.0,
+          2815666.0
         ],
-        "median_ns": 4644333.0,
-        "min_ns": 3468791.0,
-        "max_ns": 4963375.0
+        "median_ns": 2815666.0,
+        "min_ns": 2778750.0,
+        "max_ns": 2972917.0
       },
       "throughput_absent": null
     },
@@ -3639,15 +3639,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          4437875.0,
-          4846958.0,
-          4458125.0,
-          4436000.0,
-          3472500.0
+          2909084.0,
+          2802000.0,
+          2809833.0,
+          2922292.0,
+          2781250.0
         ],
-        "median_ns": 4437875.0,
-        "min_ns": 3434500.0,
-        "max_ns": 4954625.0
+        "median_ns": 2809833.0,
+        "min_ns": 2772792.0,
+        "max_ns": 2987916.0
       },
       "throughput_absent": null
     },
@@ -3656,22 +3656,22 @@
       "hmac": null,
       "backend": "hash2",
       "target": "emscripten",
-      "size_bytes": 17199,
+      "size_bytes": 11897,
       "result": "4ed033f2499e9a3f5c267c02638a481c16e65797",
       "throughput": {
         "repetitions": 1,
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          3319417.0,
-          3343250.0,
-          3373584.0,
-          3439625.0,
-          3434083.0
+          2882417.0,
+          2968042.0,
+          2780292.0,
+          2794667.0,
+          2786375.0
         ],
-        "median_ns": 3373584.0,
-        "min_ns": 3288917.0,
-        "max_ns": 4782458.0
+        "median_ns": 2794667.0,
+        "min_ns": 2773084.0,
+        "max_ns": 2991250.0
       },
       "throughput_absent": null
     },
@@ -3687,15 +3687,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          968208.0,
-          969708.0,
-          986834.0,
-          987916.0,
-          988583.0
+          660375.0,
+          646500.0,
+          627584.0,
+          618333.0,
+          610375.0
         ],
-        "median_ns": 986834.0,
-        "min_ns": 965584.0,
-        "max_ns": 1005458.0
+        "median_ns": 627584.0,
+        "min_ns": 606042.0,
+        "max_ns": 664500.0
       },
       "throughput_absent": null
     },
@@ -3711,15 +3711,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          1135542.0,
-          1136833.0,
-          1041708.0,
-          1068500.0,
-          1070667.0
+          676459.0,
+          674166.0,
+          676625.0,
+          665834.0,
+          668166.0
         ],
-        "median_ns": 1070667.0,
-        "min_ns": 1014416.0,
-        "max_ns": 1138750.0
+        "median_ns": 674166.0,
+        "min_ns": 650417.0,
+        "max_ns": 692125.0
       },
       "throughput_absent": null
     },
@@ -3735,15 +3735,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          1132750.0,
-          1069958.0,
-          1131334.0,
-          1067208.0,
-          1022583.0
+          679250.0,
+          681834.0,
+          673500.0,
+          678125.0,
+          668750.0
         ],
-        "median_ns": 1069958.0,
-        "min_ns": 1021958.0,
-        "max_ns": 1143750.0
+        "median_ns": 678125.0,
+        "min_ns": 658375.0,
+        "max_ns": 694042.0
       },
       "throughput_absent": null
     },
@@ -3752,22 +3752,22 @@
       "hmac": null,
       "backend": "hash2",
       "target": "emscripten",
-      "size_bytes": 17568,
+      "size_bytes": 12262,
       "result": "a327cfc8e533b0517f44f5d2bb562d8cf3b8c7efd3aeb2c960b447857586e443eb041c6061108ff79a6852b2e76c2a50f86a9ed98f775afd9bb8d0b484a1c66b",
       "throughput": {
         "repetitions": 1,
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          1017458.0,
-          1043250.0,
-          1019791.0,
-          1064583.0,
-          1052542.0
+          669666.0,
+          675458.0,
+          664042.0,
+          660959.0,
+          640416.0
         ],
-        "median_ns": 1043250.0,
-        "min_ns": 998458.0,
-        "max_ns": 1097041.0
+        "median_ns": 664042.0,
+        "min_ns": 631875.0,
+        "max_ns": 679458.0
       },
       "throughput_absent": null
     },
@@ -3783,15 +3783,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          1676084.0,
-          1631583.0,
-          1674375.0,
-          1674375.0,
-          1675209.0
+          1113584.0,
+          1085000.0,
+          1086958.0,
+          1020584.0,
+          1058917.0
         ],
-        "median_ns": 1674375.0,
-        "min_ns": 1630959.0,
-        "max_ns": 1712500.0
+        "median_ns": 1085000.0,
+        "min_ns": 1019083.0,
+        "max_ns": 1119208.0
       },
       "throughput_absent": null
     },
@@ -3807,15 +3807,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          1857792.0,
-          1747375.0,
-          1954416.0,
-          1846500.0,
-          1847958.0
+          1174167.0,
+          1167167.0,
+          1168417.0,
+          1163958.0,
+          1137000.0
         ],
-        "median_ns": 1847958.0,
-        "min_ns": 1744625.0,
-        "max_ns": 1959416.0
+        "median_ns": 1167167.0,
+        "min_ns": 1100125.0,
+        "max_ns": 1217083.0
       },
       "throughput_absent": null
     },
@@ -3831,15 +3831,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          1764250.0,
-          1872083.0,
-          1951916.0,
-          1854750.0,
-          1774959.0
+          1181917.0,
+          1189458.0,
+          1637000.0,
+          1177667.0,
+          1143667.0
         ],
-        "median_ns": 1854750.0,
-        "min_ns": 1757792.0,
-        "max_ns": 2027208.0
+        "median_ns": 1181917.0,
+        "min_ns": 1119916.0,
+        "max_ns": 1705000.0
       },
       "throughput_absent": null
     },
@@ -3848,22 +3848,22 @@
       "hmac": null,
       "backend": "hash2",
       "target": "emscripten",
-      "size_bytes": 16625,
+      "size_bytes": 11284,
       "result": "d01410a98fde03b547a9ced8d10fea48a135439ee1b2f4422836f1745450016d",
       "throughput": {
         "repetitions": 1,
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          1711125.0,
-          1713541.0,
-          1762041.0,
-          1719041.0,
-          1779792.0
+          1137792.0,
+          1147208.0,
+          1145542.0,
+          1139667.0,
+          1117750.0
         ],
-        "median_ns": 1719041.0,
-        "min_ns": 1699125.0,
-        "max_ns": 1839542.0
+        "median_ns": 1139667.0,
+        "min_ns": 1116000.0,
+        "max_ns": 1169834.0
       },
       "throughput_absent": null
     },
@@ -3879,15 +3879,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          1082459.0,
-          1082459.0,
-          1082541.0,
-          1082791.0,
-          1082458.0
+          980584.0,
+          913166.0,
+          913042.0,
+          913083.0,
+          913041.0
         ],
-        "median_ns": 1082459.0,
-        "min_ns": 1082375.0,
-        "max_ns": 1117208.0
+        "median_ns": 913083.0,
+        "min_ns": 910209.0,
+        "max_ns": 984333.0
       },
       "throughput_absent": null
     },
@@ -3903,15 +3903,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          1491542.0,
-          1460542.0,
-          1090333.0,
-          1090000.0,
-          1089542.0
+          972166.0,
+          926750.0,
+          912750.0,
+          918084.0,
+          912709.0
         ],
-        "median_ns": 1090333.0,
-        "min_ns": 1087167.0,
-        "max_ns": 1634750.0
+        "median_ns": 918084.0,
+        "min_ns": 912500.0,
+        "max_ns": 978542.0
       },
       "throughput_absent": null
     },
@@ -3927,15 +3927,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          1089125.0,
-          1089542.0,
-          1460208.0,
-          1090417.0,
-          1045416.0
+          979125.0,
+          961542.0,
+          966584.0,
+          970208.0,
+          919125.0
         ],
-        "median_ns": 1089542.0,
-        "min_ns": 1042458.0,
-        "max_ns": 1552208.0
+        "median_ns": 966584.0,
+        "min_ns": 912458.0,
+        "max_ns": 993917.0
       },
       "throughput_absent": null
     },
@@ -3944,22 +3944,22 @@
       "hmac": null,
       "backend": "hash2",
       "target": "emscripten",
-      "size_bytes": 10651,
+      "size_bytes": 5612,
       "result": "c2dc9dc5",
       "throughput": {
         "repetitions": 1,
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          1354208.0,
-          1336583.0,
-          1909250.0,
-          1334167.0,
-          1385667.0
+          979250.0,
+          931917.0,
+          932458.0,
+          938083.0,
+          965542.0
         ],
-        "median_ns": 1354208.0,
-        "min_ns": 1326000.0,
-        "max_ns": 1936500.0
+        "median_ns": 938083.0,
+        "min_ns": 915542.0,
+        "max_ns": 988959.0
       },
       "throughput_absent": null
     },
@@ -3975,15 +3975,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          1038000.0,
-          1083125.0,
-          1084000.0,
-          1082750.0,
-          1082458.0
+          981292.0,
+          910292.0,
+          910292.0,
+          913042.0,
+          913125.0
         ],
-        "median_ns": 1082750.0,
-        "min_ns": 1037500.0,
-        "max_ns": 1094667.0
+        "median_ns": 913042.0,
+        "min_ns": 910166.0,
+        "max_ns": 992792.0
       },
       "throughput_absent": null
     },
@@ -3999,15 +3999,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          1631250.0,
-          1461375.0,
-          1092333.0,
-          1093625.0,
-          1095375.0
+          972875.0,
+          925833.0,
+          919083.0,
+          916250.0,
+          941334.0
         ],
-        "median_ns": 1095375.0,
-        "min_ns": 1089875.0,
-        "max_ns": 1631500.0
+        "median_ns": 925833.0,
+        "min_ns": 912916.0,
+        "max_ns": 975125.0
       },
       "throughput_absent": null
     },
@@ -4023,15 +4023,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          1092917.0,
-          1090250.0,
-          1631333.0,
-          1091917.0,
-          1090875.0
+          978167.0,
+          920166.0,
+          959542.0,
+          981083.0,
+          918917.0
         ],
-        "median_ns": 1091917.0,
-        "min_ns": 1045333.0,
-        "max_ns": 1634375.0
+        "median_ns": 959542.0,
+        "min_ns": 913417.0,
+        "max_ns": 1009083.0
       },
       "throughput_absent": null
     },
@@ -4040,22 +4040,22 @@
       "hmac": null,
       "backend": "hash2",
       "target": "emscripten",
-      "size_bytes": 10661,
+      "size_bytes": 5621,
       "result": "37e3aff7c4622325",
       "throughput": {
         "repetitions": 1,
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          1336125.0,
-          1389834.0,
-          1336625.0,
-          1394292.0,
-          1406208.0
+          979292.0,
+          996125.0,
+          951500.0,
+          930834.0,
+          933542.0
         ],
-        "median_ns": 1389834.0,
-        "min_ns": 1328834.0,
-        "max_ns": 1429417.0
+        "median_ns": 951500.0,
+        "min_ns": 916500.0,
+        "max_ns": 1007000.0
       },
       "throughput_absent": null
     },
@@ -4071,15 +4071,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          93833.0,
-          97167.0,
-          101333.0,
-          97958.0,
-          97125.0
+          79083.0,
+          77292.0,
+          73792.0,
+          74291.0,
+          73875.0
         ],
-        "median_ns": 97167.0,
-        "min_ns": 93083.0,
-        "max_ns": 104292.0
+        "median_ns": 74291.0,
+        "min_ns": 73708.0,
+        "max_ns": 83375.0
       },
       "throughput_absent": null
     },
@@ -4095,15 +4095,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          120042.0,
-          120833.0,
-          134208.0,
-          124833.0,
-          124917.0
+          80042.0,
+          79959.0,
+          79000.0,
+          81375.0,
+          80000.0
         ],
-        "median_ns": 124833.0,
-        "min_ns": 119792.0,
-        "max_ns": 136459.0
+        "median_ns": 80000.0,
+        "min_ns": 75000.0,
+        "max_ns": 89916.0
       },
       "throughput_absent": null
     },
@@ -4119,15 +4119,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          123834.0,
-          124167.0,
-          119791.0,
-          123750.0,
-          118250.0
+          80334.0,
+          79666.0,
+          79625.0,
+          80375.0,
+          81250.0
         ],
-        "median_ns": 123750.0,
-        "min_ns": 118125.0,
-        "max_ns": 127916.0
+        "median_ns": 80334.0,
+        "min_ns": 74959.0,
+        "max_ns": 84875.0
       },
       "throughput_absent": null
     },
@@ -4136,22 +4136,22 @@
       "hmac": null,
       "backend": "hash2",
       "target": "emscripten",
-      "size_bytes": 11479,
+      "size_bytes": 6369,
       "result": "b555fac5",
       "throughput": {
         "repetitions": 1,
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          296917.0,
-          294375.0,
-          323667.0,
-          307792.0,
-          315791.0
+          220334.0,
+          220333.0,
+          212667.0,
+          213458.0,
+          212791.0
         ],
-        "median_ns": 307792.0,
-        "min_ns": 289542.0,
-        "max_ns": 737625.0
+        "median_ns": 213458.0,
+        "min_ns": 205542.0,
+        "max_ns": 225708.0
       },
       "throughput_absent": null
     },
@@ -4167,15 +4167,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          48792.0,
-          48916.0,
-          49083.0,
-          48958.0,
-          48875.0
+          39584.0,
+          36959.0,
+          37167.0,
+          37250.0,
+          37250.0
         ],
-        "median_ns": 48916.0,
-        "min_ns": 48625.0,
-        "max_ns": 51292.0
+        "median_ns": 37250.0,
+        "min_ns": 36917.0,
+        "max_ns": 42500.0
       },
       "throughput_absent": null
     },
@@ -4191,15 +4191,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          69917.0,
-          61583.0,
-          70583.0,
-          69791.0,
-          69959.0
+          41000.0,
+          42125.0,
+          40750.0,
+          38292.0,
+          40708.0
         ],
-        "median_ns": 69917.0,
-        "min_ns": 61333.0,
-        "max_ns": 72583.0
+        "median_ns": 40750.0,
+        "min_ns": 38084.0,
+        "max_ns": 45750.0
       },
       "throughput_absent": null
     },
@@ -4215,15 +4215,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          69459.0,
-          70042.0,
-          61375.0,
-          69542.0,
-          66834.0
+          40958.0,
+          40708.0,
+          40833.0,
+          42125.0,
+          41917.0
         ],
-        "median_ns": 69459.0,
-        "min_ns": 61291.0,
-        "max_ns": 76708.0
+        "median_ns": 40958.0,
+        "min_ns": 38375.0,
+        "max_ns": 45709.0
       },
       "throughput_absent": null
     },
@@ -4232,22 +4232,22 @@
       "hmac": null,
       "backend": "hash2",
       "target": "emscripten",
-      "size_bytes": 11891,
+      "size_bytes": 6757,
       "result": "292cc494f5a2e5ec",
       "throughput": {
         "repetitions": 1,
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          176541.0,
-          168958.0,
-          176584.0,
-          176208.0,
-          193666.0
+          128958.0,
+          127459.0,
+          133416.0,
+          122708.0,
+          123292.0
         ],
-        "median_ns": 176541.0,
-        "min_ns": 164125.0,
-        "max_ns": 352083.0
+        "median_ns": 127459.0,
+        "min_ns": 117167.0,
+        "max_ns": 139583.0
       },
       "throughput_absent": null
     },
@@ -4263,15 +4263,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          62083.0,
-          62292.0,
-          62792.0,
-          62208.0,
-          62041.0
+          31167.0,
+          29416.0,
+          29500.0,
+          29000.0,
+          29084.0
         ],
-        "median_ns": 62208.0,
-        "min_ns": 61833.0,
-        "max_ns": 63375.0
+        "median_ns": 29416.0,
+        "min_ns": 28792.0,
+        "max_ns": 41000.0
       },
       "throughput_absent": null
     },
@@ -4287,15 +4287,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          100042.0,
-          85542.0,
-          99750.0,
-          99666.0,
-          99625.0
+          57334.0,
+          57291.0,
+          56458.0,
+          56666.0,
+          56750.0
         ],
-        "median_ns": 99666.0,
-        "min_ns": 84541.0,
-        "max_ns": 101917.0
+        "median_ns": 56750.0,
+        "min_ns": 52875.0,
+        "max_ns": 61042.0
       },
       "throughput_absent": null
     },
@@ -4311,15 +4311,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          99833.0,
-          99917.0,
-          84000.0,
-          99958.0,
-          84666.0
+          56416.0,
+          55833.0,
+          54791.0,
+          55667.0,
+          56917.0
         ],
-        "median_ns": 99833.0,
-        "min_ns": 83416.0,
-        "max_ns": 103500.0
+        "median_ns": 55833.0,
+        "min_ns": 52208.0,
+        "max_ns": 61084.0
       },
       "throughput_absent": null
     },
@@ -4328,22 +4328,22 @@
       "hmac": null,
       "backend": "hash2",
       "target": "emscripten",
-      "size_bytes": 15996,
+      "size_bytes": 10431,
       "result": "e3503d8de40743b7269eb834f6c110a9",
       "throughput": {
         "repetitions": 1,
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          81458.0,
-          81167.0,
-          75292.0,
-          75583.0,
-          84667.0
+          48291.0,
+          47708.0,
+          44417.0,
+          45916.0,
+          44125.0
         ],
-        "median_ns": 81167.0,
-        "min_ns": 71459.0,
-        "max_ns": 106625.0
+        "median_ns": 45916.0,
+        "min_ns": 43958.0,
+        "max_ns": 70167.0
       },
       "throughput_absent": null
     },
@@ -4359,15 +4359,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          342000.0,
-          342000.0,
-          342208.0,
-          342042.0,
-          342000.0
+          304542.0,
+          287333.0,
+          290042.0,
+          287291.0,
+          287417.0
         ],
-        "median_ns": 342000.0,
-        "min_ns": 341792.0,
-        "max_ns": 347875.0
+        "median_ns": 287417.0,
+        "min_ns": 286291.0,
+        "max_ns": 305500.0
       },
       "throughput_absent": null
     },
@@ -4383,15 +4383,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          408125.0,
-          550208.0,
-          409791.0,
-          408208.0,
-          409167.0
+          369834.0,
+          362250.0,
+          343750.0,
+          347542.0,
+          344708.0
         ],
-        "median_ns": 409167.0,
-        "min_ns": 407291.0,
-        "max_ns": 551792.0
+        "median_ns": 347542.0,
+        "min_ns": 343708.0,
+        "max_ns": 370666.0
       },
       "throughput_absent": null
     },
@@ -4407,15 +4407,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          410042.0,
-          407959.0,
-          613875.0,
-          407542.0,
-          391750.0
+          371292.0,
+          365667.0,
+          353000.0,
+          347000.0,
+          346625.0
         ],
-        "median_ns": 407959.0,
-        "min_ns": 391291.0,
-        "max_ns": 615458.0
+        "median_ns": 353000.0,
+        "min_ns": 343584.0,
+        "max_ns": 386667.0
       },
       "throughput_absent": null
     },
@@ -4424,22 +4424,22 @@
       "hmac": null,
       "backend": "hash2",
       "target": "emscripten",
-      "size_bytes": 11187,
+      "size_bytes": 6099,
       "result": "fabbb21c",
       "throughput": {
         "repetitions": 1,
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          610500.0,
-          934500.0,
-          930584.0,
-          632750.0,
-          630292.0
+          503250.0,
+          500625.0,
+          493000.0,
+          498709.0,
+          502958.0
         ],
-        "median_ns": 632750.0,
-        "min_ns": 603708.0,
-        "max_ns": 1080542.0
+        "median_ns": 500625.0,
+        "min_ns": 466542.0,
+        "max_ns": 522583.0
       },
       "throughput_absent": null
     },
@@ -4455,15 +4455,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          138833.0,
-          138750.0,
-          139209.0,
-          138750.0,
-          138875.0
+          123250.0,
+          116166.0,
+          115916.0,
+          116042.0,
+          115916.0
         ],
-        "median_ns": 138833.0,
-        "min_ns": 137708.0,
-        "max_ns": 140542.0
+        "median_ns": 116042.0,
+        "min_ns": 115750.0,
+        "max_ns": 127166.0
       },
       "throughput_absent": null
     },
@@ -4479,15 +4479,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          177875.0,
-          256958.0,
-          177625.0,
-          178208.0,
-          176709.0
+          153916.0,
+          155042.0,
+          149500.0,
+          152958.0,
+          150916.0
         ],
-        "median_ns": 177875.0,
-        "min_ns": 175875.0,
-        "max_ns": 259250.0
+        "median_ns": 152958.0,
+        "min_ns": 143792.0,
+        "max_ns": 160334.0
       },
       "throughput_absent": null
     },
@@ -4503,15 +4503,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          230625.0,
-          230417.0,
-          230500.0,
-          176000.0,
-          169000.0
+          154000.0,
+          153250.0,
+          146250.0,
+          149208.0,
+          144000.0
         ],
-        "median_ns": 230417.0,
-        "min_ns": 168791.0,
-        "max_ns": 234458.0
+        "median_ns": 149208.0,
+        "min_ns": 143958.0,
+        "max_ns": 156375.0
       },
       "throughput_absent": null
     },
@@ -4520,22 +4520,22 @@
       "hmac": null,
       "backend": "hash2",
       "target": "emscripten",
-      "size_bytes": 11422,
+      "size_bytes": 6315,
       "result": "e43787f6bdcf8829e6ae8c7895db29d9",
       "throughput": {
         "repetitions": 1,
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          247166.0,
-          248500.0,
-          247208.0,
-          256167.0,
-          262833.0
+          237500.0,
+          241084.0,
+          239667.0,
+          239375.0,
+          239708.0
         ],
-        "median_ns": 248500.0,
-        "min_ns": 242500.0,
-        "max_ns": 288833.0
+        "median_ns": 239667.0,
+        "min_ns": 226875.0,
+        "max_ns": 254083.0
       },
       "throughput_absent": null
     },
@@ -4551,15 +4551,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          61375.0,
-          60500.0,
-          61292.0,
-          61166.0,
-          60625.0
+          47709.0,
+          44833.0,
+          44792.0,
+          44750.0,
+          44791.0
         ],
-        "median_ns": 61166.0,
-        "min_ns": 60292.0,
-        "max_ns": 63041.0
+        "median_ns": 44792.0,
+        "min_ns": 44708.0,
+        "max_ns": 48125.0
       },
       "throughput_absent": null
     },
@@ -4575,15 +4575,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          62834.0,
-          73792.0,
-          62916.0,
-          63916.0,
-          82708.0
+          49375.0,
+          49208.0,
+          49125.0,
+          46334.0,
+          47375.0
         ],
-        "median_ns": 63916.0,
-        "min_ns": 62417.0,
-        "max_ns": 84750.0
+        "median_ns": 49125.0,
+        "min_ns": 46041.0,
+        "max_ns": 53083.0
       },
       "throughput_absent": null
     },
@@ -4599,15 +4599,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          73666.0,
-          62833.0,
-          82833.0,
-          63167.0,
-          60208.0
+          49459.0,
+          49042.0,
+          49041.0,
+          46542.0,
+          47625.0
         ],
-        "median_ns": 63167.0,
-        "min_ns": 59959.0,
-        "max_ns": 84500.0
+        "median_ns": 49041.0,
+        "min_ns": 46042.0,
+        "max_ns": 51958.0
       },
       "throughput_absent": null
     },
@@ -4616,22 +4616,22 @@
       "hmac": null,
       "backend": "hash2",
       "target": "emscripten",
-      "size_bytes": 13571,
+      "size_bytes": 8388,
       "result": "909c0c53b1b8600b3dd185a5785325ae",
       "throughput": {
         "repetitions": 1,
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          251709.0,
-          233958.0,
-          327083.0,
-          245250.0,
-          243084.0
+          223375.0,
+          221167.0,
+          217667.0,
+          208417.0,
+          208208.0
         ],
-        "median_ns": 245250.0,
-        "min_ns": 233625.0,
-        "max_ns": 366167.0
+        "median_ns": 217667.0,
+        "min_ns": 201833.0,
+        "max_ns": 231834.0
       },
       "throughput_absent": null
     },
@@ -4647,15 +4647,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          730.5,
-          731.8,
-          738.3,
-          731.0,
-          735.1
+          491.6,
+          488.0,
+          459.8,
+          464.3,
+          464.4
         ],
-        "median_ns": 731.8,
-        "min_ns": 727.0,
-        "max_ns": 774.0
+        "median_ns": 464.4,
+        "min_ns": 456.0,
+        "max_ns": 497.3
       },
       "throughput_absent": null
     },
@@ -4671,15 +4671,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          971.8,
-          991.0,
-          972.8,
-          986.8,
-          964.3
+          660.9,
+          657.6,
+          641.5,
+          650.1,
+          633.3
         ],
-        "median_ns": 972.8,
-        "min_ns": 959.0,
-        "max_ns": 1010.6
+        "median_ns": 650.1,
+        "min_ns": 622.5,
+        "max_ns": 676.8
       },
       "throughput_absent": null
     },
@@ -4695,15 +4695,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          971.5,
-          970.7,
-          966.8,
-          990.7,
-          939.2
+          661.7,
+          658.5,
+          652.0,
+          692.5,
+          634.6
         ],
-        "median_ns": 970.7,
-        "min_ns": 928.6,
-        "max_ns": 1002.7
+        "median_ns": 658.5,
+        "min_ns": 630.4,
+        "max_ns": 698.7
       },
       "throughput_absent": null
     },
@@ -4712,22 +4712,22 @@
       "hmac": "hmac_sha2_256",
       "backend": "hash2",
       "target": "emscripten",
-      "size_bytes": 117928,
+      "size_bytes": 17499,
       "result": "53d4662be24e27c4248f04b0fcd00a89420a0570228f2e589ed3e63f2cac4d26",
       "throughput": {
         "repetitions": 1000,
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          929.3,
-          1006.5,
-          990.9,
-          987.2,
-          989.4
+          681.2,
+          666.5,
+          669.8,
+          679.2,
+          673.1
         ],
-        "median_ns": 989.4,
-        "min_ns": 891.2,
-        "max_ns": 3469.0
+        "median_ns": 673.1,
+        "min_ns": 608.5,
+        "max_ns": 2447.8
       },
       "throughput_absent": null
     },
@@ -4743,15 +4743,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          742.8,
-          771.6,
-          774.5,
-          775.2,
-          775.2
+          490.6,
+          503.4,
+          478.8,
+          464.9,
+          461.8
         ],
-        "median_ns": 774.5,
-        "min_ns": 742.1,
-        "max_ns": 779.9
+        "median_ns": 478.8,
+        "min_ns": 460.0,
+        "max_ns": 507.3
       },
       "throughput_absent": null
     },
@@ -4767,15 +4767,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          1430.4,
-          1432.2,
-          1427.9,
-          1322.0,
-          1435.0
+          884.9,
+          881.6,
+          891.9,
+          879.7,
+          882.0
         ],
-        "median_ns": 1430.4,
-        "min_ns": 1318.8,
-        "max_ns": 1554.8
+        "median_ns": 882.0,
+        "min_ns": 847.1,
+        "max_ns": 906.2
       },
       "throughput_absent": null
     },
@@ -4791,15 +4791,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          1376.2,
-          1439.5,
-          1505.4,
-          1346.7,
-          1392.8
+          893.3,
+          893.9,
+          901.4,
+          947.4,
+          887.5
         ],
-        "median_ns": 1392.8,
-        "min_ns": 1342.0,
-        "max_ns": 3695.2
+        "median_ns": 893.9,
+        "min_ns": 866.8,
+        "max_ns": 998.4
       },
       "throughput_absent": null
     },
@@ -4808,22 +4808,22 @@
       "hmac": "hmac_sha2_256",
       "backend": "sodium",
       "target": "emscripten",
-      "size_bytes": 118866,
+      "size_bytes": 24116,
       "result": "53d4662be24e27c4248f04b0fcd00a89420a0570228f2e589ed3e63f2cac4d26",
       "throughput": {
         "repetitions": 1000,
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          1022.3,
-          1084.3,
-          1069.6,
-          1108.7,
-          1109.6
+          644.4,
+          640.5,
+          643.8,
+          643.9,
+          642.0
         ],
-        "median_ns": 1084.3,
-        "min_ns": 927.4,
-        "max_ns": 2399.9
+        "median_ns": 643.8,
+        "min_ns": 580.9,
+        "max_ns": 1536.2
       },
       "throughput_absent": null
     },
@@ -4839,15 +4839,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          1093.4,
-          1102.5,
-          1096.5,
-          1068.7,
-          1086.3
+          823.2,
+          799.7,
+          798.1,
+          789.5,
+          759.4
         ],
-        "median_ns": 1093.4,
-        "min_ns": 1065.5,
-        "max_ns": 1113.3
+        "median_ns": 798.1,
+        "min_ns": 746.2,
+        "max_ns": 838.2
       },
       "throughput_absent": null
     },
@@ -4863,15 +4863,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          3378.4,
-          3068.7,
-          3403.3,
-          3043.6,
-          3316.9
+          2028.9,
+          2021.1,
+          1989.5,
+          1957.6,
+          1967.6
         ],
-        "median_ns": 3316.9,
-        "min_ns": 3019.8,
-        "max_ns": 3418.5
+        "median_ns": 1989.5,
+        "min_ns": 1888.1,
+        "max_ns": 2040.5
       },
       "throughput_absent": null
     },
@@ -4887,15 +4887,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          3127.2,
-          3093.1,
-          3118.6,
-          3102.3,
-          3106.3
+          2058.1,
+          2060.2,
+          2062.0,
+          2057.0,
+          2014.5
         ],
-        "median_ns": 3106.3,
-        "min_ns": 3080.1,
-        "max_ns": 3192.0
+        "median_ns": 2058.1,
+        "min_ns": 1965.0,
+        "max_ns": 2100.0
       },
       "throughput_absent": null
     },
@@ -4911,15 +4911,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          996.1,
-          993.9,
-          1009.7,
-          1003.2,
-          997.0
+          670.1,
+          672.4,
+          645.7,
+          629.8,
+          633.3
         ],
-        "median_ns": 997.0,
-        "min_ns": 991.5,
-        "max_ns": 1027.2
+        "median_ns": 645.7,
+        "min_ns": 628.1,
+        "max_ns": 689.0
       },
       "throughput_absent": null
     },
@@ -4935,15 +4935,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          1260.0,
-          1260.4,
-          1266.3,
-          1319.9,
-          1317.3
+          879.5,
+          880.8,
+          873.2,
+          868.8,
+          855.6
         ],
-        "median_ns": 1266.3,
-        "min_ns": 1250.4,
-        "max_ns": 1425.5
+        "median_ns": 873.2,
+        "min_ns": 842.2,
+        "max_ns": 906.0
       },
       "throughput_absent": null
     },
@@ -4959,15 +4959,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          1319.2,
-          1329.0,
-          1268.5,
-          1329.7,
-          1251.2
+          892.6,
+          879.8,
+          881.3,
+          914.1,
+          848.1
         ],
-        "median_ns": 1319.2,
-        "min_ns": 1206.4,
-        "max_ns": 1487.3
+        "median_ns": 881.3,
+        "min_ns": 837.1,
+        "max_ns": 958.9
       },
       "throughput_absent": null
     },
@@ -4976,22 +4976,22 @@
       "hmac": "hmac_sha2_512",
       "backend": "hash2",
       "target": "emscripten",
-      "size_bytes": 121510,
+      "size_bytes": 21083,
       "result": "642058f9a4bffec8d752cb5e544b72d7819a0495d249ccaca95155abccde3704766b98741b29b1343c29104247cacaa28b0ef4abdeeed94cce7a93e8dd3f95ca",
       "throughput": {
         "repetitions": 1000,
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          1300.8,
-          1313.6,
-          1350.9,
-          1492.5,
-          1354.7
+          943.7,
+          926.1,
+          925.8,
+          922.1,
+          925.8
         ],
-        "median_ns": 1350.9,
-        "min_ns": 1273.5,
-        "max_ns": 4599.3
+        "median_ns": 925.8,
+        "min_ns": 857.4,
+        "max_ns": 3291.2
       },
       "throughput_absent": null
     },
@@ -5007,15 +5007,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          952.4,
-          949.2,
-          989.6,
-          990.7,
-          989.1
+          632.8,
+          633.4,
+          630.1,
+          610.2,
+          596.5
         ],
-        "median_ns": 989.1,
-        "min_ns": 943.6,
-        "max_ns": 1002.2
+        "median_ns": 630.1,
+        "min_ns": 591.8,
+        "max_ns": 640.0
       },
       "throughput_absent": null
     },
@@ -5031,15 +5031,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          2300.7,
-          2110.6,
-          2136.1,
-          2111.8,
-          2273.8
+          1429.3,
+          1404.8,
+          1413.8,
+          1408.4,
+          1403.1
         ],
-        "median_ns": 2136.1,
-        "min_ns": 2105.4,
-        "max_ns": 2362.6
+        "median_ns": 1408.4,
+        "min_ns": 1345.3,
+        "max_ns": 1461.6
       },
       "throughput_absent": null
     },
@@ -5055,15 +5055,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          2597.4,
-          2418.5,
-          2157.7,
-          2143.1,
-          2159.4
+          1428.6,
+          1431.8,
+          1427.5,
+          1421.8,
+          1438.7
         ],
-        "median_ns": 2159.4,
-        "min_ns": 2140.8,
-        "max_ns": 5011.2
+        "median_ns": 1428.6,
+        "min_ns": 1366.0,
+        "max_ns": 1489.2
       },
       "throughput_absent": null
     },
@@ -5072,22 +5072,22 @@
       "hmac": "hmac_sha2_512",
       "backend": "sodium",
       "target": "emscripten",
-      "size_bytes": 119420,
+      "size_bytes": 24591,
       "result": "642058f9a4bffec8d752cb5e544b72d7819a0495d249ccaca95155abccde3704766b98741b29b1343c29104247cacaa28b0ef4abdeeed94cce7a93e8dd3f95ca",
       "throughput": {
         "repetitions": 1000,
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          1550.3,
-          1461.6,
-          1454.0,
-          1517.3,
-          1518.4
+          873.8,
+          865.1,
+          869.4,
+          864.2,
+          849.0
         ],
-        "median_ns": 1517.3,
-        "min_ns": 1323.2,
-        "max_ns": 2889.8
+        "median_ns": 865.1,
+        "min_ns": 805.8,
+        "max_ns": 1797.9
       },
       "throughput_absent": null
     },
@@ -5103,15 +5103,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          1301.0,
-          1284.5,
-          1299.2,
-          1287.8,
-          1303.0
+          992.8,
+          994.4,
+          956.5,
+          930.6,
+          950.3
         ],
-        "median_ns": 1299.2,
-        "min_ns": 1277.7,
-        "max_ns": 1395.7
+        "median_ns": 956.5,
+        "min_ns": 929.9,
+        "max_ns": 1034.8
       },
       "throughput_absent": null
     },
@@ -5127,15 +5127,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          3478.0,
-          3116.5,
-          3145.9,
-          3149.9,
-          3494.0
+          2089.0,
+          2080.4,
+          2072.0,
+          2058.7,
+          2074.0
         ],
-        "median_ns": 3149.9,
-        "min_ns": 3109.0,
-        "max_ns": 3548.1
+        "median_ns": 2074.0,
+        "min_ns": 1988.5,
+        "max_ns": 2100.4
       },
       "throughput_absent": null
     },
@@ -5151,15 +5151,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          3231.3,
-          3278.9,
-          3198.2,
-          3196.8,
-          3201.4
+          2147.1,
+          2143.3,
+          2140.5,
+          2122.8,
+          2074.7
         ],
-        "median_ns": 3201.4,
-        "min_ns": 3051.2,
-        "max_ns": 3620.9
+        "median_ns": 2140.5,
+        "min_ns": 2029.1,
+        "max_ns": 2170.7
       },
       "throughput_absent": null
     },
@@ -5175,15 +5175,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          777.0,
-          807.5,
-          813.8,
-          807.2,
-          809.0
+          557.3,
+          528.0,
+          522.6,
+          519.9,
+          526.5
         ],
-        "median_ns": 807.5,
-        "min_ns": 774.8,
-        "max_ns": 857.9
+        "median_ns": 526.5,
+        "min_ns": 516.2,
+        "max_ns": 562.6
       },
       "throughput_absent": null
     },
@@ -5199,15 +5199,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          1002.4,
-          1004.0,
-          1153.2,
-          1042.1,
-          1009.4
+          697.2,
+          687.7,
+          695.7,
+          664.2,
+          656.8
         ],
-        "median_ns": 1009.4,
-        "min_ns": 994.9,
-        "max_ns": 1159.1
+        "median_ns": 687.7,
+        "min_ns": 648.1,
+        "max_ns": 707.2
       },
       "throughput_absent": null
     },
@@ -5223,15 +5223,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          1043.9,
-          1093.9,
-          1004.2,
-          1043.1,
-          1011.2
+          689.5,
+          693.7,
+          688.5,
+          672.6,
+          681.5
         ],
-        "median_ns": 1043.1,
-        "min_ns": 997.0,
-        "max_ns": 1172.1
+        "median_ns": 688.5,
+        "min_ns": 656.4,
+        "max_ns": 698.8
       },
       "throughput_absent": null
     },
@@ -5240,22 +5240,22 @@
       "hmac": "hmac_sha2_256",
       "backend": "hash2",
       "target": "emscripten",
-      "size_bytes": 122568,
+      "size_bytes": 29214,
       "result": "04bdf20351a4118b2b88f47de234de4e17b21a562a67e62bbaf10834b80dfbfd",
       "throughput": {
         "repetitions": 1000,
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          1046.8,
-          936.3,
-          932.7,
-          1022.8,
-          975.7
+          700.5,
+          703.8,
+          691.4,
+          707.8,
+          688.0
         ],
-        "median_ns": 975.7,
-        "min_ns": 906.0,
-        "max_ns": 3562.9
+        "median_ns": 700.5,
+        "min_ns": 606.9,
+        "max_ns": 2525.5
       },
       "throughput_absent": null
     },
@@ -5271,15 +5271,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          774.5,
-          773.7,
-          774.5,
-          771.3,
-          774.9
+          487.8,
+          493.3,
+          460.8,
+          461.1,
+          456.4
         ],
-        "median_ns": 774.5,
-        "min_ns": 770.7,
-        "max_ns": 781.0
+        "median_ns": 461.1,
+        "min_ns": 455.2,
+        "max_ns": 498.7
       },
       "throughput_absent": null
     },
@@ -5295,15 +5295,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          1401.0,
-          1400.9,
-          1386.1,
-          1329.3,
-          1403.8
+          886.9,
+          887.2,
+          895.0,
+          885.7,
+          882.9
         ],
-        "median_ns": 1400.9,
-        "min_ns": 1324.9,
-        "max_ns": 1511.1
+        "median_ns": 886.9,
+        "min_ns": 872.7,
+        "max_ns": 917.6
       },
       "throughput_absent": null
     },
@@ -5319,15 +5319,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          1391.5,
-          1397.8,
-          1445.9,
-          1303.9,
-          1292.0
+          861.7,
+          870.0,
+          871.0,
+          862.1,
+          872.9
         ],
-        "median_ns": 1391.5,
-        "min_ns": 1291.0,
-        "max_ns": 1454.4
+        "median_ns": 870.0,
+        "min_ns": 845.9,
+        "max_ns": 891.3
       },
       "throughput_absent": null
     },
@@ -5336,22 +5336,22 @@
       "hmac": "hmac_sha2_256",
       "backend": "sodium",
       "target": "emscripten",
-      "size_bytes": 119801,
+      "size_bytes": 24778,
       "result": "04bdf20351a4118b2b88f47de234de4e17b21a562a67e62bbaf10834b80dfbfd",
       "throughput": {
         "repetitions": 1000,
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          1024.3,
-          1055.8,
-          1023.0,
-          1066.8,
-          1065.4
+          614.8,
+          624.6,
+          616.4,
+          619.6,
+          615.8
         ],
-        "median_ns": 1055.8,
-        "min_ns": 898.0,
-        "max_ns": 2275.1
+        "median_ns": 616.4,
+        "min_ns": 557.2,
+        "max_ns": 1518.7
       },
       "throughput_absent": null
     },
@@ -5367,15 +5367,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          824.5,
-          833.5,
-          999.2,
-          854.6,
-          839.6
+          610.2,
+          596.0,
+          573.6,
+          594.1,
+          584.9
         ],
-        "median_ns": 839.6,
-        "min_ns": 821.2,
-        "max_ns": 1019.7
+        "median_ns": 594.1,
+        "min_ns": 565.3,
+        "max_ns": 665.4
       },
       "throughput_absent": null
     },
@@ -5391,15 +5391,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          2412.5,
-          2456.2,
-          2693.4,
-          2414.9,
-          2693.5
+          1616.6,
+          1599.8,
+          1627.6,
+          1605.1,
+          1578.7
         ],
-        "median_ns": 2456.2,
-        "min_ns": 2383.8,
-        "max_ns": 2745.8
+        "median_ns": 1605.1,
+        "min_ns": 1523.9,
+        "max_ns": 1664.7
       },
       "throughput_absent": null
     },
@@ -5415,15 +5415,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          2491.4,
-          2488.1,
-          2556.2,
-          2464.8,
-          2488.5
+          1651.4,
+          1644.0,
+          1640.6,
+          1648.5,
+          1635.6
         ],
-        "median_ns": 2488.5,
-        "min_ns": 2454.7,
-        "max_ns": 2787.5
+        "median_ns": 1644.0,
+        "min_ns": 1575.3,
+        "max_ns": 1678.8
       },
       "throughput_absent": null
     },
@@ -5439,15 +5439,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          1126.0,
-          1120.7,
-          1134.6,
-          1116.4,
-          1163.1
+          774.5,
+          764.8,
+          743.8,
+          731.9,
+          726.2
         ],
-        "median_ns": 1126.0,
-        "min_ns": 1114.8,
-        "max_ns": 1166.3
+        "median_ns": 743.8,
+        "min_ns": 722.8,
+        "max_ns": 776.8
       },
       "throughput_absent": null
     },
@@ -5463,15 +5463,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          1513.8,
-          1332.9,
-          1328.5,
-          1410.9,
-          1337.5
+          947.2,
+          940.2,
+          946.3,
+          933.8,
+          903.8
         ],
-        "median_ns": 1337.5,
-        "min_ns": 1312.6,
-        "max_ns": 1587.6
+        "median_ns": 940.2,
+        "min_ns": 887.5,
+        "max_ns": 955.5
       },
       "throughput_absent": null
     },
@@ -5487,15 +5487,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          1345.4,
-          1332.7,
-          1329.8,
-          1422.2,
-          1415.6
+          957.1,
+          941.0,
+          932.0,
+          925.0,
+          908.9
         ],
-        "median_ns": 1345.4,
-        "min_ns": 1325.0,
-        "max_ns": 1434.3
+        "median_ns": 932.0,
+        "min_ns": 890.0,
+        "max_ns": 969.5
       },
       "throughput_absent": null
     },
@@ -5504,22 +5504,22 @@
       "hmac": "hmac_sha2_512",
       "backend": "hash2",
       "target": "emscripten",
-      "size_bytes": 126145,
+      "size_bytes": 32787,
       "result": "bd714aa847e839457ca998e7bb70096ffe8d85ddfe8f722374b98955c700836d",
       "throughput": {
         "repetitions": 1000,
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          1306.5,
-          1384.0,
-          1288.3,
-          1343.2,
-          1337.0
+          939.8,
+          933.5,
+          910.3,
+          898.0,
+          936.9
         ],
-        "median_ns": 1337.0,
-        "min_ns": 1280.8,
-        "max_ns": 4250.0
+        "median_ns": 933.5,
+        "min_ns": 871.2,
+        "max_ns": 3303.8
       },
       "throughput_absent": null
     },
@@ -5535,15 +5535,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          951.7,
-          978.1,
-          947.1,
-          978.4,
-          976.8
+          624.9,
+          631.3,
+          610.0,
+          609.8,
+          600.9
         ],
-        "median_ns": 976.8,
-        "min_ns": 943.9,
-        "max_ns": 999.9
+        "median_ns": 610.0,
+        "min_ns": 582.8,
+        "max_ns": 637.8
       },
       "throughput_absent": null
     },
@@ -5559,15 +5559,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          2523.5,
-          2287.4,
-          2272.2,
-          2261.8,
-          2286.1
+          1533.9,
+          1510.5,
+          1540.7,
+          1519.0,
+          1510.0
         ],
-        "median_ns": 2286.1,
-        "min_ns": 2261.1,
-        "max_ns": 2541.8
+        "median_ns": 1519.0,
+        "min_ns": 1433.3,
+        "max_ns": 1550.9
       },
       "throughput_absent": null
     },
@@ -5583,15 +5583,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          2150.1,
-          2129.8,
-          2277.2,
-          2145.1,
-          2190.8
+          1438.8,
+          1411.2,
+          1404.5,
+          1403.8,
+          1410.0
         ],
-        "median_ns": 2150.1,
-        "min_ns": 2118.4,
-        "max_ns": 2406.5
+        "median_ns": 1410.0,
+        "min_ns": 1335.8,
+        "max_ns": 1455.3
       },
       "throughput_absent": null
     },
@@ -5600,22 +5600,22 @@
       "hmac": "hmac_sha2_512",
       "backend": "sodium",
       "target": "emscripten",
-      "size_bytes": 120395,
+      "size_bytes": 25282,
       "result": "bd714aa847e839457ca998e7bb70096ffe8d85ddfe8f722374b98955c700836d",
       "throughput": {
         "repetitions": 1000,
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          1325.3,
-          1319.4,
-          1321.8,
-          1385.5,
-          1381.2
+          794.4,
+          796.5,
+          811.8,
+          833.6,
+          788.0
         ],
-        "median_ns": 1325.3,
-        "min_ns": 1306.8,
-        "max_ns": 2772.2
+        "median_ns": 796.5,
+        "min_ns": 778.9,
+        "max_ns": 1780.8
       },
       "throughput_absent": null
     },
@@ -5631,15 +5631,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          1175.5,
-          1202.3,
-          1037.8,
-          1032.9,
-          1036.2
+          800.6,
+          799.2,
+          755.3,
+          785.2,
+          742.4
         ],
-        "median_ns": 1037.8,
-        "min_ns": 1031.4,
-        "max_ns": 1236.4
+        "median_ns": 785.2,
+        "min_ns": 738.5,
+        "max_ns": 814.8
       },
       "throughput_absent": null
     },
@@ -5655,15 +5655,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          2795.0,
-          2562.5,
-          2741.5,
-          2505.2,
-          2513.8
+          1679.9,
+          1666.6,
+          1679.9,
+          1654.1,
+          1635.9
         ],
-        "median_ns": 2562.5,
-        "min_ns": 2409.3,
-        "max_ns": 3848.3
+        "median_ns": 1666.6,
+        "min_ns": 1590.8,
+        "max_ns": 1716.3
       },
       "throughput_absent": null
     },
@@ -5679,15 +5679,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          2579.8,
-          2555.0,
-          2552.0,
-          2577.1,
-          2571.8
+          1704.2,
+          1693.8,
+          1692.7,
+          1680.5,
+          1684.0
         ],
-        "median_ns": 2571.8,
-        "min_ns": 2547.7,
-        "max_ns": 2614.0
+        "median_ns": 1692.7,
+        "min_ns": 1607.7,
+        "max_ns": 1728.3
       },
       "throughput_absent": null
     },
@@ -5703,15 +5703,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          1490.1,
-          1552.8,
-          1555.6,
-          1556.3,
-          1553.7
+          1035.0,
+          1041.7,
+          1022.6,
+          983.4,
+          974.8
         ],
-        "median_ns": 1553.7,
-        "min_ns": 1484.9,
-        "max_ns": 1565.4
+        "median_ns": 1022.6,
+        "min_ns": 971.2,
+        "max_ns": 1046.0
       },
       "throughput_absent": null
     },
@@ -5727,15 +5727,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          1949.3,
-          1941.0,
-          2012.0,
-          2008.5,
-          1956.1
+          1344.4,
+          1334.5,
+          1350.8,
+          1303.8,
+          1304.3
         ],
-        "median_ns": 1956.1,
-        "min_ns": 1935.3,
-        "max_ns": 2079.8
+        "median_ns": 1334.5,
+        "min_ns": 1279.9,
+        "max_ns": 1363.0
       },
       "throughput_absent": null
     },
@@ -5751,15 +5751,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          2240.9,
-          1960.2,
-          1939.4,
-          2025.3,
-          2020.5
+          1356.6,
+          1347.7,
+          1308.7,
+          1331.1,
+          1287.5
         ],
-        "median_ns": 2020.5,
-        "min_ns": 1937.4,
-        "max_ns": 2263.4
+        "median_ns": 1331.1,
+        "min_ns": 1276.6,
+        "max_ns": 1368.2
       },
       "throughput_absent": null
     },
@@ -5768,22 +5768,22 @@
       "hmac": "hmac_sha2_256",
       "backend": "hash2",
       "target": "emscripten",
-      "size_bytes": 122990,
+      "size_bytes": 29549,
       "result": "4036db77a7dc5eee014210c60f8e0ff517d1d28259e01df4ae5b3a484e1f2b79",
       "throughput": {
         "repetitions": 1000,
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          1867.0,
-          1843.9,
-          1847.0,
-          1837.4,
-          1846.2
+          1262.9,
+          1260.0,
+          1260.0,
+          1229.2,
+          1224.2
         ],
-        "median_ns": 1846.2,
-        "min_ns": 1793.2,
-        "max_ns": 4398.0
+        "median_ns": 1260.0,
+        "min_ns": 1210.7,
+        "max_ns": 3238.5
       },
       "throughput_absent": null
     },
@@ -5799,15 +5799,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          1540.0,
-          1549.6,
-          1475.0,
-          1478.5,
-          1541.6
+          990.7,
+          987.2,
+          986.2,
+          941.3,
+          937.8
         ],
-        "median_ns": 1540.0,
-        "min_ns": 1473.3,
-        "max_ns": 1553.8
+        "median_ns": 986.2,
+        "min_ns": 927.4,
+        "max_ns": 1004.0
       },
       "throughput_absent": null
     },
@@ -5823,15 +5823,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          2859.2,
-          2751.6,
-          2791.8,
-          2555.1,
-          2786.4
+          1710.0,
+          1703.7,
+          1719.3,
+          1703.0,
+          1701.4
         ],
-        "median_ns": 2786.4,
-        "min_ns": 2551.0,
-        "max_ns": 2865.8
+        "median_ns": 1703.7,
+        "min_ns": 1656.9,
+        "max_ns": 1741.9
       },
       "throughput_absent": null
     },
@@ -5847,15 +5847,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          2904.7,
-          2669.2,
-          2620.0,
-          2603.4,
-          2695.7
+          1724.9,
+          1726.3,
+          1722.9,
+          1714.2,
+          1706.6
         ],
-        "median_ns": 2669.2,
-        "min_ns": 2600.5,
-        "max_ns": 2928.4
+        "median_ns": 1722.9,
+        "min_ns": 1682.1,
+        "max_ns": 1768.2
       },
       "throughput_absent": null
     },
@@ -5864,22 +5864,22 @@
       "hmac": "hmac_sha2_256",
       "backend": "sodium",
       "target": "emscripten",
-      "size_bytes": 120437,
+      "size_bytes": 25335,
       "result": "4036db77a7dc5eee014210c60f8e0ff517d1d28259e01df4ae5b3a484e1f2b79",
       "throughput": {
         "repetitions": 1000,
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          1885.8,
-          2047.6,
-          1931.8,
-          1909.8,
-          1890.8
+          1126.9,
+          1126.2,
+          1118.0,
+          1126.5,
+          1121.2
         ],
-        "median_ns": 1909.8,
-        "min_ns": 1769.5,
-        "max_ns": 3521.8
+        "median_ns": 1126.2,
+        "min_ns": 1094.9,
+        "max_ns": 2166.3
       },
       "throughput_absent": null
     },
@@ -5888,22 +5888,22 @@
       "hmac": "hmac_sha2_256",
       "backend": "bearssl",
       "target": "native",
-      "size_bytes": 52680,
+      "size_bytes": 52664,
       "result": "4036db77a7dc5eee014210c60f8e0ff517d1d28259e01df4ae5b3a484e1f2b79",
       "throughput": {
         "repetitions": 1000,
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          1771.5,
-          1760.5,
-          1695.5,
-          1984.4,
-          1763.1
+          1317.8,
+          1485.7,
+          1319.0,
+          1429.8,
+          1430.4
         ],
-        "median_ns": 1763.1,
-        "min_ns": 1687.8,
-        "max_ns": 1986.5
+        "median_ns": 1429.8,
+        "min_ns": 1259.9,
+        "max_ns": 1523.4
       },
       "throughput_absent": null
     },
@@ -5919,15 +5919,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          2323.5,
-          2389.4,
-          2409.0,
-          2342.1,
-          2593.2
+          1533.3,
+          1520.8,
+          1550.2,
+          1539.3,
+          1583.0
         ],
-        "median_ns": 2389.4,
-        "min_ns": 2309.2,
-        "max_ns": 2601.9
+        "median_ns": 1539.3,
+        "min_ns": 1443.2,
+        "max_ns": 1674.1
       },
       "throughput_absent": null
     },
@@ -5943,15 +5943,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          2430.7,
-          2422.5,
-          2336.2,
-          2333.5,
-          2355.2
+          1542.6,
+          1538.8,
+          1535.1,
+          1523.3,
+          1525.3
         ],
-        "median_ns": 2355.2,
-        "min_ns": 2329.5,
-        "max_ns": 2643.0
+        "median_ns": 1535.1,
+        "min_ns": 1444.8,
+        "max_ns": 1570.7
       },
       "throughput_absent": null
     },
@@ -5960,22 +5960,22 @@
       "hmac": "hmac_sha2_256",
       "backend": "bearssl",
       "target": "emscripten",
-      "size_bytes": 116952,
+      "size_bytes": 23281,
       "result": "4036db77a7dc5eee014210c60f8e0ff517d1d28259e01df4ae5b3a484e1f2b79",
       "throughput": {
         "repetitions": 1000,
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          2472.0,
-          2230.0,
-          2329.5,
-          2367.8,
-          2456.1
+          1566.8,
+          1557.4,
+          1568.6,
+          1561.9,
+          1594.1
         ],
-        "median_ns": 2367.8,
-        "min_ns": 2216.0,
-        "max_ns": 5576.5
+        "median_ns": 1566.8,
+        "min_ns": 1533.6,
+        "max_ns": 2425.4
       },
       "throughput_absent": null
     },
@@ -5991,15 +5991,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          1749.6,
-          1563.9,
-          1539.9,
-          1784.0,
-          1555.6
+          1181.7,
+          1146.1,
+          1137.4,
+          1095.5,
+          1092.3
         ],
-        "median_ns": 1563.9,
-        "min_ns": 1535.3,
-        "max_ns": 2044.1
+        "median_ns": 1137.4,
+        "min_ns": 1071.8,
+        "max_ns": 1192.8
       },
       "throughput_absent": null
     },
@@ -6015,15 +6015,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          4703.4,
-          4829.2,
-          5217.1,
-          4684.9,
-          5259.7
+          3091.3,
+          3091.4,
+          3075.1,
+          3065.7,
+          3044.8
         ],
-        "median_ns": 4829.2,
-        "min_ns": 4658.1,
-        "max_ns": 5264.7
+        "median_ns": 3075.1,
+        "min_ns": 2982.2,
+        "max_ns": 3139.8
       },
       "throughput_absent": null
     },
@@ -6039,15 +6039,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          4795.0,
-          4735.7,
-          4762.5,
-          4750.8,
-          4707.1
+          3170.4,
+          3145.2,
+          3141.0,
+          3144.7,
+          3074.2
         ],
-        "median_ns": 4750.8,
-        "min_ns": 4699.7,
-        "max_ns": 5270.3
+        "median_ns": 3144.7,
+        "min_ns": 3051.2,
+        "max_ns": 3200.8
       },
       "throughput_absent": null
     },
@@ -6063,15 +6063,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          2130.5,
-          2120.2,
-          2136.2,
-          2120.0,
-          2119.5
+          1433.7,
+          1441.4,
+          1356.0,
+          1358.4,
+          1357.5
         ],
-        "median_ns": 2120.2,
-        "min_ns": 2104.8,
-        "max_ns": 2174.7
+        "median_ns": 1358.4,
+        "min_ns": 1342.5,
+        "max_ns": 1464.5
       },
       "throughput_absent": null
     },
@@ -6087,15 +6087,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          3016.3,
-          2528.1,
-          2545.2,
-          3012.3,
-          3016.2
+          1809.7,
+          1789.0,
+          1816.4,
+          1745.5,
+          1727.5
         ],
-        "median_ns": 3012.3,
-        "min_ns": 2525.6,
-        "max_ns": 3038.9
+        "median_ns": 1789.0,
+        "min_ns": 1676.5,
+        "max_ns": 1825.2
       },
       "throughput_absent": null
     },
@@ -6111,15 +6111,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          2547.9,
-          2717.6,
-          2586.2,
-          2717.0,
-          2722.8
+          1808.4,
+          1802.2,
+          1795.3,
+          1730.9,
+          1722.2
         ],
-        "median_ns": 2717.0,
-        "min_ns": 2494.9,
-        "max_ns": 2973.0
+        "median_ns": 1795.3,
+        "min_ns": 1687.7,
+        "max_ns": 1886.2
       },
       "throughput_absent": null
     },
@@ -6128,22 +6128,22 @@
       "hmac": "hmac_sha2_512",
       "backend": "hash2",
       "target": "emscripten",
-      "size_bytes": 126540,
+      "size_bytes": 33104,
       "result": "c950becaec200551544bc181966bc5c224251296352a9f305b3585f21eea7202",
       "throughput": {
         "repetitions": 1000,
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          2681.8,
-          2614.2,
-          2633.3,
-          2614.0,
-          2661.7
+          1779.5,
+          1787.5,
+          1780.5,
+          1775.7,
+          1773.2
         ],
-        "median_ns": 2633.3,
-        "min_ns": 2550.1,
-        "max_ns": 5677.0
+        "median_ns": 1779.5,
+        "min_ns": 1699.6,
+        "max_ns": 4258.5
       },
       "throughput_absent": null
     },
@@ -6159,15 +6159,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          1930.2,
-          1976.1,
-          1967.7,
-          1974.5,
-          1978.9
+          1262.9,
+          1261.0,
+          1256.9,
+          1229.1,
+          1204.8
         ],
-        "median_ns": 1974.5,
-        "min_ns": 1889.3,
-        "max_ns": 2053.8
+        "median_ns": 1256.9,
+        "min_ns": 1183.4,
+        "max_ns": 1284.1
       },
       "throughput_absent": null
     },
@@ -6183,15 +6183,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          4661.3,
-          4582.0,
-          4562.2,
-          4238.9,
-          4532.9
+          2825.9,
+          2814.7,
+          2859.2,
+          2814.3,
+          2845.0
         ],
-        "median_ns": 4562.2,
-        "min_ns": 4215.0,
-        "max_ns": 6854.0
+        "median_ns": 2825.9,
+        "min_ns": 2715.3,
+        "max_ns": 2866.1
       },
       "throughput_absent": null
     },
@@ -6207,15 +6207,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          4830.8,
-          4558.4,
-          4452.6,
-          4327.0,
-          4360.5
+          2886.7,
+          2883.6,
+          2877.9,
+          2869.6,
+          2867.6
         ],
-        "median_ns": 4452.6,
-        "min_ns": 4320.6,
-        "max_ns": 4853.5
+        "median_ns": 2877.9,
+        "min_ns": 2786.7,
+        "max_ns": 2910.7
       },
       "throughput_absent": null
     },
@@ -6224,22 +6224,22 @@
       "hmac": "hmac_sha2_512",
       "backend": "sodium",
       "target": "emscripten",
-      "size_bytes": 121015,
+      "size_bytes": 25822,
       "result": "c950becaec200551544bc181966bc5c224251296352a9f305b3585f21eea7202",
       "throughput": {
         "repetitions": 1000,
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          2516.2,
-          2657.3,
-          2630.4,
-          2800.8,
-          2732.3
+          1554.3,
+          1561.5,
+          1549.8,
+          1556.8,
+          1572.5
         ],
-        "median_ns": 2657.3,
-        "min_ns": 2497.6,
-        "max_ns": 4777.3
+        "median_ns": 1556.8,
+        "min_ns": 1534.4,
+        "max_ns": 2597.8
       },
       "throughput_absent": null
     },
@@ -6255,15 +6255,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          2163.4,
-          2158.2,
-          2151.8,
-          2157.9,
-          2152.8
+          1572.4,
+          1577.0,
+          1553.4,
+          1572.4,
+          1498.6
         ],
-        "median_ns": 2157.9,
-        "min_ns": 2148.7,
-        "max_ns": 2423.2
+        "median_ns": 1572.4,
+        "min_ns": 1480.5,
+        "max_ns": 1595.8
       },
       "throughput_absent": null
     },
@@ -6279,15 +6279,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          2913.1,
-          2944.1,
-          2883.7,
-          2863.2,
-          3152.8
+          1915.8,
+          1902.8,
+          1931.6,
+          1876.0,
+          1879.7
         ],
-        "median_ns": 2913.1,
-        "min_ns": 2839.2,
-        "max_ns": 3266.5
+        "median_ns": 1902.8,
+        "min_ns": 1790.5,
+        "max_ns": 2083.2
       },
       "throughput_absent": null
     },
@@ -6303,15 +6303,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          2939.4,
-          2890.2,
-          2848.4,
-          3127.6,
-          3115.8
+          1961.8,
+          2007.5,
+          1889.7,
+          2033.8,
+          1961.1
         ],
-        "median_ns": 2939.4,
-        "min_ns": 2798.0,
-        "max_ns": 3201.8
+        "median_ns": 1961.8,
+        "min_ns": 1784.0,
+        "max_ns": 2090.2
       },
       "throughput_absent": null
     },
@@ -6320,22 +6320,22 @@
       "hmac": "hmac_sha2_512",
       "backend": "bearssl",
       "target": "emscripten",
-      "size_bytes": 117451,
+      "size_bytes": 23792,
       "result": "c950becaec200551544bc181966bc5c224251296352a9f305b3585f21eea7202",
       "throughput": {
         "repetitions": 1000,
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          3048.8,
-          3029.2,
-          3233.7,
-          3138.2,
-          3127.4
+          1988.0,
+          2001.5,
+          1985.4,
+          2006.7,
+          1985.6
         ],
-        "median_ns": 3127.4,
-        "min_ns": 2975.4,
-        "max_ns": 4126.8
+        "median_ns": 1988.0,
+        "min_ns": 1950.4,
+        "max_ns": 2706.1
       },
       "throughput_absent": null
     },
@@ -6351,15 +6351,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          1979.8,
-          1997.2,
-          1994.2,
-          1991.6,
-          1989.0
+          1484.1,
+          1570.5,
+          1403.2,
+          1465.2,
+          1418.1
         ],
-        "median_ns": 1991.6,
-        "min_ns": 1968.1,
-        "max_ns": 2372.2
+        "median_ns": 1465.2,
+        "min_ns": 1388.7,
+        "max_ns": 1626.5
       },
       "throughput_absent": null
     },
@@ -6375,15 +6375,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          5044.4,
-          4701.7,
-          5387.8,
-          4788.9,
-          5392.9
+          3225.7,
+          3183.2,
+          3180.8,
+          3153.7,
+          3152.1
         ],
-        "median_ns": 5044.4,
-        "min_ns": 4632.7,
-        "max_ns": 5461.3
+        "median_ns": 3180.8,
+        "min_ns": 3134.2,
+        "max_ns": 3241.5
       },
       "throughput_absent": null
     },
@@ -6399,15 +6399,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          5213.6,
-          5012.9,
-          5007.6,
-          4930.7,
-          4891.0
+          3288.5,
+          3265.0,
+          3237.7,
+          3193.4,
+          3201.8
         ],
-        "median_ns": 5007.6,
-        "min_ns": 4807.8,
-        "max_ns": 5669.4
+        "median_ns": 3237.7,
+        "min_ns": 3135.8,
+        "max_ns": 3352.7
       },
       "throughput_absent": null
     },
@@ -6423,15 +6423,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          32545791.0,
-          33101792.0,
-          32676500.0,
-          33516417.0,
-          33565667.0
+          21760625.0,
+          21403375.0,
+          20846958.0,
+          20608500.0,
+          20501958.0
         ],
-        "median_ns": 33101792.0,
-        "min_ns": 32544458.0,
-        "max_ns": 35302959.0
+        "median_ns": 20846958.0,
+        "min_ns": 20483250.0,
+        "max_ns": 21772708.0
       },
       "throughput_absent": null
     },
@@ -6447,15 +6447,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          49092500.0,
-          47057500.0,
-          49628000.0,
-          48969208.0,
-          50571208.0
+          31637750.0,
+          30793417.0,
+          30498584.0,
+          29980250.0,
+          29847291.0
         ],
-        "median_ns": 49092500.0,
-        "min_ns": 46743167.0,
-        "max_ns": 91676375.0
+        "median_ns": 30498584.0,
+        "min_ns": 29654500.0,
+        "max_ns": 32347916.0
       },
       "throughput_absent": null
     },
@@ -6471,15 +6471,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          49150958.0,
-          49318458.0,
-          47743625.0,
-          46990875.0,
-          46726875.0
+          31466417.0,
+          31540208.0,
+          30729000.0,
+          30199000.0,
+          29940167.0
         ],
-        "median_ns": 47743625.0,
-        "min_ns": 45048208.0,
-        "max_ns": 62364709.0
+        "median_ns": 30729000.0,
+        "min_ns": 29895583.0,
+        "max_ns": 31715083.0
       },
       "throughput_absent": null
     },
@@ -6488,22 +6488,22 @@
       "hmac": "hmac_sha2_256",
       "backend": "hash2",
       "target": "emscripten",
-      "size_bytes": 122671,
+      "size_bytes": 29235,
       "result": "9954744dd1fceaa0660fdd1c6cd0ceaac8098741d90eca1d75bc48143addd830",
       "throughput": {
         "repetitions": 1,
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          47220583.0,
-          45398208.0,
-          43805750.0,
-          47033667.0,
-          47085291.0
+          28799375.0,
+          28208916.0,
+          27859542.0,
+          28085375.0,
+          27700583.0
         ],
-        "median_ns": 47033667.0,
-        "min_ns": 43180167.0,
-        "max_ns": 71054916.0
+        "median_ns": 28085375.0,
+        "min_ns": 27551459.0,
+        "max_ns": 28974792.0
       },
       "throughput_absent": null
     },
@@ -6519,15 +6519,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          9183334.0,
-          9215625.0,
-          9108166.0,
-          9656333.0,
-          9184083.0
+          6143500.0,
+          6071584.0,
+          6185375.0,
+          5942792.0,
+          5933167.0
         ],
-        "median_ns": 9184083.0,
-        "min_ns": 8503375.0,
-        "max_ns": 10296125.0
+        "median_ns": 6071584.0,
+        "min_ns": 5870250.0,
+        "max_ns": 6207875.0
       },
       "throughput_absent": null
     },
@@ -6543,15 +6543,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          60543500.0,
-          98151875.0,
-          60826917.0,
-          56501750.0,
-          57681750.0
+          36582042.0,
+          35990000.0,
+          35953166.0,
+          35771959.0,
+          35381209.0
         ],
-        "median_ns": 60543500.0,
-        "min_ns": 53734625.0,
-        "max_ns": 117589416.0
+        "median_ns": 35953166.0,
+        "min_ns": 35298125.0,
+        "max_ns": 36618416.0
       },
       "throughput_absent": null
     },
@@ -6567,15 +6567,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          59506792.0,
-          64674000.0,
-          57858917.0,
-          53977584.0,
-          56856625.0
+          35895584.0,
+          35845959.0,
+          35701542.0,
+          35333583.0,
+          35824125.0
         ],
-        "median_ns": 57858917.0,
-        "min_ns": 53626667.0,
-        "max_ns": 101647042.0
+        "median_ns": 35824125.0,
+        "min_ns": 35179667.0,
+        "max_ns": 37843208.0
       },
       "throughput_absent": null
     },
@@ -6591,15 +6591,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          42040792.0,
-          42068584.0,
-          42191084.0,
-          44657375.0,
-          43287458.0
+          28375417.0,
+          27635917.0,
+          27180500.0,
+          26864125.0,
+          26788250.0
         ],
-        "median_ns": 42191084.0,
-        "min_ns": 41937416.0,
-        "max_ns": 45119834.0
+        "median_ns": 27180500.0,
+        "min_ns": 26605750.0,
+        "max_ns": 31589584.0
       },
       "throughput_absent": null
     },
@@ -6615,15 +6615,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          67937416.0,
-          84896250.0,
-          67623750.0,
-          65141417.0,
-          67654209.0
+          41439958.0,
+          41562458.0,
+          40855875.0,
+          40255250.0,
+          39961167.0
         ],
-        "median_ns": 67654209.0,
-        "min_ns": 61627959.0,
-        "max_ns": 115571000.0
+        "median_ns": 40855875.0,
+        "min_ns": 39887833.0,
+        "max_ns": 42083083.0
       },
       "throughput_absent": null
     },
@@ -6639,15 +6639,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          77054917.0,
-          67111291.0,
-          66299667.0,
-          62895666.0,
-          63555916.0
+          41863875.0,
+          41594250.0,
+          41055500.0,
+          40559666.0,
+          42218709.0
         ],
-        "median_ns": 66299667.0,
-        "min_ns": 61106000.0,
-        "max_ns": 102622417.0
+        "median_ns": 41594250.0,
+        "min_ns": 40492167.0,
+        "max_ns": 43383542.0
       },
       "throughput_absent": null
     },
@@ -6656,22 +6656,22 @@
       "hmac": "hmac_sha2_512",
       "backend": "hash2",
       "target": "emscripten",
-      "size_bytes": 126200,
+      "size_bytes": 32747,
       "result": "7c43fe103070fb773428bbc7a3f7d1f095570dc9069ef3ac9d9d8d88fba7eee3",
       "throughput": {
         "repetitions": 1,
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          93940959.0,
-          83987459.0,
-          66738750.0,
-          77161500.0,
-          65784416.0
+          40425667.0,
+          39806459.0,
+          41122958.0,
+          39799125.0,
+          39090250.0
         ],
-        "median_ns": 77161500.0,
-        "min_ns": 61332291.0,
-        "max_ns": 111952292.0
+        "median_ns": 39806459.0,
+        "min_ns": 38803292.0,
+        "max_ns": 41310000.0
       },
       "throughput_absent": null
     },
@@ -6687,15 +6687,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          24518958.0,
-          24016458.0,
-          24431375.0,
-          25743792.0,
-          24368334.0
+          16279625.0,
+          16079166.0,
+          16029292.0,
+          15642000.0,
+          15582166.0
         ],
-        "median_ns": 24431375.0,
-        "min_ns": 20037583.0,
-        "max_ns": 26827292.0
+        "median_ns": 16029292.0,
+        "min_ns": 15427125.0,
+        "max_ns": 16316416.0
       },
       "throughput_absent": null
     },
@@ -6711,15 +6711,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          63711459.0,
-          88309750.0,
-          62549291.0,
-          62594250.0,
-          61988042.0
+          39315250.0,
+          38908541.0,
+          38821791.0,
+          38495333.0,
+          38779542.0
         ],
-        "median_ns": 62594250.0,
-        "min_ns": 60991917.0,
-        "max_ns": 116087834.0
+        "median_ns": 38821791.0,
+        "min_ns": 38301958.0,
+        "max_ns": 39464833.0
       },
       "throughput_absent": null
     },
@@ -6735,15 +6735,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          62976750.0,
-          63618875.0,
-          60281625.0,
-          58893042.0,
-          60415000.0
+          39250083.0,
+          39269875.0,
+          38622792.0,
+          38404459.0,
+          38576250.0
         ],
-        "median_ns": 60415000.0,
-        "min_ns": 58048917.0,
-        "max_ns": 98561833.0
+        "median_ns": 38622792.0,
+        "min_ns": 38364708.0,
+        "max_ns": 39499625.0
       },
       "throughput_absent": null
     },
@@ -6759,15 +6759,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          63594959.0,
-          67520083.0,
-          61397125.0,
-          62403958.0,
-          64832333.0
+          38525000.0,
+          38260542.0,
+          37817917.0,
+          37591583.0,
+          37321750.0
         ],
-        "median_ns": 63594959.0,
-        "min_ns": 58635125.0,
-        "max_ns": 99958584.0
+        "median_ns": 37817917.0,
+        "min_ns": 37167583.0,
+        "max_ns": 40815959.0
       },
       "throughput_absent": null
     },
@@ -6783,15 +6783,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          127140667.0,
-          140409916.0,
-          103628667.0,
-          116982209.0,
-          117894083.0
+          53072000.0,
+          52687250.0,
+          52519625.0,
+          51924583.0,
+          52524250.0
         ],
-        "median_ns": 117894083.0,
-        "min_ns": 84202458.0,
-        "max_ns": 205657250.0
+        "median_ns": 52524250.0,
+        "min_ns": 51507125.0,
+        "max_ns": 54301291.0
       },
       "throughput_absent": null
     },
@@ -6807,15 +6807,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          116523084.0,
-          107164875.0,
-          122764666.0,
-          88905292.0,
-          98101209.0
+          53094708.0,
+          53174916.0,
+          53457375.0,
+          52713916.0,
+          51479291.0
         ],
-        "median_ns": 107164875.0,
-        "min_ns": 82935667.0,
-        "max_ns": 235099375.0
+        "median_ns": 53094708.0,
+        "min_ns": 50775208.0,
+        "max_ns": 54329750.0
       },
       "throughput_absent": null
     },
@@ -6824,22 +6824,22 @@
       "hmac": null,
       "backend": "sodium",
       "target": "emscripten",
-      "size_bytes": 135312,
+      "size_bytes": 39690,
       "result": "40760635b14de0a011964e959972f43fac5ca2682c8f96d591c7a023b2d165bf",
       "throughput": {
         "repetitions": 1,
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          129512958.0,
-          130692500.0,
-          125965708.0,
-          125371083.0,
-          84430000.0
+          49690125.0,
+          49293250.0,
+          49965042.0,
+          48589625.0,
+          48415333.0
         ],
-        "median_ns": 125965708.0,
-        "min_ns": 82896375.0,
-        "max_ns": 174511708.0
+        "median_ns": 49293250.0,
+        "min_ns": 47939000.0,
+        "max_ns": 60048750.0
       },
       "throughput_absent": null
     },
@@ -6855,15 +6855,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          30593209.0,
-          30911250.0,
-          30652625.0,
-          30209500.0,
-          30071500.0
+          19522500.0,
+          20044250.0,
+          18671042.0,
+          18502875.0,
+          18389708.0
         ],
-        "median_ns": 30593209.0,
-        "min_ns": 29280500.0,
-        "max_ns": 40783333.0
+        "median_ns": 18671042.0,
+        "min_ns": 18302166.0,
+        "max_ns": 21835084.0
       },
       "throughput_absent": null
     },
@@ -6879,15 +6879,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          31939458.0,
-          31763333.0,
-          31599458.0,
-          31945000.0,
-          31094500.0
+          19822208.0,
+          19625542.0,
+          19539083.0,
+          19860542.0,
+          19444458.0
         ],
-        "median_ns": 31763333.0,
-        "min_ns": 30614708.0,
-        "max_ns": 35703458.0
+        "median_ns": 19625542.0,
+        "min_ns": 19244209.0,
+        "max_ns": 20399917.0
       },
       "throughput_absent": null
     },
@@ -6903,15 +6903,15 @@
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          30722750.0,
-          31492750.0,
-          30447208.0,
-          30906792.0,
-          31022792.0
+          19527875.0,
+          19381542.0,
+          19306542.0,
+          19526083.0,
+          19075375.0
         ],
-        "median_ns": 30906792.0,
-        "min_ns": 30237500.0,
-        "max_ns": 32093416.0
+        "median_ns": 19381542.0,
+        "min_ns": 18977125.0,
+        "max_ns": 19927541.0
       },
       "throughput_absent": null
     },
@@ -6920,22 +6920,22 @@
       "hmac": null,
       "backend": "sodium",
       "target": "emscripten",
-      "size_bytes": 122881,
+      "size_bytes": 29540,
       "result": "5618c3abd8ee1afefacdf091aaee69f3955fb2e83bd04e0cf9a94b94891e6a25",
       "throughput": {
         "repetitions": 1,
         "invocations": 5,
         "runs_per_invocation": 5,
         "invocation_medians_ns": [
-          26914458.0,
-          26980375.0,
-          26223334.0,
-          27027667.0,
-          27771334.0
+          16803167.0,
+          16652583.0,
+          16306750.0,
+          16178709.0,
+          16319333.0
         ],
-        "median_ns": 26980375.0,
-        "min_ns": 25937458.0,
-        "max_ns": 35021125.0
+        "median_ns": 16319333.0,
+        "min_ns": 15991375.0,
+        "max_ns": 17144292.0
       },
       "throughput_absent": null
     }
@@ -9312,8 +9312,8 @@
       "hmac": "hmac_sha2_512",
       "target": "emscripten",
       "by_size": [
-        "sodium",
-        "hash2"
+        "hash2",
+        "sodium"
       ],
       "by_throughput": [
         "hash2",
@@ -9378,8 +9378,8 @@
         "hash2"
       ],
       "by_throughput": [
-        "hash2",
-        "sodium"
+        "sodium",
+        "hash2"
       ],
       "throughput_from": "emscripten"
     },
@@ -9509,8 +9509,8 @@
         "hash2"
       ],
       "by_throughput": [
-        "hash2",
         "sodium",
+        "hash2",
         "bearssl"
       ],
       "throughput_from": "emscripten"
@@ -9579,8 +9579,8 @@
         "hash2"
       ],
       "by_throughput": [
-        "hash2",
         "sodium",
+        "hash2",
         "bearssl"
       ],
       "throughput_from": "emscripten"
@@ -9790,5 +9790,5 @@
       "throughput_from": "emscripten"
     }
   ],
-  "digest": "sha256:e3fa11b17195307baef6621ff5ebc001230c5f7076cf8403668471b2588cb78d"
+  "digest": "sha256:4505e14c707e68a248ffef4af22719385138ee38435f1943b01d074579b0cb5c"
 }
