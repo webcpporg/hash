@@ -161,124 +161,124 @@
 | Name | Fastest natively | Smallest on Emscripten | Where it is used | Choose it when
 
 | <<hash-legacy,`md5_128`>>
-| 919 MiB/s (hash2)
+| 933 MiB/s (hash2)
 | 8,039 bytes (hash2)
 | link:https://www.rfc-editor.org/rfc/rfc6151[legacy checksums and old protocols; RFC 6151 retires it for signatures]
 | Only to read or check data that already uses it.
 
 | <<hash-legacy,`sha1_160`>>
-| 1,197 MiB/s (hash2)
+| 1,190 MiB/s (hash2)
 | 10,285 bytes (hash2)
 | link:https://git-scm.com/docs/hash-function-transition[Git's original object ids, with collision detection]; link:https://shattered.io/[the first public collision, SHAttered (2017)]; link:https://sha-mbles.github.io/[the first public chosen-prefix collision, SHA-1 is a Shambles (2020)]
 | Only to read or check data that already uses it.
 
 | <<hash-sha2,`sha2_224`>>
-| 596 MiB/s (hash2)
+| 606 MiB/s (hash2)
 | 14,116 bytes (hash2)
 | link:https://doi.org/10.6028/NIST.FIPS.180-4[FIPS 180-4's shorter SHA-2]
 | When a standard asks for it; otherwise SHA-256.
 
 | <<hash-sha2,`sha2_256`>>
-| 592 MiB/s (hash2)
+| 593 MiB/s (hash2)
 | 14,108 bytes (hash2)
 | link:https://bitcoin.org/bitcoin.pdf[Bitcoin's block and transaction ids (twice)]; link:https://github.com/nostr-protocol/nips/blob/master/01.md[Nostr's event ids (NIP-01)]; link:https://git-scm.com/docs/hash-function-transition[Git's SHA-256 object format]; link:https://www.rfc-editor.org/rfc/rfc8446#appendix-B.4[TLS 1.3's cipher suites]
 | The default digest: interoperable everywhere, in every browser, fast with hardware support.
 
 | <<hash-sha2,`sha2_384`>>
-| 912 MiB/s (hash2)
+| 913 MiB/s (hash2)
 | 17,579 bytes (hash2)
 | link:https://www.rfc-editor.org/rfc/rfc8446#appendix-B.4[TLS 1.3's AES-256 cipher suite]
 | When a standard asks for 192-bit strength, or a digest that resists length extension within SHA-2.
 
 | <<hash-sha2,`sha2_512`>>
-| 911 MiB/s (hash2)
+| 940 MiB/s (hash2)
 | 17,582 bytes (hash2)
 | link:https://www.rfc-editor.org/rfc/rfc8032#section-5.1[Ed25519's signatures]; link:https://github.com/bitcoin/bips/blob/master/bip-0039.mediawiki[BIP39's seeds, through PBKDF2-HMAC-SHA-512]
 | When a standard asks for it, or for a 512-bit digest.
 
 | <<hash-sha2,`sha2_512_224`>>
-| 917 MiB/s (hash2)
+| 941 MiB/s (hash2)
 | 17,645 bytes (hash2)
 | link:https://doi.org/10.6028/NIST.FIPS.180-4[FIPS 180-4's truncated SHA-512]
 | When a standard asks for it.
 
 | <<hash-sha2,`sha2_512_256`>>
-| 913 MiB/s (hash2)
+| 911 MiB/s (hash2)
 | 17,597 bytes (hash2)
 | link:https://doi.org/10.6028/NIST.FIPS.180-4[FIPS 180-4's truncated SHA-512]
 | A 256-bit SHA-2 digest that resists length extension, fast on 64-bit machines.
 
 | <<hash-sha3,`sha3_224`>>
-| 731 MiB/s (hash2)
+| 733 MiB/s (hash2)
 | 7,175 bytes (hash2)
 | link:https://doi.org/10.6028/NIST.FIPS.202[FIPS 202]
 | When a standard asks for it.
 
 | <<hash-sha3,`sha3_256`>>
-| 691 MiB/s (hash2)
+| 692 MiB/s (hash2)
 | 7,172 bytes (hash2)
 | link:https://doi.org/10.6028/NIST.FIPS.203[ML-KEM, NIST's post-quantum key encapsulation]
 | A standard 256-bit digest that is not SHA-2, immune to length extension.
 
 | <<hash-sha3,`sha3_384`>>
-| 531 MiB/s (hash2)
+| 529 MiB/s (hash2)
 | 7,140 bytes (hash2)
 | link:https://doi.org/10.6028/NIST.FIPS.202[FIPS 202]
 | When a standard asks for it.
 
 | <<hash-sha3,`sha3_512`>>
-| 367 MiB/s (hash2)
+| 369 MiB/s (hash2)
 | 7,142 bytes (hash2)
 | link:https://doi.org/10.6028/NIST.FIPS.203[ML-KEM, NIST's post-quantum key encapsulation]
 | When a standard asks for it.
 
 | <<hash-sha3,`shake_128`>>
-| 846 MiB/s (hash2)
+| 848 MiB/s (hash2)
 | 7,151 bytes (hash2)
 | link:https://doi.org/10.6028/NIST.FIPS.203[ML-KEM's and ML-DSA's matrix expansion]
 | To draw a long stream of bytes from one input, at 128-bit security.
 
 | <<hash-sha3,`shake_256`>>
-| 687 MiB/s (hash2)
+| 688 MiB/s (hash2)
 | 7,151 bytes (hash2)
 | link:https://www.rfc-editor.org/rfc/rfc8032#section-5.2[Ed448's signatures]
 | To draw a long stream of bytes from one input, at 256-bit security.
 
 | <<hash-keccak,`keccak_256`>>
-| 996 MiB/s (xkcp)
+| 998 MiB/s (xkcp)
 | 24,057 bytes (xkcp)
 | link:https://ethereum.github.io/yellowpaper/paper.pdf[Ethereum's addresses, transaction ids and state]; link:https://eips.ethereum.org/EIPS/eip-55[EIP-55's checksummed addresses]
 | For Ethereum and every format that names Keccak-256; never in place of SHA3-256.
 
 | <<hash-blake2,`blake2b_512`>>
-| 1,616 MiB/s (hash2)
+| 1,617 MiB/s (hash2)
 | 11,982 bytes (hash2)
 | link:https://www.rfc-editor.org/rfc/rfc9106#section-3.2[Argon2's internal hash]; link:https://doc.libsodium.org/hashing/generic_hashing[libsodium's generic hash]
 | A fast software digest or keyed hash where SHA-2 has no hardware support.
 
 | <<hash-blake2,`blake2s_256`>>
-| 923 MiB/s (hash2)
+| 921 MiB/s (hash2)
 | 10,974 bytes (hash2)
 | link:https://www.wireguard.com/protocol/[WireGuard's hash, MAC and HKDF]
 | For WireGuard-style protocols and 32-bit targets.
 
 | <<hash-blake3,`blake3`>>
-| 2,410 MiB/s (blake3)
+| 2,414 MiB/s (blake3)
 | 21,252 bytes (blake3)
 | link:https://github.com/BLAKE3-team/BLAKE3-specs/blob/master/blake3.pdf[the BLAKE3 specification: a Merkle tree, for verified streaming and content addressing]
 | Large data verified in parts, content addressing, and key derivation from a context string.
 
 | <<hash-legacy,`ripemd_128`>>
-| 992 MiB/s (hash2)
+| 989 MiB/s (hash2)
 | 9,421 bytes (hash2)
 | link:https://homes.esat.kuleuven.be/~bosselae/ripemd160.html[the RIPEMD family's page]
 | Only to read existing data.
 
 | <<hash-legacy,`ripemd_160`>>
-| 640 MiB/s (hash2)
+| 610 MiB/s (hash2)
 | 11,607 bytes (hash2)
 | link:https://github.com/bitcoin/bips/blob/master/bip-0141.mediawiki[Bitcoin's hash160 (P2PKH, P2WPKH)]
 | For Bitcoin's hash160; never in a new design.
 |===
 
-The measured columns are doc/measurements.json's (2026-11-16, Apple M5 Max): the native throughput over 1 MiB, or the time of one derivation over `hmac_sha2_256`, of the fastest backend, and the smallest Emscripten program that calls the function; <<hash-measurements>> has every backend on every target. The data was measured on a loaded, shared machine, so close figures may swap at the next measurement.
+The measured columns are doc/measurements.json's (2026-11-16, Apple M5 Max): the native throughput over 1 MiB, or the time of one derivation over `hmac_sha2_256`, of the fastest backend, and the smallest Emscripten program that calls the function; <<hash-measurements>> has every backend on every target.

@@ -77,7 +77,7 @@
 | Name | Fastest natively | Smallest on Emscripten | Where it is used | Choose it when
 
 | <<hash-non-cryptographic-functions,`fnv1a_32`>>
-| 1,095 MiB/s (hash2)
+| 1,083 MiB/s (hash2)
 | 5,612 bytes (hash2)
 | link:https://datatracker.ietf.org/doc/draft-eastlake-fnv/[the IETF draft that specifies it]
 | Small tables and identifiers no adversary chooses.
@@ -89,7 +89,7 @@
 | Tables and identifiers no adversary chooses.
 
 | <<hash-non-cryptographic-functions,`xxhash_32`>>
-| 13,461 MiB/s (hash2)
+| 13,514 MiB/s (hash2)
 | 6,369 bytes (hash2)
 | link:https://github.com/Cyan4973/xxHash[xxHash's own repository]
 | Fast checksums against accidents on 32-bit targets.
@@ -101,19 +101,19 @@
 | Fast checksums against accidents, as Zstandard's.
 
 | <<hash-non-cryptographic-functions,`xxh3_128`>>
-| 33,995 MiB/s (hash2)
+| 33,947 MiB/s (hash2)
 | 10,431 bytes (hash2)
 | link:https://github.com/Cyan4973/xxHash[xxHash's own repository]
 | Checksums and identifiers of large data no adversary chooses.
 
 | <<hash-non-cryptographic-functions,`murmur3_32`>>
-| 3,479 MiB/s (hash2)
+| 3,308 MiB/s (hash2)
 | 6,099 bytes (hash2)
 | link:https://github.com/aappleby/smhasher[its author's SMHasher]
 | To match existing data that uses it.
 
 | <<hash-non-cryptographic-functions,`murmur3_128`>>
-| 8,618 MiB/s (hash2)
+| 8,296 MiB/s (hash2)
 | 6,315 bytes (hash2)
 | link:https://github.com/aappleby/smhasher[its author's SMHasher]
 | To match existing data that uses it.
@@ -125,4 +125,4 @@
 | To match existing data that uses it.
 |===
 
-The measured columns are doc/measurements.json's (2026-11-16, Apple M5 Max): the native throughput over 1 MiB, or the time of one derivation over `hmac_sha2_256`, of the fastest backend, and the smallest Emscripten program that calls the function; <<hash-measurements>> has every backend on every target. The data was measured on a loaded, shared machine, so close figures may swap at the next measurement.
+The measured columns are doc/measurements.json's (2026-11-16, Apple M5 Max): the native throughput over 1 MiB, or the time of one derivation over `hmac_sha2_256`, of the fastest backend, and the smallest Emscripten program that calls the function; <<hash-measurements>> has every backend on every target.

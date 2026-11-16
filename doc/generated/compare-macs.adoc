@@ -154,19 +154,19 @@
 | Name | Fastest natively | Smallest on Emscripten | Where it is used | Choose it when
 
 | <<hash-siphash,`siphash_32`>>
-| 1,612 MiB/s (hash2)
+| 1,624 MiB/s (hash2)
 | 6,206 bytes (hash2)
 | link:https://docs.kernel.org/security/siphash.html[the Linux kernel's hsiphash]
 | Hash tables on 32-bit targets whose keys an adversary chooses.
 
 | <<hash-siphash,`siphash_64`>>
-| 3,272 MiB/s (hash2)
+| 3,274 MiB/s (hash2)
 | 6,294 bytes (hash2)
 | link:https://peps.python.org/pep-0456/[Python's string hashing (PEP 456)]; link:https://doc.rust-lang.org/std/collections/struct.HashMap.html[Rust's default HashMap hasher]
 | Every hash table, set or Bloom filter whose keys come from the network or another user.
 
 | <<hash-hmac,`hmac`>>
-| 595 MiB/s (hash2)
+| 599 MiB/s (hash2)
 | 14,437 bytes (hash2)
 | link:https://www.rfc-editor.org/rfc/rfc2104[RFC 2104]
 | HMAC over a hash that has no alias of its own.
@@ -178,7 +178,7 @@
 | Only for an existing protocol.
 
 | <<hash-hmac,`hmac_sha1_160`>>
-| 1,170 MiB/s (hash2)
+| 1,185 MiB/s (hash2)
 | 10,569 bytes (hash2)
 | link:https://www.rfc-editor.org/rfc/rfc6238[TOTP and HOTP codes (RFC 6238, RFC 4226)]
 | Only for an existing protocol, such as authenticator-app codes.
@@ -190,43 +190,43 @@
 | When a standard asks for it.
 
 | <<hash-hmac,`hmac_sha2_256`>>
-| 598 MiB/s (hash2)
+| 582 MiB/s (hash2)
 | 14,437 bytes (hash2)
 | link:https://www.rfc-editor.org/rfc/rfc7518#section-3.2[JSON Web Tokens signed HS256]; link:https://www.rfc-editor.org/rfc/rfc8446#section-7.1[TLS 1.3's HKDF]
 | The default MAC: interoperable, in every browser.
 
 | <<hash-hmac,`hmac_sha2_384`>>
-| 914 MiB/s (hash2)
+| 911 MiB/s (hash2)
 | 17,975 bytes (hash2)
 | link:https://www.rfc-editor.org/rfc/rfc7518#section-3.2[JSON Web Tokens signed HS384]
 | When a standard asks for it.
 
 | <<hash-hmac,`hmac_sha2_512`>>
-| 913 MiB/s (hash2)
+| 930 MiB/s (hash2)
 | 17,980 bytes (hash2)
 | link:https://github.com/bitcoin/bips/blob/master/bip-0032.mediawiki[BIP32's key derivation]; link:https://www.rfc-editor.org/rfc/rfc7518#section-3.2[JSON Web Tokens signed HS512]
 | When a standard asks for it, or for a 512-bit tag.
 
 | <<hash-hmac,`hmac_sha2_512_224`>>
-| 912 MiB/s (hash2)
+| 939 MiB/s (hash2)
 | 18,041 bytes (hash2)
 | link:https://doi.org/10.6028/NIST.FIPS.180-4[FIPS 180-4's truncated SHA-512]
 | When a standard asks for it.
 
 | <<hash-hmac,`hmac_sha2_512_256`>>
-| 950 MiB/s (hash2)
+| 904 MiB/s (hash2)
 | 17,992 bytes (hash2)
 | link:https://doi.org/10.6028/NIST.FIPS.180-4[FIPS 180-4's truncated SHA-512; not libsodium's crypto_auth, which truncates HMAC-SHA-512's tag]
 | When a standard asks for it.
 
 | <<hash-hmac,`hmac_sha3_224`>>
-| 734 MiB/s (hash2)
+| 733 MiB/s (hash2)
 | 7,427 bytes (hash2)
 | link:https://doi.org/10.6028/NIST.FIPS.202[FIPS 202]
 | When a standard asks for it.
 
 | <<hash-hmac,`hmac_sha3_256`>>
-| 689 MiB/s (hash2)
+| 686 MiB/s (hash2)
 | 7,416 bytes (hash2)
 | link:https://doi.org/10.6028/NIST.FIPS.202[FIPS 202]
 | When a standard asks for it.
@@ -238,25 +238,25 @@
 | When a standard asks for it.
 
 | <<hash-hmac,`hmac_sha3_512`>>
-| 367 MiB/s (hash2)
+| 366 MiB/s (hash2)
 | 7,386 bytes (hash2)
 | link:https://doi.org/10.6028/NIST.FIPS.202[FIPS 202]
 | When a standard asks for it.
 
 | <<hash-hmac,`hmac_ripemd_128`>>
-| 995 MiB/s (hash2)
+| 959 MiB/s (hash2)
 | 9,712 bytes (hash2)
 | link:https://www.rfc-editor.org/rfc/rfc2286[RFC 2286's test cases]
 | Only for an existing protocol.
 
 | <<hash-hmac,`hmac_ripemd_160`>>
-| 632 MiB/s (hash2)
+| 607 MiB/s (hash2)
 | 11,897 bytes (hash2)
 | link:https://www.rfc-editor.org/rfc/rfc2286[RFC 2286's test cases]
 | Only for an existing protocol.
 
 | <<hash-hmac,`hmac_blake2b_512`>>
-| 1,593 MiB/s (hash2)
+| 1,548 MiB/s (hash2)
 | 12,262 bytes (hash2)
 | link:https://www.rfc-editor.org/rfc/rfc7693#section-2.5[RFC 7693, whose keyed mode makes HMAC unnecessary]
 | When a protocol names HMAC-BLAKE2b; otherwise a keyed blake2b_512.
@@ -268,4 +268,4 @@
 | For WireGuard-style protocols.
 |===
 
-The measured columns are doc/measurements.json's (2026-11-16, Apple M5 Max): the native throughput over 1 MiB, or the time of one derivation over `hmac_sha2_256`, of the fastest backend, and the smallest Emscripten program that calls the function; <<hash-measurements>> has every backend on every target. The data was measured on a loaded, shared machine, so close figures may swap at the next measurement.
+The measured columns are doc/measurements.json's (2026-11-16, Apple M5 Max): the native throughput over 1 MiB, or the time of one derivation over `hmac_sha2_256`, of the fastest backend, and the smallest Emscripten program that calls the function; <<hash-measurements>> has every backend on every target.

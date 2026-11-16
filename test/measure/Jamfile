@@ -68,9 +68,17 @@ if [ os.name ] = NT { .python = python ; } else { .python = python3 ; }
 # object of its own: two cells of one source (a key derivation over two
 # hmacs) differ only by a define, which would otherwise give their objects
 # one path.
+#
+# A WASI program links without debug information (wasm-ld's --strip-debug):
+# wasi-sdk's prebuilt libc++ carries DWARF with the paths of the machine that
+# built it, /Users/runner/... in its macOS release and /src/... in its Linux
+# one, which would make a program's size depend on the host that measures it,
+# while its WebAssembly order is compared on every host. Emscripten's link at
+# -Os keeps none; the check fails on a program for size that has any.
 rule measure-cell ( name : source : library ? : hmac ? : targets + )
 {
-    local requirements = <variant>release <library>$(library) ;
+    local requirements = <variant>release <library>$(library)
+        <target-os>wasi:<linkflags>-Wl,--strip-debug ;
     if $(hmac)
     {
         requirements += <define>WEBCPP_HASH_MEASURE_HMAC=$(hmac) ;

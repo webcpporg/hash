@@ -21,12 +21,7 @@ Compilers: native: Apple LLVM 21.0.0 (clang-2100.4.1.1); wasip2: Clang 23.1.0-wa
 The native rows hold for Apple LLVM 21.0.0 (clang-2100.4.1.1) on Darwin arm64, stripped with strip; another
 native toolchain gives other native sizes and times.
 
-WARNING: the machine was shared and loaded while this was measured (many builds ran at once;
-1, 5 and 15 minute load averages 24/30/21 before and 10/24/20 after, on 18 cores).
-Every time is a median with its spread; read the spread, not a single figure. Sizes do not
-depend on the load.
-
-Sizes: the bytes of the program built at variant=release optimization=space: natively the executable stripped with strip, on WebAssembly the .wasm file. Throughput: the program built at variant=release optimization=speed, run with --time: one computation to warm up, then five timed runs of the workload, each repeated `repetitions` times; per invocation the median of its five runs, per record the median of its invocations' medians, with the fastest and slowest run. Orders: spec 4.2: by size, the smallest program first; by throughput, the lowest median of the invocations' medians first, a committed order changing only where a median is more than 10 percent below the median of the backend ahead of it; on a first measurement, the medians alone (an exact tie keeps the capability table's order of backends). A WebAssembly target orders by its own throughput where every backend of the row ran within the bound, else by the native order. The native orders hold for the native toolchain that measured them (native_toolchain); the lane compares them only on that toolchain.
+Sizes: the bytes of the program built at variant=release optimization=space: natively the executable stripped with strip, on WebAssembly the .wasm file, which carries no debug information. Throughput: the program built at variant=release optimization=speed, run with --time: one computation to warm up, then five timed runs of the workload, each repeated `repetitions` times; per invocation the median of its five runs, per record the median of its invocations' medians, with the fastest and slowest run. Orders: spec 4.2: by size, the smallest program first; by throughput, the lowest median of the invocations' medians first, a committed order changing only where a median is more than 10 percent below the median of the backend ahead of it; on a first measurement, the medians alone (an exact tie keeps the capability table's order of backends). A WebAssembly target orders by its own throughput where every backend of the row ran within the bound, else by the native order. The native orders hold for the native toolchain that measured them (native_toolchain); the lane compares them only on that toolchain.
 
 === Size of a program, in bytes
 
@@ -38,584 +33,584 @@ Sizes: the bytes of the program built at variant=release optimization=space: nat
 | -
 | hash2
 | 33768
-| 281545
-| 333340
+| 50712
+| 59828
 | 8039
 
 | sha1_160
 | -
 | hash2
 | 33776
-| 283792
-| 335587
+| 52959
+| 62075
 | 10285
 
 | sha2_224
 | -
 | hash2
 | 33776
-| 287715
-| 339510
+| 56882
+| 65998
 | 14116
 
 | sha2_256
 | -
 | hash2
 | 33776
-| 287713
-| 339508
+| 56880
+| 65996
 | 14108
 
 | sha2_384
 | -
 | hash2
 | 33776
-| 291186
-| 342981
+| 60353
+| 69469
 | 17579
 
 | sha2_512
 | -
 | hash2
 | 33776
-| 291196
-| 342991
+| 60363
+| 69479
 | 17582
 
 | sha2_512_224
 | -
 | hash2
 | 33776
-| 291260
-| 343055
+| 60427
+| 69543
 | 17645
 
 | sha2_512_256
 | -
 | hash2
 | 33776
-| 291216
-| 343011
+| 60383
+| 69499
 | 17597
 
 | sha3_224
 | -
 | hash2
 | 33744
-| 280795
-| 332590
+| 49962
+| 59078
 | 7175
 
 | sha3_256
 | -
 | hash2
 | 33744
-| 280789
-| 332584
+| 49956
+| 59072
 | 7172
 
 | sha3_384
 | -
 | hash2
 | 33744
-| 280756
-| 332551
+| 49923
+| 59039
 | 7140
 
 | sha3_512
 | -
 | hash2
 | 33744
-| 280763
-| 332558
+| 49930
+| 59046
 | 7142
 
 | shake_128
 | -
 | hash2
 | 33744
-| 280776
-| 332571
+| 49943
+| 59059
 | 7151
 
 | shake_256
 | -
 | hash2
 | 33744
-| 280776
-| 332571
+| 49943
+| 59059
 | 7151
 
 | keccak_256
 | -
 | xkcp
 | 50896
-| 447339
-| 500115
+| 65628
+| 74913
 | 24057
 
 | blake2b_512
 | -
 | hash2
 | 33824
-| 285501
-| 337296
+| 54668
+| 63784
 | 11982
 
 | blake2s_256
 | -
 | hash2
 | 33824
-| 284500
-| 336295
+| 53667
+| 62783
 | 10974
 
 | blake3
 | -
 | blake3
 | 50888
-| 444813
-| 497565
+| 63102
+| 72363
 | 21252
 
 | ripemd_128
 | -
 | hash2
 | 33776
-| 282942
-| 334737
+| 52109
+| 61225
 | 9421
 
 | ripemd_160
 | -
 | hash2
 | 33776
-| 285130
-| 336925
+| 54297
+| 63413
 | 11607
 
 | siphash_32
 | -
 | hash2
 | 33936
-| 279721
-| 331516
+| 48888
+| 58004
 | 6206
 
 | siphash_64
 | -
 | hash2
 | 33936
-| 279813
-| 331608
+| 48980
+| 58096
 | 6294
 
 | hmac
 | -
 | hash2
 | 33896
-| 288505
-| 340300
+| 57672
+| 66788
 | 14437
 
 | hmac_md5_128
 | -
 | hash2
 | 33904
-| 282174
-| 333969
+| 51341
+| 60457
 | 8330
 
 | hmac_sha1_160
 | -
 | hash2
 | 33904
-| 284428
-| 336223
+| 53595
+| 62711
 | 10569
 
 | hmac_sha2_224
 | -
 | hash2
 | 33904
-| 288520
-| 340315
+| 57687
+| 66803
 | 14444
 
 | hmac_sha2_256
 | -
 | hash2
 | 33904
-| 288514
-| 340309
+| 57681
+| 66797
 | 14437
 
 | hmac_sha2_384
 | -
 | hash2
 | 33904
-| 292121
-| 343916
+| 61288
+| 70404
 | 17975
 
 | hmac_sha2_512
 | -
 | hash2
 | 33904
-| 292131
-| 343926
+| 61298
+| 70414
 | 17980
 
 | hmac_sha2_512_224
 | -
 | hash2
 | 33912
-| 292211
-| 344006
+| 61378
+| 70494
 | 18041
 
 | hmac_sha2_512_256
 | -
 | hash2
 | 33912
-| 292161
-| 343956
+| 61328
+| 70444
 | 17992
 
 | hmac_sha3_224
 | -
 | hash2
 | 33904
-| 281352
-| 333147
+| 50519
+| 59635
 | 7427
 
 | hmac_sha3_256
 | -
 | hash2
 | 33904
-| 281340
-| 333135
+| 50507
+| 59623
 | 7416
 
 | hmac_sha3_384
 | -
 | hash2
 | 33904
-| 281307
-| 333102
+| 50474
+| 59590
 | 7383
 
 | hmac_sha3_512
 | -
 | hash2
 | 33904
-| 281317
-| 333112
+| 50484
+| 59600
 | 7386
 
 | hmac_ripemd_128
 | -
 | hash2
 | 33904
-| 283577
-| 335372
+| 52744
+| 61860
 | 9712
 
 | hmac_ripemd_160
 | -
 | hash2
 | 33904
-| 285770
-| 337565
+| 54937
+| 64053
 | 11897
 
 | hmac_blake2b_512
 | -
 | hash2
 | 33944
-| 286136
-| 337931
+| 55303
+| 64419
 | 12262
 
 | hmac_blake2s_256
 | -
 | hash2
 | 33944
-| 285193
-| 336988
+| 54360
+| 63476
 | 11284
 
 | fnv1a_32
 | -
 | hash2
 | 33728
-| 278890
-| 330685
+| 48057
+| 57173
 | 5612
 
 | fnv1a_64
 | -
 | hash2
 | 33728
-| 278899
-| 330694
+| 48066
+| 57182
 | 5621
 
 | xxhash_32
 | -
 | hash2
 | 33776
-| 279897
-| 331692
+| 49064
+| 58180
 | 6369
 
 | xxhash_64
 | -
 | hash2
 | 33776
-| 280306
-| 332101
+| 49473
+| 58589
 | 6757
 
 | xxh3_128
 | -
 | hash2
 | 33792
-| 286630
-| 338439
+| 54157
+| 63289
 | 10431
 
 | murmur3_32
 | -
 | hash2
 | 33776
-| 279519
-| 331314
+| 48686
+| 57802
 | 6099
 
 | murmur3_128
 | -
 | hash2
 | 33824
-| 279823
-| 331618
+| 48990
+| 58106
 | 6315
 
 | spooky2_128
 | -
 | hash2
 | 33824
-| 282146
-| 333949
+| 51313
+| 60437
 | 8388
 
 | hkdf_extract
 | hmac_sha2_256
 | hash2
 | 34288
-| 440872
-| 493623
+| 59161
+| 68421
 | 17499
 
 | hkdf_extract
 | hmac_sha2_256
 | sodium
 | 70320
-| 524315
-| 578037
+| 72143
+| 81977
 | 24116
 
 | hkdf_extract
 | hmac_sha2_256
 | openssl
 | 3049184
-| 2935631
-| 3018966
+| 2127951
+| 2142453
 | -
 
 | hkdf_extract
 | hmac_sha2_512
 | hash2
 | 34288
-| 444461
-| 497212
+| 62750
+| 72010
 | 21083
 
 | hkdf_extract
 | hmac_sha2_512
 | sodium
 | 70320
-| 524866
-| 578587
+| 72694
+| 82527
 | 24591
 
 | hkdf_extract
 | hmac_sha2_512
 | openssl
 | 3049184
-| 2935616
-| 3018951
+| 2127936
+| 2142438
 | -
 
 | hkdf_expand
 | hmac_sha2_256
 | hash2
 | 34272
-| 521493
-| 574621
+| 75028
+| 84673
 | 29214
 
 | hkdf_expand
 | hmac_sha2_256
 | sodium
 | 70176
-| 525582
-| 579303
+| 73410
+| 83243
 | 24778
 
 | hkdf_expand
 | hmac_sha2_256
 | openssl
 | 3049168
-| 2935857
-| 3019192
+| 2128177
+| 2142679
 | -
 
 | hkdf_expand
 | hmac_sha2_512
 | hash2
 | 34272
-| 525076
-| 578204
+| 78611
+| 88256
 | 32787
 
 | hkdf_expand
 | hmac_sha2_512
 | sodium
 | 70176
-| 526172
-| 579892
+| 74000
+| 83832
 | 25282
 
 | hkdf_expand
 | hmac_sha2_512
 | openssl
 | 3049168
-| 2935861
-| 3019196
+| 2128181
+| 2142683
 | -
 
 | hkdf
 | hmac_sha2_256
 | hash2
 | 34392
-| 522511
-| 575640
+| 76046
+| 85692
 | 29549
 
 | hkdf
 | hmac_sha2_256
 | sodium
 | 86984
-| 526820
-| 580540
+| 74648
+| 84480
 | 25335
 
 | hkdf
 | hmac_sha2_256
 | bearssl
 | 52664
-| 515782
-| 568909
+| 69317
+| 78961
 | 23281
 
 | hkdf
 | hmac_sha2_256
 | openssl
 | 3049288
-| 2936092
-| 3019427
+| 2128412
+| 2142914
 | -
 
 | hkdf
 | hmac_sha2_512
 | hash2
 | 34392
-| 526068
-| 579197
+| 79603
+| 89249
 | 33104
 
 | hkdf
 | hmac_sha2_512
 | sodium
 | 86984
-| 527393
-| 581113
+| 75221
+| 85053
 | 25822
 
 | hkdf
 | hmac_sha2_512
 | bearssl
 | 52648
-| 516311
-| 569422
+| 69846
+| 79474
 | 23792
 
 | hkdf
 | hmac_sha2_512
 | openssl
 | 3049288
-| 2936094
-| 3019429
+| 2128414
+| 2142916
 | -
 
 | pbkdf2
 | hmac_sha2_256
 | hash2
 | 34280
-| 521629
-| 574756
+| 75164
+| 84808
 | 29235
 
 | pbkdf2
 | hmac_sha2_256
 | openssl
 | 3049176
-| 2936038
-| 3019373
+| 2128358
+| 2142860
 | -
 
 | pbkdf2
 | hmac_sha2_512
 | hash2
 | 34280
-| 525164
-| 578291
+| 78699
+| 88343
 | 32747
 
 | pbkdf2
 | hmac_sha2_512
 | openssl
 | 3049176
-| 2936038
-| 3019373
+| 2128358
+| 2142860
 | -
 
 | argon2id
 | -
 | sodium
 | 87872
-| 545485
-| 599118
+| 90242
+| 99987
 | 39690
 
 | scrypt
 | -
 | sodium
 | 87384
-| 533938
-| 587562
+| 77592
+| 87332
 | 29540
 |===
 
@@ -685,586 +680,586 @@ the range of its runs, the lower figure first. Per function, the workload:
 | md5_128
 | -
 | hash2
-| 919 MiB/s (870 to 936)
-| 776 MiB/s (718 to 783)
-| 780 MiB/s (720 to 783)
-| 772 MiB/s (490 to 779)
+| 933 MiB/s (859 to 936)
+| 747 MiB/s (720 to 781)
+| 778 MiB/s (694 to 783)
+| 769 MiB/s (726 to 778)
 
 | sha1_160
 | -
 | hash2
-| 1197 MiB/s (1157 to 1246)
-| 831 MiB/s (811 to 882)
-| 849 MiB/s (819 to 884)
-| 888 MiB/s (865 to 910)
+| 1190 MiB/s (1163 to 1248)
+| 829 MiB/s (816 to 853)
+| 831 MiB/s (807 to 851)
+| 889 MiB/s (873 to 907)
 
 | sha2_224
 | -
 | hash2
-| 596 MiB/s (570 to 619)
-| 452 MiB/s (444 to 483)
-| 461 MiB/s (445 to 482)
-| 470 MiB/s (451 to 489)
+| 606 MiB/s (412 to 618)
+| 453 MiB/s (447 to 482)
+| 453 MiB/s (434 to 480)
+| 465 MiB/s (459 to 483)
 
 | sha2_256
 | -
 | hash2
-| 592 MiB/s (569 to 619)
-| 451 MiB/s (445 to 482)
-| 464 MiB/s (447 to 481)
-| 475 MiB/s (462 to 488)
+| 593 MiB/s (464 to 618)
+| 466 MiB/s (447 to 481)
+| 453 MiB/s (428 to 481)
+| 471 MiB/s (431 to 479)
 
 | sha2_384
 | -
 | hash2
-| 912 MiB/s (901 to 969)
-| 690 MiB/s (674 to 734)
-| 691 MiB/s (665 to 731)
-| 685 MiB/s (664 to 707)
+| 913 MiB/s (888 to 970)
+| 690 MiB/s (674 to 737)
+| 692 MiB/s (559 to 728)
+| 687 MiB/s (675 to 703)
 
 | sha2_512
 | -
 | hash2
-| 911 MiB/s (888 to 972)
-| 688 MiB/s (676 to 734)
-| 688 MiB/s (668 to 733)
-| 684 MiB/s (677 to 723)
+| 940 MiB/s (900 to 972)
+| 689 MiB/s (681 to 727)
+| 689 MiB/s (614 to 731)
+| 696 MiB/s (671 to 725)
 
 | sha2_512_224
 | -
 | hash2
-| 917 MiB/s (894 to 966)
-| 689 MiB/s (675 to 727)
-| 690 MiB/s (674 to 734)
-| 687 MiB/s (669 to 713)
+| 941 MiB/s (887 to 972)
+| 687 MiB/s (676 to 733)
+| 688 MiB/s (645 to 730)
+| 684 MiB/s (674 to 705)
 
 | sha2_512_256
 | -
 | hash2
-| 913 MiB/s (901 to 973)
-| 688 MiB/s (678 to 738)
-| 690 MiB/s (676 to 738)
-| 699 MiB/s (674 to 734)
+| 911 MiB/s (891 to 966)
+| 691 MiB/s (675 to 729)
+| 691 MiB/s (675 to 723)
+| 685 MiB/s (675 to 697)
 
 | sha3_224
 | -
 | hash2
-| 731 MiB/s (708 to 735)
-| 500 MiB/s (495 to 508)
-| 503 MiB/s (496 to 514)
-| 471 MiB/s (464 to 478)
+| 733 MiB/s (721 to 737)
+| 504 MiB/s (493 to 515)
+| 503 MiB/s (429 to 508)
+| 472 MiB/s (468 to 481)
 
 | sha3_256
 | -
 | hash2
-| 691 MiB/s (678 to 696)
-| 476 MiB/s (470 to 485)
-| 477 MiB/s (455 to 491)
-| 461 MiB/s (451 to 465)
+| 692 MiB/s (676 to 695)
+| 478 MiB/s (468 to 482)
+| 476 MiB/s (322 to 481)
+| 458 MiB/s (329 to 465)
 
 | sha3_384
 | -
 | hash2
-| 531 MiB/s (524 to 556)
-| 374 MiB/s (368 to 380)
-| 375 MiB/s (369 to 385)
-| 370 MiB/s (367 to 375)
+| 529 MiB/s (523 to 554)
+| 374 MiB/s (356 to 377)
+| 373 MiB/s (367 to 378)
+| 370 MiB/s (365 to 374)
 
 | sha3_512
 | -
 | hash2
-| 367 MiB/s (315 to 373)
-| 266 MiB/s (262 to 271)
-| 267 MiB/s (264 to 271)
-| 278 MiB/s (274 to 282)
+| 369 MiB/s (364 to 373)
+| 267 MiB/s (263 to 270)
+| 267 MiB/s (264 to 269)
+| 278 MiB/s (186 to 281)
 
 | shake_128
 | -
 | hash2
-| 846 MiB/s (834 to 852)
-| 575 MiB/s (567 to 586)
-| 579 MiB/s (570 to 592)
-| 522 MiB/s (514 to 530)
+| 848 MiB/s (832 to 854)
+| 575 MiB/s (557 to 584)
+| 573 MiB/s (556 to 585)
+| 523 MiB/s (513 to 532)
 
 | shake_256
 | -
 | hash2
-| 687 MiB/s (583 to 691)
-| 478 MiB/s (469 to 484)
-| 479 MiB/s (472 to 483)
-| 458 MiB/s (443 to 462)
+| 688 MiB/s (681 to 694)
+| 478 MiB/s (472 to 486)
+| 478 MiB/s (302 to 484)
+| 458 MiB/s (450 to 465)
 
 | keccak_256
 | -
 | xkcp
-| 996 MiB/s (974 to 1027)
-| 782 MiB/s (764 to 812)
-| 769 MiB/s (756 to 816)
-| 891 MiB/s (876 to 904)
+| 998 MiB/s (984 to 1018)
+| 779 MiB/s (761 to 786)
+| 768 MiB/s (754 to 773)
+| 896 MiB/s (871 to 906)
 
 | blake2b_512
 | -
 | hash2
-| 1616 MiB/s (1538 to 1657)
-| 1479 MiB/s (1452 to 1536)
-| 1477 MiB/s (1456 to 1521)
-| 1499 MiB/s (1471 to 1559)
+| 1617 MiB/s (1536 to 1654)
+| 1478 MiB/s (1442 to 1529)
+| 1472 MiB/s (1439 to 1486)
+| 1490 MiB/s (1463 to 1542)
 
 | blake2s_256
 | -
 | hash2
-| 923 MiB/s (894 to 981)
-| 854 MiB/s (829 to 907)
-| 855 MiB/s (837 to 912)
-| 877 MiB/s (849 to 914)
+| 921 MiB/s (901 to 981)
+| 855 MiB/s (838 to 891)
+| 847 MiB/s (594 to 868)
+| 878 MiB/s (866 to 910)
 
 | blake3
 | -
 | blake3
-| 2410 MiB/s (2352 to 2512)
-| 1135 MiB/s (1100 to 1183)
-| 1140 MiB/s (1102 to 1207)
-| 1200 MiB/s (1142 to 1244)
+| 2414 MiB/s (2297 to 2504)
+| 1136 MiB/s (1100 to 1149)
+| 1142 MiB/s (1092 to 1164)
+| 1207 MiB/s (1131 to 1235)
 
 | ripemd_128
 | -
 | hash2
-| 992 MiB/s (934 to 999)
-| 562 MiB/s (528 to 567)
-| 563 MiB/s (525 to 567)
-| 562 MiB/s (541 to 567)
+| 989 MiB/s (925 to 999)
+| 560 MiB/s (529 to 567)
+| 543 MiB/s (519 to 567)
+| 560 MiB/s (520 to 567)
 
 | ripemd_160
 | -
 | hash2
-| 640 MiB/s (595 to 644)
-| 356 MiB/s (336 to 361)
-| 357 MiB/s (335 to 361)
-| 355 MiB/s (348 to 361)
+| 610 MiB/s (592 to 644)
+| 358 MiB/s (338 to 361)
+| 359 MiB/s (333 to 361)
+| 357 MiB/s (330 to 361)
 
 | siphash_32
 | -
 | hash2
-| 1612 MiB/s (1491 to 1627)
-| 1618 MiB/s (1576 to 1710)
-| 1630 MiB/s (1533 to 1700)
-| 223 MiB/s (211 to 225)
+| 1624 MiB/s (1504 to 1634)
+| 1630 MiB/s (1582 to 1735)
+| 1636 MiB/s (1534 to 1704)
+| 216 MiB/s (209 to 224)
 
 | siphash_64
 | -
 | hash2
-| 3272 MiB/s (2909 to 3284)
-| 3265 MiB/s (3084 to 3482)
-| 3252 MiB/s (2931 to 3356)
-| 431 MiB/s (410 to 443)
+| 3274 MiB/s (2973 to 3285)
+| 3240 MiB/s (3191 to 3491)
+| 3273 MiB/s (3203 to 3457)
+| 424 MiB/s (406 to 444)
 
 | hmac
 | -
 | hash2
-| 595 MiB/s (567 to 619)
-| 452 MiB/s (446 to 480)
-| 461 MiB/s (447 to 482)
-| 482 MiB/s (462 to 495)
+| 599 MiB/s (562 to 618)
+| 459 MiB/s (446 to 481)
+| 455 MiB/s (347 to 484)
+| 479 MiB/s (467 to 488)
 
 | hmac_md5_128
 | -
 | hash2
-| 932 MiB/s (849 to 935)
-| 761 MiB/s (719 to 781)
-| 740 MiB/s (706 to 779)
-| 768 MiB/s (723 to 779)
+| 932 MiB/s (865 to 936)
+| 772 MiB/s (712 to 783)
+| 770 MiB/s (727 to 779)
+| 773 MiB/s (726 to 778)
 
 | hmac_sha1_160
 | -
 | hash2
-| 1170 MiB/s (1161 to 1244)
-| 833 MiB/s (811 to 886)
-| 828 MiB/s (814 to 882)
-| 887 MiB/s (876 to 942)
+| 1185 MiB/s (1146 to 1243)
+| 839 MiB/s (820 to 880)
+| 831 MiB/s (622 to 853)
+| 900 MiB/s (879 to 945)
 
 | hmac_sha2_224
 | -
 | hash2
-| 582 MiB/s (566 to 618)
-| 463 MiB/s (447 to 481)
-| 464 MiB/s (451 to 481)
-| 468 MiB/s (461 to 502)
+| 582 MiB/s (565 to 619)
+| 465 MiB/s (450 to 479)
+| 453 MiB/s (445 to 480)
+| 481 MiB/s (465 to 496)
 
 | hmac_sha2_256
 | -
 | hash2
-| 598 MiB/s (569 to 614)
-| 466 MiB/s (450 to 483)
-| 468 MiB/s (448 to 483)
-| 468 MiB/s (459 to 497)
+| 582 MiB/s (567 to 619)
+| 453 MiB/s (441 to 483)
+| 454 MiB/s (451 to 483)
+| 480 MiB/s (465 to 490)
 
 | hmac_sha2_384
 | -
 | hash2
-| 914 MiB/s (896 to 973)
-| 691 MiB/s (674 to 724)
-| 701 MiB/s (685 to 737)
-| 698 MiB/s (678 to 728)
+| 911 MiB/s (885 to 942)
+| 682 MiB/s (671 to 728)
+| 693 MiB/s (677 to 738)
+| 692 MiB/s (682 to 711)
 
 | hmac_sha2_512
 | -
 | hash2
-| 913 MiB/s (884 to 971)
-| 687 MiB/s (672 to 736)
-| 697 MiB/s (677 to 740)
-| 689 MiB/s (675 to 718)
+| 930 MiB/s (905 to 973)
+| 687 MiB/s (674 to 728)
+| 692 MiB/s (680 to 736)
+| 690 MiB/s (574 to 715)
 
 | hmac_sha2_512_224
 | -
 | hash2
-| 912 MiB/s (878 to 971)
-| 685 MiB/s (675 to 735)
-| 701 MiB/s (672 to 741)
-| 696 MiB/s (682 to 726)
+| 939 MiB/s (906 to 971)
+| 687 MiB/s (677 to 730)
+| 684 MiB/s (668 to 731)
+| 690 MiB/s (679 to 707)
 
 | hmac_sha2_512_256
 | -
 | hash2
-| 950 MiB/s (877 to 973)
-| 698 MiB/s (665 to 727)
-| 701 MiB/s (677 to 735)
-| 691 MiB/s (678 to 716)
+| 904 MiB/s (896 to 972)
+| 687 MiB/s (677 to 735)
+| 689 MiB/s (464 to 731)
+| 691 MiB/s (680 to 719)
 
 | hmac_sha3_224
 | -
 | hash2
-| 734 MiB/s (714 to 744)
-| 497 MiB/s (476 to 504)
-| 505 MiB/s (495 to 518)
-| 470 MiB/s (459 to 475)
+| 733 MiB/s (721 to 741)
+| 495 MiB/s (489 to 505)
+| 507 MiB/s (498 to 510)
+| 469 MiB/s (458 to 475)
 
 | hmac_sha3_256
 | -
 | hash2
-| 689 MiB/s (681 to 692)
-| 472 MiB/s (464 to 483)
-| 481 MiB/s (471 to 489)
-| 452 MiB/s (443 to 458)
+| 686 MiB/s (677 to 692)
+| 471 MiB/s (458 to 476)
+| 480 MiB/s (472 to 484)
+| 452 MiB/s (445 to 457)
 
 | hmac_sha3_384
 | -
 | hash2
-| 526 MiB/s (520 to 551)
-| 372 MiB/s (365 to 376)
-| 375 MiB/s (372 to 388)
-| 371 MiB/s (366 to 377)
+| 526 MiB/s (519 to 548)
+| 371 MiB/s (366 to 378)
+| 374 MiB/s (370 to 377)
+| 371 MiB/s (364 to 380)
 
 | hmac_sha3_512
 | -
 | hash2
-| 367 MiB/s (362 to 373)
-| 265 MiB/s (263 to 268)
-| 267 MiB/s (265 to 271)
-| 278 MiB/s (274 to 286)
+| 366 MiB/s (361 to 373)
+| 264 MiB/s (257 to 268)
+| 267 MiB/s (208 to 268)
+| 278 MiB/s (268 to 281)
 
 | hmac_ripemd_128
 | -
 | hash2
-| 995 MiB/s (902 to 998)
-| 561 MiB/s (441 to 568)
-| 552 MiB/s (524 to 567)
-| 563 MiB/s (544 to 567)
+| 959 MiB/s (915 to 998)
+| 556 MiB/s (524 to 568)
+| 564 MiB/s (531 to 568)
+| 562 MiB/s (520 to 567)
 
 | hmac_ripemd_160
 | -
 | hash2
-| 632 MiB/s (588 to 644)
-| 355 MiB/s (336 to 360)
-| 356 MiB/s (335 to 361)
-| 358 MiB/s (334 to 361)
+| 607 MiB/s (596 to 644)
+| 358 MiB/s (334 to 360)
+| 358 MiB/s (339 to 361)
+| 339 MiB/s (336 to 361)
 
 | hmac_blake2b_512
 | -
 | hash2
-| 1593 MiB/s (1505 to 1650)
-| 1483 MiB/s (1445 to 1537)
-| 1475 MiB/s (1441 to 1519)
-| 1506 MiB/s (1472 to 1583)
+| 1548 MiB/s (1531 to 1642)
+| 1478 MiB/s (1441 to 1540)
+| 1484 MiB/s (1456 to 1487)
+| 1486 MiB/s (1466 to 1582)
 
 | hmac_blake2s_256
 | -
 | hash2
-| 922 MiB/s (893 to 981)
-| 857 MiB/s (822 to 909)
-| 846 MiB/s (587 to 893)
-| 877 MiB/s (855 to 896)
+| 922 MiB/s (897 to 975)
+| 849 MiB/s (819 to 856)
+| 849 MiB/s (768 to 857)
+| 875 MiB/s (855 to 926)
 
 | fnv1a_32
 | -
 | hash2
-| 1095 MiB/s (1016 to 1099)
-| 1089 MiB/s (1022 to 1096)
-| 1035 MiB/s (1006 to 1096)
-| 1066 MiB/s (1011 to 1092)
+| 1083 MiB/s (1026 to 1099)
+| 1086 MiB/s (1000 to 1096)
+| 1088 MiB/s (1051 to 1096)
+| 1067 MiB/s (993 to 1088)
 
 | fnv1a_64
 | -
 | hash2
-| 1095 MiB/s (1007 to 1099)
-| 1080 MiB/s (1026 to 1095)
-| 1042 MiB/s (991 to 1095)
-| 1051 MiB/s (993 to 1091)
+| 1095 MiB/s (1017 to 1099)
+| 1088 MiB/s (1009 to 1095)
+| 1084 MiB/s (1052 to 1095)
+| 1066 MiB/s (994 to 1092)
 
 | xxhash_32
 | -
 | hash2
-| 13461 MiB/s (11994 to 13567)
-| 12500 MiB/s (11121 to 13333)
-| 12448 MiB/s (11782 to 13341)
-| 4685 MiB/s (4431 to 4865)
+| 13514 MiB/s (12552 to 13567)
+| 12526 MiB/s (12103 to 13333)
+| 12533 MiB/s (11662 to 13363)
+| 4681 MiB/s (4187 to 4864)
 
 | xxhash_64
 | -
 | hash2
-| 26846 MiB/s (23529 to 27088)
-| 24540 MiB/s (21858 to 26258)
-| 24415 MiB/s (21878 to 26059)
-| 7846 MiB/s (7164 to 8535)
+| 26846 MiB/s (24974 to 27089)
+| 24615 MiB/s (22409 to 26201)
+| 24615 MiB/s (22642 to 26230)
+| 7882 MiB/s (6520 to 8705)
 
 | xxh3_128
 | -
 | hash2
-| 33995 MiB/s (24390 to 34732)
-| 17621 MiB/s (16382 to 18913)
-| 17911 MiB/s (16371 to 19154)
-| 21779 MiB/s (14252 to 22749)
+| 33947 MiB/s (31915 to 34582)
+| 17647 MiB/s (16393 to 19018)
+| 17857 MiB/s (9677 to 19093)
+| 20408 MiB/s (16997 to 22706)
 
 | murmur3_32
 | -
 | hash2
-| 3479 MiB/s (3273 to 3493)
-| 2877 MiB/s (2698 to 2909)
-| 2833 MiB/s (2586 to 2910)
-| 1998 MiB/s (1914 to 2143)
+| 3308 MiB/s (3263 to 3494)
+| 2885 MiB/s (2706 to 2910)
+| 2717 MiB/s (2635 to 2910)
+| 1985 MiB/s (934 to 2126)
 
 | murmur3_128
 | -
 | hash2
-| 8618 MiB/s (7864 to 8639)
-| 6538 MiB/s (6237 to 6954)
-| 6702 MiB/s (6395 to 6946)
-| 4172 MiB/s (3936 to 4408)
+| 8296 MiB/s (7225 to 8683)
+| 6485 MiB/s (5930 to 6946)
+| 6536 MiB/s (6298 to 6942)
+| 4080 MiB/s (3939 to 4369)
 
 | spooky2_128
 | -
 | hash2
-| 22325 MiB/s (20779 to 22367)
-| 20356 MiB/s (18838 to 21720)
-| 20391 MiB/s (19246 to 21719)
-| 4594 MiB/s (4313 to 4955)
+| 22325 MiB/s (16064 to 22388)
+| 20305 MiB/s (18605 to 21759)
+| 20339 MiB/s (19293 to 21798)
+| 4595 MiB/s (4282 to 4949)
 
 | hkdf_extract
 | hmac_sha2_256
 | hash2
-| 464 ns (456 ns to 497 ns)
-| 650 ns (622 ns to 677 ns)
-| 658 ns (630 ns to 699 ns)
-| 673 ns (608 ns to 2.45 µs)
+| 491 ns (457 ns to 502 ns)
+| 654 ns (619 ns to 665 ns)
+| 656 ns (617 ns to 670 ns)
+| 682 ns (624 ns to 2.53 µs)
 
 | hkdf_extract
 | hmac_sha2_256
 | sodium
-| 479 ns (460 ns to 507 ns)
-| 882 ns (847 ns to 906 ns)
-| 894 ns (867 ns to 998 ns)
-| 644 ns (581 ns to 1.54 µs)
+| 480 ns (460 ns to 498 ns)
+| 880 ns (841 ns to 903 ns)
+| 886 ns (870 ns to 903 ns)
+| 646 ns (579 ns to 1.59 µs)
 
 | hkdf_extract
 | hmac_sha2_256
 | openssl
-| 798 ns (746 ns to 838 ns)
-| 1.99 µs (1.89 µs to 2.04 µs)
-| 2.06 µs (1.97 µs to 2.10 µs)
+| 812 ns (769 ns to 870 ns)
+| 2.01 µs (1.94 µs to 2.06 µs)
+| 2.06 µs (1.96 µs to 2.12 µs)
 | -
 
 | hkdf_extract
 | hmac_sha2_512
 | hash2
-| 646 ns (628 ns to 689 ns)
-| 873 ns (842 ns to 906 ns)
-| 881 ns (837 ns to 959 ns)
-| 926 ns (857 ns to 3.29 µs)
+| 652 ns (627 ns to 684 ns)
+| 876 ns (830 ns to 904 ns)
+| 882 ns (832 ns to 915 ns)
+| 923 ns (905 ns to 4.20 µs)
 
 | hkdf_extract
 | hmac_sha2_512
 | sodium
-| 630 ns (592 ns to 640 ns)
-| 1.41 µs (1.35 µs to 1.46 µs)
-| 1.43 µs (1.37 µs to 1.49 µs)
-| 865 ns (806 ns to 1.80 µs)
+| 633 ns (592 ns to 642 ns)
+| 1.41 µs (1.38 µs to 1.43 µs)
+| 1.42 µs (1.41 µs to 1.46 µs)
+| 864 ns (814 ns to 1.81 µs)
 
 | hkdf_extract
 | hmac_sha2_512
 | openssl
-| 956 ns (930 ns to 1.03 µs)
-| 2.07 µs (1.99 µs to 2.10 µs)
-| 2.14 µs (2.03 µs to 2.17 µs)
+| 996 ns (932 ns to 1.05 µs)
+| 2.09 µs (1.98 µs to 2.12 µs)
+| 2.13 µs (2.02 µs to 2.18 µs)
 | -
 
 | hkdf_expand
 | hmac_sha2_256
 | hash2
-| 526 ns (516 ns to 563 ns)
-| 688 ns (648 ns to 707 ns)
-| 688 ns (656 ns to 699 ns)
-| 700 ns (607 ns to 2.53 µs)
+| 554 ns (516 ns to 563 ns)
+| 688 ns (659 ns to 698 ns)
+| 696 ns (657 ns to 737 ns)
+| 706 ns (613 ns to 2.60 µs)
 
 | hkdf_expand
 | hmac_sha2_256
 | sodium
-| 461 ns (455 ns to 499 ns)
-| 887 ns (873 ns to 918 ns)
-| 870 ns (846 ns to 891 ns)
-| 616 ns (557 ns to 1.52 µs)
+| 489 ns (460 ns to 504 ns)
+| 890 ns (875 ns to 913 ns)
+| 865 ns (843 ns to 900 ns)
+| 618 ns (559 ns to 1.52 µs)
 
 | hkdf_expand
 | hmac_sha2_256
 | openssl
-| 594 ns (565 ns to 665 ns)
-| 1.61 µs (1.52 µs to 1.66 µs)
-| 1.64 µs (1.58 µs to 1.68 µs)
+| 596 ns (554 ns to 645 ns)
+| 1.62 µs (1.52 µs to 1.65 µs)
+| 1.65 µs (1.55 µs to 1.68 µs)
 | -
 
 | hkdf_expand
 | hmac_sha2_512
 | hash2
-| 744 ns (723 ns to 777 ns)
-| 940 ns (888 ns to 956 ns)
-| 932 ns (890 ns to 970 ns)
-| 934 ns (871 ns to 3.30 µs)
+| 776 ns (723 ns to 811 ns)
+| 940 ns (887 ns to 957 ns)
+| 944 ns (916 ns to 1.01 µs)
+| 916 ns (889 ns to 3.27 µs)
 
 | hkdf_expand
 | hmac_sha2_512
 | sodium
-| 610 ns (583 ns to 638 ns)
-| 1.52 µs (1.43 µs to 1.55 µs)
-| 1.41 µs (1.34 µs to 1.46 µs)
-| 796 ns (779 ns to 1.78 µs)
+| 625 ns (585 ns to 650 ns)
+| 1.51 µs (1.50 µs to 1.55 µs)
+| 1.40 µs (1.40 µs to 1.48 µs)
+| 798 ns (783 ns to 1.78 µs)
 
 | hkdf_expand
 | hmac_sha2_512
 | openssl
-| 785 ns (738 ns to 815 ns)
-| 1.67 µs (1.59 µs to 1.72 µs)
-| 1.69 µs (1.61 µs to 1.73 µs)
+| 762 ns (730 ns to 845 ns)
+| 1.68 µs (1.58 µs to 1.72 µs)
+| 1.70 µs (1.61 µs to 2.03 µs)
 | -
 
 | hkdf
 | hmac_sha2_256
 | hash2
-| 1.02 µs (971 ns to 1.05 µs)
-| 1.33 µs (1.28 µs to 1.36 µs)
-| 1.33 µs (1.28 µs to 1.37 µs)
-| 1.26 µs (1.21 µs to 3.24 µs)
+| 1.00 µs (972 ns to 1.06 µs)
+| 1.34 µs (1.27 µs to 1.36 µs)
+| 1.35 µs (1.30 µs to 1.41 µs)
+| 1.26 µs (1.21 µs to 3.28 µs)
 
 | hkdf
 | hmac_sha2_256
 | sodium
-| 986 ns (927 ns to 1.00 µs)
-| 1.70 µs (1.66 µs to 1.74 µs)
-| 1.72 µs (1.68 µs to 1.77 µs)
-| 1.13 µs (1.09 µs to 2.17 µs)
+| 980 ns (937 ns to 1.01 µs)
+| 1.71 µs (1.63 µs to 1.84 µs)
+| 1.72 µs (1.68 µs to 1.76 µs)
+| 1.12 µs (1.10 µs to 2.16 µs)
 
 | hkdf
 | hmac_sha2_256
 | bearssl
-| 1.43 µs (1.26 µs to 1.52 µs)
-| 1.54 µs (1.44 µs to 1.67 µs)
-| 1.54 µs (1.44 µs to 1.57 µs)
-| 1.57 µs (1.53 µs to 2.43 µs)
+| 1.27 µs (1.21 µs to 1.53 µs)
+| 1.53 µs (1.48 µs to 1.60 µs)
+| 1.54 µs (1.49 µs to 1.57 µs)
+| 1.57 µs (1.53 µs to 2.49 µs)
 
 | hkdf
 | hmac_sha2_256
 | openssl
-| 1.14 µs (1.07 µs to 1.19 µs)
-| 3.08 µs (2.98 µs to 3.14 µs)
-| 3.14 µs (3.05 µs to 3.20 µs)
+| 1.13 µs (1.07 µs to 1.19 µs)
+| 3.09 µs (2.95 µs to 3.14 µs)
+| 3.15 µs (3.07 µs to 3.19 µs)
 | -
 
 | hkdf
 | hmac_sha2_512
 | hash2
-| 1.36 µs (1.34 µs to 1.46 µs)
-| 1.79 µs (1.68 µs to 1.83 µs)
-| 1.80 µs (1.69 µs to 1.89 µs)
-| 1.78 µs (1.70 µs to 4.26 µs)
+| 1.39 µs (1.34 µs to 1.46 µs)
+| 1.80 µs (1.70 µs to 1.81 µs)
+| 1.81 µs (1.78 µs to 1.85 µs)
+| 1.78 µs (1.69 µs to 4.25 µs)
 
 | hkdf
 | hmac_sha2_512
 | sodium
-| 1.26 µs (1.18 µs to 1.28 µs)
-| 2.83 µs (2.72 µs to 2.87 µs)
-| 2.88 µs (2.79 µs to 2.91 µs)
-| 1.56 µs (1.53 µs to 2.60 µs)
+| 1.26 µs (1.19 µs to 1.28 µs)
+| 2.84 µs (2.75 µs to 2.88 µs)
+| 2.89 µs (2.84 µs to 2.95 µs)
+| 1.55 µs (1.54 µs to 2.60 µs)
 
 | hkdf
 | hmac_sha2_512
 | bearssl
-| 1.57 µs (1.48 µs to 1.60 µs)
-| 1.90 µs (1.79 µs to 2.08 µs)
-| 1.96 µs (1.78 µs to 2.09 µs)
-| 1.99 µs (1.95 µs to 2.71 µs)
+| 1.57 µs (1.48 µs to 1.89 µs)
+| 1.91 µs (1.78 µs to 2.10 µs)
+| 1.90 µs (1.80 µs to 2.08 µs)
+| 1.99 µs (1.95 µs to 2.72 µs)
 
 | hkdf
 | hmac_sha2_512
 | openssl
-| 1.47 µs (1.39 µs to 1.63 µs)
-| 3.18 µs (3.13 µs to 3.24 µs)
-| 3.24 µs (3.14 µs to 3.35 µs)
+| 1.48 µs (1.41 µs to 1.58 µs)
+| 3.21 µs (3.08 µs to 3.27 µs)
+| 3.27 µs (3.13 µs to 3.54 µs)
 | -
 
 | pbkdf2
 | hmac_sha2_256
 | hash2
-| 20.85 ms (20.48 ms to 21.77 ms)
-| 30.50 ms (29.65 ms to 32.35 ms)
-| 30.73 ms (29.90 ms to 31.72 ms)
-| 28.09 ms (27.55 ms to 28.97 ms)
+| 21.05 ms (20.46 ms to 24.94 ms)
+| 30.42 ms (30.00 ms to 31.70 ms)
+| 30.96 ms (29.97 ms to 36.05 ms)
+| 27.94 ms (27.50 ms to 28.96 ms)
 
 | pbkdf2
 | hmac_sha2_256
 | openssl
-| 6.07 ms (5.87 ms to 6.21 ms)
-| 35.95 ms (35.30 ms to 36.62 ms)
-| 35.82 ms (35.18 ms to 37.84 ms)
+| 6.09 ms (5.87 ms to 6.18 ms)
+| 36.13 ms (35.74 ms to 45.63 ms)
+| 35.71 ms (35.16 ms to 42.51 ms)
 | -
 
 | pbkdf2
 | hmac_sha2_512
 | hash2
-| 27.18 ms (26.61 ms to 31.59 ms)
-| 40.86 ms (39.89 ms to 42.08 ms)
-| 41.59 ms (40.49 ms to 43.38 ms)
-| 39.81 ms (38.80 ms to 41.31 ms)
+| 27.27 ms (26.79 ms to 28.15 ms)
+| 41.64 ms (40.28 ms to 46.40 ms)
+| 41.32 ms (40.31 ms to 42.32 ms)
+| 39.83 ms (38.96 ms to 41.50 ms)
 
 | pbkdf2
 | hmac_sha2_512
 | openssl
-| 16.03 ms (15.43 ms to 16.32 ms)
-| 38.82 ms (38.30 ms to 39.46 ms)
-| 38.62 ms (38.36 ms to 39.50 ms)
+| 16.21 ms (15.58 ms to 16.56 ms)
+| 39.17 ms (38.69 ms to 43.46 ms)
+| 38.95 ms (38.34 ms to 41.43 ms)
 | -
 
 | argon2id
 | -
 | sodium
-| 37.82 ms (37.17 ms to 40.82 ms)
-| 52.52 ms (51.51 ms to 54.30 ms)
-| 53.09 ms (50.78 ms to 54.33 ms)
-| 49.29 ms (47.94 ms to 60.05 ms)
+| 38.26 ms (37.17 ms to 39.59 ms)
+| 53.08 ms (51.59 ms to 58.40 ms)
+| 53.36 ms (51.94 ms to 55.93 ms)
+| 49.66 ms (47.56 ms to 51.11 ms)
 
 | scrypt
 | -
 | sodium
-| 18.67 ms (18.30 ms to 21.84 ms)
-| 19.63 ms (19.24 ms to 20.40 ms)
-| 19.38 ms (18.98 ms to 19.93 ms)
-| 16.32 ms (15.99 ms to 17.14 ms)
+| 19.05 ms (18.50 ms to 20.49 ms)
+| 19.86 ms (19.32 ms to 21.60 ms)
+| 19.41 ms (19.09 ms to 20.82 ms)
+| 16.84 ms (16.05 ms to 17.65 ms)
 |===
 
 === The orders of the key derivations
@@ -1341,14 +1336,14 @@ The rows `detail/ranking.hpp` holds, one per operation: the default of `hkdf_ext
 | hkdf_expand
 | hmac_sha2_256
 | wasip2
-| hash2, sodium, openssl
+| sodium, hash2, openssl
 | hash2, sodium, openssl
 | wasip2
 
 | hkdf_expand
 | hmac_sha2_256
 | wasip3
-| hash2, sodium, openssl
+| sodium, hash2, openssl
 | hash2, sodium, openssl
 | wasip3
 
@@ -1369,14 +1364,14 @@ The rows `detail/ranking.hpp` holds, one per operation: the default of `hkdf_ext
 | hkdf_expand
 | hmac_sha2_512
 | wasip2
-| hash2, sodium, openssl
+| sodium, hash2, openssl
 | hash2, sodium, openssl
 | wasip2
 
 | hkdf_expand
 | hmac_sha2_512
 | wasip3
-| hash2, sodium, openssl
+| sodium, hash2, openssl
 | hash2, sodium, openssl
 | wasip3
 
@@ -1397,14 +1392,14 @@ The rows `detail/ranking.hpp` holds, one per operation: the default of `hkdf_ext
 | hkdf
 | hmac_sha2_256
 | wasip2
-| bearssl, hash2, sodium, openssl
+| bearssl, sodium, hash2, openssl
 | hash2, bearssl, sodium, openssl
 | wasip2
 
 | hkdf
 | hmac_sha2_256
 | wasip3
-| bearssl, hash2, sodium, openssl
+| bearssl, sodium, hash2, openssl
 | hash2, bearssl, sodium, openssl
 | wasip3
 
@@ -1425,14 +1420,14 @@ The rows `detail/ranking.hpp` holds, one per operation: the default of `hkdf_ext
 | hkdf
 | hmac_sha2_512
 | wasip2
-| bearssl, hash2, sodium, openssl
+| bearssl, sodium, hash2, openssl
 | bearssl, hash2, sodium, openssl
 | wasip2
 
 | hkdf
 | hmac_sha2_512
 | wasip3
-| bearssl, hash2, sodium, openssl
+| bearssl, sodium, hash2, openssl
 | hash2, bearssl, sodium, openssl
 | wasip3
 
@@ -1578,17 +1573,17 @@ its program, beside the smallest program of the function on that target:
 | hmac_sha2_256
 | wasip2
 | hash2
-| 440872
+| 59161
 | hash2
-| 440872
+| 59161
 
 | hkdf_extract
 | hmac_sha2_256
 | wasip3
 | hash2
-| 493623
+| 68421
 | hash2
-| 493623
+| 68421
 
 | hkdf_extract
 | hmac_sha2_256
@@ -1610,17 +1605,17 @@ its program, beside the smallest program of the function on that target:
 | hmac_sha2_512
 | wasip2
 | hash2
-| 444461
+| 62750
 | hash2
-| 444461
+| 62750
 
 | hkdf_extract
 | hmac_sha2_512
 | wasip3
 | hash2
-| 497212
+| 72010
 | hash2
-| 497212
+| 72010
 
 | hkdf_extract
 | hmac_sha2_512
@@ -1641,18 +1636,18 @@ its program, beside the smallest program of the function on that target:
 | hkdf_expand
 | hmac_sha2_256
 | wasip2
-| hash2
-| 521493
-| hash2
-| 521493
+| sodium
+| 73410
+| sodium
+| 73410
 
 | hkdf_expand
 | hmac_sha2_256
 | wasip3
-| hash2
-| 574621
-| hash2
-| 574621
+| sodium
+| 83243
+| sodium
+| 83243
 
 | hkdf_expand
 | hmac_sha2_256
@@ -1673,18 +1668,18 @@ its program, beside the smallest program of the function on that target:
 | hkdf_expand
 | hmac_sha2_512
 | wasip2
-| hash2
-| 525076
-| hash2
-| 525076
+| sodium
+| 74000
+| sodium
+| 74000
 
 | hkdf_expand
 | hmac_sha2_512
 | wasip3
-| hash2
-| 578204
-| hash2
-| 578204
+| sodium
+| 83832
+| sodium
+| 83832
 
 | hkdf_expand
 | hmac_sha2_512
@@ -1706,17 +1701,17 @@ its program, beside the smallest program of the function on that target:
 | hmac_sha2_256
 | wasip2
 | bearssl
-| 515782
+| 69317
 | bearssl
-| 515782
+| 69317
 
 | hkdf
 | hmac_sha2_256
 | wasip3
 | bearssl
-| 568909
+| 78961
 | bearssl
-| 568909
+| 78961
 
 | hkdf
 | hmac_sha2_256
@@ -1738,17 +1733,17 @@ its program, beside the smallest program of the function on that target:
 | hmac_sha2_512
 | wasip2
 | bearssl
-| 516311
+| 69846
 | bearssl
-| 516311
+| 69846
 
 | hkdf
 | hmac_sha2_512
 | wasip3
 | bearssl
-| 569422
+| 79474
 | bearssl
-| 569422
+| 79474
 
 | hkdf
 | hmac_sha2_512
@@ -1770,17 +1765,17 @@ its program, beside the smallest program of the function on that target:
 | hmac_sha2_256
 | wasip2
 | hash2
-| 521629
+| 75164
 | hash2
-| 521629
+| 75164
 
 | pbkdf2
 | hmac_sha2_256
 | wasip3
 | hash2
-| 574756
+| 84808
 | hash2
-| 574756
+| 84808
 
 | pbkdf2
 | hmac_sha2_256
@@ -1802,17 +1797,17 @@ its program, beside the smallest program of the function on that target:
 | hmac_sha2_512
 | wasip2
 | hash2
-| 525164
+| 78699
 | hash2
-| 525164
+| 78699
 
 | pbkdf2
 | hmac_sha2_512
 | wasip3
 | hash2
-| 578291
+| 88343
 | hash2
-| 578291
+| 88343
 
 | pbkdf2
 | hmac_sha2_512
@@ -1834,17 +1829,17 @@ its program, beside the smallest program of the function on that target:
 | -
 | wasip2
 | sodium
-| 545485
+| 90242
 | sodium
-| 545485
+| 90242
 
 | argon2id
 | -
 | wasip3
 | sodium
-| 599118
+| 99987
 | sodium
-| 599118
+| 99987
 
 | argon2id
 | -
@@ -1866,17 +1861,17 @@ its program, beside the smallest program of the function on that target:
 | -
 | wasip2
 | sodium
-| 533938
+| 77592
 | sodium
-| 533938
+| 77592
 
 | scrypt
 | -
 | wasip3
 | sodium
-| 587562
+| 87332
 | sodium
-| 587562
+| 87332
 
 | scrypt
 | -

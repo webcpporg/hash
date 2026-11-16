@@ -133,15 +133,15 @@ What each backend states on constant time, as the capability table read it:
 | hash2
 
 | wasip2
+| sodium, hash2, openssl
 | hash2, sodium, openssl
-| hash2, sodium, openssl
-| hash2, sodium, openssl
+| sodium, hash2, openssl
 | hash2
 
 | wasip3
+| sodium, hash2, openssl
 | hash2, sodium, openssl
-| hash2, sodium, openssl
-| hash2, sodium, openssl
+| sodium, hash2, openssl
 | hash2
 
 | emscripten
@@ -163,15 +163,15 @@ What each backend states on constant time, as the capability table read it:
 | hash2
 
 | wasip2
-| bearssl, hash2, sodium, openssl
+| bearssl, sodium, hash2, openssl
 | hash2, bearssl, sodium, openssl
-| bearssl, hash2, sodium, openssl
+| bearssl, sodium, hash2, openssl
 | hash2
 
 | wasip3
-| bearssl, hash2, sodium, openssl
+| bearssl, sodium, hash2, openssl
 | hash2, bearssl, sodium, openssl
-| bearssl, hash2, sodium, openssl
+| bearssl, sodium, hash2, openssl
 | hash2
 
 | emscripten
