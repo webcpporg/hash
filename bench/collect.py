@@ -15,6 +15,10 @@ its wasip3 twin, are relative to it), with the programs bench/Jamfile builds at
 variant=release optimization=speed; --data and --page are relative to the same root, as
 libs/hash/doc/... .
 
+The table is built only from release builds: a program whose build directory, b2's
+bench/<toolset>/<variant>/..., is not variant=release, or does not say, is refused before
+anything runs, and `--render-only` refuses data whose build is not BUILD.
+
 Each case (a variant on a target) is run INVOCATIONS times, round-robin over the
 cases so that a change of load on the shared machine falls on all of them alike;
 each invocation derives the key three times and reports its median. The data
@@ -31,6 +35,13 @@ import os
 import platform
 import subprocess
 import sys
+from pathlib import Path
+
+# What the table is built from, and only from: bench/Jamfile's pbkdf2_sha512, at variant=release.
+BUILD = "variant=release optimization=speed"
+RELEASE_ONLY = (
+    "the table is built only from release builds: bench/Jamfile's pbkdf2_sha512 at " + BUILD
+)
 
 LAUNCHERS = {
     "native": [],
@@ -50,6 +61,31 @@ IMPLEMENTATIONS = {
     "sodium-hmac": "sodium crypto_auth_hmacsha512 loop",
 }
 VARIANTS = list(BACKENDS)
+
+
+def variant_of(exe):
+    """The variant b2 built exe at, as its build directory names it, bench/<toolset>/<variant>/...;
+    None when its path does not say."""
+    parts = Path(exe).resolve().parts
+    if "bench" not in parts:
+        return None
+    last = len(parts) - 1 - parts[::-1].index("bench")
+    after = parts[last + 1:]
+    return after[1] if len(after) > 2 else None
+
+
+def check_release(exes):
+    """Exits naming each program not built at variant=release, before anything runs."""
+    others = []
+    for target, exe in exes.items():
+        variant = variant_of(exe)
+        if variant is None:
+            others.append(f"{target}={exe} is not in b2's bench/<toolset>/<variant>/..., so its "
+                          "variant cannot be read")
+        elif variant != "release":
+            others.append(f"{target}={exe} was built at variant={variant}")
+    if others:
+        sys.exit("collect.py: " + ", ".join(others) + ": " + RELEASE_ONLY)
 
 
 def median(values):
@@ -149,7 +185,7 @@ def measure(exes, invocations):
         "load_average_before_after": [list(loads[0]), list(loads[1])],
         "loaded": peak > cores,
         "loaded_rule": "the larger of the two 1-minute load averages exceeds the core count",
-        "build": "variant=release optimization=speed",
+        "build": BUILD,
         "cases": out,
     }
 
@@ -240,8 +276,12 @@ def main():
     if args.render_only:
         with open(args.data, encoding="utf-8") as f:
             data = json.load(f)
+        if data.get("build") != BUILD:
+            sys.exit(f"collect.py: {args.data} was measured with build {data.get('build')}, not "
+                     f"{BUILD}: {RELEASE_ONLY}")
     else:
         exes = dict(item.split("=", 1) for item in args.exe)
+        check_release(exes)
         data = measure(exes, args.invocations)
         with open(args.data, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2)
