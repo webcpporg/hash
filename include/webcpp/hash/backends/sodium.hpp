@@ -428,6 +428,9 @@ static_assert(argon2id_sensitive.passes == crypto_pwhash_argon2id_OPSLIMIT_SENSI
 // its uint32_t lengths never narrow.
 static_assert(argon2id_salt_size == crypto_pwhash_argon2id_SALTBYTES);
 static_assert(argon2id_min_output_size == crypto_pwhash_argon2id_BYTES_MIN);
+// bugprone-branch-clone: libsodium's SODIUM_SIZE_MAX is SODIUM_MIN(UINT64_MAX, SIZE_MAX), whose
+// two branches are one where size_t has 64 bits and both macros spell it alike (glibc).
+// NOLINTNEXTLINE(bugprone-branch-clone)
 static_assert(argon2id_max_size == crypto_pwhash_argon2id_BYTES_MAX);
 static_assert(argon2id_max_size == crypto_pwhash_argon2id_PASSWD_MAX);
 static_assert(argon2id_min_passes == crypto_pwhash_argon2id_OPSLIMIT_MIN);
