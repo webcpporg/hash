@@ -45,11 +45,10 @@ static_assert(hash::backend_has_v<libsodium, hash::kdfs::hkdf, hash::hmac_sha2_2
 static_assert(hash::backend_has_v<libsodium, hash::kdfs::hkdf, hash::hmac_sha2_512>);
 static_assert(!hash::backend_has_v<libsodium, hash::kdfs::hkdf, hash::hmac_sha1_160>);
 static_assert(!hash::backend_has_v<libsodium, hash::kdfs::pbkdf2, hash::hmac_sha2_512>);
-// With libsodium linked, the default is backends::hash2 or libsodium, never a backend the
-// program does not link; which one, main checks against the target's generated order.
+// With libsodium linked, the default is still backends::hash2: libsodium's HKDF is reached only by
+// naming it (spec 4.1).
 static_assert(
-    std::is_same_v<hash::default_kdf_backend<hash::hmac_sha2_256>, hash::backends::hash2> ||
-    std::is_same_v<hash::default_kdf_backend<hash::hmac_sha2_256>, libsodium>);
+    std::is_same_v<hash::default_kdf_backend<hash::hmac_sha2_256>, hash::backends::hash2>);
 
 // The three functions on one case, over Hmac on Backend, the case's salt spelled as given.
 template <class Hmac, class Backend>
@@ -352,13 +351,9 @@ int main() {
     test_empty_inputs<hash::hmac_sha2_256>();
     test_empty_inputs<hash::hmac_sha2_512>();
 
-    // Each operation's default is the first of the target's generated order that the program
-    // links and that has it (natively by throughput, on WebAssembly by size).
+    // Each operation's default over each hmac is backends::hash2, libsodium linked or not.
     webcpp::test::for_each_kdf_cell([]<class Operation, class Hmac> {
-        if constexpr (!std::is_same_v<Operation, hash::kdfs::pbkdf2>) {
-            BOOST_TEST_EQ((webcpp::test::name_of<hash::default_kdf_backend<Hmac, Operation>>()),
-                          (webcpp::test::auto_choice<Operation, Hmac>()));
-        }
+        webcpp::test::expect_default<Operation, Hmac>("hash2");
     });
     return webcpp::test::exit_status(boost::report_errors());
 }

@@ -281,4 +281,4 @@
 | For Bitcoin's hash160; never in a new design.
 |===
 
-The measured columns are doc/measurements.json's (2026-11-16, Apple M5 Max): the native throughput over 1 MiB, or the time of one derivation over `hmac_sha2_256`, of the fastest backend, and the smallest Emscripten program that calls the function; <<hash-measurements>> has every backend on every target.
+The measured columns are doc/measurements.json's, a reference measured on 2026-11-16 on Apple M5 Max that decides nothing: the native throughput over 1 MiB, or the time of one derivation over `hmac_sha2_256`, of the fastest backend, and the smallest Emscripten program that calls the function; <<hash-measurements>> has every backend on every target.

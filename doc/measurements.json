@@ -1,14 +1,14 @@
 {
-  "about": "webcpp::hash's measured table (spec section 4.2): the size of one program per cell of doc/capabilities.json on each target, and its throughput, which detail/ranking.hpp orders the backends by. Written by tools/hash/measure.py --write; the documentation renders from it.",
+  "about": "webcpp::hash's measured table, a reference measured once, on 2026-11-16, that decides nothing: the size of one program per cell of doc/capabilities.json on each target, and its throughput. Every key derivation's default is backends::hash2, argon2id's and scrypt's backends::sodium, whatever this table says (spec section 4.1); no lane measures it again. Written by the superproject's tools/hash/measure.py --write (webcpp at 76b1730), from the programs of webcpp::hash's test/measure (hash at 46b1989), both since retired; tools/hash/doc_tables.py renders doc/measurements.adoc from it.",
   "version": 1,
   "layout": {
-    "schema": "This description. The version of the layout is \"version\"; a change of layout raises it. Written only by tools/hash/measure.py; \"digest\" is the SHA-256 of the file without it, which the measure lane checks.",
+    "schema": "This description. The version of the layout is \"version\"; a change of layout raises it. \"digest\" is the SHA-256 of the file without it, which tools/hash/doc_tables.py --check checks, so that the reference is never edited by hand.",
     "date, machine, load_average_before_after, loaded, rules.loaded": "when and where the measurements were made; loaded says whether the machine was shared and loaded",
     "toolchains, runtimes, strip, pins, builds": "the compiler per target, wasmtime and node, the strip of the native sizes, each backend's library and pin (from doc/capabilities.json), and the two builds",
-    "native_toolchain": "what the native orders were measured with: the compiler, the host's operating system and processor, and the strip; the lane compares the native size orders only where its own is the same",
+    "native_toolchain": "what the native rows were measured with: the compiler, the host's operating system and processor, and the strip",
     "workloads": "per function, what one computation does (spec 4.2)",
     "records[]": "one per cell and target: operation (the function of doc/capabilities.json), hmac (or null), backend, target, size_bytes, result (the hexadecimal output, the same for every backend and target of an operation and hmac), throughput (repetitions, invocations, runs_per_invocation, invocation_medians_ns, median_ns, min_ns, max_ns: nanoseconds per computation) or null with throughput_absent saying why. operation, hmac, backend and target are the keys of doc/measurements.throughput.json's cases too, which the documentation joins on them; constant time is doc/capabilities.json's.",
-    "orders[]": "per operation, hmac and target: by_size and by_throughput, the backends that have it there in order, and throughput_from, the target whose throughput ordered it; detail/ranking.hpp is generated from the rows of the key derivations, one per operation (hkdf_extract and hkdf_expand their own)",
+    "orders[]": "per operation, hmac and target: by_size and by_throughput, the backends that have it there in order, and throughput_from, the target whose throughput ordered it, as measured; they order nothing in the library",
     "rules": "how sizes, throughput and orders are made"
   },
   "date": "2026-11-16",
@@ -9790,5 +9790,5 @@
       "throughput_from": "emscripten"
     }
   ],
-  "digest": "sha256:3ab7b82c8bf65f3534caa005e1408722de9fc0d72701613fa14032512f028f25"
+  "digest": "sha256:834694bace38b92003311c79f06c5a3956feb40232b25a801f724c99ea27f48d"
 }

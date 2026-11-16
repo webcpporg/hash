@@ -10,7 +10,9 @@ nothing in webcpp's own code.
 The guide (`doc/hash.adoc`) teaches each family of functions with two comparison tables, an example
 program of `example/` per section and its pitfalls, then three applications from end to end; its
 tables and `doc/llms.txt` are generated from `doc/capabilities.json` and the measured data by
-`tools/hash/doc_tables.py`. `NOTICE.md` keeps the notice of the documentation it adapts.
+`tools/hash/doc_tables.py`. Every key derivation runs on `backends::hash2` unless the call names
+another backend; Argon2id and scrypt run on `backends::sodium`, their only backend. The measured
+table, `doc/measurements.json`, is a reference measured on 2026-11-16 that decides nothing. `NOTICE.md` keeps the notice of the documentation it adapts.
 
 ## Building and testing
 
@@ -25,14 +27,11 @@ b2 -a --build-dir=bin/lane-emscripten toolset=emscripten libs/hash/test libs/has
 b2 -a --build-dir=bin/lane-gcc-15 toolset=gcc-15 libs/hash/test libs/hash/example
 ```
 
-Two own lanes run outside those. `c-suites` builds the C libraries' own test programs on every
-target, and `measure` builds one program per cell of the capability table on every target in
-one command, then checks the committed measurements; it needs the WebAssembly toolsets
-(`clang-wasip2`, `clang-wasip3`, `emscripten`) to be set up beside the native one:
+One own lane runs outside those: `c-suites` builds the C libraries' own test programs on every
+target:
 
 ```
 b2 -a --build-dir=bin/lane-c-suites libs/hash/test/c_suites//c-suites
-b2 -a --build-dir=bin/lane-measure libs/hash/test/measure//measure
 ```
 
 The user Jamfiles of the library (each line of the specification's section 5.1, as a user

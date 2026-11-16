@@ -114,14 +114,10 @@ int main() {
              hash::hmac_sha3_512, hash::hmac_ripemd_160, hash::hmac_blake2b_512,
              hash::hmac_blake2s_256>();
 
-    // The default backend of a program that links OpenSSL: OpenSSL natively, the fastest;
-    // backends::hash2 on WebAssembly, the smallest (detail/ranking.hpp).
+    // The default backend of a program that links OpenSSL is still backends::hash2, on every
+    // target: OpenSSL is reached only by naming it (spec 4.1).
     using chosen = hash::default_kdf_backend<hash::hmac_sha2_256, hash::kdfs::pbkdf2>;
-#ifdef WEBCPP_HASH_WEBASSEMBLY
     static_assert(std::is_same_v<chosen, hash2>);
-#else
-    static_assert(std::is_same_v<chosen, openssl>);
-#endif
     static_assert(
         std::is_same_v<hash::default_kdf_backend<hash::hmac_ripemd_128, hash::kdfs::pbkdf2>,
                        hash2>);

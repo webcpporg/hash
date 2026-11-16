@@ -246,14 +246,9 @@ bool linked_here(std::string_view macro) {
 void check_cell_fields(json::object const& table, names const& tagged);
 
 // The backends' own fields, where the code can tell: a backend's targets hold this
-// target exactly when the program links it here, `portable` is membership of portable_order for
-// a backend with a tag, and every cell is of increment 1 and states its constant time, which the
-// documentation renders.
+// target exactly when the program links it here, and every cell is of increment 1 and states its
+// constant time, which the documentation renders.
 void check_backend_fields(json::object const& table) {
-    names portable;
-    [&portable]<class... Backend>(hash::detail::backend_list<Backend...>*) {
-        (portable.emplace(test::name_of<Backend>()), ...);
-    }(static_cast<hash::detail::portable_order*>(nullptr));
     names tagged;
     for (auto const& b : table.at("backends").as_array()) {
         std::string const name(b.at("name").as_string());
@@ -265,12 +260,30 @@ void check_backend_fields(json::object const& table) {
         }
         if (!b.at("tag").is_null()) {
             tagged.insert(name);
-            if (!BOOST_TEST_EQ(b.at("portable").as_bool(), portable.contains(name))) {
-                std::cerr << "  portable, for " << name << '\n';
-            }
         }
     }
     check_cell_fields(table, tagged);
+}
+
+// Each function's default, the backend default_backend names for its tag; a type row has none.
+template <class Function>
+void check_default(json::object const& table) {
+    auto const& listed = function_row(table, function_name<Function>()).at("default");
+    std::string_view const chosen = test::name_of<hash::default_backend<Function>>();
+    if (!BOOST_TEST(listed.is_string() && listed.as_string() == chosen)) {
+        std::cerr << "  default of " << function_name<Function>() << '\n';
+    }
+}
+
+void check_defaults(json::object const& table) {
+    auto const each = [&]<class... Function>(std::tuple<Function...>*) {
+        (check_default<Function>(table), ...);
+    };
+    each(static_cast<hmac_functions*>(nullptr));
+    each(static_cast<plain_functions*>(nullptr));
+    for (auto const& row : type_rows()) {
+        BOOST_TEST(function_row(table, row.name).at("default").is_null());
+    }
 }
 
 // Every cell is of increment 1, states its constant time, and, for a function with a
@@ -459,6 +472,13 @@ std::vector<refusal> const& refusals() {
         },
         {
             .header = "detail/engines.hpp",
+            .start = "backends::sodium, argon2id and scrypt need libsodium.",
+            .backend = "sodium",
+            .functions = {"argon2id", "scrypt"},
+            .hmacs = {},
+        },
+        {
+            .header = "detail/engines.hpp",
             .start = "argon2id is in backends::sodium alone.",
             .backend = "",
             .functions = {"argon2id"},
@@ -623,6 +643,7 @@ int main() {
     check_names(table);
     check_type_rows(table);
     check_backend_fields(table);
+    check_defaults(table);
     check_cells(table);
     check_refusals(table, include);
     return webcpp::test::exit_status(boost::report_errors());

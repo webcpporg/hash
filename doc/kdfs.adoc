@@ -20,8 +20,8 @@ one per label. PBKDF2 is the older answer to another problem, a key from a
 password, which Argon2id now answers better (<<hash-password-hashing>>).
 
 The key derivations are the functions of hash that run on a backend, a C
-library or Boost.Hash2, that the program chooses or lets hash choose
-(<<hash-profile>>). Each backend gives the same bytes for the same inputs: the
+library or Boost.Hash2, that the program names or leaves to the default,
+`backends::hash2` (<<hash-default-backend>>). Each backend gives the same bytes for the same inputs: the
 tests check them against each other on random inputs on every target.
 
 include::generated/compare-kdfs.adoc[]
@@ -89,10 +89,10 @@ include::generated/backends-hkdf.adoc[]
 [#hash-kdfs-backends]
 === Naming a backend
 
-Most programs never name a backend: the call takes the default, the first
-backend the program links in the order the profile gives (<<hash-profile>>).
-A program names one as the call's second template argument, to match the bytes
-of another program exactly, to keep a smaller binary, or to test one backend
+Most programs never name a backend: the call takes the default,
+`backends::hash2`, on every target (<<hash-default-backend>>). A program names
+one as the call's second template argument, to match the bytes
+of another program exactly, to share a C library the program already links, or to test one backend
 against another. `backend_has_v<Backend, Kdf, Hmac>` says at compile time
 whether a backend has a function over an hmac; a call on a backend that does
 not stops the build with a message that names the backends that do.
@@ -136,7 +136,7 @@ include::{examples}/pbkdf2.expected[]
 recommends 600,000 iterations of HMAC-SHA-256, or 210,000 of HMAC-SHA-512, for
 passwords; BIP39's 2,048 protect a seed of high entropy, not a password.
 Measure the time on the slowest device the program runs on (a phone, a
-browser tab: WebAssembly is slower than native; <<hash-profile>> has the
+browser tab: WebAssembly is slower than native; <<hash-measured>> has the
 measured times).
 * *A random salt per password,* 16 bytes from `webcpp::crypto::random_device`,
 stored beside the result: without it, one guess tests every user at once and

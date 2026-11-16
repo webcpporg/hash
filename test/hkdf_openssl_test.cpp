@@ -266,16 +266,11 @@ int main() {
     longest_info();
     info_too_long();
 
-    // The default backend of a program that links OpenSSL: of backends::hash2 and OpenSSL, the
-    // first that the target's generated order (detail/ranking.hpp, natively by throughput, on
-    // WebAssembly by size) gives for each operation, found by a walk at run time.
-    using chosen = hash::default_kdf_backend<hash::hmac_sha2_256>;
-    static_assert(std::is_same_v<chosen, hash2> || std::is_same_v<chosen, openssl>);
-    BOOST_TEST_EQ(webcpp::test::name_of<chosen>(),
-                  (webcpp::test::auto_choice<hash::kdfs::hkdf, hash::hmac_sha2_256>()));
-    BOOST_TEST_EQ((webcpp::test::name_of<
-                      hash::default_kdf_backend<hash::hmac_sha2_256, hash::kdfs::hkdf_extract>>()),
-                  (webcpp::test::auto_choice<hash::kdfs::hkdf_extract, hash::hmac_sha2_256>()));
+    // The default backend of a program that links OpenSSL is still backends::hash2 for each
+    // operation: OpenSSL is reached only by naming it (spec 4.1).
+    webcpp::test::for_each_kdf_cell([]<class Operation, class Hmac> {
+        webcpp::test::expect_default<Operation, Hmac>("hash2");
+    });
     // hmac_ripemd_128, which OpenSSL lacks, defaults to backends::hash2 on every target.
     static_assert(std::is_same_v<hash::default_kdf_backend<hash::hmac_ripemd_128>, hash2>);
     auto prk = hash::hkdf_extract<hash::hmac_sha2_256>(from_hex(a1.salt), from_hex(a1.ikm));

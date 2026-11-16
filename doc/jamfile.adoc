@@ -42,7 +42,7 @@ sources, for the program's target:
 |===
 
 A program that hashes passwords with Argon2id and derives keys with HKDF on
-whatever backend is smallest names, for example:
+the default backend, `backends::hash2`, names, for example:
 
 [source,bash]
 ----
@@ -108,8 +108,6 @@ one asked for.
 | A key derivation over a type that is not a Boost.Hash2 hmac of a digest
 | Pass an hmac, as `hmac_sha2_256`.
 
-| Two profiles, or two overrides of one algorithm, defined at once
-| The message names both: keep one (<<hash-profile>>).
 |===
 
 Every message is tested: each is a test of `test/messages/`, which compiles a

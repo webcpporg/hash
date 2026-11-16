@@ -10,7 +10,7 @@
 [#hash-choose-table]
 [cols="3,3,2,2,2",options="header"]
 |===
-| I need to ... | Use | Its backends: the Jamfile names | Profile | Example
+| I need to ... | Use | Its backends: the Jamfile names | Backend | Example
 
 | check that a file or message was not changed by accident or on the way
 | <<hash-sha2,sha2_256 (or blake3 for large data)>>
@@ -103,14 +103,14 @@
 | `example/sha3_shake.cpp`
 
 | build the smallest WebAssembly program
-| <<hash-profile,the default (on WebAssembly, the smallest linked backend), and link only the libraries the program uses>>
+| <<hash-default-backend,the default backend, backends::hash2, header-only, and link only the libraries the program uses>>
 | `hash2`: `/webcpp/hash//hash`, `sodium`: `/third_party//sodium`, `bearssl`: `/third_party//bearssl`, `openssl`: `/webcpp/hash//openssl`
-| WEBCPP_HASH_PROFILE_SMALLEST, or nothing: it is the default on WebAssembly
+| the default
 | `example/hkdf_backends.cpp`
 
 | run the same code, with the same results, on every target
-| <<hash-profile,the portable profile>>
+| <<hash-default-backend,the default backend, backends::hash2, the same code on every target>>
 | `hash2`: `/webcpp/hash//hash`, `sodium`: `/third_party//sodium`, `bearssl`: `/third_party//bearssl`, `openssl`: `/webcpp/hash//openssl`
-| WEBCPP_HASH_PROFILE_PORTABLE
+| the default
 | `example/hkdf_backends.cpp`
 |===

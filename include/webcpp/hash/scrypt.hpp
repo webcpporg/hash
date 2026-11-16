@@ -82,8 +82,7 @@ constexpr bool scrypt_valid_n(std::uint64_t cost_n, std::uint32_t block_size_r) 
 /**
  scrypt (RFC 7914): fills `output_bytes` from `password_bytes` and `salt_bytes`.
 
- @tparam Backend The backend; by default @ref default_backend of `kdfs::scrypt` (spec 4.1):
- the one an override `WEBCPP_HASH_DEFAULT_BACKEND_SCRYPT_<NAME>` names, else
+ @tparam Backend The backend; by default @ref default_backend of `kdfs::scrypt` (spec 4.1),
  `backends::sodium`, the only one that has it.
  @param output_bytes The derived key, 1 to (2^32 - 1) times 32 bytes; it must not overlap
  `password_bytes` or `salt_bytes`.
@@ -138,9 +137,8 @@ template <class Backend = default_backend<kdfs::scrypt>>
 }  // namespace webcpp::hash
 
 // backends::sodium when the program links libsodium: a program that includes only this header
-// gets scrypt's default backend complete here. Also when an override names libsodium, whose
-// header then stops with its "needs" message if the program does not link it (spec 5.7).
-#if defined(WEBCPP_HASH_HAS_SODIUM) || defined(WEBCPP_HASH_DETAIL_OVERRIDES_SODIUM)
+// gets scrypt's default backend complete here.
+#ifdef WEBCPP_HASH_HAS_SODIUM
 #include <webcpp/hash/backends/sodium.hpp>
 #endif
 

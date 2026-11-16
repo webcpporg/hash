@@ -34,16 +34,15 @@
 #include <webcpp/hash/error.hpp>
 #include <webcpp/hash/kdf.hpp>
 
-// The backends the program links, each under its WEBCPP_HASH_HAS_<NAME>: default_kdf_backend
-// names only a backend whose engines are visible here. A backend an override names comes in too,
-// so that an override of a backend the program does not link stops with its header's message.
-#if defined(WEBCPP_HASH_HAS_BEARSSL) || defined(WEBCPP_HASH_DETAIL_OVERRIDES_BEARSSL)
+// The backends the program links, each under its WEBCPP_HASH_HAS_<NAME>, so that a call that names
+// one finds its engines here; the default, backends::hash2, needs none of them.
+#ifdef WEBCPP_HASH_HAS_BEARSSL
 #include <webcpp/hash/backends/bearssl.hpp>
 #endif
-#if defined(WEBCPP_HASH_HAS_SODIUM) || defined(WEBCPP_HASH_DETAIL_OVERRIDES_SODIUM)
+#ifdef WEBCPP_HASH_HAS_SODIUM
 #include <webcpp/hash/backends/sodium.hpp>
 #endif
-#if defined(WEBCPP_HASH_HAS_OPENSSL) || defined(WEBCPP_HASH_DETAIL_OVERRIDES_OPENSSL)
+#ifdef WEBCPP_HASH_HAS_OPENSSL
 #include <webcpp/hash/backends/openssl.hpp>
 #endif
 
@@ -62,7 +61,7 @@ inline constexpr std::size_t hkdf_max_info_size = 32768;
  HKDF-Extract (RFC 5869, section 2.2): the pseudorandom key of `ikm_bytes` under `salt_bytes`.
 
  @tparam Hmac The hmac, as `hmac_sha2_256`. @tparam Backend The backend; by default the one
- `default_kdf_backend<Hmac, kdfs::hkdf_extract>` chooses, never one that has HKDF only whole.
+ `default_kdf_backend<Hmac, kdfs::hkdf_extract>` names, `backends::hash2`.
  @param salt_bytes The salt, any length the backend takes; empty means `Hmac`'s digest size of
  zeros.
  @param ikm_bytes The input keying material, any length the backend takes.
@@ -89,7 +88,7 @@ template <class Hmac, class Backend = default_kdf_backend<Hmac, kdfs::hkdf_extra
  HKDF-Expand (RFC 5869, section 2.3): fills `output_bytes` from `prk_bytes` and `info_bytes`.
 
  @tparam Hmac The hmac. @tparam Backend The backend; by default the one
- `default_kdf_backend<Hmac, kdfs::hkdf_expand>` chooses, never one that has HKDF only whole.
+ `default_kdf_backend<Hmac, kdfs::hkdf_expand>` names, `backends::hash2`.
  @param output_bytes The output keying material, 1 to 255 times the digest size.
  @param prk_bytes The pseudorandom key, of exactly the digest size.
  @param info_bytes The context, at most `hkdf_max_info_size` bytes.

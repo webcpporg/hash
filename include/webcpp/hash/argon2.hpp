@@ -86,8 +86,7 @@ inline constexpr std::size_t argon2id_memory_unit = 1024;
  Argon2id version 0x13 (RFC 9106) with one lane, no secret and no associated data: fills
  `output_bytes` from `password_bytes` and `salt_bytes`.
 
- @tparam Backend The backend; by default @ref default_backend of `kdfs::argon2id` (spec 4.1):
- the one an override `WEBCPP_HASH_DEFAULT_BACKEND_ARGON2ID_<NAME>` names, else
+ @tparam Backend The backend; by default @ref default_backend of `kdfs::argon2id` (spec 4.1),
  `backends::sodium`, the only one that has it.
  @param output_bytes The tag, 16 to 4,294,967,295 bytes; it must not overlap `password_bytes` or
  `salt_bytes` (libsodium zeroes it before it reads them).
@@ -147,9 +146,8 @@ template <class Backend = default_backend<kdfs::argon2id>>
 
 // backends::sodium when the program links libsodium, after the presets, which its header checks
 // against libsodium's macros: a program that includes only this header gets argon2id's default
-// backend complete here. Also when an override names libsodium, whose header then stops with its
-// "needs" message if the program does not link it (spec 5.7).
-#if defined(WEBCPP_HASH_HAS_SODIUM) || defined(WEBCPP_HASH_DETAIL_OVERRIDES_SODIUM)
+// backend complete here.
+#ifdef WEBCPP_HASH_HAS_SODIUM
 #include <webcpp/hash/backends/sodium.hpp>
 #endif
 

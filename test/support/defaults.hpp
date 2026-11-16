@@ -151,33 +151,6 @@ constexpr bool linked() {
            (std::is_same_v<Backend, backends::openssl> && openssl_linked);
 }
 
-// The first backend of the list that the program links and that has Operation over Hmac, by a
-// walk at run time; "hash2" when none has.
-template <class Operation, class Hmac, class... Backend>
-std::string_view first_serving(hash::detail::backend_list<Backend...> /*order*/) {
-    std::string_view found;
-    auto const visit = [&found](bool serves, std::string_view name) {
-        if (found.empty() && serves) {
-            found = name;
-        }
-    };
-    (visit(linked<Backend>() && hash::backend_has_v<Backend, Operation, Hmac>, name_of<Backend>()),
-     ...);
-    return found.empty() ? std::string_view("hash2") : found;
-}
-
-// The default of `auto`: natively the throughput order's first serving backend, on WebAssembly
-// the size order's.
-template <class Operation, class Hmac>
-std::string_view auto_choice() {
-    using ranking = hash::detail::ranking<Operation, Hmac>;
-#ifdef WEBCPP_HASH_WEBASSEMBLY
-    return first_serving<Operation, Hmac>(typename ranking::by_size{});
-#else
-    return first_serving<Operation, Hmac>(typename ranking::by_throughput{});
-#endif
-}
-
 // Calls check.template operator()<Operation, Hmac>() for every cell of the key derivations.
 template <class Check>
 void for_each_kdf_cell(Check check) {
@@ -200,30 +173,6 @@ void expect_default(std::string_view expected) {
         std::cerr << "  default of " << name_of_operation<Operation>() << " over "
                   << name_of_hmac<Hmac>() << '\n';
     }
-}
-
-// What holds whatever the profile and the measured order (spec 3.2):
-// PBKDF2's default is never libsodium's or BearSSL's, which have no PBKDF2; the two steps of
-// HKDF are never BearSSL's, which has them only together; hmac_ripemd_128 is backends::hash2's
-// alone. An overridden algorithm is left out: its override answers for it.
-template <bool HkdfOverridden = false>
-void check_invariants() {
-    for_each_kdf_cell([]<class Operation, class Hmac> {
-        using chosen = hash::default_kdf_backend<Hmac, Operation>;
-        if constexpr (std::is_same_v<Operation, kdfs::pbkdf2>) {
-            BOOST_TEST(!(std::is_same_v<chosen, backends::sodium>));
-            BOOST_TEST(!(std::is_same_v<chosen, backends::bearssl>));
-        } else if (HkdfOverridden) {
-            return;
-        }
-        if constexpr (std::is_same_v<Operation, kdfs::hkdf_extract> ||
-                      std::is_same_v<Operation, kdfs::hkdf_expand>) {
-            BOOST_TEST(!(std::is_same_v<chosen, backends::bearssl>));
-        }
-        if constexpr (std::is_same_v<Hmac, hash::hmac_ripemd_128>) {
-            BOOST_TEST((std::is_same_v<chosen, backends::hash2>));
-        }
-    });
 }
 
 // Each default of hmac_sha2_256 called (a default that cannot serve would not compile), against

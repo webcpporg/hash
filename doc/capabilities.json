@@ -1,13 +1,13 @@
 {
-    "about": "webcpp::hash's capability table (spec section 3.5): which library implements each public name, over which hmacs, on which targets, and what upstream states about constant time. backend_has_v is the same table for the key derivations: test/capabilities_test.cpp compares them cell by cell, checks each type row against the code and each refusal text against its row; test/overrides_list_test.cpp checks detail/overrides.hpp against the overridable algorithms. The documentation renders from it.",
-    "version": 2,
+    "about": "webcpp::hash's capability table (spec section 3.5): which library implements each public name, over which hmacs, on which targets, what upstream states about constant time, and the backend a call that names none uses. backend_has_v is the same table for the key derivations: test/capabilities_test.cpp compares them cell by cell, checks each type row against the code, each function's default against default_backend and each refusal text against its row. The documentation renders from it.",
+    "version": 3,
     "layout": {
         "schema": "This description. The version of the layout is \"version\"; a change of layout raises it.",
         "targets": "The targets webcpp builds for.",
-        "backends[]": "Each library a function runs on: name (as cells name it), tag (its webcpp::hash::backends type, or null for a library without one in this increment: xkcp, blake3), macro (the word of WEBCPP_HASH_HAS_<macro>, WEBCPP_HASH_PROFILE_BACKEND_<macro> and WEBCPP_HASH_DEFAULT_BACKEND_<ALGORITHM>_<macro>), library (name and pin), licence, jamfile (the target a program names), targets (where it builds), portable (whether the portable profile may choose it: present on every target).",
+        "backends[]": "Each library a function runs on: name (as cells name it), tag (its webcpp::hash::backends type, or null for a library without one in this increment: xkcp, blake3), macro (the word of WEBCPP_HASH_HAS_<macro>), library (name and pin), licence, jamfile (the target a program names), targets (where it builds).",
         "hmacs": "The hmac columns of a function over an hmac: the aliases of <webcpp/hash/hmac.hpp>, and \"other\", hmac<H> over any other Boost.Hash2 hash whose result is a digest.",
-        "algorithms[]": "One row group of spec 3.5: name, macro (the <ALGORITHM> of an override), tag (its kdfs:: type, or null), chapter (the documentation's chapter: digests, macs, kdfs, password_hashing, non-cryptographic), standard, overridable (whether default_backend chooses its backend, so that it has the overrides of detail/overrides.hpp), functions.",
-        "functions[]": "One public name: name, kind (\"type\": a Boost.Hash2-form type; \"function\": a function template with a Backend parameter), tag (the kdfs:: type of backend_has_v and default_backend, for a function), header, backends.",
+        "algorithms[]": "One row group of spec 3.5: name, macro (the algorithm's word in upper case), tag (its kdfs:: type, or null), chapter (the documentation's chapter: digests, macs, kdfs, password_hashing, non-cryptographic), standard, functions.",
+        "functions[]": "One public name: name, kind (\"type\": a Boost.Hash2-form type; \"function\": a function template with a Backend parameter), header, default (for a function, the backend default_backend names when the call names none; null for a type), backends.",
         "backends{}": "Per backend name, the cell: since (the increment it came with), hmacs (the columns it has, or null for a function or type that takes no hmac), constant_time {value: \"yes\", \"no\" or \"not stated\", source: where upstream says so, or what was read and says nothing}. A cell holds on every target of its backend."
     },
     "targets": [
@@ -29,8 +29,7 @@
                 "wasip2",
                 "wasip3",
                 "emscripten"
-            ],
-            "portable": true
+            ]
         },
         {
             "name": "xkcp",
@@ -44,8 +43,7 @@
                 "wasip2",
                 "wasip3",
                 "emscripten"
-            ],
-            "portable": true
+            ]
         },
         {
             "name": "blake3",
@@ -59,8 +57,7 @@
                 "wasip2",
                 "wasip3",
                 "emscripten"
-            ],
-            "portable": true
+            ]
         },
         {
             "name": "sodium",
@@ -74,8 +71,7 @@
                 "wasip2",
                 "wasip3",
                 "emscripten"
-            ],
-            "portable": true
+            ]
         },
         {
             "name": "bearssl",
@@ -89,8 +85,7 @@
                 "wasip2",
                 "wasip3",
                 "emscripten"
-            ],
-            "portable": true
+            ]
         },
         {
             "name": "openssl",
@@ -103,8 +98,7 @@
                 "native",
                 "wasip2",
                 "wasip3"
-            ],
-            "portable": false
+            ]
         }
     ],
     "hmacs": [
@@ -133,12 +127,12 @@
             "tag": null,
             "chapter": "digests",
             "standard": "RFC 1321, RFC 3174, FIPS 180-4",
-            "overridable": false,
             "functions": [
                 {
                     "name": "md5_128",
                     "kind": "type",
                     "header": "webcpp/hash/algorithms.hpp",
+                    "default": null,
                     "backends": {
                         "hash2": {
                             "since": 1,
@@ -154,6 +148,7 @@
                     "name": "sha1_160",
                     "kind": "type",
                     "header": "webcpp/hash/algorithms.hpp",
+                    "default": null,
                     "backends": {
                         "hash2": {
                             "since": 1,
@@ -169,6 +164,7 @@
                     "name": "sha2_224",
                     "kind": "type",
                     "header": "webcpp/hash/algorithms.hpp",
+                    "default": null,
                     "backends": {
                         "hash2": {
                             "since": 1,
@@ -184,6 +180,7 @@
                     "name": "sha2_256",
                     "kind": "type",
                     "header": "webcpp/hash/algorithms.hpp",
+                    "default": null,
                     "backends": {
                         "hash2": {
                             "since": 1,
@@ -199,6 +196,7 @@
                     "name": "sha2_384",
                     "kind": "type",
                     "header": "webcpp/hash/algorithms.hpp",
+                    "default": null,
                     "backends": {
                         "hash2": {
                             "since": 1,
@@ -214,6 +212,7 @@
                     "name": "sha2_512",
                     "kind": "type",
                     "header": "webcpp/hash/algorithms.hpp",
+                    "default": null,
                     "backends": {
                         "hash2": {
                             "since": 1,
@@ -229,6 +228,7 @@
                     "name": "sha2_512_224",
                     "kind": "type",
                     "header": "webcpp/hash/algorithms.hpp",
+                    "default": null,
                     "backends": {
                         "hash2": {
                             "since": 1,
@@ -244,6 +244,7 @@
                     "name": "sha2_512_256",
                     "kind": "type",
                     "header": "webcpp/hash/algorithms.hpp",
+                    "default": null,
                     "backends": {
                         "hash2": {
                             "since": 1,
@@ -263,12 +264,12 @@
             "tag": null,
             "chapter": "digests",
             "standard": "FIPS 202",
-            "overridable": false,
             "functions": [
                 {
                     "name": "sha3_224",
                     "kind": "type",
                     "header": "webcpp/hash/algorithms.hpp",
+                    "default": null,
                     "backends": {
                         "hash2": {
                             "since": 1,
@@ -284,6 +285,7 @@
                     "name": "sha3_256",
                     "kind": "type",
                     "header": "webcpp/hash/algorithms.hpp",
+                    "default": null,
                     "backends": {
                         "hash2": {
                             "since": 1,
@@ -299,6 +301,7 @@
                     "name": "sha3_384",
                     "kind": "type",
                     "header": "webcpp/hash/algorithms.hpp",
+                    "default": null,
                     "backends": {
                         "hash2": {
                             "since": 1,
@@ -314,6 +317,7 @@
                     "name": "sha3_512",
                     "kind": "type",
                     "header": "webcpp/hash/algorithms.hpp",
+                    "default": null,
                     "backends": {
                         "hash2": {
                             "since": 1,
@@ -329,6 +333,7 @@
                     "name": "shake_128",
                     "kind": "type",
                     "header": "webcpp/hash/algorithms.hpp",
+                    "default": null,
                     "backends": {
                         "hash2": {
                             "since": 1,
@@ -344,6 +349,7 @@
                     "name": "shake_256",
                     "kind": "type",
                     "header": "webcpp/hash/algorithms.hpp",
+                    "default": null,
                     "backends": {
                         "hash2": {
                             "since": 1,
@@ -363,12 +369,12 @@
             "tag": null,
             "chapter": "digests",
             "standard": "Keccak (the SHA-3 submission's padding), as Ethereum uses it",
-            "overridable": false,
             "functions": [
                 {
                     "name": "keccak_256",
                     "kind": "type",
                     "header": "webcpp/hash/keccak.hpp",
+                    "default": null,
                     "backends": {
                         "xkcp": {
                             "since": 1,
@@ -388,12 +394,12 @@
             "tag": null,
             "chapter": "digests",
             "standard": "RFC 7693",
-            "overridable": false,
             "functions": [
                 {
                     "name": "blake2b_512",
                     "kind": "type",
                     "header": "webcpp/hash/algorithms.hpp",
+                    "default": null,
                     "backends": {
                         "hash2": {
                             "since": 1,
@@ -409,6 +415,7 @@
                     "name": "blake2s_256",
                     "kind": "type",
                     "header": "webcpp/hash/algorithms.hpp",
+                    "default": null,
                     "backends": {
                         "hash2": {
                             "since": 1,
@@ -428,12 +435,12 @@
             "tag": null,
             "chapter": "digests",
             "standard": "the BLAKE3 specification (hash, keyed hash, derive_key, extendable output)",
-            "overridable": false,
             "functions": [
                 {
                     "name": "blake3",
                     "kind": "type",
                     "header": "webcpp/hash/blake3.hpp",
+                    "default": null,
                     "backends": {
                         "blake3": {
                             "since": 1,
@@ -453,12 +460,12 @@
             "tag": null,
             "chapter": "digests",
             "standard": "RIPEMD-128 and RIPEMD-160 (Dobbertin, Bosselaers, Preneel)",
-            "overridable": false,
             "functions": [
                 {
                     "name": "ripemd_128",
                     "kind": "type",
                     "header": "webcpp/hash/algorithms.hpp",
+                    "default": null,
                     "backends": {
                         "hash2": {
                             "since": 1,
@@ -474,6 +481,7 @@
                     "name": "ripemd_160",
                     "kind": "type",
                     "header": "webcpp/hash/algorithms.hpp",
+                    "default": null,
                     "backends": {
                         "hash2": {
                             "since": 1,
@@ -493,12 +501,12 @@
             "tag": null,
             "chapter": "macs",
             "standard": "SipHash-2-4 (siphash_64) and HalfSipHash-2-4 (siphash_32), Aumasson and Bernstein",
-            "overridable": false,
             "functions": [
                 {
                     "name": "siphash_32",
                     "kind": "type",
                     "header": "webcpp/hash/algorithms.hpp",
+                    "default": null,
                     "backends": {
                         "hash2": {
                             "since": 1,
@@ -514,6 +522,7 @@
                     "name": "siphash_64",
                     "kind": "type",
                     "header": "webcpp/hash/algorithms.hpp",
+                    "default": null,
                     "backends": {
                         "hash2": {
                             "since": 1,
@@ -533,12 +542,12 @@
             "tag": null,
             "chapter": "macs",
             "standard": "RFC 2104",
-            "overridable": false,
             "functions": [
                 {
                     "name": "hmac",
                     "kind": "type",
                     "header": "webcpp/hash/hmac.hpp",
+                    "default": null,
                     "backends": {
                         "hash2": {
                             "since": 1,
@@ -554,6 +563,7 @@
                     "name": "hmac_md5_128",
                     "kind": "type",
                     "header": "webcpp/hash/hmac.hpp",
+                    "default": null,
                     "backends": {
                         "hash2": {
                             "since": 1,
@@ -569,6 +579,7 @@
                     "name": "hmac_sha1_160",
                     "kind": "type",
                     "header": "webcpp/hash/hmac.hpp",
+                    "default": null,
                     "backends": {
                         "hash2": {
                             "since": 1,
@@ -584,6 +595,7 @@
                     "name": "hmac_sha2_224",
                     "kind": "type",
                     "header": "webcpp/hash/hmac.hpp",
+                    "default": null,
                     "backends": {
                         "hash2": {
                             "since": 1,
@@ -599,6 +611,7 @@
                     "name": "hmac_sha2_256",
                     "kind": "type",
                     "header": "webcpp/hash/hmac.hpp",
+                    "default": null,
                     "backends": {
                         "hash2": {
                             "since": 1,
@@ -614,6 +627,7 @@
                     "name": "hmac_sha2_384",
                     "kind": "type",
                     "header": "webcpp/hash/hmac.hpp",
+                    "default": null,
                     "backends": {
                         "hash2": {
                             "since": 1,
@@ -629,6 +643,7 @@
                     "name": "hmac_sha2_512",
                     "kind": "type",
                     "header": "webcpp/hash/hmac.hpp",
+                    "default": null,
                     "backends": {
                         "hash2": {
                             "since": 1,
@@ -644,6 +659,7 @@
                     "name": "hmac_sha2_512_224",
                     "kind": "type",
                     "header": "webcpp/hash/hmac.hpp",
+                    "default": null,
                     "backends": {
                         "hash2": {
                             "since": 1,
@@ -659,6 +675,7 @@
                     "name": "hmac_sha2_512_256",
                     "kind": "type",
                     "header": "webcpp/hash/hmac.hpp",
+                    "default": null,
                     "backends": {
                         "hash2": {
                             "since": 1,
@@ -674,6 +691,7 @@
                     "name": "hmac_sha3_224",
                     "kind": "type",
                     "header": "webcpp/hash/hmac.hpp",
+                    "default": null,
                     "backends": {
                         "hash2": {
                             "since": 1,
@@ -689,6 +707,7 @@
                     "name": "hmac_sha3_256",
                     "kind": "type",
                     "header": "webcpp/hash/hmac.hpp",
+                    "default": null,
                     "backends": {
                         "hash2": {
                             "since": 1,
@@ -704,6 +723,7 @@
                     "name": "hmac_sha3_384",
                     "kind": "type",
                     "header": "webcpp/hash/hmac.hpp",
+                    "default": null,
                     "backends": {
                         "hash2": {
                             "since": 1,
@@ -719,6 +739,7 @@
                     "name": "hmac_sha3_512",
                     "kind": "type",
                     "header": "webcpp/hash/hmac.hpp",
+                    "default": null,
                     "backends": {
                         "hash2": {
                             "since": 1,
@@ -734,6 +755,7 @@
                     "name": "hmac_ripemd_128",
                     "kind": "type",
                     "header": "webcpp/hash/hmac.hpp",
+                    "default": null,
                     "backends": {
                         "hash2": {
                             "since": 1,
@@ -749,6 +771,7 @@
                     "name": "hmac_ripemd_160",
                     "kind": "type",
                     "header": "webcpp/hash/hmac.hpp",
+                    "default": null,
                     "backends": {
                         "hash2": {
                             "since": 1,
@@ -764,6 +787,7 @@
                     "name": "hmac_blake2b_512",
                     "kind": "type",
                     "header": "webcpp/hash/hmac.hpp",
+                    "default": null,
                     "backends": {
                         "hash2": {
                             "since": 1,
@@ -779,6 +803,7 @@
                     "name": "hmac_blake2s_256",
                     "kind": "type",
                     "header": "webcpp/hash/hmac.hpp",
+                    "default": null,
                     "backends": {
                         "hash2": {
                             "since": 1,
@@ -798,12 +823,12 @@
             "tag": null,
             "chapter": "non-cryptographic",
             "standard": "FNV-1a, xxHash, XXH3, MurmurHash3, SpookyHash V2",
-            "overridable": false,
             "functions": [
                 {
                     "name": "fnv1a_32",
                     "kind": "type",
                     "header": "webcpp/hash/algorithms.hpp",
+                    "default": null,
                     "backends": {
                         "hash2": {
                             "since": 1,
@@ -819,6 +844,7 @@
                     "name": "fnv1a_64",
                     "kind": "type",
                     "header": "webcpp/hash/algorithms.hpp",
+                    "default": null,
                     "backends": {
                         "hash2": {
                             "since": 1,
@@ -834,6 +860,7 @@
                     "name": "xxhash_32",
                     "kind": "type",
                     "header": "webcpp/hash/algorithms.hpp",
+                    "default": null,
                     "backends": {
                         "hash2": {
                             "since": 1,
@@ -849,6 +876,7 @@
                     "name": "xxhash_64",
                     "kind": "type",
                     "header": "webcpp/hash/algorithms.hpp",
+                    "default": null,
                     "backends": {
                         "hash2": {
                             "since": 1,
@@ -864,6 +892,7 @@
                     "name": "xxh3_128",
                     "kind": "type",
                     "header": "webcpp/hash/algorithms.hpp",
+                    "default": null,
                     "backends": {
                         "hash2": {
                             "since": 1,
@@ -879,6 +908,7 @@
                     "name": "murmur3_32",
                     "kind": "type",
                     "header": "webcpp/hash/algorithms.hpp",
+                    "default": null,
                     "backends": {
                         "hash2": {
                             "since": 1,
@@ -894,6 +924,7 @@
                     "name": "murmur3_128",
                     "kind": "type",
                     "header": "webcpp/hash/algorithms.hpp",
+                    "default": null,
                     "backends": {
                         "hash2": {
                             "since": 1,
@@ -909,6 +940,7 @@
                     "name": "spooky2_128",
                     "kind": "type",
                     "header": "webcpp/hash/algorithms.hpp",
+                    "default": null,
                     "backends": {
                         "hash2": {
                             "since": 1,
@@ -928,13 +960,13 @@
             "tag": "kdfs::hkdf",
             "chapter": "kdfs",
             "standard": "RFC 5869",
-            "overridable": true,
             "functions": [
                 {
                     "name": "hkdf_extract",
                     "kind": "function",
                     "tag": "kdfs::hkdf_extract",
                     "header": "webcpp/hash/hkdf.hpp",
+                    "default": "hash2",
                     "backends": {
                         "hash2": {
                             "since": 1,
@@ -1004,6 +1036,7 @@
                     "kind": "function",
                     "tag": "kdfs::hkdf_expand",
                     "header": "webcpp/hash/hkdf.hpp",
+                    "default": "hash2",
                     "backends": {
                         "hash2": {
                             "since": 1,
@@ -1073,6 +1106,7 @@
                     "kind": "function",
                     "tag": "kdfs::hkdf",
                     "header": "webcpp/hash/hkdf.hpp",
+                    "default": "hash2",
                     "backends": {
                         "hash2": {
                             "since": 1,
@@ -1160,13 +1194,13 @@
             "tag": "kdfs::pbkdf2",
             "chapter": "kdfs",
             "standard": "RFC 8018",
-            "overridable": true,
             "functions": [
                 {
                     "name": "pbkdf2",
                     "kind": "function",
                     "tag": "kdfs::pbkdf2",
                     "header": "webcpp/hash/pbkdf2.hpp",
+                    "default": "hash2",
                     "backends": {
                         "hash2": {
                             "since": 1,
@@ -1228,13 +1262,13 @@
             "tag": "kdfs::argon2id",
             "chapter": "password_hashing",
             "standard": "RFC 9106, one lane",
-            "overridable": true,
             "functions": [
                 {
                     "name": "argon2id",
                     "kind": "function",
                     "tag": "kdfs::argon2id",
                     "header": "webcpp/hash/argon2.hpp",
+                    "default": "sodium",
                     "backends": {
                         "sodium": {
                             "since": 1,
@@ -1254,13 +1288,13 @@
             "tag": "kdfs::scrypt",
             "chapter": "password_hashing",
             "standard": "RFC 7914",
-            "overridable": true,
             "functions": [
                 {
                     "name": "scrypt",
                     "kind": "function",
                     "tag": "kdfs::scrypt",
                     "header": "webcpp/hash/scrypt.hpp",
+                    "default": "sodium",
                     "backends": {
                         "sodium": {
                             "since": 1,

@@ -172,7 +172,13 @@ struct scrypt_limits {
 */
 template <class Backend>
 struct argon2id_engine {
-    static_assert(always_false<Backend>,
+    // backends::sodium, the default, reaches this template only when the program does not link
+    // libsodium, whose header specialises it: the refusal is then sodium.hpp's own (spec 5.7).
+    static_assert(!std::is_same_v<Backend, backends::sodium>,
+                  "webcpp::hash: backends::sodium, argon2id and scrypt need libsodium. Add "
+                  "/third_party//sodium to the program's Jamfile: exe app : app.cpp "
+                  "/webcpp/hash//hash /third_party//sodium ;");
+    static_assert(std::is_same_v<Backend, backends::sodium>,
                   "webcpp::hash: argon2id is in backends::sodium alone. Name backends::sodium "
                   "and add /third_party//sodium to the program's Jamfile.");
 
@@ -205,7 +211,13 @@ struct argon2id_engine {
 */
 template <class Backend>
 struct scrypt_engine {
-    static_assert(always_false<Backend>,
+    // backends::sodium, the default, reaches this template only when the program does not link
+    // libsodium, whose header specialises it: the refusal is then sodium.hpp's own (spec 5.7).
+    static_assert(!std::is_same_v<Backend, backends::sodium>,
+                  "webcpp::hash: backends::sodium, argon2id and scrypt need libsodium. Add "
+                  "/third_party//sodium to the program's Jamfile: exe app : app.cpp "
+                  "/webcpp/hash//hash /third_party//sodium ;");
+    static_assert(std::is_same_v<Backend, backends::sodium>,
                   "webcpp::hash: scrypt is in backends::sodium alone. Name backends::sodium and "
                   "add /third_party//sodium to the program's Jamfile.");
 

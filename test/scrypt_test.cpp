@@ -224,8 +224,8 @@ void test_backend_failure() {
         refuses<test_backends::failing>({.n = 3, .r = 1, .p = 1}, hash::error::invalid_parameters));
 }
 
-// Without an override, scrypt's default backend is default_backend's choice for kdfs::scrypt, which
-// is backends::sodium in increment 1, the one backend that has it.
+// scrypt's default backend is default_backend's choice for kdfs::scrypt: backends::sodium, the one
+// backend that has it.
 static_assert(std::is_same_v<hash::default_backend<hash::kdfs::scrypt>, hash::backends::sodium>);
 static_assert(&hash::scrypt<> == &hash::scrypt<hash::backends::sodium>);
 

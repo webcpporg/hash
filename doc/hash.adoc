@@ -56,7 +56,7 @@ include::use-cases/cryptocurrencies.adoc[]
 
 include::use-cases/privacy.adoc[]
 
-include::profile.adoc[]
+include::choosing_backend.adoc[]
 
 include::departures.adoc[]
 

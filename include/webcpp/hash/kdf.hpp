@@ -5,8 +5,8 @@
 // https://www.boost.org/LICENSE_1_0.txt)
 
 /**
- What HKDF and PBKDF2 share: which backend has which key derivation over which hmac, and the
- backend a call uses when it names none.
+ What the key derivations share: which backend has which key derivation over which hmac, and
+ the backend a call uses when it names none.
 
  @see "Key derivation", in the guide.
 */
@@ -16,8 +16,6 @@
 #include <webcpp/hash/config.hpp>
 
 #include <webcpp/hash/detail/engines.hpp>
-#include <webcpp/hash/detail/overrides.hpp>
-#include <webcpp/hash/detail/ranking.hpp>
 #include <webcpp/hash/hmac.hpp>
 
 #include <type_traits>
@@ -173,170 +171,56 @@ inline constexpr bool linked_v<backends::openssl> = true;
 #endif
 
 /**
- The algorithm whose override `Algorithm` follows (spec 4.1): HKDF for its two steps, which an
- override of HKDF applies to both, else `Algorithm` itself. Its ranking is its own:
- `ranking<Algorithm, Hmac>` holds a row per operation.
+ The backend of `Algorithm` when the call names none (spec 4.1): backends::hash2, the one backend
+ that has every key derivation over every hmac on every target, header-only.
 
  @tparam Algorithm A tag of `kdfs`.
 */
 template <class Algorithm>
-struct algorithm_of {
-    /** The algorithm itself. */
-    using type = Algorithm;
+struct default_of {
+    /** backends::hash2. */
+    using type = backends::hash2;
 };
 
-/** HKDF-Extract follows HKDF's override. */
+/** Argon2id: backends::sodium, the one backend that has it. */
 template <>
-struct algorithm_of<kdfs::hkdf_extract> {
-    /** HKDF. */
-    using type = kdfs::hkdf;
+struct default_of<kdfs::argon2id> {
+    /** backends::sodium. */
+    using type = backends::sodium;
 };
 
-/** HKDF-Expand follows HKDF's override. */
+/** scrypt: backends::sodium, the one backend that has it. */
 template <>
-struct algorithm_of<kdfs::hkdf_expand> {
-    /** HKDF. */
-    using type = kdfs::hkdf;
-};
-
-/**
- The first of `Backends` for which `Keep<Backend>::value` holds, else `Fallback`.
-
- @tparam Keep A predicate over a backend. @tparam Fallback The answer when none holds.
- @tparam Backends The backends, in order.
-*/
-template <template <class> class Keep, class Fallback, class... Backends>
-struct first_where {
-    /** No backend kept: the fallback. */
-    using type = Fallback;
-};
-
-/** The head when it is kept, else the first of the rest. */
-template <template <class> class Keep, class Fallback, class Head, class... Tail>
-struct first_where<Keep, Fallback, Head, Tail...>
-    : std::conditional_t<Keep<Head>::value, std::type_identity<Head>,
-                         first_where<Keep, Fallback, Tail...>> {};
-
-/**
- The predicates of @ref first_serving over `Algorithm` and `Hmac`.
-
- @tparam Algorithm A tag of `kdfs`. @tparam Hmac The hmac, or `void`.
-*/
-template <class Algorithm, class Hmac>
-struct serves {
-    /** Whether `Backend` is linked and has `Algorithm` over `Hmac`. */
-    template <class Backend>
-    struct linked
-        : std::bool_constant<linked_v<Backend> && backend_has_v<Backend, Algorithm, Hmac>> {};
-
-    /** Whether `Backend` has `Algorithm` over `Hmac`, linked or not. */
-    template <class Backend>
-    struct any : std::bool_constant<backend_has_v<Backend, Algorithm, Hmac>> {};
-};
-
-/**
- The first backend of `List` that the program links and that has `Algorithm` over `Hmac`, so that
- an order that puts backends::bearssl first never makes `hkdf_extract` or `hkdf_expand` refuse. When
- no linked backend has it, the first of `List` that has it, whose engine then refuses with the line
- to add to the Jamfile; when none has it at all (an `Hmac` that is not a digest hmac),
- backends::hash2, so that @ref takes_hmac's refusal is the only error.
-
- @tparam Algorithm A tag of `kdfs`. @tparam Hmac The hmac, or `void`.
- @tparam List A @ref backend_list.
-*/
-template <class Algorithm, class Hmac, class List>
-struct first_serving;
-
-/** The selection over a @ref backend_list. */
-template <class Algorithm, class Hmac, class... Backends>
-struct first_serving<Algorithm, Hmac, backend_list<Backends...>>
-    : first_where<serves<Algorithm, Hmac>::template linked,
-                  typename first_where<serves<Algorithm, Hmac>::template any, backends::hash2,
-                                       Backends...>::type,
-                  Backends...> {};
-
-/**
- The backend a profile chooses for `Algorithm` over `Hmac` (spec 4.1). The primary template is
- `auto`'s: natively the fastest, on WebAssembly the smallest.
-
- @tparam Profile A tag of `detail::profiles`. @tparam Algorithm A tag of `kdfs`.
- @tparam Hmac The hmac, or `void`.
-*/
-template <class Profile, class Algorithm, class Hmac>
-struct profile_choice
-#ifdef WEBCPP_HASH_WEBASSEMBLY
-    : first_serving<Algorithm, Hmac, typename ranking<Algorithm, Hmac>::by_size> {
-};
-#else
-    : first_serving<Algorithm, Hmac, typename ranking<Algorithm, Hmac>::by_throughput> {
-};
-#endif
-
-/** The fastest on this target, by the measured order. */
-template <class Algorithm, class Hmac>
-struct profile_choice<profiles::fastest, Algorithm, Hmac>
-    : first_serving<Algorithm, Hmac, typename ranking<Algorithm, Hmac>::by_throughput> {};
-
-/** The smallest on this target, by the measured order. */
-template <class Algorithm, class Hmac>
-struct profile_choice<profiles::smallest, Algorithm, Hmac>
-    : first_serving<Algorithm, Hmac, typename ranking<Algorithm, Hmac>::by_size> {};
-
-/** The first of `portable_order` that serves. */
-template <class Algorithm, class Hmac>
-struct profile_choice<profiles::portable, Algorithm, Hmac>
-    : first_serving<Algorithm, Hmac, portable_order> {};
-
-/** The named backend when it is linked and has `Algorithm` over `Hmac`, else `auto`'s choice. */
-template <class Backend, class Algorithm, class Hmac>
-struct profile_choice<profiles::named<Backend>, Algorithm, Hmac>
-    : std::conditional_t<linked_v<Backend> && backend_has_v<Backend, Algorithm, Hmac>,
-                         std::type_identity<Backend>,
-                         profile_choice<profiles::automatic, Algorithm, Hmac>> {};
-
-/**
- The default of `Algorithm` over `Hmac`: the override's backend, else the profile's choice
- (spec 4.1's precedence: override, library profile, umbrella profile, auto).
-
- @tparam Algorithm A tag of `kdfs`. @tparam Hmac The hmac, or `void`.
-*/
-template <class Algorithm, class Hmac>
-struct default_choice {
-    /** The override's backend, or `void`. */
-    using overridden = override_choice<typename algorithm_of<Algorithm>::type>::type;
-    /** The chosen backend. */
-    using type =
-        std::conditional_t<std::is_void_v<overridden>,
-                           typename profile_choice<profile, Algorithm, Hmac>::type, overridden>;
+struct default_of<kdfs::scrypt> {
+    /** backends::sodium. */
+    using type = backends::sodium;
 };
 
 }  // namespace detail
 
 /**
- The backend a function of `Algorithm` uses when the call names none: the override's
- (`WEBCPP_HASH_DEFAULT_BACKEND_<ALGORITHM>_<NAME>`), else the profile's choice among the backends
- the program links that have `Algorithm` over `Hmac`, from the measured orders of
- `detail/ranking.hpp` (spec sections 4.1 and 4.2).
+ The backend a function of `Algorithm` uses when the call names none (spec 4.1).
 
- Chosen per function: `kdfs::hkdf_extract` and `kdfs::hkdf_expand` are never a backend that has
- HKDF only whole.
+ `backends::hash2` for `hkdf_extract`, `hkdf_expand`, `hkdf` and `pbkdf2`, on every target and
+ whatever the program links; `backends::sodium` for `argon2id` and `scrypt`, the one backend that
+ has them, which stops the build with the line to add to the Jamfile when the program does not
+ link libsodium. No define changes it: another backend is chosen by naming it in the call, as
+ `hkdf<hmac_sha2_256, backends::openssl>`.
 
  @tparam Algorithm A tag of `kdfs`: `hkdf`, `hkdf_extract`, `hkdf_expand`, `pbkdf2`, `argon2id`
  or `scrypt`.
- @tparam Hmac The hmac of a key derivation that takes one, else `void`.
+ @tparam Hmac The hmac of a key derivation that takes one, else `void`; it does not change the
+ answer.
 */
 template <class Algorithm, class Hmac = void>
-using default_backend = detail::default_choice<Algorithm, Hmac>::type;
+using default_backend = detail::default_of<Algorithm>::type;
 
 /**
  The backend `hkdf_extract`, `hkdf_expand`, `hkdf` and `pbkdf2` use when the program names none:
- @ref default_backend of `Kdf` over `Hmac`.
+ @ref default_backend of `Kdf`, `backends::hash2` on every target.
 
- Without a profile, natively the fastest linked backend, on WebAssembly the smallest, by the
- measured orders of `detail/ranking.hpp`, which the guide's measured table shows.
-
- @tparam Hmac A Boost.Hash2 hmac. @tparam Kdf `kdfs::hkdf` (the default), `kdfs::hkdf_extract`,
- `kdfs::hkdf_expand` or `kdfs::pbkdf2`.
+ @tparam Hmac A Boost.Hash2 hmac; it does not change the answer. @tparam Kdf `kdfs::hkdf` (the
+ default), `kdfs::hkdf_extract`, `kdfs::hkdf_expand` or `kdfs::pbkdf2`.
 */
 template <class Hmac, class Kdf = kdfs::hkdf>
 using default_kdf_backend = default_backend<Kdf, Hmac>;
