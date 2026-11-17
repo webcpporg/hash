@@ -120,6 +120,27 @@ the backends it lists as the second template argument.
 | Pass a tag of `digests`, `macs`, or `kdfs::argon2id` (`argon2i`,
 `argon2d`).
 
+| `backends::webcrypto` named in a synchronous function (`hkdf`, `pbkdf2`,
+`digest_of`, `mac`, ...)
+| WebCrypto is asynchronous: call `async_hkdf` (or `async_pbkdf2`,
+`async_digest`, `async_hmac`) with a completion token, or name a synchronous
+backend (<<hash-async>>).
+
+| `backends::webcrypto` named in an asynchronous function off Emscripten
+| It exists only on Emscripten: name a synchronous backend, or leave the
+default.
+
+| `async_argon2id`, `async_argon2`, `async_scrypt` or `async_pbkdf2` (on a
+synchronous backend) in a build without threads
+| They run on another thread: natively remove `WEBCPP_HASH_NO_THREADS`; on
+Emscripten link with `-pthread` (b2's `threading=multi`); on WASI call the
+synchronous function the message names.
+
+| `async_digest`, `async_hmac` or `async_hkdf` over an algorithm WebCrypto
+lacks
+| They take SHA-1, SHA-256, SHA-384 and SHA-512 (and HMAC and HKDF over them):
+call the synchronous function the message names.
+
 |===
 
 Every message is tested: each is a test of `test/messages/`, which compiles a

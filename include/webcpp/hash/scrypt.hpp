@@ -77,6 +77,50 @@ constexpr bool scrypt_valid_n(std::uint64_t cost_n, std::uint32_t block_size_r) 
     return block_size_r >= wide_block_size_r || cost_n < (std::uint64_t{1} << (16U * block_size_r));
 }
 
+/**
+ The guards of `scrypt` (spec 2.11), then `Backend`'s own limits, without the work: what
+ `async_scrypt` checks before it posts the work to another thread.
+
+ @tparam Backend The backend.
+ @param output_size The derived key's size. @param password_size The password's size.
+ @param salt_size The salt's size. @param cost_parameters The costs.
+ @return Success, or the error of the first guard that fails, as `scrypt` returns it.
+*/
+template <class Backend>
+[[nodiscard]] boost::system::result<void> scrypt_guards(
+    std::size_t output_size, std::size_t password_size, std::size_t salt_size,
+    scrypt_parameters const& cost_parameters) noexcept {
+    using engine = scrypt_engine<Backend>;
+    using limits = backend_limits<Backend>;
+    auto const [cost_n, block_size_r, parallelism_p] = cost_parameters;
+    if (output_size == 0 || exceeds(output_size, scrypt_max_output_size)) {
+        return error::invalid_output_size;
+    }
+    if (block_size_r == 0 || parallelism_p == 0 || !scrypt_valid_n(cost_n, block_size_r) ||
+        std::uint64_t{block_size_r} * parallelism_p >= scrypt_max_rp) {
+        return error::invalid_parameters;
+    }
+    // 128 r (N + p) bytes must fit size_t: N + p cannot wrap, N being at most 2^63.
+    constexpr std::uint64_t block_bytes_count = 128;
+    constexpr std::uint64_t size_max = std::numeric_limits<std::size_t>::max();
+    if (exceeds(cost_n + parallelism_p, size_max / block_bytes_count / block_size_r)) {
+        return error::invalid_parameters;
+    }
+    // The backend's own limits, where its C interface holds a length in a narrower type, after
+    // the spec's.
+    if (exceeds(cost_n, engine::limits.n)) {
+        return error::invalid_parameters;
+    }
+    if (exceeds(output_size, limits::scrypt_output)) {
+        return error::invalid_output_size;
+    }
+    if (exceeds(password_size, limits::scrypt_password) ||
+        exceeds(salt_size, limits::scrypt_salt)) {
+        return error::input_too_long;
+    }
+    return {};
+}
+
 }  // namespace detail
 
 /**
@@ -97,37 +141,14 @@ template <class Backend = default_backend<kdfs::scrypt>>
                                                  std::span<std::uint8_t const> password_bytes,
                                                  std::span<std::uint8_t const> salt_bytes,
                                                  scrypt_parameters const& cost_parameters) {
-    using engine = detail::scrypt_engine<Backend>;
-    using limits = detail::backend_limits<Backend>;
-    auto const [cost_n, block_size_r, parallelism_p] = cost_parameters;
-    if (output_bytes.empty() ||
-        detail::exceeds(output_bytes.size(), detail::scrypt_max_output_size)) {
-        return error::invalid_output_size;
+    auto guarded = detail::scrypt_guards<Backend>(output_bytes.size(), password_bytes.size(),
+                                                  salt_bytes.size(), cost_parameters);
+    if (!guarded) {
+        return guarded;
     }
-    if (block_size_r == 0 || parallelism_p == 0 || !detail::scrypt_valid_n(cost_n, block_size_r) ||
-        std::uint64_t{block_size_r} * parallelism_p >= detail::scrypt_max_rp) {
-        return error::invalid_parameters;
-    }
-    // 128 r (N + p) bytes must fit size_t: N + p cannot wrap, N being at most 2^63.
-    constexpr std::uint64_t block_bytes_count = 128;
-    constexpr std::uint64_t size_max = std::numeric_limits<std::size_t>::max();
-    if (detail::exceeds(cost_n + parallelism_p, size_max / block_bytes_count / block_size_r)) {
-        return error::invalid_parameters;
-    }
-    // The backend's own limits, where its C interface holds a length in a narrower type, after
-    // the spec's.
-    if (detail::exceeds(cost_n, engine::limits.n)) {
-        return error::invalid_parameters;
-    }
-    if (detail::exceeds(output_bytes.size(), limits::scrypt_output)) {
-        return error::invalid_output_size;
-    }
-    if (detail::exceeds(password_bytes.size(), limits::scrypt_password) ||
-        detail::exceeds(salt_bytes.size(), limits::scrypt_salt)) {
-        return error::input_too_long;
-    }
-    auto derive_result = engine::derive(output_bytes, password_bytes, salt_bytes, cost_n,
-                                        block_size_r, parallelism_p);
+    auto derive_result = detail::scrypt_engine<Backend>::derive(
+        output_bytes, password_bytes, salt_bytes, cost_parameters.n, cost_parameters.r,
+        cost_parameters.p);
     if (!derive_result) {
         detail::wipe(output_bytes);
     }

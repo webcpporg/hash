@@ -1,0 +1,161 @@
+// Copyright (c) 2026 WebCpp.org
+//
+// Distributed under the Boost Software License, Version 1.0. (See
+// accompanying file LICENSE_1_0.txt or copy at
+// https://www.boost.org/LICENSE_1_0.txt)
+
+[#hash-async]
+== Asynchronous calls
+
+Many programs are built around an event loop: a server that answers
+thousands of connections on a few threads, a browser page, a chat client
+that keeps its window responsive. Such a program must never wait inside a
+handler, because every other connection, every click and every animation
+waits with it. A password hash is made to be slow: Argon2id at libsodium's
+interactive costs takes a large fraction of a second, and called inside a
+handler it freezes everything else for that long, once per login. An
+attacker who sends many logins at once can then stall the whole service.
+
+`<webcpp/hash/async.hpp>` gives the functions of hash an asynchronous form in
+webcpp::asio's model: each starts the work and returns at once, and its
+completion arrives later through the event loop, with a
+`boost::system::error_code`. Each takes any completion token: a callback,
+`use_awaitable` for `co_await` in Asio, Cobalt's `use_op`, `use_future`. A
+program names `/webcpp/asio//asio` in its Jamfile and includes the header by
+itself: `<webcpp/hash.hpp>` leaves it out, so that a program without an event
+loop does not build webcpp::asio.
+
+The functions come in two kinds:
+
+* *The heavy functions*, `async_argon2id`, `async_argon2`, `async_scrypt`
+and `async_pbkdf2`, run the work on another thread, on an executor the program
+gives (a `webcpp::asio::thread_pool`'s), and complete on the event loop. They
+exist only where the build has threads.
+* *The cheap functions*, `async_digest`, `async_hmac` and `async_hkdf`, cost
+microseconds: they run at once and complete through the event loop, never
+inside the call. They exist on every target, for the algorithms the browser's
+WebCrypto has (SHA-1, SHA-256, SHA-384, SHA-512, and HMAC and HKDF over them),
+so that a program written once against WebCrypto's family builds and runs
+everywhere.
+
+Each runs, by default, on the synchronous function's backend
+(<<hash-default-backend>>): `backends::webcrypto`, the browser's WebCrypto, is
+used only when the type names it, on Emscripten.
+
+[#hash-async-heavy]
+=== The heavy functions on another thread
+
+The program keeps a thread pool for the slow work, and binds the completion
+to its event loop with `bind_executor`, so that the handler runs on the
+loop's thread. Here a timer of 1 ms on the loop fires while an Argon2id of
+64 MiB runs on the pool:
+
+[source]
+----
+include::{examples}/async_argon2id.cpp[tag=example,indent=0]
+----
+
+[listing]
+----
+include::{examples}/async_argon2id.expected[]
+----
+
+The function checks its guards first, as `argon2id` does; a refusal (here, a
+salt of another size than 16 bytes) completes through the event loop with
+its error, and nothing runs on the pool. Then the work runs on a thread of
+the pool, and the completion is dispatched to the handler's associated
+executor; while the operation is pending, the event loop has work, so its
+`run` does not return early. The result is the synchronous function's, byte
+for byte.
+
+Where the build has threads, `WEBCPP_HASH_HAS_THREADS` is defined:
+
+[cols="1,3"]
+|===
+| Target | The heavy functions
+
+| Native
+| Always: every native build has threads, b2's default `threading=single`
+included. A program that must never start work on another thread defines
+`WEBCPP_HASH_NO_THREADS`.
+
+| Emscripten
+| With `-pthread`, which b2's `threading=multi` adds: each thread of the pool
+is a Web Worker. A page needs cross-origin isolation for workers to share
+memory
+(https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/SharedArrayBuffer#security_requirements[MDN,
+SharedArrayBuffer's security requirements]); under node they run as they
+are. A program that blocks its main
+thread (`run`, `join`) links `-sPTHREAD_POOL_SIZE=<n>` so that the workers
+start before it blocks.
+
+| wasip2, wasip3
+| Never: wasip2 has no threads, and wasip3's threads are cooperative, so the
+work would still block the loop. Call the synchronous function.
+|===
+
+Without threads each name still exists, as a template whose call stops the
+build with "webcpp::hash: async_argon2id runs on another thread and needs a
+build with threads (...). Without threads, call argon2id.", so that a
+program never blocks its loop under an asynchronous name.
+
+*Pitfalls.*
+
+* *The spans are the caller's until the completion.* The output, the
+password and the salt are read and written on the pool's thread after the
+call has returned: keep them alive, and do not touch the output, until the
+handler runs. The parameters are copied.
+* *Bind the completion to the loop.* Without `bind_executor` the handler runs
+on the pool's thread, by Asio's rule (the handler's associated executor, else
+the one the call was given); code that touches the loop's state from there
+races with it.
+* *Cancellation does not interrupt the work.* A cancellation through the
+handler's slot before the work starts completes with `operation_aborted` and
+runs nothing; after it starts, the work runs to its end (libsodium cannot be
+interrupted), then the output is zeroed and the completion is
+`operation_aborted`.
+* *A pool sized for the costs.* Each Argon2id holds its memory on its thread
+until it ends: a pool of n threads can hold n times the memory at once. Size
+the pool to the memory the program may spend, not to the number of logins.
+* *`use_future` without exceptions.* An error completes a future with an
+exception; a program built without exceptions reads errors with a callback or
+`as_tuple`.
+
+[#hash-async-cheap]
+=== The cheap functions through the event loop
+
+`async_digest`, `async_hmac` and `async_hkdf` run the synchronous function at
+once, its guards first, and post the completion, with its error code, to the
+executor the call gives, whence it reaches the handler's associated executor.
+The completion never runs inside the call, so a handler written for the
+browser's WebCrypto, which always completes later, behaves the same on every
+target:
+
+[source]
+----
+include::{examples}/async_hkdf.cpp[tag=example,indent=0]
+----
+
+[listing]
+----
+include::{examples}/async_hkdf.expected[]
+----
+
+`async_hmac` takes a Boost.Hash2 hmac, as `async_hkdf` does
+(`async_hmac<hmac_sha2_256>`), and computes the tag of
+`mac<macs::hmac<digests::sha2_256>>`. A digest or an hmac WebCrypto lacks,
+as `async_digest<digests::blake2b>`, stops the build: a post would add nothing
+to the synchronous function.
+
+*Pitfalls.*
+
+* *The storage is the handler's.* The post allocates with the handler's
+associated allocator (`bind_allocator`), as every Asio operation does; a
+program that counts or pools its allocations binds its own.
+* *The same spans rule.* The output and the inputs are the caller's until the
+completion, even though the work runs before the call returns: a backend
+named in the type may run later (WebCrypto does).
+* *`backends::webcrypto` is for Emscripten.* Named off Emscripten, it stops
+the build: "webcpp::hash: backends::webcrypto exists only on Emscripten: name
+a synchronous backend, or leave the default." In a synchronous function it
+stops the build on every target, naming the asynchronous function to call.

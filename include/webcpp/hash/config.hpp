@@ -62,6 +62,25 @@
  b2 defines it to 1 itself. Refused on Emscripten, where OpenSSL is not built.
 */
 #define WEBCPP_HASH_HAS_OPENSSL 1
+/**
+ Defined where the heavy functions of `<webcpp/hash/async.hpp>` (`async_argon2id`, `async_argon2`,
+ `async_scrypt`, `async_pbkdf2` on a synchronous backend) run on another thread: natively, where
+ Boost.Config's `BOOST_HAS_THREADS` is defined (every native build, b2's `threading=single`
+ included), and on Emscripten built with `-pthread` (b2's `threading=multi`); never on wasip2 or
+ wasip3, whose cooperative threads do not run in parallel. Without it each of those names refuses
+ at compile time.
+
+ @see "Asynchronous calls", in the guide.
+*/
+#define WEBCPP_HASH_HAS_THREADS 1
+#undef WEBCPP_HASH_HAS_THREADS
+/**
+ Defined by the developer to leave `WEBCPP_HASH_HAS_THREADS` undefined in a build that has
+ threads: the heavy functions of `<webcpp/hash/async.hpp>` then refuse at compile time, so that no
+ call of the program can start a thread's work.
+*/
+#define WEBCPP_HASH_NO_THREADS
+#undef WEBCPP_HASH_NO_THREADS
 #endif
 
 #if !defined(WEBCPP_HAS_EXCEPTIONS) && !defined(WEBCPP_HASH_NO_EXCEPTIONS)
@@ -71,6 +90,15 @@
 #if defined(WEBCPP_TARGET_WASIP2) || defined(WEBCPP_TARGET_WASIP3) || \
     defined(WEBCPP_TARGET_EMSCRIPTEN)
 #define WEBCPP_HASH_WEBASSEMBLY 1
+#endif
+
+// Threads that run in parallel (spec 11.5, ruling R70): natively Boost.Config's BOOST_HAS_THREADS,
+// which <webcpp/config.hpp> has read; on Emscripten -pthread; never WASI, whose wasip3 threads are
+// cooperative (BOOST_HAS_THREADS is defined there too, so the target decides first).
+#if !defined(WEBCPP_HASH_NO_THREADS) &&                               \
+    ((defined(WEBCPP_TARGET_NATIVE) && defined(BOOST_HAS_THREADS)) || \
+     (defined(WEBCPP_TARGET_EMSCRIPTEN) && defined(__EMSCRIPTEN_PTHREADS__)))
+#define WEBCPP_HASH_HAS_THREADS 1
 #endif
 
 // The refusals of impossible combinations (spec 5.7). Clang and gcc go on after an #error, so
@@ -102,6 +130,12 @@ struct xkcp;
 */
 // NOLINTNEXTLINE(bugprone-forward-declaration-namespace): digests::blake3 is its namesake tag
 struct blake3;
+/**
+ WebCrypto, the browser's `SubtleCrypto` (Emscripten only): a backend of the asynchronous family of
+ `<webcpp/hash/async.hpp>` alone, named in the type, never a default. A synchronous function that
+ names it refuses at compile time, on every target; an asynchronous one refuses off Emscripten.
+*/
+struct webcrypto;
 
 }  // namespace webcpp::hash::backends
 

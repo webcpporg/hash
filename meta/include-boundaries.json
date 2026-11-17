@@ -88,6 +88,25 @@
             ],
             "must-not-include": ["xkcp", "blake3", "sodium", "bearssl"],
             "why": "backends::openssl links OpenSSL alone (spec sections 2.12 and 5.6)"
+        },
+        {
+            "headers": [
+                "include/webcpp/hash/async.hpp"
+            ],
+            "must-not-include": ["xkcp", "blake3", "sodium", "bearssl", "openssl/"],
+            "why": "the asynchronous family includes no C library's header: it calls the synchronous functions, whose headers bring a linked backend's under its WEBCPP_HASH_HAS_<NAME> (spec sections 2.13 and 11)"
+        },
+        {
+            "headers": [
+                "include/webcpp/hash.hpp",
+                "include/webcpp/hash/*.hpp",
+                "include/webcpp/hash/*/*.hpp"
+            ],
+            "except": [
+                "include/webcpp/hash/async.hpp"
+            ],
+            "must-not-include": ["webcpp/asio", "boost/asio"],
+            "why": "webcpp::asio is an optional heavy dependency: only the asynchronous family's header, which the convenience header leaves out, includes it (spec section 11.2, CODING-GUIDELINES.md chapter 3)"
         }
     ]
 }

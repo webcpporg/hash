@@ -8,14 +8,16 @@
 // backend_has_v agree on every cell, a function over an hmac (or over no hmac), or a family's tag,
 // for a backend; the file names exactly the backends, hmacs and functions this test knows, and a
 // row for each family tag that a backend has. Each default is default_backend's (null for a tag
-// with none). And each refusal text of the headers (spec 3.3) names exactly the backends of its
-// row: those that have the function it refuses, over the hmacs it is about, besides the refusing
-// backend itself; a family tag's text, read from the tag it names, those of the tag's row. Every
-// family tag has its refusal, and a "no default backend" text exactly when it has no default; where
-// a backend has a tag and the program links it, digest_of, hasher and mac compile and run on it.
+// with none), and default_async_backend's. And each refusal text of the headers (spec 3.3) names
+// exactly the backends of its row: those that have the function it refuses, over the hmacs it is
+// about, besides the refusing backend itself; a family tag's text, read from the tag it names,
+// those of the tag's row. Every family tag has its refusal, and a "no default backend" text exactly
+// when it has no default; where a backend has a tag and the program links it, digest_of, hasher and
+// mac compile and run on it.
 
 #include <webcpp/hash/algorithms.hpp>
 #include <webcpp/hash/argon2.hpp>
+#include <webcpp/hash/async.hpp>
 #include <webcpp/hash/blake3.hpp>
 #include <webcpp/hash/digest.hpp>
 #include <webcpp/hash/hmac.hpp>
@@ -281,6 +283,8 @@ void check_backend_fields(json::object const& table) {
 }
 
 // Each function's default, the backend default_backend names for its tag; a type row has none.
+// The asynchronous family's default is the same (design D35, ruling R76): the table has no column
+// of its own for it.
 template <class Function>
 void check_default(json::object const& table) {
     auto const& listed = function_row(table, function_name<Function>()).at("default");
@@ -288,6 +292,8 @@ void check_default(json::object const& table) {
     if (!BOOST_TEST(listed.is_string() && listed.as_string() == chosen)) {
         std::cerr << "  default of " << function_name<Function>() << '\n';
     }
+    BOOST_TEST(
+        (std::is_same_v<hash::default_async_backend<Function>, hash::default_backend<Function>>));
 }
 
 void check_defaults(json::object const& table) {
@@ -746,6 +752,69 @@ std::vector<refusal> const& refusals() {
             .hmacs = {},
         },
         {
+            .header = "detail/engines.hpp",
+            .start = "backends::webcrypto is asynchronous: call async_hkdf",
+            .backend = "webcrypto",
+            .functions = {},
+            .hmacs = {},
+        },
+        {
+            .header = "async.hpp",
+            .start = "backends::webcrypto exists only on Emscripten",
+            .backend = "webcrypto",
+            .functions = {},
+            .hmacs = {},
+        },
+        {
+            .header = "async.hpp",
+            .start = "async_digest takes digests::sha1, digests::sha2_256",
+            .backend = "",
+            .functions = {},
+            .hmacs = {},
+        },
+        {
+            .header = "async.hpp",
+            .start = "async_hmac takes hmac_sha1_160, hmac_sha2_256",
+            .backend = "",
+            .functions = {},
+            .hmacs = {},
+        },
+        {
+            .header = "async.hpp",
+            .start = "async_hkdf takes hmac_sha1_160, hmac_sha2_256",
+            .backend = "",
+            .functions = {},
+            .hmacs = {},
+        },
+        {
+            .header = "async.hpp",
+            .start = "async_pbkdf2 runs on another thread",
+            .backend = "",
+            .functions = {},
+            .hmacs = {},
+        },
+        {
+            .header = "async.hpp",
+            .start = "async_argon2id runs on another thread",
+            .backend = "",
+            .functions = {},
+            .hmacs = {},
+        },
+        {
+            .header = "async.hpp",
+            .start = "async_argon2 runs on another thread",
+            .backend = "",
+            .functions = {},
+            .hmacs = {},
+        },
+        {
+            .header = "async.hpp",
+            .start = "async_scrypt runs on another thread",
+            .backend = "",
+            .functions = {},
+            .hmacs = {},
+        },
+        {
             .header = "kdf.hpp",
             .start = "the key derivations take a Boost.Hash2 hmac",
             .backend = "",
@@ -958,6 +1027,7 @@ void check_family_tag(json::object const& table, std::vector<std::string> const&
     }(static_cast<backend_tags*>(nullptr));
 
     bool const no_default = std::is_same_v<hash::default_backend<Tag>, hash::detail::no_default>;
+    BOOST_TEST((std::is_same_v<hash::default_async_backend<Tag>, hash::default_backend<Tag>>));
     if (row != nullptr) {
         auto const& listed = row->at("default");
         bool const agrees =

@@ -130,8 +130,12 @@ struct backend_limits {
 */
 template <class Backend, class Hmac>
 struct hkdf_engine {
+    // clang-format off
+    static_assert(!std::is_same_v<Backend, backends::webcrypto>,
+                  "webcpp::hash: backends::webcrypto is asynchronous: call async_hkdf (or async_pbkdf2, async_digest, async_hmac) with a completion token, or name a synchronous backend.");
+    // clang-format on
     static_assert(
-        always_false<Backend>,
+        std::is_same_v<Backend, backends::webcrypto>,
         "webcpp::hash: this backend has no HKDF. The backends that have HKDF: "
         "backends::hash2 (every hmac), backends::openssl (every hmac but "
         "hmac_ripemd_128), backends::sodium (hmac_sha2_256, hmac_sha2_512) and "
@@ -155,7 +159,11 @@ struct hkdf_engine {
 */
 template <class Backend, class Hmac>
 struct pbkdf2_engine {
-    static_assert(always_false<Backend>,
+    // clang-format off
+    static_assert(!std::is_same_v<Backend, backends::webcrypto>,
+                  "webcpp::hash: backends::webcrypto is asynchronous: call async_hkdf (or async_pbkdf2, async_digest, async_hmac) with a completion token, or name a synchronous backend.");
+    // clang-format on
+    static_assert(std::is_same_v<Backend, backends::webcrypto>,
                   "webcpp::hash: this backend has no PBKDF2. The backends that have pbkdf2: "
                   "backends::hash2 (every hmac) and backends::openssl (every hmac but "
                   "hmac_ripemd_128).");
@@ -331,19 +339,22 @@ inline constexpr bool missing_library_v = library_backend_v<Backend> && !linked_
 
 /**
  Whether the refusal of a family's tag on `Backend` is another text than the tag's own "not in
- this backend": @ref needs_library's, for a library the program does not link, or the tag's "no
- default backend", for @ref no_default. Each tag's refusal states its text only when this is
- false, so that a refused call shows one message.
+ this backend": @ref needs_library's, for a library the program does not link or for
+ `backends::webcrypto`, which no synchronous function takes, or the tag's "no default backend",
+ for @ref no_default. Each tag's refusal states its text only when this is false, so that a
+ refused call shows one message.
 */
 template <class Backend>
 inline constexpr bool refused_elsewhere_v =
-    missing_library_v<Backend> || std::is_same_v<Backend, no_default>;
+    missing_library_v<Backend> || std::is_same_v<Backend, no_default> ||
+    std::is_same_v<Backend, backends::webcrypto>;
 
 /**
  Stops a call of the families on a C library's backend that the program does not link, with the
  Jamfile line to add (spec 5.7), whichever tag the call names: the backend's header, which holds
- its engines, is included only when the program links it. A base of each tag's refusal; it is
- empty for every other backend.
+ its engines, is included only when the program links it; and a call on `backends::webcrypto`,
+ which only the asynchronous family takes (spec 11.2), on every target. A base of each tag's
+ refusal; it is empty for every other backend.
 
  @tparam Backend A backend of `backends`.
 */
@@ -360,6 +371,8 @@ struct needs_library {
                   "webcpp::hash: backends::bearssl needs BearSSL. Add /third_party//bearssl to the program's Jamfile: exe app : app.cpp /webcpp/hash//hash /third_party//bearssl ;");
     static_assert(!(std::is_same_v<Backend, backends::openssl> && missing_library_v<Backend>),
                   "webcpp::hash: backends::openssl needs OpenSSL. Add /webcpp/hash//openssl to the program's Jamfile (native, wasip2 and wasip3): exe app : app.cpp /webcpp/hash//hash /webcpp/hash//openssl ;");
+    static_assert(!std::is_same_v<Backend, backends::webcrypto>,
+                  "webcpp::hash: backends::webcrypto is asynchronous: call async_hkdf (or async_pbkdf2, async_digest, async_hmac) with a completion token, or name a synchronous backend.");
     // clang-format on
 };
 

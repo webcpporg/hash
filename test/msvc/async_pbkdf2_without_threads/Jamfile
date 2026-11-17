@@ -1,0 +1,13 @@
+# Copyright (c) 2026 WebCpp.org
+#
+# Distributed under the Boost Software License, Version 1.0. (See
+# accompanying file LICENSE_1_0.txt or copy at
+# https://www.boost.org/LICENSE_1_0.txt)
+
+import webcpp ;
+
+webcpp.compile-fail async_pbkdf2_without_threads
+  : ../../messages/async_pbkdf2_without_threads/async_pbkdf2_without_threads.cpp
+  : <library>/webcpp/hash//hash <library>/webcpp/asio//asio
+    <define>WEBCPP_HASH_NO_THREADS
+  : native ;

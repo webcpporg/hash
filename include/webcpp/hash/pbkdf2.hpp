@@ -54,6 +54,43 @@
 
 namespace webcpp::hash {
 
+namespace detail {
+
+/**
+ The guards of `pbkdf2` (spec 2.9), then `Backend`'s own limits, without the work: what
+ `async_pbkdf2` checks before it posts the work to another thread.
+
+ @tparam Hmac A Boost.Hash2 hmac over a digest. @tparam Backend The backend.
+ @param output_size The derived key's size. @param password_size The password's size.
+ @param salt_size The salt's size. @param iteration_count The iteration count.
+ @return Success, or the error of the first guard that fails, as `pbkdf2` returns it.
+*/
+template <class Hmac, class Backend>
+[[nodiscard]] boost::system::result<void> pbkdf2_guards(std::size_t output_size,
+                                                        std::size_t password_size,
+                                                        std::size_t salt_size,
+                                                        std::uint64_t iteration_count) noexcept {
+    constexpr std::uint64_t digest_length = typename Hmac::result_type().size();
+    // RFC 8018 5.2, step 1: dkLen at most (2^32 - 1) * hLen, wider than size_t on wasm32.
+    if (output_size == 0 || exceeds(output_size, 0xffffffffULL * digest_length)) {
+        return error::invalid_output_size;
+    }
+    if (iteration_count == 0) {
+        return error::invalid_iterations;
+    }
+    using limits = backend_limits<Backend>;
+    if (exceeds(output_size, limits::pbkdf2_output)) {
+        return error::invalid_output_size;
+    }
+    if (exceeds(password_size, limits::pbkdf2_password) ||
+        exceeds(salt_size, limits::pbkdf2_salt)) {
+        return error::input_too_long;
+    }
+    return {};
+}
+
+}  // namespace detail
+
 /**
  PBKDF2 (RFC 8018, section 5.2): fills `output_bytes` from `password_bytes` and `salt_bytes` by
  `iteration_count` rounds of `Hmac`.
@@ -76,22 +113,10 @@ template <class Hmac, class Backend = default_kdf_backend<Hmac, kdfs::pbkdf2>>
     if constexpr (!detail::takes_hmac<Hmac>()) {
         return error::backend_failure;  // unreachable: takes_hmac has stopped the build
     } else {
-        constexpr std::uint64_t digest_length = typename Hmac::result_type().size();
-        // RFC 8018 5.2, step 1: dkLen at most (2^32 - 1) * hLen, wider than size_t on wasm32.
-        if (output_bytes.empty() ||
-            detail::exceeds(output_bytes.size(), 0xffffffffULL * digest_length)) {
-            return error::invalid_output_size;
-        }
-        if (iteration_count == 0) {
-            return error::invalid_iterations;
-        }
-        using limits = detail::backend_limits<Backend>;
-        if (detail::exceeds(output_bytes.size(), limits::pbkdf2_output)) {
-            return error::invalid_output_size;
-        }
-        if (detail::exceeds(password_bytes.size(), limits::pbkdf2_password) ||
-            detail::exceeds(salt_bytes.size(), limits::pbkdf2_salt)) {
-            return error::input_too_long;
+        auto guarded = detail::pbkdf2_guards<Hmac, Backend>(
+            output_bytes.size(), password_bytes.size(), salt_bytes.size(), iteration_count);
+        if (!guarded) {
+            return guarded;
         }
         auto derive_result = detail::pbkdf2_engine<Backend, Hmac>::derive(
             output_bytes, password_bytes, salt_bytes, iteration_count);
