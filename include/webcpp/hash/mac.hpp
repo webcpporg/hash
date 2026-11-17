@@ -80,7 +80,8 @@ struct mac_sizes {
      @return Success.
     */
     template <class Options>
-    static constexpr boost::system::result<void> check(Options const& /*options*/) noexcept {
+    [[nodiscard]] static constexpr boost::system::result<void> check(
+        Options const& /*options*/) noexcept {
         return {};
     }
 };

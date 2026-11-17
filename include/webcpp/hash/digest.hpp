@@ -90,7 +90,8 @@ struct fixed_output {
      @return Success.
     */
     template <class Options>
-    static constexpr boost::system::result<void> check(Options const& /*options*/) noexcept {
+    [[nodiscard]] static constexpr boost::system::result<void> check(
+        Options const& /*options*/) noexcept {
         return {};
     }
 };
@@ -123,7 +124,8 @@ struct extendable_output {
      @return Success.
     */
     template <class Options>
-    static constexpr boost::system::result<void> check(Options const& /*options*/) noexcept {
+    [[nodiscard]] static constexpr boost::system::result<void> check(
+        Options const& /*options*/) noexcept {
         return {};
     }
 };
@@ -245,8 +247,9 @@ struct digest_traits<digests::blake2b> : fixed_output<64> {
  @return Success, or the guard's error.
 */
 template <class Digest, class Engine>
-boost::system::result<void> check_output(std::size_t output_size, std::uint64_t min_size,
-                                         std::uint64_t max_size) noexcept {
+[[nodiscard]] boost::system::result<void> check_output(std::size_t output_size,
+                                                       std::uint64_t min_size,
+                                                       std::uint64_t max_size) noexcept {
     if (output_size < min_size || exceeds(output_size, max_size)) {
         return error::invalid_output_size;
     }
