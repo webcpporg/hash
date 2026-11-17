@@ -109,6 +109,20 @@ inline constexpr bool backend_has_v<Backend, kdfs::hkdf_expand, Hmac> =
 template <>
 inline constexpr bool backend_has_v<backends::sodium, kdfs::argon2id, void> = true;
 
+/**
+ backends::sodium has Argon2i for `argon2` (`crypto_pwhash_argon2i`), in part: one lane, no secret,
+ no associated data, a 16-byte salt, a tag of 16 bytes or more and at least 3 passes.
+*/
+template <>
+inline constexpr bool backend_has_v<backends::sodium, kdfs::argon2i, argon2_parameters> = true;
+
+/**
+ backends::sodium has Argon2id for `argon2` (`crypto_pwhash_argon2id`), in part: one lane, no
+ secret, no associated data, a 16-byte salt and a tag of 16 bytes or more.
+*/
+template <>
+inline constexpr bool backend_has_v<backends::sodium, kdfs::argon2id, argon2_parameters> = true;
+
 /** backends::sodium has scrypt (`crypto_pwhash_scryptsalsa208sha256_ll`), which takes no hmac. */
 template <>
 inline constexpr bool backend_has_v<backends::sodium, kdfs::scrypt, void> = true;

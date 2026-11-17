@@ -2026,6 +2026,49 @@
             ]
         },
         {
+            "name": "argon2",
+            "macro": "ARGON2",
+            "tag": null,
+            "chapter": "password_hashing",
+            "standard": "RFC 9106",
+            "functions": [
+                {
+                    "name": "kdfs::argon2i",
+                    "kind": "kdf",
+                    "header": "webcpp/hash/argon2.hpp",
+                    "default": "sodium",
+                    "backends": {
+                        "sodium": {
+                            "since": 2,
+                            "hmacs": null,
+                            "partial": "fewer than 3 passes, more than one lane, a secret, associated data, a salt other than 16 bytes or a tag under 16 bytes: libsodium's crypto_pwhash_argon2i takes none of them",
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "libsodium 1.0.22: its headers state constant time for comparisons (sodium/utils.h) alone, not for its hashing, MAC, key derivation and password hashing functions (crypto_hash_*, crypto_xof_*, crypto_generichash_*, crypto_shorthash_*, crypto_auth_*, crypto_kdf_*, crypto_pwhash_*)."
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "kdfs::argon2id",
+                    "kind": "kdf",
+                    "header": "webcpp/hash/argon2.hpp",
+                    "default": "sodium",
+                    "backends": {
+                        "sodium": {
+                            "since": 2,
+                            "hmacs": null,
+                            "partial": "more than one lane, a secret, associated data, a salt other than 16 bytes or a tag under 16 bytes: libsodium's crypto_pwhash_argon2id takes none of them",
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "libsodium 1.0.22: its headers state constant time for comparisons (sodium/utils.h) alone, not for its hashing, MAC, key derivation and password hashing functions (crypto_hash_*, crypto_xof_*, crypto_generichash_*, crypto_shorthash_*, crypto_auth_*, crypto_kdf_*, crypto_pwhash_*)."
+                            }
+                        }
+                    }
+                }
+            ]
+        },
+        {
             "name": "scrypt",
             "macro": "SCRYPT",
             "tag": "kdfs::scrypt",

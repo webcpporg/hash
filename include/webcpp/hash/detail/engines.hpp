@@ -1246,7 +1246,8 @@ template <class Backend>
 struct argon2_engine<Backend, kdfs::argon2i> : refused_argon2_engine<kdfs::argon2i>,
                                                needs_library<Backend> {
     static_assert(refused_elsewhere_v<Backend>,
-                  "webcpp::hash: kdfs::argon2i is in no backend yet.");
+                  "webcpp::hash: kdfs::argon2i is not in this backend. Name one of: "
+                  "backends::sodium.");
 };
 
 /** `kdfs::argon2id` on a backend without it (spec 3.3, design D34). */
@@ -1254,8 +1255,8 @@ template <class Backend>
 struct argon2_engine<Backend, kdfs::argon2id> : refused_argon2_engine<kdfs::argon2id>,
                                                 needs_library<Backend> {
     static_assert(refused_elsewhere_v<Backend>,
-                  "webcpp::hash: kdfs::argon2id is in no backend of argon2 yet: call the function "
-                  "argon2id.");
+                  "webcpp::hash: kdfs::argon2id is not in this backend. Name one of: "
+                  "backends::sodium.");
 };
 
 }  // namespace webcpp::hash::detail

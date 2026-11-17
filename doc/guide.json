@@ -1226,6 +1226,32 @@
                 {"text": "WireGuard's MAC", "source": "https://www.wireguard.com/protocol/"}
             ],
             "choose": "A fast keyed tag on 32-bit and small machines, without HMAC's two passes."
+        },
+        "kdfs::argon2i": {
+            "summary": "Argon2i (RFC 9106), Argon2's variant whose memory access does not depend on the password, as the tag of argon2: the passes, the memory, the lanes, a secret and associated data, on any backend that has them.",
+            "output": "4 to 2^32 - 1 bytes (16 or more on libsodium)",
+            "security": "each guess costs its memory and passes, but with few passes an attacker trades memory for time more cheaply than against Argon2id",
+            "status": "legacy",
+            "webcrypto": null,
+            "anchor": "hash-argon2-family",
+            "uses": [
+                {"text": "libsodium's crypto_pwhash_argon2i, its password hash before Argon2id", "source": "https://github.com/jedisct1/libsodium/blob/master/src/libsodium/include/sodium/crypto_pwhash_argon2i.h"},
+                {"text": "RFC 9106's variant for memory access independent of the secret, which it recommends only through Argon2id", "source": "https://www.rfc-editor.org/rfc/rfc9106#section-4"}
+            ],
+            "choose": "Only to check tags a system already stored with Argon2i; Argon2id for anything new."
+        },
+        "kdfs::argon2id": {
+            "summary": "Argon2id (RFC 9106) as the tag of argon2: the passes, the memory in KiB, the lanes, a secret (a pepper) and associated data, on any backend that has them; on libsodium the same tag as the function argon2id.",
+            "output": "4 to 2^32 - 1 bytes (16 or more on libsodium)",
+            "security": "each guess costs its memory and passes, on a GPU too",
+            "status": "recommended",
+            "webcrypto": null,
+            "anchor": "hash-argon2-family",
+            "uses": [
+                {"text": "RFC 9106's first recommendation for password hashing", "source": "https://www.rfc-editor.org/rfc/rfc9106#section-4"},
+                {"text": "OWASP's first choice for password storage", "source": "https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html"}
+            ],
+            "choose": "Storing passwords and deriving keys from them where a parameter beyond the function argon2id's is needed (lanes, a pepper, associated data); argon2id otherwise."
         }
     },
     "use_cases": [

@@ -14,16 +14,20 @@
  `sha3_256` and `sha3_512` over `crypto_hash_*`, the extendable-output functions
  `digests::shake_128`, `shake_256`, `turboshake_128` and `turboshake_256` over `crypto_xof_*`, and
  `macs::hmac` over `sha2_256` and `sha2_512` over `crypto_auth_hmacsha256_*` and
- `crypto_auth_hmacsha512_*`, built from source by `/third_party//sodium`, on every target. It
+ `crypto_auth_hmacsha512_*`, and the family `argon2`'s `kdfs::argon2i` and `kdfs::argon2id` over
+ `crypto_pwhash_argon2i` and `crypto_pwhash_argon2id` (one lane, no secret, no associated data,
+ Argon2i from 3 passes), built from source by `/third_party//sodium`, on every target. It
  has HKDF over `hmac_sha2_256` and `hmac_sha2_512` alone, and no PBKDF2; every other hmac and
  PBKDF2 refuse at compile time with spec 3.3's texts.
 
- Its limits beyond the spec's: scrypt's N at most 4,294,967,295 (libsodium refuses a larger one).
+ Its limits beyond the spec's: scrypt's N at most 4,294,967,295 (libsodium refuses a larger one);
+ `argon2`'s values libsodium does not take, which the family answers with
+ `unsupported_by_backend`.
  Argon2's core holds the password's, salt's and tag's lengths in `uint32_t`, which spec 2.10's own
  guards already keep within (this header checks that they agree), and webcpp passes no secret or
  associated data; scrypt's and HKDF's lengths are `size_t`.
 
- On Emscripten `/third_party//sodium` links a program with `-sALLOW_MEMORY_GROWTH=1`: Argon2id and
+ On Emscripten `/third_party//sodium` links a program with `-sALLOW_MEMORY_GROWTH=1`: Argon2 and
  scrypt allocate the memory their costs name, past Emscripten's fixed 16 MiB.
 
  Every engine function calls `sodium_init()` first (it returns 0 the first time and 1 after,
@@ -66,6 +70,8 @@
 #include <sodium/crypto_kdf_blake2b.h>                  // the same
 #include <sodium/crypto_kdf_hkdf_sha256.h>              // the same
 #include <sodium/crypto_kdf_hkdf_sha512.h>              // the same
+#include <sodium/crypto_pwhash.h>                       // the same
+#include <sodium/crypto_pwhash_argon2i.h>               // the same
 #include <sodium/crypto_pwhash_argon2id.h>              // the same
 #include <sodium/crypto_pwhash_scryptsalsa208sha256.h>  // the same
 #include <sodium/crypto_shorthash_siphash24.h>          // the same
@@ -929,6 +935,70 @@ struct argon2id_engine<backends::sodium> {
     }
 };
 
+/**
+ Argon2 of one variant on backends::sodium, for the family `argon2` (the engine's interface:
+ @ref argon2_engine): libsodium's `crypto_pwhash_argon2i` or `crypto_pwhash_argon2id`, version
+ 0x13, which take one lane, no secret, no associated data, a 16-byte salt and a tag of 16 bytes or
+ more; `argon2` answers every other value with `error::unsupported_by_backend` before the call.
+
+ @tparam MinPasses libsodium's `_OPSLIMIT_MIN` of the variant. @tparam MaxMemory libsodium's
+ `_MEMLIMIT_MAX` of the variant, in bytes. @tparam Algorithm libsodium's `_ALG_*` of the variant.
+ @tparam Hash libsodium's `crypto_pwhash_argon2i` or `crypto_pwhash_argon2id`.
+*/
+template <std::uint32_t MinPasses, std::size_t MaxMemory, int Algorithm,
+          int (*Hash)(unsigned char*, unsigned long long, char const*, unsigned long long,
+                      unsigned char const*, unsigned long long, std::size_t, int)>
+struct sodium_argon2_engine {
+    /** One lane, no secret, no associated data, libsodium's salt and shortest tag. */
+    static constexpr argon2_limits limits{
+        .min_passes = MinPasses,
+        .max_memory_kib = static_cast<std::uint32_t>(MaxMemory / argon2id_memory_unit),
+        .max_lanes = 1,
+        .min_output = argon2id_min_output_size,
+        .min_salt = argon2id_salt_size,
+        .max_salt = argon2id_salt_size,
+        .secret = false,
+        .associated_data = false,
+    };
+
+    /**
+     The tag, by libsodium, which computes it in a buffer of its own that it wipes; webcpp holds no
+     copy of a secret.
+
+     @param output The tag. @param password The password. @param salt The 16-byte salt.
+     @param parameters The passes and the memory in KiB, within `limits`.
+     @return Success, `errc::not_enough_memory` or `error::backend_failure`.
+    */
+    [[nodiscard]] static boost::system::result<void> derive(
+        std::span<std::uint8_t> output, std::span<std::uint8_t const> password,
+        std::span<std::uint8_t const> salt, argon2_parameters const& parameters) noexcept {
+        if (!sodium_ready()) {
+            return error::backend_failure;
+        }
+        errno = 0;
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): libsodium types it char
+        auto const* const password_chars = reinterpret_cast<char const*>(nonnull(password));
+        // limits holds the memory to MaxMemory, a size_t, so the bytes never wrap.
+        int const status_code =
+            Hash(output.data(), output.size(), password_chars, password.size(), salt.data(),
+                 parameters.passes, std::size_t{parameters.memory_kib} * argon2id_memory_unit,
+                 Algorithm);
+        return sodium_pwhash_status(status_code, errno);
+    }
+};
+
+/** Argon2i on backends::sodium: `crypto_pwhash_argon2i`, from 3 passes. */
+template <>
+struct argon2_engine<backends::sodium, kdfs::argon2i>
+    : sodium_argon2_engine<crypto_pwhash_argon2i_OPSLIMIT_MIN, crypto_pwhash_argon2i_MEMLIMIT_MAX,
+                           crypto_pwhash_argon2i_ALG_ARGON2I13, &crypto_pwhash_argon2i> {};
+
+/** Argon2id on backends::sodium: `crypto_pwhash_argon2id`, the function `argon2id`'s. */
+template <>
+struct argon2_engine<backends::sodium, kdfs::argon2id>
+    : sodium_argon2_engine<crypto_pwhash_argon2id_OPSLIMIT_MIN, crypto_pwhash_argon2id_MEMLIMIT_MAX,
+                           crypto_pwhash_argon2id_ALG_ARGON2ID13, &crypto_pwhash_argon2id> {};
+
 /** scrypt on backends::sodium: `crypto_pwhash_scryptsalsa208sha256_ll`. */
 template <>
 struct scrypt_engine<backends::sodium> {
@@ -982,6 +1052,18 @@ static_assert(argon2id_min_passes == crypto_pwhash_argon2id_OPSLIMIT_MIN);
 static_assert(argon2id_max_passes == crypto_pwhash_argon2id_OPSLIMIT_MAX);
 static_assert(argon2id_min_memory == crypto_pwhash_argon2id_MEMLIMIT_MIN);
 static_assert(crypto_pwhash_argon2id_MEMLIMIT_MAX % argon2id_memory_unit == 0);
+// The family's Argon2i is libsodium's crypto_pwhash with crypto_pwhash_ALG_ARGON2I13, on the
+// bounds argon2id's guards already hold for Argon2id.
+static_assert(crypto_pwhash_ALG_ARGON2I13 == crypto_pwhash_argon2i_ALG_ARGON2I13);
+static_assert(argon2id_salt_size == crypto_pwhash_argon2i_SALTBYTES);
+static_assert(argon2id_min_output_size == crypto_pwhash_argon2i_BYTES_MIN);
+static_assert(argon2id_min_memory == crypto_pwhash_argon2i_MEMLIMIT_MIN);
+static_assert(argon2id_max_size == crypto_pwhash_argon2i_PASSWD_MAX);
+static_assert(argon2id_max_passes == crypto_pwhash_argon2i_OPSLIMIT_MAX);
+static_assert(crypto_pwhash_argon2i_MEMLIMIT_MAX % argon2id_memory_unit == 0);
+// The memory in KiB fits argon2_limits' uint32_t: 2^32 - 1 KiB natively, 2 GiB on wasm32.
+static_assert(crypto_pwhash_argon2i_MEMLIMIT_MAX / argon2id_memory_unit <= 0xffffffffU);
+static_assert(crypto_pwhash_argon2id_MEMLIMIT_MAX / argon2id_memory_unit <= 0xffffffffU);
 
 }  // namespace detail
 

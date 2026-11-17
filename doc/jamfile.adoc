@@ -29,7 +29,7 @@ sources, for the program's target:
 | every target
 
 | `argon2id`, `scrypt`, `blake2b_subkey`, or HKDF, BLAKE2b, SipHash, SHA-2,
-SHA-3, SHAKE, TurboSHAKE and HMAC on `backends::sodium`
+SHA-3, SHAKE, TurboSHAKE, HMAC and `argon2` on `backends::sodium`
 | `/third_party//sodium`
 | every target
 

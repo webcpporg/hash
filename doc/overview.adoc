@@ -49,6 +49,9 @@ hashes, HMAC
 | Argon2id (RFC 9106, parallelism 1)
 | libsodium's `crypto_pwhash_argon2id`
 
+| Argon2i and Argon2id with the parameters of RFC 9106 (`argon2`)
+| libsodium's `crypto_pwhash_argon2i` and `crypto_pwhash_argon2id`, one lane
+
 | scrypt (RFC 7914)
 | libsodium's `crypto_pwhash_scryptsalsa208sha256_ll`
 

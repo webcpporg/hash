@@ -265,6 +265,13 @@ hash-run argon2id : argon2id_test.cpp
 hash-run argon2id_interactive : argon2id_interactive_test.cpp
   : <library>/third_party//sodium <library>/third_party//sodium-test-config ;
 
+# The family argon2 on backends::sodium (Argon2i and Argon2id, one lane):
+# three cases of libsodium's Argon2i table, read from pwhash_argon2i.exp, both
+# variants against argon2_ctx, and the values libsodium does not take.
+hash-run argon2_sodium : argon2_sodium_test.cpp
+  : <library>/third_party//sodium <library>/third_party//sodium-test-config
+    <library>/third_party//sodium_vectors ;
+
 # scrypt on backends::sodium: RFC 7914's first three cases and the guards.
 hash-run scrypt : scrypt_test.cpp : <library>/third_party//sodium ;
 # RFC 7914's fourth case (1 GiB), on every target: it passed natively and on

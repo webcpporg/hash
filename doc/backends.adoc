@@ -747,6 +747,18 @@ states about its constant time. The backends:
 | not stated
 | native, wasip2, wasip3, emscripten
 
+| kdfs::argon2i
+| sodium (partial: fewer than 3 passes, more than one lane, a secret, associated data, a salt other than 16 bytes or a tag under 16 bytes: libsodium's crypto_pwhash_argon2i takes none of them)
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| kdfs::argon2id
+| sodium (partial: more than one lane, a secret, associated data, a salt other than 16 bytes or a tag under 16 bytes: libsodium's crypto_pwhash_argon2id takes none of them)
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
 | scrypt
 | sodium
 | -
@@ -895,6 +907,12 @@ The backend a call that names none uses, on every target, whatever the program l
 | sodium
 
 | argon2id
+| sodium
+
+| kdfs::argon2i
+| sodium
+
+| kdfs::argon2id
 | sodium
 
 | scrypt
