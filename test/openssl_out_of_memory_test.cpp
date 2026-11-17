@@ -205,10 +205,11 @@ int main() {
         (CRYPTO_set_mem_functions(&failing_malloc, &failing_realloc, &failing_free) == 1)));
     check_macs();
     check_digests();
-    std::cout << "failing allocations answered: " << out_of_memory << " not_enough_memory, "
-              << backend_failures << " backend_failure\n";
     // OpenSSL's allocation failure is the last error of some failing calls: the mapping to
-    // not_enough_memory is reached.
-    BOOST_TEST(out_of_memory > 0);
+    // not_enough_memory is reached. The counts are printed only when it is not.
+    if (!BOOST_TEST(out_of_memory > 0)) {
+        std::cerr << "  failing allocations answered: " << out_of_memory << " not_enough_memory, "
+                  << backend_failures << " backend_failure\n";
+    }
     return webcpp::test::exit_status(boost::report_errors());
 }
