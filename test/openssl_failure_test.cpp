@@ -6,11 +6,13 @@
 
 // A failure of OpenSSL (spec sections 2.8 and 7.5), provoked through the seam
 // WEBCPP_HASH_DETAIL_TEST_OPENSSL_DIGEST, which the test's Jamfile defines to "NO-SUCH-DIGEST", a
-// digest OpenSSL cannot fetch: every function returns backend_failure, hkdf_expand, hkdf and pbkdf2
-// zero their output, and the thread's error queue is left as it was found, empty or holding an
-// entry of the caller's. A guard's refusal still comes first.
+// digest OpenSSL cannot fetch: every function returns backend_failure, hkdf_expand, hkdf, pbkdf2
+// and digest_of zero their output, hasher::make makes no hasher, and the thread's error queue is
+// left as it was found, empty or holding an entry of the caller's. A guard's refusal still comes
+// first.
 
 #include <webcpp/hash/backends/openssl.hpp>
+#include <webcpp/hash/digest.hpp>
 #include <webcpp/hash/error.hpp>
 #include <webcpp/hash/hkdf.hpp>
 #include <webcpp/hash/hmac.hpp>
@@ -55,7 +57,7 @@ std::size_t drain(unsigned long& first) {
     return count;
 }
 
-/** Each of the four functions once, on OpenSSL, each failing. */
+/** Each of the four key derivations, and the digests, once, on OpenSSL, each failing. */
 void fail_each() {
     std::array<std::uint8_t, 13> const salt{1, 2, 3};
     std::array<std::uint8_t, 22> const ikm{4, 5, 6};
@@ -80,6 +82,20 @@ void fail_each() {
     failed = hash::pbkdf2<hmac, openssl>(output, ikm, salt, 2);
     BOOST_TEST(failed.has_error() && failed.error() == hash::error::backend_failure);
     BOOST_TEST(all_of(output, 0));
+
+    // The digests fetch their EVP_MD by the same seam: digest_of zeroes its output (a fixed size
+    // and SHAKE's), and hasher::make answers the failure.
+    std::array<std::uint8_t, 32> digest{};
+    digest.fill(untouched);
+    failed = hash::digest_of<hash::digests::sha2_256, openssl>(digest, ikm);
+    BOOST_TEST(failed.has_error() && failed.error() == hash::error::backend_failure);
+    BOOST_TEST(all_of(digest, 0));
+    digest.fill(untouched);
+    failed = hash::digest_of<hash::digests::shake_256, openssl>(digest, ikm);
+    BOOST_TEST(failed.has_error() && failed.error() == hash::error::backend_failure);
+    BOOST_TEST(all_of(digest, 0));
+    auto const made = hash::hasher<hash::digests::sm3, openssl>::make();
+    BOOST_TEST(made.has_error() && made.error() == hash::error::backend_failure);
 
     // A guard's refusal reaches no backend: the output is untouched.
     output.fill(untouched);

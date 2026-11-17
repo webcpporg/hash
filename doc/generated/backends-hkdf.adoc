@@ -91,4 +91,6 @@ What each backend states on constant time, as the capability table read it:
 * `openssl`: OpenSSL 3.5.9: doc/man7/EVP_KDF-HKDF.pod and EVP_KDF-PBKDF2.pod state no constant-time property.
 * `sodium`: libsodium 1.0.22: its headers state constant time for comparisons (sodium/utils.h) alone, not for its hashing, key derivation and password hashing functions (crypto_generichash_*, crypto_shorthash_*, crypto_kdf_*, crypto_pwhash_*).
 
-The default of `hkdf_extract`, `hkdf_expand` and `hkdf`: `hash2` on every target, whatever the program links; `bearssl`, `openssl`, `sodium` only where the call names it, as its second template argument (<<hash-default-backend>>).
+The default of `hkdf_extract` and `hkdf_expand`: `hash2` on every target, whatever the program links; `openssl`, `sodium` only where the call names it, as its second template argument (<<hash-default-backend>>).
+
+The default of `hkdf`: `hash2` on every target, whatever the program links; `bearssl`, `openssl`, `sodium` only where the call names it, as its second template argument (<<hash-default-backend>>).

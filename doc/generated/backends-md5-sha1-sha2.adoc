@@ -8,7 +8,7 @@
 
 
 [#hash-backends-of-md5-sha1-sha2]
-.Who implements `md5_128` to `digests::sha2_512_256`, 16 names (RFC 1321, RFC 3174, FIPS 180-4)
+.Who implements `md5_128` to `digests::md5_sha1`, 17 names (RFC 1321, RFC 3174, FIPS 180-4)
 [cols="2,1,2,2,3,1",options="header"]
 |===
 | Function | Backend | The program's Jamfile names | Targets | Hmacs | Constant time
@@ -76,10 +76,24 @@
 | -
 | not stated
 
+| `digests::md5`
+| `openssl`
+| `/webcpp/hash//openssl`
+| native, wasip2, wasip3
+| -
+| not stated
+
 | `digests::sha1`
 | `hash2`
 | `/webcpp/hash//hash`
 | native, wasip2, wasip3, emscripten
+| -
+| not stated
+
+| `digests::sha1`
+| `openssl`
+| `/webcpp/hash//openssl`
+| native, wasip2, wasip3
 | -
 | not stated
 
@@ -90,10 +104,24 @@
 | -
 | not stated
 
+| `digests::sha2_224`
+| `openssl`
+| `/webcpp/hash//openssl`
+| native, wasip2, wasip3
+| -
+| not stated
+
 | `digests::sha2_256`
 | `hash2`
 | `/webcpp/hash//hash`
 | native, wasip2, wasip3, emscripten
+| -
+| not stated
+
+| `digests::sha2_256`
+| `openssl`
+| `/webcpp/hash//openssl`
+| native, wasip2, wasip3
 | -
 | not stated
 
@@ -104,10 +132,24 @@
 | -
 | not stated
 
+| `digests::sha2_384`
+| `openssl`
+| `/webcpp/hash//openssl`
+| native, wasip2, wasip3
+| -
+| not stated
+
 | `digests::sha2_512`
 | `hash2`
 | `/webcpp/hash//hash`
 | native, wasip2, wasip3, emscripten
+| -
+| not stated
+
+| `digests::sha2_512`
+| `openssl`
+| `/webcpp/hash//openssl`
+| native, wasip2, wasip3
 | -
 | not stated
 
@@ -118,10 +160,31 @@
 | -
 | not stated
 
+| `digests::sha2_512_224`
+| `openssl`
+| `/webcpp/hash//openssl`
+| native, wasip2, wasip3
+| -
+| not stated
+
 | `digests::sha2_512_256`
 | `hash2`
 | `/webcpp/hash//hash`
 | native, wasip2, wasip3, emscripten
+| -
+| not stated
+
+| `digests::sha2_512_256`
+| `openssl`
+| `/webcpp/hash//openssl`
+| native, wasip2, wasip3
+| -
+| not stated
+
+| `digests::md5_sha1`
+| `openssl`
+| `/webcpp/hash//openssl`
+| native, wasip2, wasip3
 | -
 | not stated
 |===
@@ -129,5 +192,8 @@
 What each backend states on constant time, as the capability table read it:
 
 * `hash2`: Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property.
+* `openssl`: OpenSSL 3.5.9: doc/man7/EVP_MD-*.pod, doc/man3/EVP_DigestInit.pod and providers/implementations/digests/ state no constant-time property.
 
-The default of `digests::md5`, `digests::sha1`, `digests::sha2_224`, `digests::sha2_256`, `digests::sha2_384`, `digests::sha2_512`, `digests::sha2_512_224` and `digests::sha2_512_256`: `hash2` on every target, whatever the program links (<<hash-default-backend>>).
+`digests::md5_sha1` has no default backend: the call names one of its backends (<<hash-default-backend>>).
+
+The default of `digests::md5`, `digests::sha1`, `digests::sha2_224`, `digests::sha2_256`, `digests::sha2_384`, `digests::sha2_512`, `digests::sha2_512_224` and `digests::sha2_512_256`: `hash2` on every target, whatever the program links; `openssl` only where the call names it, as its second template argument (<<hash-default-backend>>).

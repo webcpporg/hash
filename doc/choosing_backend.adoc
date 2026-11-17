@@ -100,7 +100,10 @@ call until it is reused. BearSSL allocates nothing.
 | OpenSSL allocates a KDF and a context in every call, through its own
 allocator, and frees both before the call returns. It clears the key (HKDF's
 IKM or PRK, PBKDF2's password) and the info when it frees the context; it
-frees the salt without clearing it. Its first call reads OpenSSL's
+frees the salt without clearing it. A digest allocates an `EVP_MD_CTX` and
+the digest's own context: `digest_of` frees both before it returns, a
+`hasher` owns them from `make` until it finishes, is destroyed or is moved
+from, and OpenSSL clears both when it frees them. Its first call reads OpenSSL's
 configuration file. It holds some lengths in an `int`, so hash refuses, before
 OpenSSL is called, a PBKDF2 output (`invalid_output_size`), a PBKDF2 password
 or salt, or an HKDF salt (`input_too_long`) of more than `INT_MAX` bytes. It

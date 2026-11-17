@@ -204,6 +204,15 @@ hash-run openssl_failure : openssl_failure_test.cpp
   : <library>/webcpp/hash//openssl
     <define>"\"WEBCPP_HASH_DETAIL_TEST_OPENSSL_DIGEST=\\\"NO-SUCH-DIGEST\\\"\""
   : native wasip2 wasip3 ;
+# The digests of backends::openssl (OpenSSL 3.5.9's EVP_MD), through digest_of
+# and hasher: Boost.Hash2's digests, Keccak-224 to Keccak-512 and SHAKE against
+# Boost.Hash2, Keccak-256 against backends::xkcp, BLAKE2b against
+# backends::sodium, the published Keccak and SM3 (GB/T 32905) values, and the
+# hasher's EVP_MD_CTX freed, counted through CRYPTO_set_mem_functions.
+hash-run digests_openssl : digests_openssl_test.cpp
+  : <library>/webcpp/hash//openssl <library>/third_party//xkcp
+    <library>/third_party//sodium
+  : native wasip2 wasip3 ;
 # backends::openssl's limits (OpenSSL holds some lengths in an int), natively:
 # spans of INT_MAX + 1 bytes over a few, which the guards refuse before
 # anything reads them.

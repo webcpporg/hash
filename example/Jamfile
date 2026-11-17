@@ -22,6 +22,8 @@ webcpp.example blake2b.cpp ;
 webcpp.example blake2b_options.cpp : <library>/third_party//sodium ;
 webcpp.example blake3.cpp : <library>/third_party//blake3 ;
 webcpp.example ripemd160.cpp ;
+# OpenSSL is built for native, wasip2 and wasip3, never for Emscripten.
+webcpp.example sm3.cpp : <library>/webcpp/hash//openssl : native wasip2 wasip3 ;
 webcpp.example digest_family.cpp ;
 
 # Message authentication: a MAC is compared with webcpp::crypto::equal, and a

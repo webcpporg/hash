@@ -113,11 +113,23 @@ states about its constant time. The backends:
 | not stated
 | native, wasip2, wasip3, emscripten
 
+| digests::md5
+| openssl
+| -
+| not stated
+| native, wasip2, wasip3
+
 | digests::sha1
 | hash2
 | -
 | not stated
 | native, wasip2, wasip3, emscripten
+
+| digests::sha1
+| openssl
+| -
+| not stated
+| native, wasip2, wasip3
 
 | digests::sha2_224
 | hash2
@@ -125,11 +137,23 @@ states about its constant time. The backends:
 | not stated
 | native, wasip2, wasip3, emscripten
 
+| digests::sha2_224
+| openssl
+| -
+| not stated
+| native, wasip2, wasip3
+
 | digests::sha2_256
 | hash2
 | -
 | not stated
 | native, wasip2, wasip3, emscripten
+
+| digests::sha2_256
+| openssl
+| -
+| not stated
+| native, wasip2, wasip3
 
 | digests::sha2_384
 | hash2
@@ -137,11 +161,23 @@ states about its constant time. The backends:
 | not stated
 | native, wasip2, wasip3, emscripten
 
+| digests::sha2_384
+| openssl
+| -
+| not stated
+| native, wasip2, wasip3
+
 | digests::sha2_512
 | hash2
 | -
 | not stated
 | native, wasip2, wasip3, emscripten
+
+| digests::sha2_512
+| openssl
+| -
+| not stated
+| native, wasip2, wasip3
 
 | digests::sha2_512_224
 | hash2
@@ -149,11 +185,29 @@ states about its constant time. The backends:
 | not stated
 | native, wasip2, wasip3, emscripten
 
+| digests::sha2_512_224
+| openssl
+| -
+| not stated
+| native, wasip2, wasip3
+
 | digests::sha2_512_256
 | hash2
 | -
 | not stated
 | native, wasip2, wasip3, emscripten
+
+| digests::sha2_512_256
+| openssl
+| -
+| not stated
+| native, wasip2, wasip3
+
+| digests::md5_sha1
+| openssl
+| -
+| not stated
+| native, wasip2, wasip3
 
 | sha3_224
 | hash2
@@ -197,11 +251,23 @@ states about its constant time. The backends:
 | not stated
 | native, wasip2, wasip3, emscripten
 
+| digests::sha3_224
+| openssl
+| -
+| not stated
+| native, wasip2, wasip3
+
 | digests::sha3_256
 | hash2
 | -
 | not stated
 | native, wasip2, wasip3, emscripten
+
+| digests::sha3_256
+| openssl
+| -
+| not stated
+| native, wasip2, wasip3
 
 | digests::sha3_384
 | hash2
@@ -209,11 +275,23 @@ states about its constant time. The backends:
 | not stated
 | native, wasip2, wasip3, emscripten
 
+| digests::sha3_384
+| openssl
+| -
+| not stated
+| native, wasip2, wasip3
+
 | digests::sha3_512
 | hash2
 | -
 | not stated
 | native, wasip2, wasip3, emscripten
+
+| digests::sha3_512
+| openssl
+| -
+| not stated
+| native, wasip2, wasip3
 
 | digests::shake_128
 | hash2 (partial: an output past 32 bytes, one Boost.Hash2 result)
@@ -221,11 +299,23 @@ states about its constant time. The backends:
 | not stated
 | native, wasip2, wasip3, emscripten
 
+| digests::shake_128
+| openssl
+| -
+| not stated
+| native, wasip2, wasip3
+
 | digests::shake_256
 | hash2 (partial: an output past 64 bytes, one Boost.Hash2 result)
 | -
 | not stated
 | native, wasip2, wasip3, emscripten
+
+| digests::shake_256
+| openssl
+| -
+| not stated
+| native, wasip2, wasip3
 
 | keccak_256
 | xkcp
@@ -233,11 +323,35 @@ states about its constant time. The backends:
 | not stated
 | native, wasip2, wasip3, emscripten
 
+| digests::keccak_224
+| openssl
+| -
+| not stated
+| native, wasip2, wasip3
+
 | digests::keccak_256
 | xkcp
 | -
 | not stated
 | native, wasip2, wasip3, emscripten
+
+| digests::keccak_256
+| openssl
+| -
+| not stated
+| native, wasip2, wasip3
+
+| digests::keccak_384
+| openssl
+| -
+| not stated
+| native, wasip2, wasip3
+
+| digests::keccak_512
+| openssl
+| -
+| not stated
+| native, wasip2, wasip3
 
 | blake2b_512
 | hash2
@@ -263,11 +377,23 @@ states about its constant time. The backends:
 | not stated
 | native, wasip2, wasip3, emscripten
 
+| digests::blake2b
+| openssl (partial: a key, a salt or a personalisation: OpenSSL's BLAKE2B-512 digest is unkeyed BLAKE2b of 1 to 64 bytes (its parameter size), and its keyed BLAKE2b is the MAC BLAKE2BMAC)
+| -
+| not stated
+| native, wasip2, wasip3
+
 | digests::blake2s_256
 | hash2
 | -
 | not stated
 | native, wasip2, wasip3, emscripten
+
+| digests::blake2s_256
+| openssl
+| -
+| not stated
+| native, wasip2, wasip3
 
 | macs::blake2s_mac
 | hash2 (partial: a tag under 32 bytes: BLAKE2s's output size is a parameter of the hash, and Boost.Hash2's keyed blake2s_256 has 32 bytes alone)
@@ -304,6 +430,18 @@ states about its constant time. The backends:
 | -
 | not stated
 | native, wasip2, wasip3, emscripten
+
+| digests::ripemd_160
+| openssl
+| -
+| not stated
+| native, wasip2, wasip3
+
+| digests::sm3
+| openssl
+| -
+| not stated
+| native, wasip2, wasip3
 |===
 
 === Macs
@@ -726,6 +864,9 @@ The backend a call that names none uses, on every target, whatever the program l
 | digests::sha2_512_256
 | hash2
 
+| digests::md5_sha1
+| none: the call names its backend
+
 | digests::sha3_224
 | hash2
 
@@ -744,7 +885,16 @@ The backend a call that names none uses, on every target, whatever the program l
 | digests::shake_256
 | xkcp
 
+| digests::keccak_224
+| xkcp
+
 | digests::keccak_256
+| xkcp
+
+| digests::keccak_384
+| xkcp
+
+| digests::keccak_512
 | xkcp
 
 | digests::blake2b
@@ -761,6 +911,9 @@ The backend a call that names none uses, on every target, whatever the program l
 
 | digests::ripemd_160
 | hash2
+
+| digests::sm3
+| none: the call names its backend
 
 | macs::siphash_2_4
 | hash2
@@ -844,4 +997,5 @@ What each backend's upstream states, and where:
 * blake3: not stated. BLAKE3 1.8.7: README.md and c/README.md state no constant-time property.
 * sodium: not stated. libsodium 1.0.22: its headers state constant time for comparisons (sodium/utils.h) alone, not for its hashing, key derivation and password hashing functions (crypto_generichash_*, crypto_shorthash_*, crypto_kdf_*, crypto_pwhash_*).
 * bearssl: not stated. BearSSL at webcpp::crypto's pin: bearssl_hmac.h states constant time for br_hmac_outCT alone; br_hkdf_* (src/kdf/hkdf.c) calls br_hmac_out.
+* openssl: not stated. OpenSSL 3.5.9: doc/man7/EVP_MD-*.pod, doc/man3/EVP_DigestInit.pod and providers/implementations/digests/ state no constant-time property.
 * openssl: not stated. OpenSSL 3.5.9: doc/man7/EVP_KDF-HKDF.pod and EVP_KDF-PBKDF2.pod state no constant-time property.

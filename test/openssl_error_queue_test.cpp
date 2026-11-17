@@ -4,13 +4,15 @@
 // accompanying file LICENSE_1_0.txt or copy at
 // https://www.boost.org/LICENSE_1_0.txt)
 
-// OpenSSL's error queue (spec section 3.4): on an empty queue, hkdf_extract, hkdf_expand, hkdf and
-// pbkdf2 on backends::openssl leave it empty, OpenSSL's first fetch and initialisation among them;
-// an entry of the caller's survives each, and nothing of webcpp's is left beside it; a mark the
-// caller set on its own entry survives them too, and the caller's pop to it still finds it.
-// openssl_failure_test.cpp checks the same around a failure.
+// OpenSSL's error queue (spec section 3.4): on an empty queue, hkdf_extract, hkdf_expand, hkdf,
+// pbkdf2, digest_of and a hasher's make, update and finish on backends::openssl leave it empty,
+// OpenSSL's first fetch and initialisation among them; an entry of the caller's survives each, and
+// nothing of webcpp's is left beside it; a mark the caller set on its own entry survives them too,
+// and the caller's pop to it still finds it. openssl_failure_test.cpp checks the same around a
+// failure.
 
 #include <webcpp/hash/backends/openssl.hpp>
+#include <webcpp/hash/digest.hpp>
 #include <webcpp/hash/hkdf.hpp>
 #include <webcpp/hash/hmac.hpp>
 #include <webcpp/hash/pbkdf2.hpp>
@@ -42,7 +44,7 @@ std::size_t drain(unsigned long& first) {
     return count;
 }
 
-/** Each of the four functions once, on OpenSSL, each a success. */
+/** Each of the four key derivations and the digest family once, on OpenSSL, each a success. */
 void call_each() {
     std::array<std::uint8_t, 13> const salt{1, 2, 3};
     std::array<std::uint8_t, 22> const ikm{4, 5, 6};
@@ -57,6 +59,17 @@ void call_each() {
     }
     BOOST_TEST((hash::hkdf<hmac, openssl>(output, salt, ikm, info).has_value()));
     BOOST_TEST((hash::pbkdf2<hmac, openssl>(output, ikm, salt, 2).has_value()));
+
+    std::array<std::uint8_t, 32> digest{};
+    BOOST_TEST((hash::digest_of<hash::digests::sha2_256, openssl>(digest, ikm).has_value()));
+    BOOST_TEST((hash::digest_of<hash::digests::blake2b, openssl>(digest, ikm, {.output_size = 32})
+                    .has_value()));
+    auto hashing = hash::hasher<hash::digests::shake_128, openssl>::make();
+    BOOST_TEST(hashing.has_value());
+    if (hashing) {
+        BOOST_TEST(hashing->update(ikm).has_value());
+        BOOST_TEST(hashing->finish(output).has_value());
+    }
 }
 
 }  // namespace

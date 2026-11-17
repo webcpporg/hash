@@ -6,13 +6,21 @@
 
 /**
  `backends::openssl`: HKDF (RFC 5869) and PBKDF2 (RFC 8018) of OpenSSL 3.5.9, its `EVP_KDF`s
- "HKDF" and "PBKDF2", built from `third_party/libs/openssl` by `/webcpp/hash//openssl`, static,
- on native, wasip2 and wasip3; never on Emscripten. It has every hmac of `hmac.hpp` but
- `hmac_ripemd_128` (spec section 3.2).
+ "HKDF" and "PBKDF2", and the digests of its default provider through `EVP_MD`, built from
+ `third_party/libs/openssl` by `/webcpp/hash//openssl`, static, on native, wasip2 and wasip3;
+ never on Emscripten, and never a default backend (design D34): a call names it. The key
+ derivations have every hmac of `hmac.hpp` but `hmac_ripemd_128` (spec section 3.2). The digests
+ are MD5, SHA-1, the six SHA-2, the four SHA-3, SHAKE128 and SHAKE256 (any output size),
+ Keccak-224 to Keccak-512, BLAKE2s-256, BLAKE2b unkeyed (1 to 64 bytes), RIPEMD-160, MD5-SHA1
+ and SM3; the default provider's SHA-256/192 and KMAC hashes have no tag, and Whirlpool, MD4 and
+ MDC2 are in the legacy provider, which webcpp does not load (`doc/capabilities.json` says why).
 
- Each call fetches the KDF, makes a context, sets the parameters, derives and frees both
- (spec section 3.4): OpenSSL allocates them through its own allocator, and webcpp keeps no
- OpenSSL object between calls (spec section 6.2). OpenSSL copies the inputs into its context:
+ Each key derivation fetches the KDF, makes a context, sets the parameters, derives and frees
+ both (spec section 3.4): OpenSSL allocates them through its own allocator, and webcpp keeps no
+ OpenSSL object between calls (spec section 6.2). A digest allocates an `EVP_MD_CTX` and the
+ digest's context the same way: `digest_of` frees them before it returns, and a `hasher` owns
+ them until it finishes or is destroyed, so that a hash in pieces is the one OpenSSL object that
+ outlives a call; it is the hasher's alone. OpenSSL copies the inputs into its context:
  the key (HKDF's IKM or PRK, PBKDF2's password) and the info are cleared when the context is
  freed; the salt is freed without being cleared (OpenSSL clears it only when built with
  `OPENSSL_PEDANTIC_ZEROIZATION`). Its default initialisation, on the first call, reads the
@@ -55,6 +63,7 @@
 
 #include <openssl/core.h>
 #include <openssl/err.h>
+#include <openssl/evp.h>
 #include <openssl/kdf.h>
 #include <openssl/params.h>
 
@@ -64,11 +73,14 @@
 #include <cstdint>
 #include <span>
 #include <type_traits>
+#include <utility>
 
 namespace webcpp::hash::backends {
 
-/** OpenSSL 3.5.9's HKDF and PBKDF2, through `/webcpp/hash//openssl`, on native, wasip2 and wasip3.
- */
+/**
+ OpenSSL 3.5.9's HKDF, PBKDF2 and digests, through `/webcpp/hash//openssl`, on native, wasip2 and
+ wasip3; never a default backend.
+*/
 struct openssl {};
 
 }  // namespace webcpp::hash::backends
@@ -115,6 +127,192 @@ struct backend_limits<backends::openssl> {
 };
 
 /**
+ Whether a digest of OpenSSL is an extendable-output function, finished by `EVP_DigestFinalXOF`
+ at any size, rather than by `EVP_DigestFinal_ex` at its own: the base of each
+ @ref openssl_md_name.
+
+ @tparam Xof Whether it is.
+*/
+template <bool Xof>
+struct openssl_md_kind {
+    /** Whether the digest is an extendable-output function. */
+    static constexpr bool xof = Xof;
+};
+
+/**
+ OpenSSL's name of a tag of `digests`, its `value`: the first of the names OpenSSL 3.5.9's default
+ provider gives it (`providers/implementations/include/prov/names.h`, `PROV_NAMES_*`), which
+ `EVP_MD_fetch` and the key derivations' parameter "digest" take; `xof`, whether
+ `EVP_DigestFinalXOF` finishes it. Declared for every tag, defined for each tag of the default
+ provider: the digest engines of backends::openssl and @ref openssl_digest_name read it.
+
+ @tparam Digest A tag of `digests`.
+*/
+template <class Digest>
+struct openssl_md_name;
+
+/** MD5, RFC 1321: "MD5". */
+template <>
+struct openssl_md_name<digests::md5> : openssl_md_kind<false> {
+    /** OpenSSL's name. */
+    static constexpr char const* value = "MD5";
+};
+
+/** SHA-1: "SHA1". */
+template <>
+struct openssl_md_name<digests::sha1> : openssl_md_kind<false> {
+    /** OpenSSL's name. */
+    static constexpr char const* value = "SHA1";
+};
+
+/** SHA-224: "SHA2-224". */
+template <>
+struct openssl_md_name<digests::sha2_224> : openssl_md_kind<false> {
+    /** OpenSSL's name. */
+    static constexpr char const* value = "SHA2-224";
+};
+
+/** SHA-256: "SHA2-256". */
+template <>
+struct openssl_md_name<digests::sha2_256> : openssl_md_kind<false> {
+    /** OpenSSL's name. */
+    static constexpr char const* value = "SHA2-256";
+};
+
+/** SHA-384: "SHA2-384". */
+template <>
+struct openssl_md_name<digests::sha2_384> : openssl_md_kind<false> {
+    /** OpenSSL's name. */
+    static constexpr char const* value = "SHA2-384";
+};
+
+/** SHA-512: "SHA2-512". */
+template <>
+struct openssl_md_name<digests::sha2_512> : openssl_md_kind<false> {
+    /** OpenSSL's name. */
+    static constexpr char const* value = "SHA2-512";
+};
+
+/** SHA-512/224: "SHA2-512/224". */
+template <>
+struct openssl_md_name<digests::sha2_512_224> : openssl_md_kind<false> {
+    /** OpenSSL's name. */
+    static constexpr char const* value = "SHA2-512/224";
+};
+
+/** SHA-512/256: "SHA2-512/256". */
+template <>
+struct openssl_md_name<digests::sha2_512_256> : openssl_md_kind<false> {
+    /** OpenSSL's name. */
+    static constexpr char const* value = "SHA2-512/256";
+};
+
+/** SHA3-224: "SHA3-224". */
+template <>
+struct openssl_md_name<digests::sha3_224> : openssl_md_kind<false> {
+    /** OpenSSL's name. */
+    static constexpr char const* value = "SHA3-224";
+};
+
+/** SHA3-256: "SHA3-256". */
+template <>
+struct openssl_md_name<digests::sha3_256> : openssl_md_kind<false> {
+    /** OpenSSL's name. */
+    static constexpr char const* value = "SHA3-256";
+};
+
+/** SHA3-384: "SHA3-384". */
+template <>
+struct openssl_md_name<digests::sha3_384> : openssl_md_kind<false> {
+    /** OpenSSL's name. */
+    static constexpr char const* value = "SHA3-384";
+};
+
+/** SHA3-512: "SHA3-512". */
+template <>
+struct openssl_md_name<digests::sha3_512> : openssl_md_kind<false> {
+    /** OpenSSL's name. */
+    static constexpr char const* value = "SHA3-512";
+};
+
+/** SHAKE128: "SHAKE-128". */
+template <>
+struct openssl_md_name<digests::shake_128> : openssl_md_kind<true> {
+    /** OpenSSL's name. */
+    static constexpr char const* value = "SHAKE-128";
+};
+
+/** SHAKE256: "SHAKE-256". */
+template <>
+struct openssl_md_name<digests::shake_256> : openssl_md_kind<true> {
+    /** OpenSSL's name. */
+    static constexpr char const* value = "SHAKE-256";
+};
+
+/** Keccak-224: "KECCAK-224". */
+template <>
+struct openssl_md_name<digests::keccak_224> : openssl_md_kind<false> {
+    /** OpenSSL's name. */
+    static constexpr char const* value = "KECCAK-224";
+};
+
+/** Keccak-256: "KECCAK-256". */
+template <>
+struct openssl_md_name<digests::keccak_256> : openssl_md_kind<false> {
+    /** OpenSSL's name. */
+    static constexpr char const* value = "KECCAK-256";
+};
+
+/** Keccak-384: "KECCAK-384". */
+template <>
+struct openssl_md_name<digests::keccak_384> : openssl_md_kind<false> {
+    /** OpenSSL's name. */
+    static constexpr char const* value = "KECCAK-384";
+};
+
+/** Keccak-512: "KECCAK-512". */
+template <>
+struct openssl_md_name<digests::keccak_512> : openssl_md_kind<false> {
+    /** OpenSSL's name. */
+    static constexpr char const* value = "KECCAK-512";
+};
+
+/** BLAKE2b (its size set at init): "BLAKE2B-512". */
+template <>
+struct openssl_md_name<digests::blake2b> : openssl_md_kind<false> {
+    /** OpenSSL's name. */
+    static constexpr char const* value = "BLAKE2B-512";
+};
+
+/** BLAKE2s-256: "BLAKE2S-256". */
+template <>
+struct openssl_md_name<digests::blake2s_256> : openssl_md_kind<false> {
+    /** OpenSSL's name. */
+    static constexpr char const* value = "BLAKE2S-256";
+};
+
+/** RIPEMD-160: "RIPEMD-160". */
+template <>
+struct openssl_md_name<digests::ripemd_160> : openssl_md_kind<false> {
+    /** OpenSSL's name. */
+    static constexpr char const* value = "RIPEMD-160";
+};
+
+/** MD5-SHA1: "MD5-SHA1". */
+template <>
+struct openssl_md_name<digests::md5_sha1> : openssl_md_kind<false> {
+    /** OpenSSL's name. */
+    static constexpr char const* value = "MD5-SHA1";
+};
+
+/** SM3: "SM3". */
+template <>
+struct openssl_md_name<digests::sm3> : openssl_md_kind<false> {
+    /** OpenSSL's name. */
+    static constexpr char const* value = "SM3";
+};
+
+/**
  OpenSSL's name of the digest of `Hmac` (spec section 3.2), its `value`. The primary template is
  reached by an hmac OpenSSL has no digest for, and refuses: `hmac_ripemd_128` with spec 3.3's
  text, any other with the general one.
@@ -135,108 +333,63 @@ struct openssl_digest_name {
 
 /** HMAC-MD5. */
 template <>
-struct openssl_digest_name<hmac_md5_128> {
-    /** OpenSSL's name. */
-    static constexpr char const* value = "MD5";
-};
+struct openssl_digest_name<hmac_md5_128> : openssl_md_name<digests::md5> {};
 
 /** HMAC-SHA-1. */
 template <>
-struct openssl_digest_name<hmac_sha1_160> {
-    /** OpenSSL's name. */
-    static constexpr char const* value = "SHA1";
-};
+struct openssl_digest_name<hmac_sha1_160> : openssl_md_name<digests::sha1> {};
 
 /** HMAC-SHA-224. */
 template <>
-struct openssl_digest_name<hmac_sha2_224> {
-    /** OpenSSL's name. */
-    static constexpr char const* value = "SHA2-224";
-};
+struct openssl_digest_name<hmac_sha2_224> : openssl_md_name<digests::sha2_224> {};
 
 /** HMAC-SHA-256. */
 template <>
-struct openssl_digest_name<hmac_sha2_256> {
-    /** OpenSSL's name. */
-    static constexpr char const* value = "SHA2-256";
-};
+struct openssl_digest_name<hmac_sha2_256> : openssl_md_name<digests::sha2_256> {};
 
 /** HMAC-SHA-384. */
 template <>
-struct openssl_digest_name<hmac_sha2_384> {
-    /** OpenSSL's name. */
-    static constexpr char const* value = "SHA2-384";
-};
+struct openssl_digest_name<hmac_sha2_384> : openssl_md_name<digests::sha2_384> {};
 
 /** HMAC-SHA-512. */
 template <>
-struct openssl_digest_name<hmac_sha2_512> {
-    /** OpenSSL's name. */
-    static constexpr char const* value = "SHA2-512";
-};
+struct openssl_digest_name<hmac_sha2_512> : openssl_md_name<digests::sha2_512> {};
 
 /** HMAC-SHA-512/224. */
 template <>
-struct openssl_digest_name<hmac_sha2_512_224> {
-    /** OpenSSL's name. */
-    static constexpr char const* value = "SHA2-512/224";
-};
+struct openssl_digest_name<hmac_sha2_512_224> : openssl_md_name<digests::sha2_512_224> {};
 
 /** HMAC-SHA-512/256. */
 template <>
-struct openssl_digest_name<hmac_sha2_512_256> {
-    /** OpenSSL's name. */
-    static constexpr char const* value = "SHA2-512/256";
-};
+struct openssl_digest_name<hmac_sha2_512_256> : openssl_md_name<digests::sha2_512_256> {};
 
 /** HMAC-SHA3-224. */
 template <>
-struct openssl_digest_name<hmac_sha3_224> {
-    /** OpenSSL's name. */
-    static constexpr char const* value = "SHA3-224";
-};
+struct openssl_digest_name<hmac_sha3_224> : openssl_md_name<digests::sha3_224> {};
 
 /** HMAC-SHA3-256. */
 template <>
-struct openssl_digest_name<hmac_sha3_256> {
-    /** OpenSSL's name. */
-    static constexpr char const* value = "SHA3-256";
-};
+struct openssl_digest_name<hmac_sha3_256> : openssl_md_name<digests::sha3_256> {};
 
 /** HMAC-SHA3-384. */
 template <>
-struct openssl_digest_name<hmac_sha3_384> {
-    /** OpenSSL's name. */
-    static constexpr char const* value = "SHA3-384";
-};
+struct openssl_digest_name<hmac_sha3_384> : openssl_md_name<digests::sha3_384> {};
 
 /** HMAC-SHA3-512. */
 template <>
-struct openssl_digest_name<hmac_sha3_512> {
-    /** OpenSSL's name. */
-    static constexpr char const* value = "SHA3-512";
-};
+struct openssl_digest_name<hmac_sha3_512> : openssl_md_name<digests::sha3_512> {};
 
 /** HMAC-RIPEMD-160. */
 template <>
-struct openssl_digest_name<hmac_ripemd_160> {
-    /** OpenSSL's name. */
-    static constexpr char const* value = "RIPEMD-160";
-};
+struct openssl_digest_name<hmac_ripemd_160> : openssl_md_name<digests::ripemd_160> {};
 
 /** HMAC-BLAKE2b-512. */
 template <>
-struct openssl_digest_name<hmac_blake2b_512> {
-    /** OpenSSL's name. */
-    static constexpr char const* value = "BLAKE2B-512";
-};
+struct openssl_digest_name<hmac_blake2b_512> : openssl_md_name<digests::blake2b> {};
 
 /** HMAC-BLAKE2s-256. */
 template <>
-struct openssl_digest_name<hmac_blake2s_256> {
-    /** OpenSSL's name. */
-    static constexpr char const* value = "BLAKE2S-256";
-};
+struct openssl_digest_name<hmac_blake2s_256> : openssl_md_name<digests::blake2s_256> {};
 
 /**
  The digest name a call gives OpenSSL: `openssl_digest_name<Hmac>`'s, or, in a test that defines
@@ -285,6 +438,30 @@ inline OSSL_PARAM openssl_text(char const* param_name, char const* text_value) n
 }
 
 /**
+ OpenSSL's answer to a call made since the caller's `ERR_set_mark()`, whose mark it pops, so that
+ the thread's error queue is left as it was found: only an error raised since the mark is
+ OpenSSL's answer, an older one is the caller's.
+
+ @param succeeded Whether OpenSSL's functions returned success.
+ @return Success; `errc::not_enough_memory` when the last error OpenSSL raised since the mark is an
+ allocation's; `error::backend_failure` for any other failure.
+*/
+[[nodiscard]] inline boost::system::result<void> openssl_outcome(bool succeeded) noexcept {
+    // NOLINTNEXTLINE(bugprone-signed-bitwise): OpenSSL's macro ORs signed constants
+    constexpr int malloc_failure_reason = ERR_R_MALLOC_FAILURE;
+    const bool is_out_of_memory = !succeeded && ERR_count_to_mark() > 0 &&
+                                  ERR_GET_REASON(ERR_peek_last_error()) == malloc_failure_reason;
+    ERR_pop_to_mark();
+    if (succeeded) {
+        return {};
+    }
+    if (is_out_of_memory) {
+        return boost::system::errc::make_error_code(boost::system::errc::not_enough_memory);
+    }
+    return error::backend_failure;
+}
+
+/**
  Fetches the KDF named `kdf_name`, makes a context, and derives `output_bytes` from `ossl_params`
  (spec section 3.4), freeing both; the thread's error queue is left as it was found.
 
@@ -303,21 +480,10 @@ inline OSSL_PARAM openssl_text(char const* param_name, char const* text_value) n
     const bool derive_status =
         kdf_context != nullptr && EVP_KDF_derive(kdf_context, output_bytes.data(),
                                                  output_bytes.size(), ossl_params.data()) == 1;
-    // Only an error raised since the mark is OpenSSL's answer: an older one is the caller's.
-    // NOLINTNEXTLINE(bugprone-signed-bitwise): OpenSSL's macro ORs signed constants
-    constexpr int malloc_failure_reason = ERR_R_MALLOC_FAILURE;
-    const bool is_out_of_memory = !derive_status && ERR_count_to_mark() > 0 &&
-                                  ERR_GET_REASON(ERR_peek_last_error()) == malloc_failure_reason;
+    // The frees raise no error: the outcome read after them is the derivation's.
     EVP_KDF_CTX_free(kdf_context);
     EVP_KDF_free(kdf_algorithm);
-    ERR_pop_to_mark();
-    if (derive_status) {
-        return {};
-    }
-    if (is_out_of_memory) {
-        return boost::system::errc::make_error_code(boost::system::errc::not_enough_memory);
-    }
-    return error::backend_failure;
+    return openssl_outcome(derive_status);
 }
 
 /**
@@ -443,6 +609,350 @@ struct pbkdf2_engine<backends::openssl, Hmac> {
             OSSL_PARAM_construct_end(),
         };
         return openssl_kdf("PBKDF2", output_bytes, ossl_params);
+    }
+};
+
+/**
+ The digest name a digest engine gives `EVP_MD_fetch`: `openssl_md_name<Digest>`'s, or, in a test
+ that defines `WEBCPP_HASH_DETAIL_TEST_OPENSSL_DIGEST` (a string literal), that one, to provoke a
+ failure, as @ref openssl_digest does for the key derivations.
+
+ @tparam Digest A tag of `digests` that OpenSSL has.
+ @return The name.
+*/
+template <class Digest>
+constexpr char const* openssl_md() noexcept {
+    [[maybe_unused]] constexpr char const* digest_name = openssl_md_name<Digest>::value;
+#ifdef WEBCPP_HASH_DETAIL_TEST_OPENSSL_DIGEST
+    return WEBCPP_HASH_DETAIL_TEST_OPENSSL_DIGEST;
+#else
+    return digest_name;
+#endif
+}
+
+/**
+ The state of a digest on backends::openssl: the `EVP_MD_CTX` it owns, null before `init` and
+ once freed or moved from. Freeing it (`EVP_MD_CTX_free`) clears the digest's own context
+ (OpenSSL's providers free it with `OPENSSL_clear_free`) and cleanses the `EVP_MD_CTX`.
+*/
+class openssl_md_state {
+public:
+    /** No context. */
+    openssl_md_state() noexcept = default;
+
+    /**
+     Takes the context of `moved_from`, which owns none after.
+
+     @param moved_from The state moved from.
+    */
+    openssl_md_state(openssl_md_state&& moved_from) noexcept
+        : context_(std::exchange(moved_from.context_, nullptr)) {}
+
+    /**
+     Frees this state's context and takes that of `moved_from`, which owns none after.
+
+     @param moved_from The state moved from.
+     @return This state.
+    */
+    openssl_md_state& operator=(openssl_md_state&& moved_from) noexcept {
+        if (this != &moved_from) {
+            reset();
+            context_ = std::exchange(moved_from.context_, nullptr);
+        }
+        return *this;
+    }
+
+    /** Not copyable: one context, one owner. */
+    openssl_md_state(openssl_md_state const&) = delete;
+    /** Not copyable. @return Never. */
+    openssl_md_state& operator=(openssl_md_state const&) = delete;
+
+    /** Frees the context, if any. */
+    ~openssl_md_state() { reset(); }
+
+    /**
+     The context, null when there is none.
+
+     @return The context.
+    */
+    [[nodiscard]] EVP_MD_CTX* get() const noexcept { return context_; }
+
+    /**
+     Owns `context` from here on, freeing the one it held.
+
+     @param context A context of `EVP_MD_CTX_new`, or null.
+    */
+    void adopt(EVP_MD_CTX* context) noexcept {
+        reset();
+        context_ = context;
+    }
+
+    /** Frees the context; a state without one is left as it is. */
+    void reset() noexcept {
+        EVP_MD_CTX_free(context_);
+        context_ = nullptr;
+    }
+
+private:
+    EVP_MD_CTX* context_ = nullptr;
+};
+
+/**
+ A digest of `digests` on backends::openssl (its interface is @ref digest_engine), over the
+ `EVP_MD` of OpenSSL 3.5.9 that @ref openssl_md_name names. `init` makes an `EVP_MD_CTX`
+ (`EVP_MD_CTX_new`, through OpenSSL's allocator), fetches the digest (`EVP_MD_fetch`) and starts it
+ (`EVP_DigestInit_ex2`, which keeps its own reference to the digest); `update` is
+ `EVP_DigestUpdate`; `finish` is `EVP_DigestFinal_ex`, or `EVP_DigestFinalXOF` for an
+ extendable-output function; `destroy` frees the context. Each call leaves the thread's error
+ queue as it found it.
+
+ It serves every output size the family accepts: a fixed-size digest's own (checked against
+ OpenSSL's size of the context before `EVP_DigestFinal_ex` writes), any size of SHAKE.
+
+ @tparam Digest A tag of `digests` that OpenSSL's default provider has.
+*/
+template <class Digest>
+struct openssl_digest_engine : full_engine {
+    /** The context, owned. */
+    using state = openssl_md_state;
+
+    /**
+     Starts a hash: a new context, the digest fetched, `EVP_DigestInit_ex2` with no parameter
+     (BLAKE2b's engine gives its size).
+
+     @param hashed The state, which owns the context from here on, even when the start fails.
+     @param options The digest's parameters.
+     @return Success; `errc::not_enough_memory`; or `error::backend_failure`.
+    */
+    [[nodiscard]] static boost::system::result<void> init(
+        state& hashed, digest_options<Digest> const& options) noexcept {
+        ERR_set_mark();
+        hashed.adopt(EVP_MD_CTX_new());
+        EVP_MD* digest_algorithm = hashed.get() != nullptr
+                                       ? EVP_MD_fetch(nullptr, openssl_md<Digest>(), nullptr)
+                                       : nullptr;
+        const bool started =
+            digest_algorithm != nullptr && start(hashed.get(), digest_algorithm, options);
+        // The context holds its own reference to the digest from EVP_DigestInit_ex2 on.
+        EVP_MD_free(digest_algorithm);
+        return openssl_outcome(started);
+    }
+
+    /**
+     Absorbs `input`: `EVP_DigestUpdate`, which returns at once on an empty input.
+
+     @param hashed The state. @param input The bytes.
+     @return Success, or OpenSSL's failure.
+    */
+    [[nodiscard]] static boost::system::result<void> update(
+        state& hashed, std::span<std::uint8_t const> input) noexcept {
+        ERR_set_mark();
+        return openssl_outcome(EVP_DigestUpdate(hashed.get(), input.data(), input.size()) == 1);
+    }
+
+    /**
+     Writes the result, of `output.size()` bytes: `EVP_DigestFinalXOF` for an extendable-output
+     function; else `EVP_DigestFinal_ex`, once OpenSSL's size of the context is seen to be the
+     output's (the family's guards hold it to the digest's size, or BLAKE2b's option).
+
+     @param hashed The state. @param output The digest.
+     @return Success, or OpenSSL's failure.
+    */
+    [[nodiscard]] static boost::system::result<void> finish(
+        state& hashed, std::span<std::uint8_t> output) noexcept {
+        ERR_set_mark();
+        bool finished = false;
+        if constexpr (openssl_md_name<Digest>::xof) {
+            finished = EVP_DigestFinalXOF(hashed.get(), output.data(), output.size()) == 1;
+        } else {
+            const int context_size = EVP_MD_CTX_get_size(hashed.get());
+            finished = context_size > 0 &&
+                       static_cast<std::size_t>(context_size) == output.size() &&
+                       EVP_DigestFinal_ex(hashed.get(), output.data(), nullptr) == 1;
+        }
+        return openssl_outcome(finished);
+    }
+
+    /**
+     Frees the context, which OpenSSL clears; a second call does nothing.
+
+     @param hashed The state.
+    */
+    static void destroy(state& hashed) noexcept { hashed.reset(); }
+
+    /**
+     The digest of `input` at once: `init`, `update` and `finish` on a context freed before the
+     return.
+
+     @param output The digest. @param input The bytes. @param options The digest's parameters.
+     @return Success, or OpenSSL's failure.
+    */
+    [[nodiscard]] static boost::system::result<void> one_shot(
+        std::span<std::uint8_t> output, std::span<std::uint8_t const> input,
+        digest_options<Digest> const& options) noexcept {
+        state hashed;
+        auto done = init(hashed, options);
+        if (done) {
+            done = update(hashed, input);
+        }
+        if (done) {
+            done = finish(hashed, output);
+        }
+        destroy(hashed);
+        return done;
+    }
+
+private:
+    // EVP_DigestInit_ex2 with the digest's parameters: none, or BLAKE2b's output size. Options is
+    // a template parameter so that digest_options<digests::blake2b>, which digest.hpp defines after
+    // this header, is read only when the engine is used.
+    template <class Options>
+    static bool start(EVP_MD_CTX* context, EVP_MD const* digest_algorithm,
+                      Options const& options) noexcept {
+        if constexpr (std::is_same_v<Digest, digests::blake2b>) {
+            std::size_t output_size = options.output_size;
+            std::array<OSSL_PARAM, 2> const size_params{
+                OSSL_PARAM_construct_size_t("size", &output_size),
+                OSSL_PARAM_construct_end(),
+            };
+            return EVP_DigestInit_ex2(context, digest_algorithm, size_params.data()) == 1;
+        } else {
+            static_cast<void>(options);
+            return EVP_DigestInit_ex2(context, digest_algorithm, nullptr) == 1;
+        }
+    }
+};
+
+/** `digests::md5` on backends::openssl: "MD5". */
+template <>
+struct digest_engine<backends::openssl, digests::md5> : openssl_digest_engine<digests::md5> {};
+
+/** `digests::sha1` on backends::openssl: "SHA1". */
+template <>
+struct digest_engine<backends::openssl, digests::sha1> : openssl_digest_engine<digests::sha1> {};
+
+/** `digests::sha2_224` on backends::openssl: "SHA2-224". */
+template <>
+struct digest_engine<backends::openssl, digests::sha2_224>
+    : openssl_digest_engine<digests::sha2_224> {};
+
+/** `digests::sha2_256` on backends::openssl: "SHA2-256". */
+template <>
+struct digest_engine<backends::openssl, digests::sha2_256>
+    : openssl_digest_engine<digests::sha2_256> {};
+
+/** `digests::sha2_384` on backends::openssl: "SHA2-384". */
+template <>
+struct digest_engine<backends::openssl, digests::sha2_384>
+    : openssl_digest_engine<digests::sha2_384> {};
+
+/** `digests::sha2_512` on backends::openssl: "SHA2-512". */
+template <>
+struct digest_engine<backends::openssl, digests::sha2_512>
+    : openssl_digest_engine<digests::sha2_512> {};
+
+/** `digests::sha2_512_224` on backends::openssl: "SHA2-512/224". */
+template <>
+struct digest_engine<backends::openssl, digests::sha2_512_224>
+    : openssl_digest_engine<digests::sha2_512_224> {};
+
+/** `digests::sha2_512_256` on backends::openssl: "SHA2-512/256". */
+template <>
+struct digest_engine<backends::openssl, digests::sha2_512_256>
+    : openssl_digest_engine<digests::sha2_512_256> {};
+
+/** `digests::sha3_224` on backends::openssl: "SHA3-224". */
+template <>
+struct digest_engine<backends::openssl, digests::sha3_224>
+    : openssl_digest_engine<digests::sha3_224> {};
+
+/** `digests::sha3_256` on backends::openssl: "SHA3-256". */
+template <>
+struct digest_engine<backends::openssl, digests::sha3_256>
+    : openssl_digest_engine<digests::sha3_256> {};
+
+/** `digests::sha3_384` on backends::openssl: "SHA3-384". */
+template <>
+struct digest_engine<backends::openssl, digests::sha3_384>
+    : openssl_digest_engine<digests::sha3_384> {};
+
+/** `digests::sha3_512` on backends::openssl: "SHA3-512". */
+template <>
+struct digest_engine<backends::openssl, digests::sha3_512>
+    : openssl_digest_engine<digests::sha3_512> {};
+
+/** `digests::shake_128` on backends::openssl: "SHAKE-128" with `EVP_DigestFinalXOF`, any output
+ * size. */
+template <>
+struct digest_engine<backends::openssl, digests::shake_128>
+    : openssl_digest_engine<digests::shake_128> {};
+
+/** `digests::shake_256` on backends::openssl: "SHAKE-256" with `EVP_DigestFinalXOF`, any output
+ * size. */
+template <>
+struct digest_engine<backends::openssl, digests::shake_256>
+    : openssl_digest_engine<digests::shake_256> {};
+
+/** `digests::keccak_224` on backends::openssl: "KECCAK-224", the original padding. */
+template <>
+struct digest_engine<backends::openssl, digests::keccak_224>
+    : openssl_digest_engine<digests::keccak_224> {};
+
+/** `digests::keccak_256` on backends::openssl: "KECCAK-256", the original padding (Ethereum's
+ * hash). */
+template <>
+struct digest_engine<backends::openssl, digests::keccak_256>
+    : openssl_digest_engine<digests::keccak_256> {};
+
+/** `digests::keccak_384` on backends::openssl: "KECCAK-384", the original padding. */
+template <>
+struct digest_engine<backends::openssl, digests::keccak_384>
+    : openssl_digest_engine<digests::keccak_384> {};
+
+/** `digests::keccak_512` on backends::openssl: "KECCAK-512", the original padding. */
+template <>
+struct digest_engine<backends::openssl, digests::keccak_512>
+    : openssl_digest_engine<digests::keccak_512> {};
+
+/** `digests::blake2s_256` on backends::openssl: "BLAKE2S-256". */
+template <>
+struct digest_engine<backends::openssl, digests::blake2s_256>
+    : openssl_digest_engine<digests::blake2s_256> {};
+
+/** `digests::ripemd_160` on backends::openssl: "RIPEMD-160". */
+template <>
+struct digest_engine<backends::openssl, digests::ripemd_160>
+    : openssl_digest_engine<digests::ripemd_160> {};
+
+/** `digests::md5_sha1` on backends::openssl: "MD5-SHA1", MD5 then SHA-1 of the same input (TLS 1.0
+ * and 1.1). */
+template <>
+struct digest_engine<backends::openssl, digests::md5_sha1>
+    : openssl_digest_engine<digests::md5_sha1> {};
+
+/** `digests::sm3` on backends::openssl: "SM3", GB/T 32905-2016. */
+template <>
+struct digest_engine<backends::openssl, digests::sm3> : openssl_digest_engine<digests::sm3> {};
+
+/**
+ `digests::blake2b` on backends::openssl, OpenSSL's "BLAKE2B-512" with its parameter "size", in
+ part: unkeyed BLAKE2b at every output size from 1 to 64 bytes. A key, a salt or a
+ personalisation is `unsupported_by_backend` (ruling R42): OpenSSL's BLAKE2B-512 digest takes
+ none of them, and its keyed BLAKE2b is the MAC "BLAKE2BMAC", `macs::blake2b_mac`'s.
+*/
+template <>
+struct digest_engine<backends::openssl, digests::blake2b>
+    : openssl_digest_engine<digests::blake2b> {
+    /**
+     Whether OpenSSL's BLAKE2B-512 digest computes these options: no key, no salt, no
+     personalisation. A template, so that it reads `digest_options<digests::blake2b>`, which
+     digest.hpp defines after this header.
+
+     @param options The options. @return Whether the options are unkeyed BLAKE2b's.
+    */
+    template <class Options>
+    static constexpr bool accepts(Options const& options) noexcept {
+        return options.key.empty() && options.salt.empty() && options.personalisation.empty();
     }
 };
 

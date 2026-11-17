@@ -59,7 +59,10 @@ allocator would need the Argon2 reference implementation's allocation
 callbacks, a possible later backend; it is not built.
 * *OpenSSL* allocates its KDF and context in every call, through its own
 allocator, and webcpp keeps no OpenSSL object between calls, which would be
-state shared between threads.
+state shared between threads. A digest allocates an `EVP_MD_CTX`
+(`EVP_MD_CTX_new`) and the digest's context: `digest_of` frees them before
+it returns, and a `hasher` owns them, its own and no other's, until it
+finishes or is destroyed.
 
 The counting test of allocations proves that hash's own code allocates
 nothing, on every backend and target, and measures what these libraries
