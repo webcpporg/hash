@@ -689,7 +689,7 @@
                             "hmacs": null,
                             "constant_time": {
                                 "value": "not stated",
-                                "source": "libsodium 1.0.22: its headers state constant time for comparisons (sodium/utils.h) alone, not for crypto_generichash_blake2b_*."
+                                "source": "libsodium 1.0.22: its headers state constant time for comparisons (sodium/utils.h) alone, not for its hashing, key derivation and password hashing functions (crypto_generichash_*, crypto_shorthash_*, crypto_kdf_*, crypto_pwhash_*)."
                             }
                         }
                     }
@@ -832,7 +832,7 @@
             "macro": "SIPHASH",
             "tag": null,
             "chapter": "macs",
-            "standard": "SipHash-2-4 (siphash_64) and HalfSipHash-2-4 (siphash_32), Aumasson and Bernstein",
+            "standard": "SipHash-2-4 (siphash_64), HalfSipHash-2-4 (siphash_32) and SipHash-2-4 with a 128-bit output (libsodium's siphashx24), Aumasson and Bernstein",
             "functions": [
                 {
                     "name": "siphash_32",
@@ -878,6 +878,30 @@
                             "constant_time": {
                                 "value": "not stated",
                                 "source": "Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property."
+                            }
+                        },
+                        "sodium": {
+                            "since": 2,
+                            "hmacs": null,
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "libsodium 1.0.22: its headers state constant time for comparisons (sodium/utils.h) alone, not for its hashing, key derivation and password hashing functions (crypto_generichash_*, crypto_shorthash_*, crypto_kdf_*, crypto_pwhash_*)."
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "macs::siphash_2_4x",
+                    "kind": "mac",
+                    "header": "webcpp/hash/mac.hpp",
+                    "default": "sodium",
+                    "backends": {
+                        "sodium": {
+                            "since": 2,
+                            "hmacs": null,
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "libsodium 1.0.22: its headers state constant time for comparisons (sodium/utils.h) alone, not for its hashing, key derivation and password hashing functions (crypto_generichash_*, crypto_shorthash_*, crypto_kdf_*, crypto_pwhash_*)."
                             }
                         }
                     }
@@ -1590,7 +1614,7 @@
                             ],
                             "constant_time": {
                                 "value": "not stated",
-                                "source": "libsodium 1.0.22: its headers state constant time for comparisons (sodium/utils.h) alone, not for crypto_kdf_hkdf_* or crypto_pwhash_*."
+                                "source": "libsodium 1.0.22: its headers state constant time for comparisons (sodium/utils.h) alone, not for its hashing, key derivation and password hashing functions (crypto_generichash_*, crypto_shorthash_*, crypto_kdf_*, crypto_pwhash_*)."
                             }
                         },
                         "openssl": {
@@ -1660,7 +1684,7 @@
                             ],
                             "constant_time": {
                                 "value": "not stated",
-                                "source": "libsodium 1.0.22: its headers state constant time for comparisons (sodium/utils.h) alone, not for crypto_kdf_hkdf_* or crypto_pwhash_*."
+                                "source": "libsodium 1.0.22: its headers state constant time for comparisons (sodium/utils.h) alone, not for its hashing, key derivation and password hashing functions (crypto_generichash_*, crypto_shorthash_*, crypto_kdf_*, crypto_pwhash_*)."
                             }
                         },
                         "openssl": {
@@ -1730,7 +1754,7 @@
                             ],
                             "constant_time": {
                                 "value": "not stated",
-                                "source": "libsodium 1.0.22: its headers state constant time for comparisons (sodium/utils.h) alone, not for crypto_kdf_hkdf_* or crypto_pwhash_*."
+                                "source": "libsodium 1.0.22: its headers state constant time for comparisons (sodium/utils.h) alone, not for its hashing, key derivation and password hashing functions (crypto_generichash_*, crypto_shorthash_*, crypto_kdf_*, crypto_pwhash_*)."
                             }
                         },
                         "bearssl": {
@@ -1845,6 +1869,32 @@
             ]
         },
         {
+            "name": "blake2b_subkey",
+            "macro": "BLAKE2B_SUBKEY",
+            "tag": "kdfs::blake2b_subkey",
+            "chapter": "kdfs",
+            "standard": "libsodium's crypto_kdf: keyed BLAKE2b (RFC 7693) with the subkey's id as the salt and the context as the personalisation",
+            "functions": [
+                {
+                    "name": "blake2b_subkey",
+                    "kind": "function",
+                    "tag": "kdfs::blake2b_subkey",
+                    "header": "webcpp/hash/blake2b_subkey.hpp",
+                    "default": "sodium",
+                    "backends": {
+                        "sodium": {
+                            "since": 2,
+                            "hmacs": null,
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "libsodium 1.0.22: its headers state constant time for comparisons (sodium/utils.h) alone, not for its hashing, key derivation and password hashing functions (crypto_generichash_*, crypto_shorthash_*, crypto_kdf_*, crypto_pwhash_*)."
+                            }
+                        }
+                    }
+                }
+            ]
+        },
+        {
             "name": "argon2id",
             "macro": "ARGON2ID",
             "tag": "kdfs::argon2id",
@@ -1863,7 +1913,7 @@
                             "hmacs": null,
                             "constant_time": {
                                 "value": "not stated",
-                                "source": "libsodium 1.0.22: its headers state constant time for comparisons (sodium/utils.h) alone, not for crypto_kdf_hkdf_* or crypto_pwhash_*."
+                                "source": "libsodium 1.0.22: its headers state constant time for comparisons (sodium/utils.h) alone, not for its hashing, key derivation and password hashing functions (crypto_generichash_*, crypto_shorthash_*, crypto_kdf_*, crypto_pwhash_*)."
                             }
                         }
                     }
@@ -1889,7 +1939,7 @@
                             "hmacs": null,
                             "constant_time": {
                                 "value": "not stated",
-                                "source": "libsodium 1.0.22: its headers state constant time for comparisons (sodium/utils.h) alone, not for crypto_kdf_hkdf_* or crypto_pwhash_*."
+                                "source": "libsodium 1.0.22: its headers state constant time for comparisons (sodium/utils.h) alone, not for its hashing, key derivation and password hashing functions (crypto_generichash_*, crypto_shorthash_*, crypto_kdf_*, crypto_pwhash_*)."
                             }
                         }
                     }

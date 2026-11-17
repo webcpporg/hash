@@ -49,7 +49,7 @@
 | `example/hkdf.cpp`
 
 | derive many keys from one master key, one per purpose
-| <<hash-privacy-subkeys,hkdf_expand (or hkdf) with distinct info labels, or blake3::derive_key with a context string>>
+| <<hash-privacy-subkeys,hkdf_expand (or hkdf) with distinct info labels, blake2b_subkey (libsodium's crypto_kdf) by id, or blake3::derive_key with a context string>>
 | `hash2`: `/webcpp/hash//hash`, `sodium`: `/third_party//sodium`, `openssl`: `/webcpp/hash//openssl`
 | the default
 | `example/subkeys.cpp`

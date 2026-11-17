@@ -26,6 +26,7 @@ webcpp.headers-alone hash : ../include :
     hash/algorithms.hpp
     hash/argon2.hpp
     hash/backends/hash2.hpp
+    hash/blake2b_subkey.hpp
     hash/config.hpp
     hash/detail/engines.hpp
     hash/detail/limits.hpp
@@ -139,6 +140,19 @@ hash-run wipe : wipe_test.cpp : <define>WEBCPP_HASH_DETAIL_TEST_WIPE_RECORD ;
 hash-run blake2b_sodium : blake2b_sodium_test.cpp
   : <library>/third_party//sodium <library>/third_party//blake2_vectors
     <library>/third_party//sodium_vectors <library>/webcpp//boost_json ;
+
+# macs::siphash_2_4 and macs::siphash_2_4x on backends::sodium, libsodium's
+# crypto_shorthash_siphash24 and crypto_shorthash_siphashx24: the SipHash
+# paper's vectors (libsodium's shorthash.exp), which backends::hash2 and
+# siphash_64 also give, and siphashx24.exp, read at run time; the guards.
+hash-run siphash_sodium : siphash_sodium_test.cpp
+  : <library>/third_party//sodium <library>/third_party//sodium_vectors ;
+
+# blake2b_subkey on backends::sodium, libsodium's
+# crypto_kdf_blake2b_derive_from_key: kdf.exp read at run time, the
+# construction through digest_of, ids past 32 bits, the guards.
+hash-run kdf_blake2b_sodium : kdf_blake2b_sodium_test.cpp
+  : <library>/third_party//sodium <library>/third_party//sodium_vectors ;
 
 # HKDF on backends::sodium, over libsodium's crypto_kdf_hkdf_sha256 and
 # crypto_kdf_hkdf_sha512: RFC 5869's A.1 to A.3, a SHA-512 case that

@@ -34,6 +34,13 @@
 | recommended
 | no
 
+| <<hash-siphash-sodium,`macs::siphash_2_4x`>>
+| 128 bits
+| a 128-bit key; fewer collisions than SipHash-2-4's 64 bits, still not a MAC for messages
+| SipHash-2-4 with a 128-bit output (Aumasson, Bernstein; libsodium's siphashx24)
+| recommended
+| no
+
 | <<hash-hmac,`hmac`>>
 | the digest of H
 | that of H's digest, with a key as long as it
@@ -282,6 +289,12 @@
 | -
 | link:https://peps.python.org/pep-0456/[Python's string hashing (PEP 456)]
 | To compute it in one call, on a backend named in the call; siphash_64 itself for hash_append and a hash table's hasher.
+
+| <<hash-siphash-sodium,`macs::siphash_2_4x`>>
+| -
+| -
+| link:https://doc.libsodium.org/hashing/short-input_hashing[libsodium's short-input hashing]; link:https://github.com/veorq/SipHash[the SipHash reference implementation's 128-bit output]
+| For a 128-bit SipHash, as a libsodium program computes it: a large table, a filter or an identifier keyed against flooding; siphash_2_4 for 64 bits.
 
 | <<hash-hmac,`hmac`>>
 | 599 MiB/s (hash2)

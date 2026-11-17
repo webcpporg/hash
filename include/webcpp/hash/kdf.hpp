@@ -113,6 +113,13 @@ inline constexpr bool backend_has_v<backends::sodium, kdfs::argon2id, void> = tr
 template <>
 inline constexpr bool backend_has_v<backends::sodium, kdfs::scrypt, void> = true;
 
+/**
+ backends::sodium has BLAKE2b subkeys (`crypto_kdf_blake2b_derive_from_key`), the function
+ `blake2b_subkey`, which takes no hmac.
+*/
+template <>
+inline constexpr bool backend_has_v<backends::sodium, kdfs::blake2b_subkey, void> = true;
+
 /** backends::hash2 has `digests::md5` (Boost.Hash2's type). */
 template <>
 inline constexpr bool backend_has_v<backends::hash2, digests::md5, void> = true;
@@ -269,6 +276,14 @@ inline constexpr bool backend_has_v<backends::hash2, macs::hmac<digests::blake2s
 /** backends::hash2 has `macs::siphash_2_4` (Boost.Hash2's `siphash_64`). */
 template <>
 inline constexpr bool backend_has_v<backends::hash2, macs::siphash_2_4, void> = true;
+
+/** backends::sodium has `macs::siphash_2_4` (`crypto_shorthash_siphash24`). */
+template <>
+inline constexpr bool backend_has_v<backends::sodium, macs::siphash_2_4, void> = true;
+
+/** backends::sodium has `macs::siphash_2_4x` (`crypto_shorthash_siphashx24`). */
+template <>
+inline constexpr bool backend_has_v<backends::sodium, macs::siphash_2_4x, void> = true;
 
 /**
  backends::hash2 has `macs::blake2s_mac` in part: a 32-byte tag, Boost.Hash2's keyed `blake2s_256`
@@ -956,16 +971,16 @@ struct default_of<kdfs::x963kdf> {
  The backend a function of `Algorithm` uses when the call names none (spec 4.1).
 
  `backends::hash2` for `hkdf_extract`, `hkdf_expand`, `hkdf` and `pbkdf2`, on every target and
- whatever the program links; `backends::sodium` for `argon2id` and `scrypt`, the one backend that
- has them, which stops the build with the line to add to the Jamfile when the program does not
- link libsodium. A tag of the families defaults to the first of `backends::hash2`,
+ whatever the program links; `backends::sodium` for `argon2id`, `scrypt` and `blake2b_subkey`, the
+ one backend that has them, which stops the build with the line to add to the Jamfile when the
+ program does not link libsodium. A tag of the families defaults to the first of `backends::hash2`,
  `backends::xkcp`, `backends::blake3` and `backends::sodium` that has it (design D34), or to
  `detail::no_default`, which refuses: the call names its backend. `backends::bearssl` and
  `backends::openssl` are never a default. No define changes it: another backend is chosen by
  naming it in the call, as `hkdf<hmac_sha2_256, backends::openssl>`.
 
  @tparam Algorithm A tag of `kdfs` (`hkdf`, `hkdf_extract`, `hkdf_expand`, `pbkdf2`, `argon2id`,
- `scrypt`, ...), `digests` or `macs`.
+ `scrypt`, `blake2b_subkey`, ...), `digests` or `macs`.
  @tparam Hmac The hmac of a key derivation that takes one, else `void`; it does not change the
  answer.
 */

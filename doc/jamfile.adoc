@@ -28,7 +28,8 @@ sources, for the program's target:
 | `/third_party//blake3`
 | every target
 
-| `argon2id`, `scrypt`, or HKDF on `backends::sodium`
+| `argon2id`, `scrypt`, `blake2b_subkey`, or HKDF, BLAKE2b and SipHash on
+`backends::sodium`
 | `/third_party//sodium`
 | every target
 
@@ -102,7 +103,8 @@ one asked for.
 | `hmac_ripemd_128` on `backends::openssl`
 | OpenSSL 3.5 has no RIPEMD-128: name `backends::hash2`.
 
-| `argon2id` or `scrypt` on another backend than `backends::sodium`
+| `argon2id`, `scrypt` or `blake2b_subkey` on another backend than
+`backends::sodium`
 | Name `backends::sodium` and add `/third_party//sodium`.
 
 | A key derivation over a type that is not a Boost.Hash2 hmac of a digest

@@ -51,6 +51,16 @@ namespace webcpp::hash::detail {
 template <class T>
 inline constexpr bool always_false = false;
 
+/**
+ The family's guards of a tag of `macs` (spec 2.15), defined in `mac.hpp`; declared here so that
+ an engine can check its own sizes against them, which `mac.hpp` may include before it defines
+ them.
+
+ @tparam Mac A tag of `macs`.
+*/
+template <class Mac>
+struct mac_traits;
+
 /** No limit beyond the spec's own: the largest 64-bit size. */
 inline constexpr std::uint64_t no_limit = std::numeric_limits<std::uint64_t>::max();
 
@@ -253,6 +263,50 @@ struct scrypt_engine {
         std::span<std::uint8_t> /*output_bytes*/, std::span<std::uint8_t const> /*password_bytes*/,
         std::span<std::uint8_t const> /*salt_bytes*/, std::uint64_t /*cost_n*/,
         std::uint32_t /*block_size_r*/, std::uint32_t /*parallelism_p*/) noexcept {
+        return error::backend_failure;
+    }
+};
+
+/**
+ The BLAKE2b subkeys of a backend (libsodium's `crypto_kdf`), behind `blake2b_subkey`, which
+ `backends::sodium` alone specialises, as @ref scrypt_engine is. The primary template refuses
+ every other backend with spec 3.3's text; its member exists so that the refusal is the only
+ error.
+
+ A specialisation's `derive` is called by `blake2b_subkey` only after every guard has passed (the
+ subkey of 16 to 64 bytes, the master key of 32 bytes, the context of 8 bytes; ruling R22):
+
+ @code
+ // The subkey of output.size() bytes: BLAKE2b of the empty message under master_key, with
+ // subkey_id in 8 little-endian bytes then 8 zero bytes as the salt, and context then 8 zero
+ // bytes as the personalisation.
+ static boost::system::result<void> derive(std::span<std::uint8_t> output,
+                                           std::span<std::uint8_t const> master_key,
+                                           std::uint64_t subkey_id,
+                                           std::span<std::uint8_t const> context) noexcept;
+ @endcode
+
+ A failure is `error::backend_failure`; the public function then zeroes the output.
+
+ @tparam Backend A backend of `backends`.
+*/
+template <class Backend>
+struct blake2b_subkey_engine {
+    // backends::sodium, the default, reaches this template only when the program does not link
+    // libsodium, whose header specialises it: the refusal is then the one of every function on
+    // backends::sodium (spec 5.7).
+    static_assert(!std::is_same_v<Backend, backends::sodium>,
+                  "webcpp::hash: backends::sodium, argon2id and scrypt need libsodium. Add "
+                  "/third_party//sodium to the program's Jamfile: exe app : app.cpp "
+                  "/webcpp/hash//hash /third_party//sodium ;");
+    static_assert(std::is_same_v<Backend, backends::sodium>,
+                  "webcpp::hash: blake2b_subkey is in backends::sodium alone. Name "
+                  "backends::sodium and add /third_party//sodium to the program's Jamfile.");
+
+    /** Never called: the refusal has stopped the build. */
+    [[nodiscard]] static boost::system::result<void> derive(
+        std::span<std::uint8_t> /*output_bytes*/, std::span<std::uint8_t const> /*master_key*/,
+        std::uint64_t /*subkey_id*/, std::span<std::uint8_t const> /*context*/) noexcept {
         return error::backend_failure;
     }
 };
@@ -1065,7 +1119,7 @@ struct mac_engine<Backend, macs::siphash_2_4> : refused_mac_engine<macs::siphash
                                                 needs_library<Backend> {
     static_assert(refused_elsewhere_v<Backend>,
                   "webcpp::hash: macs::siphash_2_4 is not in this backend. Name one of: "
-                  "backends::hash2.");
+                  "backends::hash2, backends::sodium.");
 };
 
 /** `macs::siphash_2_4x` on a backend without it (spec 3.3, design D34). */
@@ -1073,7 +1127,8 @@ template <class Backend>
 struct mac_engine<Backend, macs::siphash_2_4x> : refused_mac_engine<macs::siphash_2_4x>,
                                                  needs_library<Backend> {
     static_assert(refused_elsewhere_v<Backend>,
-                  "webcpp::hash: macs::siphash_2_4x is in no backend yet.");
+                  "webcpp::hash: macs::siphash_2_4x is not in this backend. Name one of: "
+                  "backends::sodium.");
 };
 
 /** `macs::blake2b_mac` on a backend without it (spec 3.3, design D34). */

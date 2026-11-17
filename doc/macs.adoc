@@ -145,3 +145,37 @@ not a cut: `backends::hash2` (Boost.Hash2's keyed `blake2s_256`) answers
 `unsupported_by_backend` to a shorter tag. `macs::siphash_2_4` on it is
 SipHash-2-4 whole: a 16-byte key and an 8-byte tag.
 
+[#hash-siphash-sodium]
+=== SipHash on libsodium: `macs::siphash_2_4x`
+
+`mac` computes SipHash through two tags: `macs::siphash_2_4`, SipHash-2-4 with
+its 8-byte result, on `backends::hash2` (Boost.Hash2's `siphash_64`, the
+default) or on `backends::sodium` (libsodium's `crypto_shorthash_siphash24`),
+which give the same bytes; and `macs::siphash_2_4x`, the same rounds with a
+16-byte result (the SipHash reference implementation's 128-bit output,
+libsodium's `crypto_shorthash_siphashx24`), on `backends::sodium` alone, its
+default. Both take a 16-byte key. The 16-byte result makes collisions between
+honest keys rare enough for a table or a filter of billions of entries, or for
+a short identifier keyed against flooding, where 64 bits would collide; it is
+still a hash for tables, not a MAC for messages (<<hash-siphash>>).
+
+[source]
+----
+include::{examples}/siphash_sodium.cpp[tag=example,indent=0]
+----
+
+[listing]
+----
+include::{examples}/siphash_sodium.expected[]
+----
+
+*Pitfalls.*
+
+* *The pitfalls of <<hash-siphash>> hold:* a random key per process, and not
+a MAC for messages: use HMAC there.
+* *SipHash-2-4x is not two SipHash-2-4 tags.* Its 16 bytes are another
+function's output, and its first 8 bytes are not SipHash-2-4's tag: a program
+that must agree with another names the same tag.
+* *The tag is written little-endian.* `mac` writes SipHash-2-4's 64-bit result
+as 8 bytes, least significant first, as the reference implementation and
+libsodium do; `siphash_64`'s `result()` is the number itself.

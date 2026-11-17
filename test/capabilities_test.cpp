@@ -71,9 +71,9 @@ using backend_tags =
     std::tuple<hash::backends::hash2, hash::backends::xkcp, hash::backends::blake3,
                hash::backends::sodium, hash::backends::bearssl, hash::backends::openssl>;
 
-// The functions of increment 1: those over an hmac, and those over none.
+// The functions with a Backend parameter: those over an hmac, and those over none.
 using hmac_functions = test::kdf_operations;
-using plain_functions = std::tuple<kdfs::argon2id, kdfs::scrypt>;
+using plain_functions = std::tuple<kdfs::argon2id, kdfs::scrypt, kdfs::blake2b_subkey>;
 
 template <class Function>
 constexpr std::string_view function_name() {
@@ -81,6 +81,8 @@ constexpr std::string_view function_name() {
         return "argon2id";
     } else if constexpr (std::is_same_v<Function, kdfs::scrypt>) {
         return "scrypt";
+    } else if constexpr (std::is_same_v<Function, kdfs::blake2b_subkey>) {
+        return "blake2b_subkey";
     } else {
         return test::name_of_operation<Function>();
     }
@@ -545,7 +547,8 @@ void check_names(json::object const& table) {
             }
         }
     }
-    names known_functions{"hkdf_extract", "hkdf_expand", "hkdf", "pbkdf2", "argon2id", "scrypt"};
+    names known_functions{"hkdf_extract", "hkdf_expand", "hkdf",          "pbkdf2",
+                          "argon2id",     "scrypt",      "blake2b_subkey"};
     for (auto const& row : type_rows()) {
         known_functions.emplace(row.name);
     }
@@ -694,6 +697,13 @@ std::vector<refusal> const& refusals() {
             .start = "scrypt is in backends::sodium alone.",
             .backend = "",
             .functions = {"scrypt"},
+            .hmacs = {},
+        },
+        {
+            .header = "detail/engines.hpp",
+            .start = "blake2b_subkey is in backends::sodium alone.",
+            .backend = "",
+            .functions = {"blake2b_subkey"},
             .hmacs = {},
         },
         {

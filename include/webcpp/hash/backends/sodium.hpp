@@ -7,8 +7,10 @@
 /**
  `backends::sodium`: HKDF (RFC 5869) over libsodium's `crypto_kdf_hkdf_sha256_*` and
  `crypto_kdf_hkdf_sha512_*`, Argon2id over `crypto_pwhash_argon2id`, scrypt over
- `crypto_pwhash_scryptsalsa208sha256_ll`, and `digests::blake2b` (RFC 7693, with its key, salt,
- personalisation and output size) over `crypto_generichash_blake2b_*`, built from source by
+ `crypto_pwhash_scryptsalsa208sha256_ll`, `digests::blake2b` (RFC 7693, with its key, salt,
+ personalisation and output size) over `crypto_generichash_blake2b_*`, `macs::siphash_2_4` and
+ `macs::siphash_2_4x` over `crypto_shorthash_siphash24` and `crypto_shorthash_siphashx24`, and
+ `blake2b_subkey` over `crypto_kdf_blake2b_derive_from_key`, built from source by
  `/third_party//sodium`, on every target. It has HKDF over `hmac_sha2_256` and `hmac_sha2_512`
  alone, and no PBKDF2; every other hmac and PBKDF2 refuse at compile time with spec 3.3's texts.
 
@@ -37,12 +39,14 @@
 
 #include <webcpp/hash/detail/canary.h>
 #include <webcpp/hash/argon2.hpp>
+#include <webcpp/hash/blake2b_subkey.hpp>
 #include <webcpp/hash/detail/engines.hpp>
 #include <webcpp/hash/detail/limits.hpp>
 #include <webcpp/hash/detail/wipe.hpp>
 #include <webcpp/hash/digest.hpp>
 #include <webcpp/hash/error.hpp>
 #include <webcpp/hash/hmac.hpp>
+#include <webcpp/hash/mac.hpp>
 #include <webcpp/hash/scrypt.hpp>
 
 #include <boost/system/errc.hpp>
@@ -50,10 +54,12 @@
 
 #include <sodium/core.h>  // third_party/libs/libsodium, through /third_party//sodium
 #include <sodium/crypto_generichash_blake2b.h>          // the same
+#include <sodium/crypto_kdf_blake2b.h>                  // the same
 #include <sodium/crypto_kdf_hkdf_sha256.h>              // the same
 #include <sodium/crypto_kdf_hkdf_sha512.h>              // the same
 #include <sodium/crypto_pwhash_argon2id.h>              // the same
 #include <sodium/crypto_pwhash_scryptsalsa208sha256.h>  // the same
+#include <sodium/crypto_shorthash_siphash24.h>          // the same
 
 #include <cerrno>
 #include <cstddef>
@@ -89,7 +95,7 @@ namespace backends {
 
 /**
  libsodium, built from its sources by `/third_party//sodium`: HKDF over SHA-256 and SHA-512,
- Argon2id, scrypt and BLAKE2b.
+ Argon2id, scrypt, BLAKE2b, SipHash-2-4, SipHash-2-4x and BLAKE2b subkeys.
 */
 struct sodium {};
 
@@ -461,6 +467,98 @@ static_assert(digest_traits<digests::blake2b>::block_part_size ==
               crypto_generichash_blake2b_SALTBYTES);
 static_assert(digest_traits<digests::blake2b>::block_part_size ==
               crypto_generichash_blake2b_PERSONALBYTES);
+
+/**
+ What libsodium's SipHash one-shots, `crypto_shorthash_siphash24` and
+ `crypto_shorthash_siphashx24`, have in common as engines of `mac`, whose interface is
+ @ref mac_engine. They take every key and tag size the family accepts (a 16-byte key; an 8-byte
+ or a 16-byte tag) and write the tag straight into the output. libsodium keeps SipHash's four state
+ words in its own frame and does not wipe them; webcpp cannot reach them.
+
+ @tparam Mac The tag of `macs`. @tparam Function The C function.
+ @tparam TagSize libsodium's size of the tag. @tparam KeySize libsodium's size of the key.
+*/
+template <class Mac,
+          int (*Function)(unsigned char*, unsigned char const*, unsigned long long,
+                          unsigned char const*),
+          std::size_t TagSize, std::size_t KeySize>
+struct sodium_siphash_engine : full_engine {
+    /**
+     The tag of `input` under `key`.
+
+     @param output The tag, of the tag's size (the family's guard). @param key The 16-byte key.
+     @param input The message.
+     @return Success, or `error::backend_failure`.
+    */
+    [[nodiscard]] static boost::system::result<void> compute(
+        std::span<std::uint8_t> output, std::span<std::uint8_t const> key,
+        std::span<std::uint8_t const> input, mac_options<Mac> const& /*options*/) noexcept {
+        // The family's sizes are libsodium's, so that its guards pass exactly what libsodium
+        // takes. Checked here, where mac.hpp's traits are complete whatever the order of includes.
+        static_assert(mac_traits<Mac>::min_output == TagSize &&
+                      mac_traits<Mac>::max_output == TagSize);
+        static_assert(mac_traits<Mac>::min_key == KeySize && mac_traits<Mac>::max_key == KeySize);
+        if (!sodium_ready()) {
+            return error::backend_failure;
+        }
+        if (Function(output.data(), input.data(), input.size(), key.data()) != 0) {
+            return error::backend_failure;
+        }
+        return {};
+    }
+};
+
+/** `macs::siphash_2_4` on backends::sodium: `crypto_shorthash_siphash24`, an 8-byte tag. */
+template <>
+struct mac_engine<backends::sodium, macs::siphash_2_4>
+    : sodium_siphash_engine<macs::siphash_2_4, &crypto_shorthash_siphash24,
+                            crypto_shorthash_siphash24_BYTES, crypto_shorthash_siphash24_KEYBYTES> {
+};
+
+/** `macs::siphash_2_4x` on backends::sodium: `crypto_shorthash_siphashx24`, a 16-byte tag. */
+template <>
+struct mac_engine<backends::sodium, macs::siphash_2_4x>
+    : sodium_siphash_engine<macs::siphash_2_4x, &crypto_shorthash_siphashx24,
+                            crypto_shorthash_siphashx24_BYTES,
+                            crypto_shorthash_siphashx24_KEYBYTES> {};
+
+/**
+ `blake2b_subkey` on backends::sodium: `crypto_kdf_blake2b_derive_from_key` (the engine's
+ interface: @ref blake2b_subkey_engine). libsodium builds the salt and the personalisation in its
+ own frame, and its BLAKE2b wipes its chaining value and buffer, as @ref digest_engine's one-shot
+ on backends::sodium says.
+*/
+template <>
+struct blake2b_subkey_engine<backends::sodium> {
+    /**
+     The subkey, by `crypto_kdf_blake2b_derive_from_key`.
+
+     @param output_bytes The subkey, 16 to 64 bytes. @param master_key The 32-byte master key.
+     @param subkey_id The subkey's id. @param context The 8-byte context.
+     @return Success, or `error::backend_failure`.
+    */
+    [[nodiscard]] static boost::system::result<void> derive(
+        std::span<std::uint8_t> output_bytes, std::span<std::uint8_t const> master_key,
+        std::uint64_t subkey_id, std::span<std::uint8_t const> context) noexcept {
+        if (!sodium_ready()) {
+            return error::backend_failure;
+        }
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): libsodium types it char
+        auto const* const context_chars = reinterpret_cast<char const*>(context.data());
+        if (crypto_kdf_blake2b_derive_from_key(output_bytes.data(), output_bytes.size(), subkey_id,
+                                               context_chars, master_key.data()) != 0) {
+            return error::backend_failure;
+        }
+        return {};
+    }
+};
+
+// blake2b_subkey.hpp's guards are libsodium's bounds, so that libsodium never refuses what they
+// pass.
+static_assert(blake2b_subkey_min_size == crypto_kdf_blake2b_BYTES_MIN);
+static_assert(blake2b_subkey_max_size == crypto_kdf_blake2b_BYTES_MAX);
+static_assert(blake2b_subkey_key_size == crypto_kdf_blake2b_KEYBYTES);
+static_assert(blake2b_subkey_context_size == crypto_kdf_blake2b_CONTEXTBYTES);
 
 /**
  Argon2id on backends::sodium: `crypto_pwhash_argon2id` with

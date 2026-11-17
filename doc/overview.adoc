@@ -51,6 +51,9 @@ hashes, HMAC
 
 | scrypt (RFC 7914)
 | libsodium's `crypto_pwhash_scryptsalsa208sha256_ll`
+
+| BLAKE2b subkeys (libsodium's `crypto_kdf`)
+| libsodium's `crypto_kdf_blake2b_derive_from_key`
 |===
 
 Every function is synchronous, reports failure as a value

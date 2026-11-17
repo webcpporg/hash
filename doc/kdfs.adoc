@@ -16,12 +16,15 @@ same key for two purposes, encryption and authentication for example, can let
 an attack on one break the other; using a raw Diffie-Hellman output as an AES
 key wastes part of its strength. HKDF fixes both: it concentrates the entropy
 of its input into a pseudorandom key, then expands it into independent keys,
-one per label. PBKDF2 is the older answer to another problem, a key from a
-password, which Argon2id now answers better (<<hash-password-hashing>>).
+one per label. BLAKE2b subkeys, libsodium's `crypto_kdf`, split a master key
+that is already uniformly random into keys numbered by id. PBKDF2 is the older
+answer to another problem, a key from a password, which Argon2id now answers
+better (<<hash-password-hashing>>).
 
 The key derivations are the functions of hash that run on a backend, a C
 library or Boost.Hash2, that the program names or leaves to the default,
-`backends::hash2` (<<hash-default-backend>>). Each backend gives the same bytes for the same inputs: the
+`backends::hash2` (<<hash-default-backend>>); BLAKE2b subkeys run on libsodium
+alone. Each backend gives the same bytes for the same inputs: the
 tests check them against each other on random inputs on every target.
 
 include::generated/compare-kdfs.adoc[]
@@ -147,3 +150,49 @@ first block alone, nothing.
 * *Prefer Argon2id for a new design* (<<hash-argon2id>>).
 
 include::generated/backends-pbkdf2.adoc[]
+
+[#hash-blake2b-subkey]
+=== BLAKE2b subkeys
+
+`blake2b_subkey` derives many keys from one master key, each named by a number,
+the subkey's id, and an 8-byte context that names the application or the part
+of it, as libsodium's `crypto_kdf_derive_from_key` does. A chat app keeps one
+32-byte master key and asks for subkey 1 to encrypt messages and subkey 2 to
+authenticate them; a backup tool asks for one subkey per archive. A subkey is
+BLAKE2b (RFC 7693) of the empty message, keyed with the master key, with the
+id in BLAKE2b's salt and the context in its personalisation: one fast call,
+and the bytes a libsodium program derives from the same master key, id and
+context. It runs on `backends::sodium` (`/third_party//sodium`), the one
+backend that has it.
+
+Unlike HKDF, it does not extract: the master key must already be 32 uniformly
+random bytes, from `webcpp::crypto::random_device` or from another KDF. A
+Diffie-Hellman result or a password goes through HKDF or Argon2id first.
+
+[source]
+----
+include::{examples}/blake2b_subkey.cpp[tag=example,indent=0]
+----
+
+[listing]
+----
+include::{examples}/blake2b_subkey.expected[]
+----
+
+*Pitfalls.*
+
+* *The master key is random, never a password.* `blake2b_subkey` adds no
+work per guess: from a password, derive the master key with Argon2id
+(<<hash-argon2id>>) first.
+* *The context is exactly 8 bytes.* A shorter or a longer one is
+`invalid_parameters`, never padded or cut, so that two programs cannot
+disagree on its bytes; spell it as a constant of 8 characters, as
+`"vault v1"`.
+* *One id, one purpose.* The same id and context always give the same key:
+keep the ids in one list, and never reuse one for a second purpose.
+* *The length is part of the key.* A subkey of 16 bytes is not the first half
+of the one of 32 with the same id: BLAKE2b's output size is a parameter of the
+hash. Lengths of 16 to 64 bytes are accepted, others are
+`invalid_output_size`.
+
+include::generated/backends-blake2b-subkey.adoc[]

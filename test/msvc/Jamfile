@@ -37,6 +37,8 @@ build-project ripemd128_on_openssl ;
 build-project scrypt_on_hash2 ;
 build-project argon2id_default_not_linked ;
 build-project scrypt_default_not_linked ;
+build-project blake2b_subkey_on_hash2 ;
+build-project blake2b_subkey_default_not_linked ;
 build-project sodium_hmac ;
 build-project sodium_not_linked ;
 build-project xkcp_not_linked ;

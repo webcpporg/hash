@@ -24,6 +24,8 @@ build-project argon2id_on_hash2 ;
 build-project scrypt_on_hash2 ;
 build-project argon2id_default_not_linked ;
 build-project scrypt_default_not_linked ;
+build-project blake2b_subkey_on_hash2 ;
+build-project blake2b_subkey_default_not_linked ;
 build-project digest_not_a_tag ;
 build-project mac_not_a_tag ;
 build-project argon2_not_a_variant ;

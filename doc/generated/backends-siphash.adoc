@@ -8,7 +8,7 @@
 
 
 [#hash-backends-of-siphash]
-.Who implements `siphash_32`, `siphash_64`, `macs::siphash_2_4` (SipHash-2-4 (siphash_64) and HalfSipHash-2-4 (siphash_32), Aumasson and Bernstein)
+.Who implements `siphash_32` to `macs::siphash_2_4x`, 4 names (SipHash-2-4 (siphash_64), HalfSipHash-2-4 (siphash_32) and SipHash-2-4 with a 128-bit output (libsodium's siphashx24), Aumasson and Bernstein)
 [cols="2,1,2,2,3,1",options="header"]
 |===
 | Function | Backend | The program's Jamfile names | Targets | Hmacs | Constant time
@@ -33,10 +33,27 @@
 | native, wasip2, wasip3, emscripten
 | -
 | not stated
+
+| `macs::siphash_2_4`
+| `sodium`
+| `/third_party//sodium`
+| native, wasip2, wasip3, emscripten
+| -
+| not stated
+
+| `macs::siphash_2_4x`
+| `sodium`
+| `/third_party//sodium`
+| native, wasip2, wasip3, emscripten
+| -
+| not stated
 |===
 
 What each backend states on constant time, as the capability table read it:
 
 * `hash2`: Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property.
+* `sodium`: libsodium 1.0.22: its headers state constant time for comparisons (sodium/utils.h) alone, not for its hashing, key derivation and password hashing functions (crypto_generichash_*, crypto_shorthash_*, crypto_kdf_*, crypto_pwhash_*).
 
-The default of `macs::siphash_2_4`: `hash2` on every target, whatever the program links (<<hash-default-backend>>).
+The default of `macs::siphash_2_4`: `hash2` on every target, whatever the program links; `sodium` only where the call names it, as its second template argument (<<hash-default-backend>>).
+
+The default of `macs::siphash_2_4x`: `sodium` on every target, whatever the program links (<<hash-default-backend>>).
