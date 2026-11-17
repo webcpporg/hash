@@ -205,11 +205,11 @@ void check_hmac_block_keys(std::string_view name) {
 
 // RFC 4231's seven test cases on backends::sodium, and on the default (backends::hash2).
 void check_rfc4231() {
-    for (auto const& vector : test::rfc4231) {
+    for (std::size_t number = 1; auto const& vector : test::rfc4231_cases) {
         auto const key = test::from_hex(vector.key);
         auto const data = test::from_hex(vector.data);
-        std::vector<std::uint8_t> tag_256(vector.sha2_256.size() / 2);
-        std::vector<std::uint8_t> tag_512(vector.sha2_512.size() / 2);
+        std::vector<std::uint8_t> tag_256(vector.sha256.size() / 2);
+        std::vector<std::uint8_t> tag_512(vector.sha512.size() / 2);
         std::vector<std::uint8_t> default_256(tag_256.size());
         std::vector<std::uint8_t> default_512(tag_512.size());
         bool const computed =
@@ -219,12 +219,13 @@ void check_rfc4231() {
                 .has_value() &&
             hash::mac<macs::hmac<digests::sha2_256>>(default_256, key, data).has_value() &&
             hash::mac<macs::hmac<digests::sha2_512>>(default_512, key, data).has_value();
-        if (!BOOST_TEST(computed) || !BOOST_TEST_EQ(test::to_hex(tag_256), vector.sha2_256) ||
-            !BOOST_TEST_EQ(test::to_hex(tag_512), vector.sha2_512) ||
-            !BOOST_TEST_EQ(test::to_hex(default_256), vector.sha2_256) ||
-            !BOOST_TEST_EQ(test::to_hex(default_512), vector.sha2_512)) {
-            std::cerr << "  RFC 4231 test case " << vector.number << '\n';
+        if (!BOOST_TEST(computed) || !BOOST_TEST_EQ(test::to_hex(tag_256), vector.sha256) ||
+            !BOOST_TEST_EQ(test::to_hex(tag_512), vector.sha512) ||
+            !BOOST_TEST_EQ(test::to_hex(default_256), vector.sha256) ||
+            !BOOST_TEST_EQ(test::to_hex(default_512), vector.sha512)) {
+            std::cerr << "  RFC 4231 test case " << number << '\n';
         }
+        ++number;
     }
 }
 
