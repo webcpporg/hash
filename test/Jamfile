@@ -92,6 +92,10 @@ hash-run keccak : keccak_test.cpp : <library>/third_party//xkcp ;
 # public keccak_224 to keccak_512, their published digests, and keccak_256's
 # agreement with webcpp's.
 hash-run upstream_keccak : upstream_keccak_test.cpp : <library>/third_party//xkcp ;
+# The adapter's functions over XKCP's high-level interfaces, in webcpp's
+# storage, against FIPS 202's, SP 800-185's and RFC 9861's values
+# (detail/xkcp.hpp).
+hash-run xkcp_adapter : xkcp_adapter_test.cpp : <library>/third_party//xkcp ;
 # hash.hpp's branch for XKCP.
 webcpp.compile hash_keccak : hash_keccak_test.cpp : <library>/third_party//xkcp ;
 # keccak_256's read of the canary survives optimisation: with the library it

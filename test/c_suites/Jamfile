@@ -128,21 +128,38 @@ for local name in $(.sodium-tests)
 webcpp.run-fail sodium_writes_nothing : sodium_writes_nothing.c sodium_main.cpp
   : [ sodium-requirements writes_nothing ] ;
 
-# XKCP's unit tests of Keccak-p[1600] (--SnP), against /third_party//xkcp and
-# webcpp's config.h, which enables that one component: main.c then calls only
-# testPermutations. XKCP_PrintImplementations, which main.c calls first, is
-# lib/low/common/SnP-implementations.c's, a file of XKCP's test framework that
-# is added to this program, never to /third_party//xkcp. A failed check exits 1
-# (UT.c's UT_assertSyn).
+# XKCP's unit tests of what /third_party//xkcp compiles, against it and
+# webcpp's config.h: Keccak-p[1600] (--SnP), the sponge and TurboSHAKE
+# (--KeccakSponge, which tests TurboSHAKE when XKCP_has_TurboSHAKE is defined:
+# TurboSHAKE has no option of its own), SP 800-185 (--SP800-185) and
+# KangarooTwelve (--KangarooTwelve). Never --FIPS202: its genKAT_main writes
+# files and checks nothing. Files of XKCP's test framework are added to this
+# program, never to /third_party//xkcp: SnP-implementations.c, whose
+# XKCP_PrintImplementations main.c calls first; genKAT.c and SimpleFIPS202.c,
+# which main.c and testSP800-185.c need once XKCP_has_FIPS202 is defined, so
+# that SimpleFIPS202's unprefixed SHA3_256 and SHAKE128 stay out of a user's
+# link. A failed check exits 1 (UT.c's UT_assertSyn). testKangarooTwelve.c
+# holds an input of 80 KiB on the stack, past WebAssembly's default stack of
+# 64 KiB: the program's stack is 1 MiB there.
 path-constant XKCP : ../../../../third_party/libs/xkcp ;
-webcpp.run xkcp_unit_tests : $(XKCP)/tests/UnitTests/main.c
-    $(XKCP)/tests/UnitTests/UT.c $(XKCP)/tests/UnitTests/testPermutations.c
-    $(XKCP)/lib/low/common/SnP-implementations.c
-  : <testing.arg>--SnP <library>/third_party//xkcp <include>../../src/xkcp
-    <include>$(XKCP)/tests/UnitTests <include>$(XKCP)/lib/common
+.xkcp-tests = $(XKCP)/tests/UnitTests ;
+webcpp.run xkcp_unit_tests : $(.xkcp-tests)/main.c $(.xkcp-tests)/UT.c
+    $(.xkcp-tests)/testPermutations.c $(.xkcp-tests)/testSponge.c
+    $(.xkcp-tests)/testSP800-185.c $(.xkcp-tests)/testKangarooTwelve.c
+    $(.xkcp-tests)/genKAT.c $(XKCP)/lib/low/common/SnP-implementations.c
+    $(XKCP)/lib/high/Keccak/FIPS202/SimpleFIPS202.c
+  : <testing.arg>--SnP <testing.arg>--KeccakSponge <testing.arg>--SP800-185
+    <testing.arg>--KangarooTwelve <library>/third_party//xkcp
+    <include>../../src/xkcp <include>$(.xkcp-tests) <include>$(XKCP)/lib/common
     <include>$(XKCP)/lib/low/common <include>$(XKCP)/lib/low/KeccakP-1600/common
     <include>$(XKCP)/lib/low/KeccakP-1600/plain-64bits
     <include>$(XKCP)/lib/low/KeccakP-1600/plain-64bits/SnP
+    <include>$(XKCP)/lib/high/common <include>$(XKCP)/lib/high/Keccak
+    <include>$(XKCP)/lib/high/Keccak/FIPS202
+    <include>$(XKCP)/lib/high/Keccak/SP800-185
+    <include>$(XKCP)/lib/high/TurboSHAKE <include>$(XKCP)/lib/high/KangarooTwelve
+    <target-os>wasi:<linkflags>-Wl,-z,stack-size=1048576
+    <toolset>emscripten:<linkflags>-sSTACK_SIZE=1048576
     <warnings>off <warnings-as-errors>off ;
 
 # BLAKE3's c/main.c on webcpp's build of BLAKE3, with BLAKE3_TESTING where
