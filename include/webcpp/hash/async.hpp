@@ -478,13 +478,16 @@ auto run_on_work(WorkExecutor const& work, std::span<std::uint8_t> output, Guard
  @tparam Backend The backend; by default @ref default_async_backend of `Digest`, the synchronous
  default. `backends::webcrypto` only on Emscripten.
  @param executor The executor the completion is posted to; on `backends::webcrypto`, that of an
- `io_context` run on the calling thread (see @ref async_pbkdf2).
+ `io_context` run on the calling thread (see @ref async_pbkdf2), and a refusal of another goes to
+ the handler's associated executor, this one unless the handler is bound to another.
  @param output The digest, of exactly the digest's size; the caller's until completion.
  @param input The data; the caller's until completion.
  @param token The completion token, of signature `void(boost::system::error_code)`.
  @return What the completion token's `async_result` gives. The completion's code is empty on
  success, or `digest_of`'s error, `output` untouched by a guard's refusal and zeroed by a backend's
- failure.
+ failure. On `backends::webcrypto` also `invalid_parameters` (the executor), `output` untouched,
+ `backend_failure` (a rejected promise, an unexpected result, no WebCrypto), `output` zeroed, and
+ `operation_aborted` (a `terminal` or `partial` cancellation, at once), `output` zeroed.
 */
 template <class Digest, class Backend = default_async_backend<Digest>, class Executor,
           class CompletionToken>
@@ -513,13 +516,16 @@ auto async_digest(Executor const& executor, std::span<std::uint8_t> output,
  @tparam Backend The backend; by default @ref default_async_backend of the HMAC's tag, the
  synchronous default. `backends::webcrypto` only on Emscripten.
  @param executor The executor the completion is posted to; on `backends::webcrypto`, that of an
- `io_context` run on the calling thread (see @ref async_pbkdf2).
+ `io_context` run on the calling thread (see @ref async_pbkdf2), and a refusal of another goes to
+ the handler's associated executor, this one unless the handler is bound to another.
  @param output The tag, 10 bytes up to the digest's size; the caller's until completion.
  @param key The key, of any size. @param input The message. Both the caller's until completion.
  @param token The completion token, of signature `void(boost::system::error_code)`.
  @return What the completion token's `async_result` gives. The completion's code is empty on
  success, or `mac`'s error, `output` untouched by a guard's refusal and zeroed by a backend's
- failure.
+ failure. On `backends::webcrypto` also `invalid_parameters` (the executor), `output` untouched,
+ `backend_failure` (a rejected promise, an unexpected result, no WebCrypto), `output` zeroed, and
+ `operation_aborted` (a `terminal` or `partial` cancellation, at once), `output` zeroed.
 */
 template <class Hmac, class Backend = default_async_backend<detail::hmac_tag_of<Hmac>>,
           class Executor, class CompletionToken>
@@ -550,14 +556,18 @@ auto async_hmac(Executor const& executor, std::span<std::uint8_t> output,
  @tparam Backend The backend; by default @ref default_async_backend of `kdfs::hkdf`, the
  synchronous default. `backends::webcrypto` only on Emscripten.
  @param executor The executor the completion is posted to; on `backends::webcrypto`, that of an
- `io_context` run on the calling thread (see @ref async_pbkdf2).
+ `io_context` run on the calling thread (see @ref async_pbkdf2), and a refusal of another goes to
+ the handler's associated executor, this one unless the handler is bound to another.
  @param output The output keying material, 1 to 255 times the digest size.
  @param salt The salt. @param ikm The input keying material. @param info The context, at most
- `hkdf_max_info_size` bytes. The spans are the caller's until completion.
+ `hkdf_max_info_size` bytes; on `backends::webcrypto` at most 1,024, WebCrypto's limit
+ (`input_too_long` beyond). The spans are the caller's until completion.
  @param token The completion token, of signature `void(boost::system::error_code)`.
  @return What the completion token's `async_result` gives. The completion's code is empty on
  success, or `hkdf`'s error, `output` untouched by a guard's refusal and zeroed by a backend's
- failure.
+ failure. On `backends::webcrypto` also `invalid_parameters` (the executor), `output` untouched,
+ `backend_failure` (a rejected promise, an unexpected result, no WebCrypto), `output` zeroed, and
+ `operation_aborted` (a `terminal` or `partial` cancellation, at once), `output` zeroed.
 */
 template <class Hmac, class Backend = default_async_backend<kdfs::hkdf, Hmac>, class Executor,
           class CompletionToken>
@@ -587,16 +597,22 @@ auto async_hkdf(Executor const& executor, std::span<std::uint8_t> output,
  (`WEBCPP_HASH_HAS_THREADS`). On `backends::webcrypto`, on Emscripten, the browser runs it and no
  thread is needed: there `executor` must be that of an `io_context` run on the calling thread,
  whose `run` returns to the JavaScript event loop where WebCrypto's promise settles (ruling R73).
- A concrete executor of another context (a `thread_pool`'s) stops the build; a type-erased one
- (`any_io_executor`) that holds none of an `io_context` completes with `invalid_parameters`,
- posted to the handler's associated executor.
+ The context is checked: a concrete executor of another context (a `thread_pool`'s) stops the
+ build, and a type-erased one (`any_io_executor`) whose context is not an `io_context`, or whose
+ `io_context` executor it hides behind another allocator, completes with `invalid_parameters`,
+ posted to the handler's associated executor. The calling thread is the program's duty, not
+ checked. WebCrypto takes at most 2^32 - 1 iterations (`invalid_iterations`) and an output of at
+ most (2^32 - 1) / 8 bytes (`invalid_output_size`), over `hmac_sha1_160`, `hmac_sha2_256`,
+ `hmac_sha2_384` and `hmac_sha2_512` alone.
 
- Cancellation through the handler's slot: before the work starts, any type completes the
- operation at once with `operation_aborted`, the work never runs; during it, a `terminal` or
- `partial` one lets the work end, then `output` is zeroed and the completion is
+ Cancellation through the handler's slot, on a synchronous backend: before the work starts, any
+ type completes the operation at once with `operation_aborted`, the work never runs; during it, a
+ `terminal` or `partial` one lets the work end, then `output` is zeroed and the completion is
  `operation_aborted` (a `total` one is then ignored). "At once" is on the handler's associated
  executor: for a handler without one, that is `executor`, so the completion waits for its
- threads; bind the handler to the event loop's executor.
+ threads; bind the handler to the event loop's executor. On `backends::webcrypto` a `terminal` or
+ `partial` one completes at once with `operation_aborted`, `output` zeroed, while the browser's
+ work runs to its end unseen; a `total` one is ignored.
 
  @tparam Hmac The pseudorandom function, as `hmac_sha2_512`.
  @tparam Backend The backend; by default @ref default_async_backend of `kdfs::pbkdf2`, the
@@ -608,7 +624,9 @@ auto async_hkdf(Executor const& executor, std::span<std::uint8_t> output,
  @param token The completion token, of signature `void(boost::system::error_code)`.
  @return What the completion token's `async_result` gives. The completion's code is empty on
  success, or `pbkdf2`'s error, a guard's refusal completing through a post, `output` untouched; or
- `operation_aborted`.
+ `operation_aborted`. On `backends::webcrypto` also `invalid_parameters` (the executor),
+ `output` untouched, and `backend_failure` (a rejected promise, an unexpected result, no
+ WebCrypto), `output` zeroed.
 */
 template <class Hmac, class Backend = default_async_backend<kdfs::pbkdf2, Hmac>, class Executor,
           class CompletionToken>

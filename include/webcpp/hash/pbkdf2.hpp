@@ -82,8 +82,11 @@ template <class Hmac, class Backend>
     if (exceeds(output_size, limits::pbkdf2_output)) {
         return error::invalid_output_size;
     }
-    if (exceeds(iteration_count, limits::pbkdf2_iterations)) {
-        return error::invalid_iterations;
+    // A specialisation written before pbkdf2_iterations existed has no limit of iterations.
+    if constexpr (requires { limits::pbkdf2_iterations; }) {
+        if (exceeds(iteration_count, limits::pbkdf2_iterations)) {
+            return error::invalid_iterations;
+        }
     }
     if (exceeds(password_size, limits::pbkdf2_password) ||
         exceeds(salt_size, limits::pbkdf2_salt)) {

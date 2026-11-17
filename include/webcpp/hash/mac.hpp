@@ -136,6 +136,30 @@ template <> struct mac_traits<macs::blake2b_mac> : mac_sizes<1, 64, 1, 64> {};
 template <> struct mac_traits<macs::blake2s_mac> : mac_sizes<1, 32, 1, 32> {};
 // clang-format on
 
+/**
+ The family's guards of `mac` (spec 2.15), without the backend's: the tag's size
+ (`invalid_output_size`), the key's (`invalid_key_size`), then the options' own. What a backend
+ that completes by itself (`backends::webcrypto`) checks before it starts the work.
+
+ @tparam Mac A tag of `macs`. @param output_size The tag's size. @param key_size The key's size.
+ @param options The MAC's parameters.
+ @return Success, or the error of the first guard that fails, as `mac` returns it.
+*/
+template <class Mac>
+[[nodiscard]] boost::system::result<void> mac_guards(std::size_t output_size, std::size_t key_size,
+                                                     mac_options<Mac> const& options) {
+    using traits = mac_traits<Mac>;
+    // Each bound through exceeds, a function of two 64-bit values: a constant bound of 0 or of
+    // no_limit compared with a size_t is a tautology the warnings refuse.
+    if (exceeds(traits::min_output, output_size) || exceeds(output_size, traits::max_output)) {
+        return error::invalid_output_size;
+    }
+    if (exceeds(traits::min_key, key_size) || exceeds(key_size, traits::max_key)) {
+        return error::invalid_key_size;
+    }
+    return traits::check(options);
+}
+
 }  // namespace detail
 
 /**
@@ -165,18 +189,7 @@ template <class Mac, class Backend = default_backend<Mac>>
                                               std::span<std::uint8_t const> input,
                                               mac_options<Mac> const& options = {}) {
     using engine = detail::mac_engine<Backend, Mac>;
-    using traits = detail::mac_traits<Mac>;
-    // Each bound through exceeds, a function of two 64-bit values: a constant bound of 0 or of
-    // no_limit compared with a size_t is a tautology the warnings refuse.
-    if (detail::exceeds(traits::min_output, output.size()) ||
-        detail::exceeds(output.size(), traits::max_output)) {
-        return error::invalid_output_size;
-    }
-    if (detail::exceeds(traits::min_key, key.size()) ||
-        detail::exceeds(key.size(), traits::max_key)) {
-        return error::invalid_key_size;
-    }
-    auto checked = traits::check(options);
+    auto checked = detail::mac_guards<Mac>(output.size(), key.size(), options);
     if (!checked) {
         return checked;
     }

@@ -6,10 +6,10 @@
 
 /**
  `backends::webcrypto`: the browser's WebCrypto (`crypto.subtle`, the Web Cryptography API) as a
- backend of the asynchronous family of `<webcpp/hash/async.hpp>`, on Emscripten, where node and
- every browser have it: `async_digest` over SHA-1, SHA-256, SHA-384 and SHA-512, and `async_hmac`,
- `async_hkdf` and `async_pbkdf2` over the hmacs of those four. It is never a default: a program
- names it in the type. No synchronous function takes it.
+ backend of the asynchronous family of `<webcpp/hash/async.hpp>`, on Emscripten, where the
+ browsers and node have it (tested under node): `async_digest` over SHA-1, SHA-256, SHA-384 and
+ SHA-512, and `async_hmac`, `async_hkdf` and `async_pbkdf2` over the hmacs of those four. It is
+ never a default: a program names it in the type. No synchronous function takes it.
 
  Each operation builds WebCrypto's call with `emscripten::val` (`digest`; `importKey`, then `sign`
  or `deriveBits`), awaits its promise through webcpp::asio's
@@ -17,9 +17,13 @@
  completion; a rejected promise is `error::backend_failure`, and a cancellation through the
  handler's slot `asio::error::operation_aborted`, both with the output zeroed. The same guards as
  the synchronous function run first, then WebCrypto's own limits (`detail::backend_limits`), then
- the executor's check: its context must be an `io_context` that runs on the calling thread, whose
- `run` returns to the JavaScript event loop where the promise settles. A refusal completes through
- a post to the handler's associated executor, the output untouched.
+ the executor's check (ruling R73): its context must be an `io_context`, checked at compile time
+ for a concrete executor and at run time for a type-erased one (`invalid_parameters`). That the
+ `io_context` runs on the calling thread, whose `run` returns to the JavaScript event loop where
+ the promise settles, is the program's duty: it cannot be checked. A refusal completes through a
+ post to the handler's associated executor (the executor given, unless the handler is bound to
+ another), the output untouched; a runtime without WebCrypto is `backend_failure`, the output
+ zeroed.
 
  `async.hpp` includes this header: a program includes either. It needs webcpp::asio
  (`<library>/webcpp/asio//asio`) and nothing else; off Emscripten it holds only the limits, since
@@ -100,6 +104,7 @@ struct backend_limits<backends::webcrypto> {
 #include <webcpp/hash/mac.hpp>
 #include <webcpp/hash/pbkdf2.hpp>
 
+#include <webcpp/asio/any_io_executor.hpp>
 #include <webcpp/asio/append.hpp>
 #include <webcpp/asio/associated_executor.hpp>
 #include <webcpp/asio/async_result.hpp>
@@ -109,10 +114,8 @@ struct backend_limits<backends::webcrypto> {
 #include <webcpp/asio/compose.hpp>
 #include <webcpp/asio/error.hpp>
 #include <webcpp/asio/execution/context.hpp>
-#include <webcpp/asio/execution/outstanding_work.hpp>
 #include <webcpp/asio/io_context.hpp>
 #include <webcpp/asio/post.hpp>
-#include <webcpp/asio/prefer.hpp>
 #include <webcpp/asio/query.hpp>
 #include <webcpp/asio/strand.hpp>
 
@@ -123,6 +126,7 @@ struct backend_limits<backends::webcrypto> {
 
 #include <array>
 #include <cstddef>
+#include <memory>
 #include <span>
 #include <type_traits>
 #include <utility>
@@ -188,47 +192,83 @@ template <class Executor>
 inline constexpr webcrypto_context webcrypto_context_of = webcrypto_context_kind<Executor>();
 
 /**
- Whether a type-erased executor holds one of an `io_context`: its own executor, the same with
- outstanding work, or a strand over either (ruling R73). An executor of another kind behind it, or
- an erased type without `target`, is answered false: the operation would await a promise on a
- context whose threads never return to the JavaScript event loop.
+ An `io_context`'s executor with the standard allocator and the property bits `Bits` (blocking
+ never, relationship continuation, outstanding work tracked: the eight combinations `prefer` and
+ `require` give).
+*/
+template <std::uintptr_t Bits>
+using io_context_executor_with =
+    webcpp::asio_backend::io_context::basic_executor_type<std::allocator<void>, Bits>;
 
- @param executor The executor. @return Whether its target is an `io_context`'s.
+/**
+ Whether the type-erased `executor` holds an `io_context`'s executor of one of the bits
+ `Bits...`, or a strand over one.
+
+ @param executor The type-erased executor. @return Whether its target is one.
+*/
+template <class Executor, std::uintptr_t... Bits>
+bool targets_io_context(Executor const& executor,
+                        std::integer_sequence<std::uintptr_t, Bits...> /*bits*/) noexcept {
+    return ((executor.template target<io_context_executor_with<Bits>>() != nullptr) || ...) ||
+           ((executor.template target<webcpp::asio::strand<io_context_executor_with<Bits>>>() !=
+             nullptr) ||
+            ...);
+}
+
+/**
+ Whether `executor` completes on an `io_context` (ruling R73), whatever its form: a concrete
+ executor whose context is one (any allocator, any property); a strand, through the executor it
+ wraps, recursively; a type-erased executor (`any_io_executor`) that holds an `io_context`'s
+ executor with the standard allocator and any property, a strand over one, or a type-erased
+ strand, recursively. Anything else is answered false, among it an `io_context`'s executor rebound
+ to another allocator behind type erasure, whose type the erasure hides: the operation would
+ await a promise on a context it cannot tell runs the JavaScript event loop.
+
+ @param executor The executor. @return Whether it completes on an io_context.
 */
 template <class Executor>
-bool holds_io_context_executor(Executor const& executor) noexcept {
-    using plain = webcpp::asio_backend::io_context::executor_type;
-    using tracked = std::remove_cvref_t<decltype(webcpp::asio::prefer(
-        std::declval<plain const&>(), webcpp::asio::execution::outstanding_work_t::tracked))>;
-    if constexpr (requires { std::declval<Executor const&>().template target<plain>(); }) {
-        return executor.template target<plain>() != nullptr ||
-               executor.template target<tracked>() != nullptr ||
-               executor.template target<webcpp::asio::strand<plain>>() != nullptr ||
-               executor.template target<webcpp::asio::strand<tracked>>() != nullptr;
+bool completes_on_io_context(Executor const& executor) noexcept {
+    constexpr auto kind = webcrypto_context_of<Executor>;
+    if constexpr (kind == webcrypto_context::io_context) {
+        return true;
+    } else if constexpr (kind == webcrypto_context::erased &&
+                         requires { executor.get_inner_executor(); }) {
+        return completes_on_io_context(executor.get_inner_executor());
+    } else if constexpr (kind == webcrypto_context::erased &&
+                         requires { executor.template target<webcpp::asio::any_io_executor>(); }) {
+        // Type-erased strands, unwrapped one after the other, then the executor they wrap.
+        using strand = webcpp::asio::strand<webcpp::asio::any_io_executor>;
+        auto const* const nested = executor.template target<strand>();
+        if (nested == nullptr) {
+            return targets_io_context(executor, std::make_integer_sequence<std::uintptr_t, 8>{});
+        }
+        webcpp::asio::any_io_executor inner = nested->get_inner_executor();
+        for (auto const* deeper = inner.template target<strand>(); deeper != nullptr;
+             deeper = inner.template target<strand>()) {
+            inner = deeper->get_inner_executor();
+        }
+        return targets_io_context(inner, std::make_integer_sequence<std::uintptr_t, 8>{});
     } else {
         return false;
     }
 }
 
 /**
- Whether WebCrypto's promise can settle where `executor` completes (ruling R73): at compile time
- for a concrete executor (another context refuses with a `static_assert`), at run time for a
- type-erased one.
+ Whether WebCrypto's promise can settle where `executor` completes (ruling R73): the executor's
+ context must be an `io_context`, checked at compile time for a concrete executor (another context
+ refuses with a `static_assert`) and at run time for a type-erased one, as @ref
+ completes_on_io_context says. That the `io_context` runs on the calling thread, whose JavaScript
+ event loop settles the promise, is the program's duty: it cannot be checked.
 
  @param executor The executor the call was given. @return Whether its context is an io_context.
 */
 template <class Executor>
 bool webcrypto_executor_accepted(Executor const& executor) noexcept {
-    constexpr auto kind = webcrypto_context_of<Executor>;
     // clang-format off
-    static_assert(kind != webcrypto_context::other,
+    static_assert(webcrypto_context_of<Executor> != webcrypto_context::other,
                   "webcpp::hash: backends::webcrypto completes through an io_context run on the calling thread, whose run returns to the JavaScript event loop where WebCrypto's promise settles: pass that io_context's executor, not a thread_pool's.");
     // clang-format on
-    if constexpr (kind == webcrypto_context::io_context) {
-        return true;
-    } else {
-        return holds_io_context_executor(executor);
-    }
+    return completes_on_io_context(executor);
 }
 
 /**
@@ -515,7 +555,9 @@ private:
 /**
  The initiation of a WebCrypto call: the guards' verdict, then the executor's check (ruling R73),
  then `crypto.subtle`'s presence; a refusal is posted to the handler's associated executor
- (`executor` by default) with its error, the output untouched; else the composed operation starts.
+ (`executor` by default) with its error, the output untouched by a guard's refusal and the
+ executor's, zeroed when WebCrypto is missing (`backend_failure`); else the composed operation
+ starts.
 */
 struct webcrypto_initiation {
     /**
@@ -535,6 +577,9 @@ struct webcrypto_initiation {
         } else if (!webcrypto_executor_accepted(executor)) {
             refusal = error::invalid_parameters;
         } else if (subtle_crypto().isUndefined()) {
+            // The backend's failure: the JavaScript runtime has no WebCrypto. The output is zeroed,
+            // as every backend's failure leaves it.
+            wipe(output);
             refusal = error::backend_failure;
         }
         if (refusal) {
@@ -610,19 +655,16 @@ struct async_engine<backends::webcrypto> {
                      std::span<std::uint8_t const> key, std::span<std::uint8_t const> input,
                      CompletionToken&& token) {
         using digest = digest_tag_of<Hmac>::type;
-        using traits = mac_traits<macs::hmac<digest>>;
-        boost::system::result<void> guarded;
-        if (exceeds(traits::min_output, output.size()) ||
-            exceeds(output.size(), traits::max_output)) {
-            guarded = error::invalid_output_size;
-        }
+        using tag = macs::hmac<digest>;
+        auto const guarded = mac_guards<tag>(output.size(), key.size(), mac_options<tag>{});
         webcrypto_hmac_request const request{
             .hash = webcrypto_hash_name<digest>,
             .key = key,
             .input = input,
         };
-        return start_webcrypto(executor, output, static_cast<std::size_t>(traits::max_output),
-                               request, guarded, token);
+        return start_webcrypto(executor, output,
+                               static_cast<std::size_t>(mac_traits<tag>::max_output), request,
+                               guarded, token);
     }
 
     /**

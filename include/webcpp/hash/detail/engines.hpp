@@ -83,7 +83,10 @@ struct backend_limits {
     static constexpr std::uint64_t pbkdf2_salt = no_limit;
     /** PBKDF2's output, within (2^32 - 1) digests. */
     static constexpr std::uint64_t pbkdf2_output = no_limit;
-    /** PBKDF2's iteration count (`invalid_iterations` beyond it). */
+    /**
+     PBKDF2's iteration count (`invalid_iterations` beyond it); a specialisation that does not
+     declare it has no limit of iterations.
+    */
     static constexpr std::uint64_t pbkdf2_iterations = no_limit;
     /** Argon2id's password. */
     static constexpr std::uint64_t argon2id_password = no_limit;
