@@ -50,7 +50,7 @@ int main() {
 
     webcpp::asio::steady_timer timer(loop, std::chrono::milliseconds(1));
     timer.async_wait([&](boost::system::error_code code) { ticked = !code; });
-    loop.run();
+    loop.run();  // lint-run: the program's event loop
     pool.join();
 }
 

@@ -194,7 +194,7 @@ boost::system::error_code complete_on_caller(asio::io_context& context, Start st
                               }));
     returned = true;
     context.restart();
-    context.run();
+    context.run();  // lint-run: the test's event loop
     BOOST_TEST(seen.called);
     BOOST_TEST(seen.after_return);
     BOOST_TEST(seen.thread == caller_thread);
@@ -386,7 +386,7 @@ void check_queued(asio::io_context& context) {
             })));
     signal.emit(asio::cancellation_type::terminal);
     context.restart();
-    context.run_for(std::chrono::seconds(5));
+    context.run_for(std::chrono::seconds(5));  // lint-run: the test's event loop
     BOOST_TEST(cancelled);
     BOOST_TEST(cancel_code == asio::error::operation_aborted);
     BOOST_TEST_EQ(output[0], 0x5a);
@@ -400,7 +400,7 @@ void check_queued(asio::io_context& context) {
             refusal_code = code;
         }));
     context.restart();
-    context.run_for(std::chrono::seconds(5));
+    context.run_for(std::chrono::seconds(5));  // lint-run: the test's event loop
     BOOST_TEST(refused);
     BOOST_TEST(refusal_code == hash::error::invalid_salt_size);
 
@@ -472,7 +472,7 @@ void check_allocator_released(asio::io_context& context, asio::thread_pool& pool
     boost::system::error_code done_code;
     start(pool, salt, done_signal, done_held, done_code);
     context.restart();
-    context.run_for(std::chrono::seconds(30));
+    context.run_for(std::chrono::seconds(30));  // lint-run: the test's event loop
     BOOST_TEST(!done_code);
     BOOST_TEST_EQ(done_held, 0);
 
@@ -481,7 +481,7 @@ void check_allocator_released(asio::io_context& context, asio::thread_pool& pool
     boost::system::error_code refused_code;
     start(pool, std::span(salt).first(8), refused_signal, refused_held, refused_code);
     context.restart();
-    context.run_for(std::chrono::seconds(5));
+    context.run_for(std::chrono::seconds(5));  // lint-run: the test's event loop
     BOOST_TEST(refused_code == hash::error::invalid_salt_size);
     BOOST_TEST_EQ(refused_held, 0);
 
@@ -502,7 +502,7 @@ void check_allocator_released(asio::io_context& context, asio::thread_pool& pool
     start(busy, salt, cancel_signal, cancel_held, cancel_code);
     cancel_signal.emit(asio::cancellation_type::terminal);
     context.restart();
-    context.run_for(std::chrono::seconds(5));
+    context.run_for(std::chrono::seconds(5));  // lint-run: the test's event loop
     BOOST_TEST(cancel_code == asio::error::operation_aborted);
     BOOST_TEST_EQ(cancel_held, 0);
     release.set_value();
@@ -532,7 +532,7 @@ void check_responsive(asio::io_context& context, asio::thread_pool& pool) {
         timer_fired_first = !derived;
     });
     context.restart();
-    context.run();
+    context.run();  // lint-run: the test's event loop
     BOOST_TEST(derived);
     BOOST_TEST(timer_fired);
     BOOST_TEST(timer_fired_first);

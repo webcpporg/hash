@@ -42,7 +42,7 @@ int main() {
             std::cout << "completed after the call returned: " << (returned ? "yes" : "no") << '\n';
         });
     returned = true;
-    loop.run();
+    loop.run();  // lint-run: the program's event loop
 }
 
 // end::example[]

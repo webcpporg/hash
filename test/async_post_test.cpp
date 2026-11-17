@@ -111,7 +111,7 @@ boost::system::error_code complete_by_callback(asio::io_context& context, Start 
     returned = true;
     BOOST_TEST(!seen.called);
     context.restart();
-    context.run();
+    context.run();  // lint-run: the test's event loop
     BOOST_TEST(seen.called);
     BOOST_TEST(seen.after_return);
     return seen.code;
@@ -129,7 +129,7 @@ void check_allocator(asio::io_context& context, Start start) {
                                    BOOST_TEST(!code);
                                }));
     context.restart();
-    context.run();
+    context.run();  // lint-run: the test's event loop
     BOOST_TEST(called);
     BOOST_TEST_GE(allocations, 1U);
 }
@@ -140,7 +140,7 @@ template <class Start>
 void check_future(asio::io_context& context, Start start) {
     auto done = start(asio::use_future);
     context.restart();
-    context.run();
+    context.run();  // lint-run: the test's event loop
     done.get();
 }
 
@@ -277,7 +277,7 @@ void check_future_error(asio::io_context& context) {
     auto done = hash::async_digest<hash::digests::sha2_256>(executor, nothing, bytes_of("abc"),
                                                             asio::use_future);
     context.restart();
-    context.run();
+    context.run();  // lint-run: the test's event loop
     bool thrown = false;
     try {
         done.get();
