@@ -393,12 +393,14 @@ void check_limits() {
     std::array<std::uint8_t, 32> output{};
     std::array<std::uint8_t, 16> const salt{};
     output.fill(untouched);
-    // The function argon2id: OpenSSL takes m in KiB as a uint32_t and sizes the memory in a
-    // size_t, so 4 TiB and more natively; on wasm32 no size_t is past its limit.
+    // The function argon2id: OpenSSL takes m in KiB as a uint32_t and sizes the memory, m blocks
+    // of 1 KiB, in a size_t: 4 TiB less 1 KiB natively, past which 4 TiB is refused; 4 GiB less
+    // 1 KiB on wasm32, where no size_t a whole number of KiB is past it.
     constexpr std::uint64_t memory_limit = hash::detail::argon2id_engine<openssl>::limits.memory;
-    static_assert(memory_limit == std::min<std::uint64_t>(std::uint64_t{0xffffffff} * 1024,
-                                                          std::numeric_limits<std::size_t>::max()));
-    if constexpr (std::numeric_limits<std::size_t>::max() > memory_limit) {
+    static_assert(
+        memory_limit ==
+        std::min<std::uint64_t>(0xffffffff, std::numeric_limits<std::size_t>::max() / 1024) * 1024);
+    if constexpr (std::numeric_limits<std::size_t>::max() - 1024 >= memory_limit) {
         auto const refused = hash::argon2id<openssl>(
             output, {}, salt,
             {.passes = 1, .memory = static_cast<std::size_t>(memory_limit + 1024)});
