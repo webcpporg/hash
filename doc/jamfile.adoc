@@ -167,5 +167,4 @@ started zeroes the output, so that half a key is never used.
 
 Argon2id and scrypt also return `errc::not_enough_memory` of the generic
 category when the memory their costs name cannot be allocated. A value that
-`error` does not define has the message "unknown webcpp.hash error"; the value
-9 is reserved for a later version.
+`error` does not define has the message "unknown webcpp.hash error".
