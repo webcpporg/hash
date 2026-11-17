@@ -44,9 +44,11 @@
  (`input_too_long`) and output (`invalid_output_size`) of more than `INT_MAX` bytes, scrypt's
  r p of 2^24 or more (`invalid_parameters`), and `mac` an HMAC key of more than `INT_MAX` bytes
  (`unsupported_by_backend`); its KMAC takes a key of 4 to 512 bytes, a customisation of at most
- 512 and a tag of at most 2,097,151 (`unsupported_by_backend` otherwise); its Argon2 sizes the
- memory in a `size_t`, at most 4,194,303 KiB on wasm32 (`unsupported_by_backend` for `argon2`,
- `invalid_parameters` for `argon2id`). PBKDF2 keeps
+ 512 and a tag of at most 2,097,151 (`unsupported_by_backend` otherwise); its Argon2 takes m in KiB
+ as a `uint32_t` and sizes the memory in a `size_t`: `argon2` refuses m above 4,194,303 KiB on
+ wasm32 (`unsupported_by_backend`), and `argon2id` a memory above 4 TiB less 1 KiB natively
+ (`invalid_parameters`; on wasm32 no whole number of KiB in a `size_t` is past its limit).
+ PBKDF2 keeps
  the output's and the salt's lengths in `int`s, and HMAC, through `HMAC_Init_ex`, its key's
  length, which is PBKDF2's password and HKDF-Extract's salt; HKDF-Expand's key, the PRK, takes
  the same path and is limited alike, though it is always one digest. HKDF's IKM, info and output
@@ -827,7 +829,8 @@ struct scrypt_engine<backends::openssl> {
     /**
      RFC 7914. OpenSSL's "memory limit exceeded", once the guards have passed, means that 128 r
      (N + p + 2) bytes are more than a `size_t` holds: `not_enough_memory`, as an allocation's
-     failure.
+     failure. The spec's guard sizes 128 r (N + p) bytes, so on wasm32 costs within 256 r bytes
+     of a `size_t` pass it and answer `not_enough_memory` here, before OpenSSL allocates.
 
      @param output_bytes The derived key. @param password_bytes The password. @param salt_bytes The
      salt.

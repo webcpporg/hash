@@ -293,7 +293,9 @@ hash-run scrypt_rfc7914_large : scrypt_rfc7914_large_test.cpp
 # RFC 9106's three cases, every case of OpenSSL's evpkdf_argon2.txt, argon2_ctx
 # on random cases and libsodium at one lane; RFC 7914's first three cases,
 # libsodium's scrypt and OpenSSL's narrower r p; RFC 7914's fourth case and a
-# case past OpenSSL's default memory limit (1.125 GiB) in a program of its own.
+# case past OpenSSL's default memory limit (1.125 GiB) in a program of its own,
+# about 3.25 GiB of scrypt: unoptimised it took 15 s natively (2.1 GiB
+# resident at its peak, macOS) and 16 s on wasip2 (wasmtime 47.0.3).
 hash-run argon2_openssl : argon2_openssl_test.cpp
   : <library>/webcpp/hash//openssl <library>/third_party//sodium
     <library>/third_party//sodium-test-config

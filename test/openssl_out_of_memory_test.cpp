@@ -8,8 +8,9 @@
 // and 7.5): the test sets OpenSSL's allocator with CRYPTO_set_mem_functions before anything, and
 // makes each allocation of a call fail in turn, the first, then the second, and so on until the
 // call allocates no more than the ones that succeed. Each failing call answers
-// errc::not_enough_memory or backend_failure (OpenSSL's last error decides, openssl_outcome),
-// zeroes its output, frees every block OpenSSL allocated for it (the live blocks are back to where
+// errc::not_enough_memory, the allocation's error being among those OpenSSL raised during the call
+// even when it is not the last (Argon2's memory adds "invalid memory size" after it), zeroes its
+// output, frees every block OpenSSL allocated for it (the live blocks are back to where
 // they were), and leaves the thread's error queue empty. The calls: mac over HMAC, KMAC, keyed
 // BLAKE2b and SipHash, digest_of, a hasher's make, argon2, argon2id and scrypt. OpenSSL's Argon2
 // does not check some of its allocations (its first hash and its first and last blocks), and
@@ -100,31 +101,19 @@ bool all_zero(std::span<std::uint8_t const> bytes) {
     return std::ranges::all_of(bytes, [](std::uint8_t byte) { return byte == 0; });
 }
 
-// The answers of the failing calls, over the whole test.
-// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables): counted across the calls
-std::size_t out_of_memory = 0;
-// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables): counted across the calls
-std::size_t backend_failures = 0;
-
-// Whether a failing call answered not_enough_memory or backend_failure, counting which.
-bool counted_failure(boost::system::result<void> const& outcome) {
-    if (!outcome.has_error()) {
-        return false;
-    }
-    if (outcome.error() ==
-        boost::system::errc::make_error_code(boost::system::errc::not_enough_memory)) {
-        ++out_of_memory;
-        return true;
-    }
-    if (outcome.error() == hash::error::backend_failure) {
-        ++backend_failures;
-        return true;
-    }
-    return false;
+// Whether a failing call answered not_enough_memory: every allocation OpenSSL makes through
+// CRYPTO_malloc raises ERR_R_MALLOC_FAILURE when it fails, and backends::openssl answers
+// not_enough_memory when that error is among those raised during the call, even when OpenSSL
+// raises another after it (Argon2's memory: "invalid memory size") or returns success (Argon2's
+// unchecked allocations).
+bool out_of_memory(boost::system::result<void> const& outcome) {
+    return outcome.has_error() && outcome.error() == boost::system::errc::make_error_code(
+                                                         boost::system::errc::not_enough_memory);
 }
 
 // Makes each allocation of `call` (which writes `output`) fail in turn, from the first until the
-// call needs no more than succeed; checks each failure's answer, output, blocks and error queue.
+// call needs no more than succeed; checks each failure's answer (not_enough_memory, whatever
+// OpenSSL raised after the allocation's error), output, blocks and error queue.
 // The call runs once first, to pay OpenSSL's one-time fetches, whose allocations a later call
 // does not repeat.
 template <class Call>
@@ -145,7 +134,7 @@ void fail_each_allocation(std::string_view name, std::span<std::uint8_t> output,
             BOOST_TEST(index > 1);
             return;
         }
-        if (!BOOST_TEST(counted_failure(outcome)) || !BOOST_TEST(all_zero(output)) ||
+        if (!BOOST_TEST(out_of_memory(outcome)) || !BOOST_TEST(all_zero(output)) ||
             !BOOST_TEST_EQ(openssl_live, live_before) || !BOOST_TEST_EQ(ERR_peek_error(), 0UL)) {
             std::cerr << "  " << name << ", allocation " << index << " failing\n";
         }
@@ -245,11 +234,5 @@ int main() {
     check_macs();
     check_digests();
     check_password_hashing();
-    // OpenSSL's allocation failure is the last error of some failing calls: the mapping to
-    // not_enough_memory is reached. The counts are printed only when it is not.
-    if (!BOOST_TEST(out_of_memory > 0)) {
-        std::cerr << "  failing allocations answered: " << out_of_memory << " not_enough_memory, "
-                  << backend_failures << " backend_failure\n";
-    }
     return webcpp::test::exit_status(boost::report_errors());
 }

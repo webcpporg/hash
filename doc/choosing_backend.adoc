@@ -112,9 +112,10 @@ allocator, the C heap, and free it before the call returns; Argon2 clears its
 copies of the password, salt, secret and associated data, scrypt its copy of
 the password but not of the salt. Its scrypt takes r p below 2^24^ and a
 password, salt and output of at most `INT_MAX` bytes (`invalid_parameters`,
-`input_too_long`, `invalid_output_size` otherwise); its Argon2, on wasm32, at
-most 4,194,303 KiB of memory (`unsupported_by_backend` for the family,
-`invalid_parameters` for `argon2id`).
+`input_too_long`, `invalid_output_size` otherwise). Its Argon2 sizes the memory
+in a `size_t`: the family `argon2` takes at most 4,194,303 KiB on wasm32
+(`unsupported_by_backend`), and `argon2id` at most 4 TiB less 1 KiB natively
+(`invalid_parameters`).
 Its KMAC takes a key of 4 to 512 bytes, a customisation of at most 512 and a
 tag of at most 2,097,151, and its HMAC a key of at most `INT_MAX` bytes:
 `mac` answers others `unsupported_by_backend`. Its first call reads OpenSSL's

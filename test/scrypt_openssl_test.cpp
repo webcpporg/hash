@@ -8,7 +8,8 @@
 // lifted): RFC 7914's first three cases, the first also with a password and a salt that are empty
 // spans whose data() is null; backends::sodium's scrypt on random passwords, salts, costs and
 // output sizes; OpenSSL's narrower limit on r p (its PBKDF2 takes 128 r p bytes as an int),
-// refused before any work; backends::openssl never a default (design D34). The RFC's fourth case,
+// refused before any work; on wasm32, costs past OpenSSL's own memory sizing answered
+// not_enough_memory; backends::openssl never a default (design D34). The RFC's fourth case,
 // 1 GiB, is scrypt_openssl_large's.
 
 #include <webcpp/hash/backends/openssl.hpp>
@@ -22,6 +23,7 @@
 #include "support/rfc7914.hpp"
 
 #include <boost/core/lightweight_test.hpp>
+#include <boost/system/errc.hpp>
 #include <boost/system/result.hpp>
 
 #include <algorithm>
@@ -106,6 +108,23 @@ void check_limits() {
     static_assert(hash::detail::scrypt_engine<sodium>::limits.rp == hash::detail::no_limit);
 }
 
+// On wasm32, costs whose 128 r (N + p) bytes fit a size_t pass the spec's guard while OpenSSL's
+// 128 r (N + p + 2) do not: r 2, N 2^23, p 2^23 - 1 (r p below 2^24, N + p = 2^24 - 1). OpenSSL
+// refuses them with "memory limit exceeded" before it allocates: not_enough_memory, the output
+// zeroed. Natively no such costs pass the guards (r p below 2^24 bounds them far lower).
+void check_memory_limit_exceeded() {
+    if constexpr (sizeof(std::size_t) == 4) {
+        std::array<std::uint8_t, 32> output{};
+        output.fill(untouched);
+        auto const refused = hash::scrypt<openssl>(
+            output, {}, {}, {.n = std::uint64_t{1} << 23U, .r = 2, .p = (1U << 23U) - 1});
+        BOOST_TEST(refused.has_error() &&
+                   refused.error() == boost::system::errc::make_error_code(
+                                          boost::system::errc::not_enough_memory));
+        BOOST_TEST(std::ranges::all_of(output, [](std::uint8_t byte) { return byte == 0; }));
+    }
+}
+
 static_assert(hash::backend_has_v<openssl, kdfs::scrypt, void>);
 // backends::openssl is never a default (design D34): scrypt's is libsodium.
 static_assert(std::is_same_v<hash::default_backend<kdfs::scrypt>, sodium>);
@@ -116,5 +135,6 @@ int main() {
     check_rfc7914();
     agree_with_sodium();
     check_limits();
+    check_memory_limit_exceeded();
     return webcpp::test::exit_status(boost::report_errors());
 }

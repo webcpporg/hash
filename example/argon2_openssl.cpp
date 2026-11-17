@@ -54,7 +54,10 @@ int main() {
     }
 
     // Argon2d (RFC 9106, section 5.1), for uses where no attacker shares the machine.
-    if (!hash::argon2<hash::kdfs::argon2d, openssl>(tag, password, salt, costs)) {
+    auto const argon2d_done =
+        hash::argon2<hash::kdfs::argon2d, openssl>(tag, password, salt, costs);
+    if (!argon2d_done) {
+        std::cerr << argon2d_done.error().message() << '\n';
         return 1;
     }
     std::cout << "argon2d " << example::hex(tag) << '\n';
