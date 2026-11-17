@@ -197,6 +197,13 @@ inline constexpr bool backend_has_v<backends::xkcp, digests::keccak_256, void> =
 template <>
 inline constexpr bool backend_has_v<backends::blake3, digests::blake3, void> = true;
 
+/**
+ backends::sodium has `digests::blake2b` (`crypto_generichash_blake2b_*`), with its key, salt,
+ personalisation and every output size.
+*/
+template <>
+inline constexpr bool backend_has_v<backends::sodium, digests::blake2b, void> = true;
+
 /** backends::hash2 has `macs::hmac<digests::md5>` (Boost.Hash2's `hmac<H>`). */
 template <>
 inline constexpr bool backend_has_v<backends::hash2, macs::hmac<digests::md5>, void> = true;
@@ -819,7 +826,7 @@ struct default_of<digests::blake3> {
 
 /**
  `digests::blake2b`: libsodium is the first backend of the order that has it whole (Boost.Hash2 has
- its 64-byte output alone).
+ its 64-byte output with no option alone).
 */
 template <>
 struct default_of<digests::blake2b> {

@@ -334,14 +334,28 @@ struct digest_engine<backends::hash2, digests::blake2s_256>
 
 /**
  `digests::blake2b` on backends::hash2, Boost.Hash2's `blake2b_512`, in part: a 64-byte output with
- no key, salt or personalisation (ruling R82); a shorter output is `unsupported_by_backend`, since
- BLAKE2b's output size is a parameter of the hash, not a cut of its 64 bytes.
+ no key, salt or personalisation (rulings R82 and R86); a shorter output size, or any option, is
+ `unsupported_by_backend`, since BLAKE2b's output size is a parameter of the hash, not a cut of its
+ 64 bytes, and no option is ignored.
 */
 template <>
 struct digest_engine<backends::hash2, digests::blake2b>
     : hash2_digest_engine<digests::blake2b, boost::hash2::blake2b_512> {
     /** Boost.Hash2's one size: 64 bytes. */
     static constexpr std::uint64_t min_output = 64;
+
+    /**
+     Whether the options are BLAKE2b-512's own: a 64-byte output, no key, no salt, no
+     personalisation. A template, so that it reads `digest_options<digests::blake2b>`, which
+     digest.hpp defines after this header.
+
+     @param options The options. @return Whether Boost.Hash2's `blake2b_512` computes them.
+    */
+    template <class Options>
+    static constexpr bool accepts(Options const& options) noexcept {
+        return options.output_size == min_output && options.key.empty() && options.salt.empty() &&
+               options.personalisation.empty();
+    }
 };
 
 /**

@@ -745,7 +745,7 @@ struct digest_engine<Backend, digests::blake2b> : refused_digest_engine<digests:
                                                   needs_library<Backend> {
     static_assert(refused_elsewhere_v<Backend>,
                   "webcpp::hash: digests::blake2b is not in this backend. Name one of: "
-                  "backends::hash2.");
+                  "backends::hash2, backends::sodium.");
 };
 
 /** `digests::blake2s_256` on a backend without it (spec 3.3, design D34). */

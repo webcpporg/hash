@@ -6,10 +6,11 @@
 
 /**
  `backends::sodium`: HKDF (RFC 5869) over libsodium's `crypto_kdf_hkdf_sha256_*` and
- `crypto_kdf_hkdf_sha512_*`, Argon2id over `crypto_pwhash_argon2id` and scrypt over
- `crypto_pwhash_scryptsalsa208sha256_ll`, built from source by `/third_party//sodium`, on every
- target. It has HKDF over `hmac_sha2_256` and `hmac_sha2_512` alone, and no PBKDF2; every other
- hmac and PBKDF2 refuse at compile time with spec 3.3's texts.
+ `crypto_kdf_hkdf_sha512_*`, Argon2id over `crypto_pwhash_argon2id`, scrypt over
+ `crypto_pwhash_scryptsalsa208sha256_ll`, and `digests::blake2b` (RFC 7693, with its key, salt,
+ personalisation and output size) over `crypto_generichash_blake2b_*`, built from source by
+ `/third_party//sodium`, on every target. It has HKDF over `hmac_sha2_256` and `hmac_sha2_512`
+ alone, and no PBKDF2; every other hmac and PBKDF2 refuse at compile time with spec 3.3's texts.
 
  Its limits beyond the spec's: scrypt's N at most 4,294,967,295 (libsodium refuses a larger one).
  Argon2's core holds the password's, salt's and tag's lengths in `uint32_t`, which spec 2.10's own
@@ -39,6 +40,7 @@
 #include <webcpp/hash/detail/engines.hpp>
 #include <webcpp/hash/detail/limits.hpp>
 #include <webcpp/hash/detail/wipe.hpp>
+#include <webcpp/hash/digest.hpp>
 #include <webcpp/hash/error.hpp>
 #include <webcpp/hash/hmac.hpp>
 #include <webcpp/hash/scrypt.hpp>
@@ -47,6 +49,7 @@
 #include <boost/system/result.hpp>
 
 #include <sodium/core.h>  // third_party/libs/libsodium, through /third_party//sodium
+#include <sodium/crypto_generichash_blake2b.h>          // the same
 #include <sodium/crypto_kdf_hkdf_sha256.h>              // the same
 #include <sodium/crypto_kdf_hkdf_sha512.h>              // the same
 #include <sodium/crypto_pwhash_argon2id.h>              // the same
@@ -84,7 +87,10 @@ namespace webcpp::hash {
 
 namespace backends {
 
-/** libsodium, built from its sources by `/third_party//sodium`: HKDF over SHA-256 and SHA-512. */
+/**
+ libsodium, built from its sources by `/third_party//sodium`: HKDF over SHA-256 and SHA-512,
+ Argon2id, scrypt and BLAKE2b.
+*/
 struct sodium {};
 
 }  // namespace backends
@@ -347,6 +353,114 @@ struct pbkdf2_engine<backends::sodium, Hmac> {
         return error::backend_failure;
     }
 };
+
+/**
+ A pointer libsodium reads as "absent" for an empty span, the span's bytes otherwise: its salt and
+ personalisation are 16 bytes or a null pointer.
+
+ @param bytes The span. @return Null when `bytes` is empty, else its data.
+*/
+[[nodiscard]] inline std::uint8_t const* or_null(std::span<std::uint8_t const> bytes) noexcept {
+    return bytes.empty() ? nullptr : bytes.data();
+}
+
+/**
+ `digests::blake2b` on backends::sodium, libsodium's `crypto_generichash_blake2b_*` (its interface
+ is @ref digest_engine), every option and output size the family accepts: the key (0 to 64 bytes),
+ the salt and the personalisation (empty or 16 bytes, passed as null when empty) and the output's
+ size (1 to 64 bytes), all of RFC 7693's parameter block but the tree hashing fields. The state is
+ libsodium's, wiped by `destroy`. The one-shot form is
+ `crypto_generichash_blake2b_salt_personal`, whose state lives in libsodium's own frame:
+ libsodium's `blake2b_final` wipes its chaining value and its buffer, and does not wipe the rest of
+ the state (counters, flags) or its local copy of the whole 64-byte result, which webcpp cannot
+ reach.
+*/
+template <>
+struct digest_engine<backends::sodium, digests::blake2b> : full_engine {
+    /** libsodium's incremental state, 384 bytes aligned to 64, trivially copyable. */
+    using state = crypto_generichash_blake2b_state;
+
+    /**
+     Starts a hash: `crypto_generichash_blake2b_init_salt_personal`.
+
+     @param hashed The state. @param options The key, salt, personalisation and output size.
+     @return Success, or `error::backend_failure`.
+    */
+    [[nodiscard]] static boost::system::result<void> init(
+        state& hashed, digest_options<digests::blake2b> const& options) noexcept {
+        if (!sodium_ready()) {
+            return error::backend_failure;
+        }
+        if (crypto_generichash_blake2b_init_salt_personal(
+                &hashed, or_null(options.key), options.key.size(), options.output_size,
+                or_null(options.salt), or_null(options.personalisation)) != 0) {
+            return error::backend_failure;
+        }
+        return {};
+    }
+
+    /**
+     Absorbs `input`: `crypto_generichash_blake2b_update`.
+
+     @param hashed The state. @param input The bytes. @return Success, or `error::backend_failure`.
+    */
+    [[nodiscard]] static boost::system::result<void> update(
+        state& hashed, std::span<std::uint8_t const> input) noexcept {
+        if (crypto_generichash_blake2b_update(&hashed, input.data(), input.size()) != 0) {
+            return error::backend_failure;
+        }
+        return {};
+    }
+
+    /**
+     Writes the digest, of the size the hash was started for (the family's guard holds it):
+     `crypto_generichash_blake2b_final`.
+
+     @param hashed The state. @param output The digest.
+     @return Success, or `error::backend_failure`.
+    */
+    [[nodiscard]] static boost::system::result<void> finish(
+        state& hashed, std::span<std::uint8_t> output) noexcept {
+        if (crypto_generichash_blake2b_final(&hashed, output.data(), output.size()) != 0) {
+            return error::backend_failure;
+        }
+        return {};
+    }
+
+    /** Wipes the state. @param hashed The state. */
+    static void destroy(state& hashed) noexcept { wipe_object(hashed); }
+
+    /**
+     The digest of `input` at once: `crypto_generichash_blake2b_salt_personal`, whose output size
+     is `output.size()`, equal to the options' (the family's guard).
+
+     @param output The digest. @param input The bytes. @param options The key, salt and
+     personalisation.
+     @return Success, or `error::backend_failure`.
+    */
+    [[nodiscard]] static boost::system::result<void> one_shot(
+        std::span<std::uint8_t> output, std::span<std::uint8_t const> input,
+        digest_options<digests::blake2b> const& options) noexcept {
+        if (!sodium_ready()) {
+            return error::backend_failure;
+        }
+        if (crypto_generichash_blake2b_salt_personal(
+                output.data(), output.size(), input.data(), input.size(), or_null(options.key),
+                options.key.size(), or_null(options.salt), or_null(options.personalisation)) != 0) {
+            return error::backend_failure;
+        }
+        return {};
+    }
+};
+
+// The family's BLAKE2b guards are libsodium's bounds, so that libsodium never refuses what they
+// pass (its *_BYTES_MIN and *_KEYBYTES_MIN, 16, are advice its functions do not check).
+static_assert(digest_traits<digests::blake2b>::max_size == crypto_generichash_blake2b_BYTES_MAX);
+static_assert(digest_traits<digests::blake2b>::max_size == crypto_generichash_blake2b_KEYBYTES_MAX);
+static_assert(digest_traits<digests::blake2b>::block_part_size ==
+              crypto_generichash_blake2b_SALTBYTES);
+static_assert(digest_traits<digests::blake2b>::block_part_size ==
+              crypto_generichash_blake2b_PERSONALBYTES);
 
 /**
  Argon2id on backends::sodium: `crypto_pwhash_argon2id` with

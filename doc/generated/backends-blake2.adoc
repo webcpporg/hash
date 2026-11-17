@@ -28,8 +28,15 @@
 | not stated
 
 | `digests::blake2b`
-| `hash2` (partial: an output under 64 bytes: BLAKE2b's output size is a parameter of the hash, and Boost.Hash2's blake2b_512 has 64 bytes alone)
+| `hash2` (partial: an output under 64 bytes, a key, a salt or a personalisation: BLAKE2b's output size is a parameter of the hash, and Boost.Hash2's blake2b_512 has 64 bytes and no option alone)
 | `/webcpp/hash//hash`
+| native, wasip2, wasip3, emscripten
+| -
+| not stated
+
+| `digests::blake2b`
+| `sodium`
+| `/third_party//sodium`
 | native, wasip2, wasip3, emscripten
 | -
 | not stated
@@ -52,7 +59,8 @@
 What each backend states on constant time, as the capability table read it:
 
 * `hash2`: Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property.
+* `sodium`: libsodium 1.0.22: its headers state constant time for comparisons (sodium/utils.h) alone, not for crypto_generichash_blake2b_*.
 
-The default of `digests::blake2b` is `sodium`, whose cell comes with a later increment: until then a call on the default stops at compile time, and a call names a backend of the table (<<hash-default-backend>>).
+The default of `digests::blake2b`: `sodium` on every target, whatever the program links; `hash2` only where the call names it, as its second template argument (<<hash-default-backend>>).
 
 The default of `digests::blake2s_256` and `macs::blake2s_mac`: `hash2` on every target, whatever the program links (<<hash-default-backend>>).

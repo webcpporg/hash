@@ -252,7 +252,13 @@ states about its constant time. The backends:
 | native, wasip2, wasip3, emscripten
 
 | digests::blake2b
-| hash2 (partial: an output under 64 bytes: BLAKE2b's output size is a parameter of the hash, and Boost.Hash2's blake2b_512 has 64 bytes alone)
+| hash2 (partial: an output under 64 bytes, a key, a salt or a personalisation: BLAKE2b's output size is a parameter of the hash, and Boost.Hash2's blake2b_512 has 64 bytes and no option alone)
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| digests::blake2b
+| sodium
 | -
 | not stated
 | native, wasip2, wasip3, emscripten
@@ -812,6 +818,7 @@ What each backend's upstream states, and where:
 * hash2: not stated. Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property.
 * xkcp: not stated. XKCP at d20c8fc: README.markdown and lib/low/KeccakP-1600 state no constant-time property.
 * blake3: not stated. BLAKE3 1.8.7: README.md and c/README.md state no constant-time property.
+* sodium: not stated. libsodium 1.0.22: its headers state constant time for comparisons (sodium/utils.h) alone, not for crypto_generichash_blake2b_*.
 * sodium: not stated. libsodium 1.0.22: its headers state constant time for comparisons (sodium/utils.h) alone, not for crypto_kdf_hkdf_* or crypto_pwhash_*.
 * bearssl: not stated. BearSSL at webcpp::crypto's pin: bearssl_hmac.h states constant time for br_hmac_outCT alone; br_hkdf_* (src/kdf/hkdf.c) calls br_hmac_out.
 * openssl: not stated. OpenSSL 3.5.9: doc/man7/EVP_KDF-HKDF.pod and EVP_KDF-PBKDF2.pod state no constant-time property.

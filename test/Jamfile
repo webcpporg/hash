@@ -133,6 +133,13 @@ hash-run hkdf_hash2 : hkdf_hash2_test.cpp ;
 hash-run hkdf_guards : hkdf_guards_test.cpp ;
 hash-run wipe : wipe_test.cpp : <define>WEBCPP_HASH_DETAIL_TEST_WIPE_RECORD ;
 
+# digests::blake2b on backends::sodium, libsodium's crypto_generichash_blake2b
+# with key, salt, personalisation and output size: BLAKE2's keyed and unkeyed
+# vectors and libsodium's generichash3.exp, read at run time; the guards.
+hash-run blake2b_sodium : blake2b_sodium_test.cpp
+  : <library>/third_party//sodium <library>/third_party//blake2_vectors
+    <library>/third_party//sodium_vectors <library>/webcpp//boost_json ;
+
 # HKDF on backends::sodium, over libsodium's crypto_kdf_hkdf_sha256 and
 # crypto_kdf_hkdf_sha512: RFC 5869's A.1 to A.3, a SHA-512 case that
 # backends::hash2 agrees with, the guards of spec 2.8, the empty inputs, and

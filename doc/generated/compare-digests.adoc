@@ -237,9 +237,9 @@
 | recommended
 | no
 
-| <<hash-digest-family,`digests::blake2b`>>
-| 1 to 64 bytes
-| 256-bit collision resistance at 64 bytes, half the output length in general
+| <<hash-blake2b-options,`digests::blake2b`>>
+| 1 to 64 bytes, chosen before hashing
+| 256-bit collision resistance at 64 bytes, half the output length in general; with a secret key of 16 bytes or more, a MAC
 | RFC 7693
 | recommended
 | no
@@ -492,11 +492,11 @@
 | link:https://www.wireguard.com/protocol/[WireGuard's hash, MAC and HKDF]
 | For WireGuard-style protocols and 32-bit targets.
 
-| <<hash-digest-family,`digests::blake2b`>>
+| <<hash-blake2b-options,`digests::blake2b`>>
 | -
 | -
-| link:https://www.rfc-editor.org/rfc/rfc9106#section-3.2[Argon2's internal hash]
-| To name the backend in the call, or to hash in pieces with a result that cannot be taken twice; blake2b_512 itself for hash_append and Boost.Hash2's other functions.
+| link:https://www.rfc-editor.org/rfc/rfc9106#section-3.2[Argon2's internal hash]; link:https://doc.libsodium.org/hashing/generic_hashing[libsodium's generic hash, crypto_generichash]; link:https://zips.z.cash/zip-0244[Zcash's transaction hashes, each personalised]
+| For BLAKE2b of a length other than 64 bytes, keyed, salted or personalised (a format that names BLAKE2b-256 or a personalisation string), or to hash in pieces with one result; blake2b_512 itself for hash_append.
 
 | <<hash-digest-family,`digests::blake2s_256`>>
 | -

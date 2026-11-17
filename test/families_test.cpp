@@ -78,7 +78,9 @@ bool all_of(std::span<std::uint8_t const> bytes, std::uint8_t value) {
     return std::ranges::all_of(bytes, [value](std::uint8_t byte) { return byte == value; });
 }
 
-bool failed_with(boost::system::result<void> const& outcome, hash::error expected) {
+// Whether `outcome`, a result of digest_of, mac, argon2 or hasher::make, is the error `expected`.
+template <class Value>
+bool failed_with(boost::system::result<Value> const& outcome, hash::error expected) {
     return outcome.has_error() && outcome.error() == expected;
 }
 
@@ -315,10 +317,16 @@ void check_hash2_digests() {
     test::require(BOOST_TEST(hashing.has_value()));
     BOOST_TEST(failed_with(hashing->finish(past_128), hash::error::unsupported_by_backend));
     BOOST_TEST(hashing->finish(std::span(past_128).first(32)).has_value());
+}
 
+// BLAKE2b on backends::hash2 against Boost.Hash2's blake2b_512, and its partial cell.
+void check_hash2_blake2b() {
+    namespace h2 = boost::hash2;
+    std::array<std::uint8_t, 3> const message{0x61, 0x62, 0x63};
     // BLAKE2b on backends::hash2 is partial (ruling R82): its 64-byte output, Boost.Hash2's
-    // blake2b_512; a shorter one, which the family accepts, is unsupported_by_backend, before any
-    // work, in digest_of and in hasher::finish.
+    // blake2b_512, with no key, salt or personalisation; a shorter output size, or an option, which
+    // the family accepts, is unsupported_by_backend, before any work, in digest_of and in
+    // hasher::make (ruling R86).
     agree<digests::blake2b, backends::hash2>("blake2b", 64, [](auto const& input, std::size_t n) {
         return hash2_of<h2::blake2b_512>(input, n);
     });
@@ -331,18 +339,40 @@ void check_hash2_digests() {
                   "7d87c5392aab792dc252d5de4533cc9518d38aa8dbf1925ab92386edd4009923");
     for (std::size_t const size : {1U, 32U, 63U}) {
         std::vector<std::uint8_t> shorter(size, 0x5A);
-        BOOST_TEST(failed_with(hash::digest_of<digests::blake2b, backends::hash2>(shorter, message),
-                               hash::error::unsupported_by_backend));
+        hash::digest_options<digests::blake2b> const sized{.output_size = size};
+        BOOST_TEST(
+            failed_with(hash::digest_of<digests::blake2b, backends::hash2>(shorter, message, sized),
+                        hash::error::unsupported_by_backend));
         BOOST_TEST(all_of(shorter, 0x5A));
+        BOOST_TEST(failed_with(hash::hasher<digests::blake2b, backends::hash2>::make(sized),
+                               hash::error::unsupported_by_backend));
     }
+    std::array<std::uint8_t, 16> const option_bytes{};
+    for (auto const& option : {
+             hash::digest_options<digests::blake2b>{.key = option_bytes},
+             hash::digest_options<digests::blake2b>{.salt = option_bytes},
+             hash::digest_options<digests::blake2b>{.personalisation = option_bytes},
+         }) {
+        std::ranges::fill(blake2b_abc, 0x5A);
+        BOOST_TEST(failed_with(
+            hash::digest_of<digests::blake2b, backends::hash2>(blake2b_abc, message, option),
+            hash::error::unsupported_by_backend));
+        BOOST_TEST(all_of(blake2b_abc, 0x5A));
+        BOOST_TEST(failed_with(hash::hasher<digests::blake2b, backends::hash2>::make(option),
+                               hash::error::unsupported_by_backend));
+    }
+    // An output of another size than the options' (64 by default) is the family's refusal.
+    std::vector<std::uint8_t> shorter(32, 0x5A);
+    BOOST_TEST(failed_with(hash::digest_of<digests::blake2b, backends::hash2>(shorter, message),
+                           hash::error::invalid_output_size));
+    BOOST_TEST(all_of(shorter, 0x5A));
     std::array<std::uint8_t, 65> past_blake2b{};
     BOOST_TEST(
         failed_with(hash::digest_of<digests::blake2b, backends::hash2>(past_blake2b, message),
                     hash::error::invalid_output_size));
     auto blake2b_hashing = hash::hasher<digests::blake2b, backends::hash2>::make();
     test::require(BOOST_TEST(blake2b_hashing.has_value()));
-    BOOST_TEST(failed_with(blake2b_hashing->finish(std::span(blake2b_abc).first(32)),
-                           hash::error::unsupported_by_backend));
+    BOOST_TEST(failed_with(blake2b_hashing->finish(shorter), hash::error::invalid_output_size));
     BOOST_TEST(blake2b_hashing->finish(blake2b_abc).has_value());
 }
 
@@ -570,6 +600,7 @@ int main() {
     check_mac_guards();
     check_argon2_guards();
     check_hash2_digests();
+    check_hash2_blake2b();
     check_hash2_hmacs();
     check_hash2_keyed();
     check_library_digests();

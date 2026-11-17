@@ -918,16 +918,18 @@
             "choose": "To name the backend in the call, or to hash in pieces with a result that cannot be taken twice; keccak_256 itself for hash_append and Boost.Hash2's other functions."
         },
         "digests::blake2b": {
-            "summary": "BLAKE2b, a digest of 1 to 64 bytes faster than SHA-2 in software, as the tag of digest_of and hasher: one call, or pieces with one final result, on any backend that has it.",
-            "output": "1 to 64 bytes",
-            "security": "256-bit collision resistance at 64 bytes, half the output length in general",
+            "summary": "BLAKE2b (RFC 7693), a digest of 1 to 64 bytes faster than SHA-2 in software, with an optional key, salt and personalisation, as the tag of digest_of and hasher: one call, or pieces with one final result.",
+            "output": "1 to 64 bytes, chosen before hashing",
+            "security": "256-bit collision resistance at 64 bytes, half the output length in general; with a secret key of 16 bytes or more, a MAC",
             "status": "recommended",
             "webcrypto": null,
-            "anchor": "hash-digest-family",
+            "anchor": "hash-blake2b-options",
             "uses": [
-                {"text": "Argon2's internal hash", "source": "https://www.rfc-editor.org/rfc/rfc9106#section-3.2"}
+                {"text": "Argon2's internal hash", "source": "https://www.rfc-editor.org/rfc/rfc9106#section-3.2"},
+                {"text": "libsodium's generic hash, crypto_generichash", "source": "https://doc.libsodium.org/hashing/generic_hashing"},
+                {"text": "Zcash's transaction hashes, each personalised", "source": "https://zips.z.cash/zip-0244"}
             ],
-            "choose": "To name the backend in the call, or to hash in pieces with a result that cannot be taken twice; blake2b_512 itself for hash_append and Boost.Hash2's other functions."
+            "choose": "For BLAKE2b of a length other than 64 bytes, keyed, salted or personalised (a format that names BLAKE2b-256 or a personalisation string), or to hash in pieces with one result; blake2b_512 itself for hash_append."
         },
         "digests::blake2s_256": {
             "summary": "BLAKE2s, a 256-bit digest for 32-bit and small machines, with a key of up to 32 bytes, as the tag of digest_of and hasher: one call, or pieces with one final result, on any backend that has it.",
