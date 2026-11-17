@@ -547,8 +547,9 @@ void check_names(json::object const& table) {
             }
         }
     }
-    names known_functions{"hkdf_extract", "hkdf_expand", "hkdf",          "pbkdf2",
-                          "argon2id",     "scrypt",      "blake2b_subkey"};
+    names known_functions{
+        "hkdf_extract", "hkdf_expand", "hkdf", "pbkdf2", "argon2id", "scrypt", "blake2b_subkey",
+    };
     for (auto const& row : type_rows()) {
         known_functions.emplace(row.name);
     }
