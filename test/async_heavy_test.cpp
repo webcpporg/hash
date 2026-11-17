@@ -23,6 +23,7 @@
 #include <webcpp/hash/pbkdf2.hpp>
 #include <webcpp/hash/scrypt.hpp>
 
+#include <webcpp/asio/bind_allocator.hpp>
 #include <webcpp/asio/bind_cancellation_slot.hpp>
 #include <webcpp/asio/bind_executor.hpp>
 #include <webcpp/asio/cancellation_signal.hpp>
@@ -46,6 +47,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <future>
+#include <memory>
 #include <span>
 #include <string_view>
 #include <thread>
@@ -408,6 +410,106 @@ void check_queued(asio::io_context& context) {
     BOOST_TEST_EQ(output[0], 0x5a);
 }
 
+// An allocator that counts the blocks it holds, shared by its rebound copies; its deallocation may
+// run on a pool's thread.
+template <class T>
+struct holding_allocator {
+    using value_type = T;
+    std::atomic<int>* held;
+
+    explicit holding_allocator(std::atomic<int>* counter) noexcept : held(counter) {}
+
+    // Allocator rebind conversions must be implicit (Allocator requirements).
+    template <class U>
+    // NOLINTNEXTLINE(misc-explicit-constructor)
+    holding_allocator(holding_allocator<U> const& other) noexcept : held(other.held) {}
+
+    T* allocate(std::size_t count) {
+        held->fetch_add(1);
+        return std::allocator<T>().allocate(count);
+    }
+
+    void deallocate(T* pointer, std::size_t count) noexcept {
+        std::allocator<T>().deallocate(pointer, count);
+        held->fetch_sub(1);
+    }
+
+    template <class U>
+    bool operator==(holding_allocator<U> const& other) const noexcept {
+        return held == other.held;
+    }
+};
+
+// Asio's rule for the handler's associated allocator: an operation gives back everything it took
+// from it before it calls the handler, so that the handler can reuse it. Checked on the three
+// ways a heavy call completes: the work done (with a connected cancellation slot), a guard's
+// refusal, and a cancellation before the work starts, in a busy pool.
+void check_allocator_released(asio::io_context& context, asio::thread_pool& pool) {
+    auto const password = bytes_of("password");
+    std::array<std::uint8_t, hash::argon2id_salt_size> const salt{};
+    hash::argon2id_parameters const small{.passes = 1, .memory = 32768};
+    std::array<std::uint8_t, 32> output{};
+    std::atomic<int> held{0};
+
+    auto const start = [&](auto& work, std::span<std::uint8_t const> salt_bytes,
+                           asio::cancellation_signal& signal, int& held_at_call,
+                           boost::system::error_code& code) {
+        held_at_call = -1;
+        hash::async_argon2id<recording>(
+            work.get_executor(), output, password, salt_bytes, small,
+            asio::bind_cancellation_slot(
+                signal.slot(),
+                asio::bind_executor(context.get_executor(),
+                                    asio::bind_allocator(holding_allocator<char>(&held),
+                                                         [&](boost::system::error_code done) {
+                                                             held_at_call = held.load();
+                                                             code = done;
+                                                         }))));
+    };
+
+    asio::cancellation_signal done_signal;
+    int done_held = 0;
+    boost::system::error_code done_code;
+    start(pool, salt, done_signal, done_held, done_code);
+    context.restart();
+    context.run_for(std::chrono::seconds(30));
+    BOOST_TEST(!done_code);
+    BOOST_TEST_EQ(done_held, 0);
+
+    asio::cancellation_signal refused_signal;
+    int refused_held = 0;
+    boost::system::error_code refused_code;
+    start(pool, std::span(salt).first(8), refused_signal, refused_held, refused_code);
+    context.restart();
+    context.run_for(std::chrono::seconds(5));
+    BOOST_TEST(refused_code == hash::error::invalid_salt_size);
+    BOOST_TEST_EQ(refused_held, 0);
+
+    asio::thread_pool busy(1);
+    std::promise<void> release;
+    auto released = release.get_future();
+    std::atomic<bool> blocking{false};
+    asio::post(busy, [&] {
+        blocking = true;
+        released.wait();
+    });
+    while (!blocking) {
+        std::this_thread::yield();
+    }
+    asio::cancellation_signal cancel_signal;
+    int cancel_held = 0;
+    boost::system::error_code cancel_code;
+    start(busy, salt, cancel_signal, cancel_held, cancel_code);
+    cancel_signal.emit(asio::cancellation_type::terminal);
+    context.restart();
+    context.run_for(std::chrono::seconds(5));
+    BOOST_TEST(cancel_code == asio::error::operation_aborted);
+    BOOST_TEST_EQ(cancel_held, 0);
+    release.set_value();
+    busy.join();
+    BOOST_TEST_EQ(held.load(), 0);
+}
+
 // The caller's event loop stays responsive: a 10 ms timer on its io_context fires while an Argon2id
 // of 64 MiB (libsodium's interactive costs) runs on the pool.
 void check_responsive(asio::io_context& context, asio::thread_pool& pool) {
@@ -450,6 +552,7 @@ int main() {
     check_guards(context, pool);
     check_responsive(context, pool);
     check_queued(context);
+    check_allocator_released(context, pool);
     pool.join();
     return webcpp::test::exit_status(boost::report_errors());
 }

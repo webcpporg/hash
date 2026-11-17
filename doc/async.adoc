@@ -62,11 +62,11 @@ include::{examples}/async_argon2id.expected[]
 
 The function checks its guards first, as `argon2id` does; a refusal (for
 `async_argon2id`, a salt of another size than 16 bytes) is posted to the
-handler's executor with its error, and nothing waits for the pool. Then the work runs on a thread of
-the pool, and the completion is dispatched to the handler's associated
-executor; while the operation is pending, the event loop has work, so its
-`run` does not return early. The result is the synchronous function's, byte
-for byte.
+handler's executor with its error, and nothing waits for the pool. Then the
+work runs on a thread of the pool, and the completion is dispatched to the
+handler's associated executor; while the operation is pending, the event loop
+has work, so its `run` does not return early. The result is the synchronous
+function's, byte for byte.
 
 Where the build has threads, `WEBCPP_HASH_HAS_THREADS` is defined:
 
@@ -112,10 +112,12 @@ races with it.
 * *Cancellation does not interrupt the work.* A cancellation through the
 handler's slot before the work starts completes at once with
 `operation_aborted`, even when every thread of the pool is busy, and the work
-never runs; after it starts, a `terminal` or `partial` cancellation lets the
-work run to its end (libsodium cannot be interrupted), then the output is
-zeroed and the completion is `operation_aborted`; a `total` one is then
-ignored, since zeroing the output is a side effect.
+never runs (on the handler's executor: a handler not bound to the loop's
+completes on the pool, and so waits for one of its threads); after it starts,
+a `terminal` or `partial` cancellation lets the work run to its end (libsodium
+cannot be interrupted), then the output is zeroed and the completion is
+`operation_aborted`; a `total` one is then ignored, since zeroing the output
+is a side effect.
 * *A pool sized for the costs.* Each Argon2id holds its memory on its thread
 until it ends: a pool of n threads can hold n times the memory at once. Size
 the pool to the memory the program may spend, not to the number of logins.
