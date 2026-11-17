@@ -209,6 +209,20 @@
 | recommended
 | no
 
+| <<hash-turboshake,`digests::turboshake_128`>>
+| any length
+| up to 128 bits, and half the output length for collisions
+| RFC 9861
+| recommended
+| no
+
+| <<hash-turboshake,`digests::turboshake_256`>>
+| any length
+| up to 256 bits, and half the output length for collisions
+| RFC 9861
+| recommended
+| no
+
 | <<hash-keccak,`keccak_256`>>
 | 256 bits
 | 128-bit collision resistance
@@ -467,6 +481,18 @@
 | -
 | link:https://www.rfc-editor.org/rfc/rfc8032#section-5.2[Ed448's signatures]
 | To name the backend in the call, or to hash in pieces with a result that cannot be taken twice; shake_256 itself for hash_append and Boost.Hash2's other functions.
+
+| <<hash-turboshake,`digests::turboshake_128`>>
+| -
+| -
+| link:https://www.rfc-editor.org/rfc/rfc9861#section-3[KT128's inner function (KangarooTwelve)]; link:https://github.com/jedisct1/libsodium/blob/master/src/libsodium/include/sodium/crypto_xof_turboshake128.h[libsodium's extendable-output functions, crypto_xof_turboshake128]
+| For an extendable output faster than SHAKE128 with the same security claim, or for several functions from one primitive told apart by the domain byte; shake_128 where a standard names SHAKE.
+
+| <<hash-turboshake,`digests::turboshake_256`>>
+| -
+| -
+| link:https://www.rfc-editor.org/rfc/rfc9861#section-3[KT256's inner function (KangarooTwelve)]; link:https://github.com/jedisct1/libsodium/blob/master/src/libsodium/include/sodium/crypto_xof_turboshake256.h[libsodium's extendable-output functions, crypto_xof_turboshake256]
+| For an extendable output faster than SHAKE256 with the same security claim, or for several functions from one primitive told apart by the domain byte; shake_256 where a standard names SHAKE.
 
 | <<hash-keccak,`keccak_256`>>
 | 998 MiB/s (xkcp)

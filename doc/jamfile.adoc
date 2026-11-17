@@ -28,8 +28,8 @@ sources, for the program's target:
 | `/third_party//blake3`
 | every target
 
-| `argon2id`, `scrypt`, `blake2b_subkey`, or HKDF, BLAKE2b and SipHash on
-`backends::sodium`
+| `argon2id`, `scrypt`, `blake2b_subkey`, or HKDF, BLAKE2b, SipHash, SHA-2,
+SHA-3, SHAKE, TurboSHAKE and HMAC on `backends::sodium`
 | `/third_party//sodium`
 | every target
 

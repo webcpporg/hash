@@ -54,6 +54,9 @@ hashes, HMAC
 
 | BLAKE2b subkeys (libsodium's `crypto_kdf`)
 | libsodium's `crypto_kdf_blake2b_derive_from_key`
+
+| TurboSHAKE128 and TurboSHAKE256 (RFC 9861)
+| libsodium's `crypto_xof_turboshake128` and `crypto_xof_turboshake256`
 |===
 
 Every function is synchronous, reports failure as a value

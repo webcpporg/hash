@@ -20,6 +20,7 @@ webcpp.example sha3_shake.cpp ;
 webcpp.example keccak_256.cpp : <library>/third_party//xkcp ;
 webcpp.example blake2b.cpp ;
 webcpp.example blake2b_options.cpp : <library>/third_party//sodium ;
+webcpp.example turboshake.cpp : <library>/third_party//sodium ;
 webcpp.example blake3.cpp : <library>/third_party//blake3 ;
 webcpp.example ripemd160.cpp ;
 webcpp.example digest_family.cpp ;
@@ -30,6 +31,8 @@ webcpp.example hmac_sha256.cpp : <library>/webcpp/crypto//crypto ;
 webcpp.example siphash.cpp : <library>/webcpp/crypto//crypto ;
 webcpp.example mac_family.cpp : <library>/webcpp/crypto//crypto ;
 webcpp.example siphash_sodium.cpp : <library>/third_party//sodium ;
+webcpp.example hmac_sodium.cpp : <library>/third_party//sodium
+  <library>/webcpp/crypto//crypto ;
 
 # Key derivation.
 webcpp.example hkdf.cpp ;

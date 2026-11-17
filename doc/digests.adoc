@@ -101,8 +101,59 @@ most 128-bit security however much is taken, and a short output gives less:
 Boost.Hash2 defines it; a program that wants bytes 32 to 63 takes them from
 the first block, not from a second call.
 * *SHA3-256 is not Keccak-256.* The padding differs (<<hash-keccak>>).
+* *libsodium has SHA3-256, SHA3-512 and both SHAKEs too.* `digest_of` and
+`hasher` reach them with `backends::sodium` named in the call (libsodium's
+`crypto_hash_sha3256`, `crypto_hash_sha3512` and `crypto_xof_shake*`, every
+output size), as they reach its SHA-256 and SHA-512 (<<hash-digest-family>>);
+the bytes are the same on every backend.
 
 include::generated/backends-sha3-shake.adoc[]
+
+[#hash-turboshake]
+=== TurboSHAKE
+
+TurboSHAKE128 and TurboSHAKE256 (RFC 9861, 2025, from the Keccak team) are
+SHAKE128 and SHAKE256 with half the rounds: the same sponge over the same
+1,600-bit state, its permutation run 12 rounds instead of 24, which makes
+them roughly twice as fast with the same claimed security (128 and 256
+bits; RFC 9861, sections 1 and 7). They are extendable-output functions, as
+SHAKE is, and take one parameter more: a domain separation byte D, from 0x01
+to 0x7F (0x1F by default), absorbed after the message, so that each value is
+another function. A program that hashes several kinds of things gives each kind its
+own byte, and a value of one kind never stands for a value of another.
+TurboSHAKE is also the inner function of KangarooTwelve (KT128 and KT256),
+the same RFC's tree hash. `digest_of` and `hasher` take the byte in
+`digest_options<digests::turboshake_128>` (or `_256`); `backends::sodium`,
+libsodium's `crypto_xof_turboshake128` and `crypto_xof_turboshake256`, has
+both today, and a call names it.
+
+[source]
+----
+include::{examples}/turboshake.cpp[tag=example,indent=0]
+----
+
+[listing]
+----
+include::{examples}/turboshake.expected[]
+----
+
+*Pitfalls.*
+
+* *TurboSHAKE is not SHAKE.* With 12 rounds instead of 24 it gives other
+bytes for the same message: a format that names SHAKE128 needs SHAKE128
+(<<hash-sha3>>).
+* *The domain byte is part of the function.* Both sides of a protocol use
+the same byte for the same purpose; a byte outside 0x01 to 0x7F is refused
+(`invalid_parameters`), on every backend, although libsodium itself would
+accept it, since RFC 9861 allows that range alone.
+* *The output's length is the caller's security choice,* as for SHAKE: 32
+bytes of TurboSHAKE128 give 128-bit security, 16 bytes give only 64-bit
+collision resistance.
+* *The default backend comes with XKCP.* The default of both tags is
+`backends::xkcp`, the first backend of the order that has them once
+increment 3 lands; until then a call names `backends::sodium`.
+
+include::generated/backends-turboshake.adoc[]
 
 [#hash-keccak]
 === Keccak-256

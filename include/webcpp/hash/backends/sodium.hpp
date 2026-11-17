@@ -9,10 +9,14 @@
  `crypto_kdf_hkdf_sha512_*`, Argon2id over `crypto_pwhash_argon2id`, scrypt over
  `crypto_pwhash_scryptsalsa208sha256_ll`, `digests::blake2b` (RFC 7693, with its key, salt,
  personalisation and output size) over `crypto_generichash_blake2b_*`, `macs::siphash_2_4` and
- `macs::siphash_2_4x` over `crypto_shorthash_siphash24` and `crypto_shorthash_siphashx24`, and
- `blake2b_subkey` over `crypto_kdf_blake2b_derive_from_key`, built from source by
- `/third_party//sodium`, on every target. It has HKDF over `hmac_sha2_256` and `hmac_sha2_512`
- alone, and no PBKDF2; every other hmac and PBKDF2 refuse at compile time with spec 3.3's texts.
+ `macs::siphash_2_4x` over `crypto_shorthash_siphash24` and `crypto_shorthash_siphashx24`,
+ `blake2b_subkey` over `crypto_kdf_blake2b_derive_from_key`, `digests::sha2_256`, `sha2_512`,
+ `sha3_256` and `sha3_512` over `crypto_hash_*`, the extendable-output functions
+ `digests::shake_128`, `shake_256`, `turboshake_128` and `turboshake_256` over `crypto_xof_*`, and
+ `macs::hmac` over `sha2_256` and `sha2_512` over `crypto_auth_hmacsha256_*` and
+ `crypto_auth_hmacsha512_*`, built from source by `/third_party//sodium`, on every target. It
+ has HKDF over `hmac_sha2_256` and `hmac_sha2_512` alone, and no PBKDF2; every other hmac and
+ PBKDF2 refuse at compile time with spec 3.3's texts.
 
  Its limits beyond the spec's: scrypt's N at most 4,294,967,295 (libsodium refuses a larger one).
  Argon2's core holds the password's, salt's and tag's lengths in `uint32_t`, which spec 2.10's own
@@ -53,14 +57,25 @@
 #include <boost/system/result.hpp>
 
 #include <sodium/core.h>  // third_party/libs/libsodium, through /third_party//sodium
+#include <sodium/crypto_auth_hmacsha256.h>              // the same
+#include <sodium/crypto_auth_hmacsha512.h>              // the same
 #include <sodium/crypto_generichash_blake2b.h>          // the same
+#include <sodium/crypto_hash_sha256.h>                  // the same
+#include <sodium/crypto_hash_sha3.h>                    // the same
+#include <sodium/crypto_hash_sha512.h>                  // the same
 #include <sodium/crypto_kdf_blake2b.h>                  // the same
 #include <sodium/crypto_kdf_hkdf_sha256.h>              // the same
 #include <sodium/crypto_kdf_hkdf_sha512.h>              // the same
 #include <sodium/crypto_pwhash_argon2id.h>              // the same
 #include <sodium/crypto_pwhash_scryptsalsa208sha256.h>  // the same
 #include <sodium/crypto_shorthash_siphash24.h>          // the same
+#include <sodium/crypto_xof_shake128.h>                 // the same
+#include <sodium/crypto_xof_shake256.h>                 // the same
+#include <sodium/crypto_xof_turboshake128.h>            // the same
+#include <sodium/crypto_xof_turboshake256.h>            // the same
 
+#include <algorithm>
+#include <array>
 #include <cerrno>
 #include <cstddef>
 #include <cstdint>
@@ -95,7 +110,8 @@ namespace backends {
 
 /**
  libsodium, built from its sources by `/third_party//sodium`: HKDF over SHA-256 and SHA-512,
- Argon2id, scrypt, BLAKE2b, SipHash-2-4, SipHash-2-4x and BLAKE2b subkeys.
+ Argon2id, scrypt, BLAKE2b, SipHash-2-4, SipHash-2-4x, BLAKE2b subkeys, SHA-256, SHA-512, SHA3-256,
+ SHA3-512, SHAKE128, SHAKE256, TurboSHAKE128, TurboSHAKE256, and HMAC over SHA-256 and SHA-512.
 */
 struct sodium {};
 
@@ -467,6 +483,321 @@ static_assert(digest_traits<digests::blake2b>::block_part_size ==
               crypto_generichash_blake2b_SALTBYTES);
 static_assert(digest_traits<digests::blake2b>::block_part_size ==
               crypto_generichash_blake2b_PERSONALBYTES);
+
+/**
+ The pieces of a digest engine over a libsodium hash whose incremental functions take a `State` and
+ return libsodium's status, with the interface of @ref digest_engine. It gives `update` and
+ `destroy`, and `one_shot` as `init`, `update` and `finish` on a state of its own frame that it
+ wipes, so that no state is left unwiped.
+
+ @tparam Engine The engine, which gives `init` and `finish`. @tparam Digest The tag of `digests`.
+ @tparam State libsodium's state. @tparam Update libsodium's `_update`.
+*/
+template <class Engine, class Digest, class State,
+          int (*Update)(State*, unsigned char const*, unsigned long long)>
+struct sodium_incremental_engine : full_engine {
+    /** libsodium's incremental state, trivially copyable. */
+    using state = State;
+
+    /**
+     Absorbs `input`.
+
+     @param hashed The state. @param input The bytes. @return Success, or `error::backend_failure`.
+    */
+    [[nodiscard]] static boost::system::result<void> update(
+        state& hashed, std::span<std::uint8_t const> input) noexcept {
+        if (Update(&hashed, nonnull(input), input.size()) != 0) {
+            return error::backend_failure;
+        }
+        return {};
+    }
+
+    /** Wipes the state. @param hashed The state. */
+    static void destroy(state& hashed) noexcept { wipe_object(hashed); }
+
+    /**
+     The digest of `input` at once, on a state of this frame, wiped before the return.
+
+     @param output The digest. @param input The bytes. @param options The tag's options.
+     @return Success, or `error::backend_failure`.
+    */
+    [[nodiscard]] static boost::system::result<void> one_shot(
+        std::span<std::uint8_t> output, std::span<std::uint8_t const> input,
+        digest_options<Digest> const& options) noexcept {
+        state hashed{};
+        auto done = Engine::init(hashed, options);
+        if (done) {
+            done = update(hashed, input);
+        }
+        if (done) {
+            done = Engine::finish(hashed, output);
+        }
+        destroy(hashed);
+        return done;
+    }
+
+private:
+    // A base of Engine alone, never made by itself.
+    sodium_incremental_engine() = default;
+    friend Engine;
+};
+
+/**
+ A fixed-size digest on backends::sodium, over libsodium's `crypto_hash_*`, with the interface of
+ @ref digest_engine. It calls `_init`, `_update` and `_final`, which writes the whole digest, of the
+ size the family's guard holds the output to. libsodium's `_final` wipes the state, and `destroy`
+ wipes it again, for a hash that ends before `finish`.
+
+ @tparam Digest The tag of `digests`. @tparam State libsodium's state. @tparam Size The digest's
+ size, libsodium's `_BYTES`. @tparam Init libsodium's `_init`. @tparam Update libsodium's
+ `_update`. @tparam Final libsodium's `_final`.
+*/
+template <class Digest, class State, std::size_t Size, int (*Init)(State*),
+          int (*Update)(State*, unsigned char const*, unsigned long long),
+          int (*Final)(State*, unsigned char*)>
+struct sodium_fixed_digest_engine
+    : sodium_incremental_engine<
+          sodium_fixed_digest_engine<Digest, State, Size, Init, Update, Final>, Digest, State,
+          Update> {
+    /**
+     Starts a hash.
+
+     @param hashed The state. @return Success, or `error::backend_failure`.
+    */
+    [[nodiscard]] static boost::system::result<void> init(
+        State& hashed, digest_options<Digest> const& /*options*/) noexcept {
+        // The family's size is libsodium's, so that the guard passes exactly what _final writes.
+        static_assert(digest_traits<Digest>::min_output(digest_options<Digest>{}) == Size &&
+                      digest_traits<Digest>::max_output(digest_options<Digest>{}) == Size);
+        if (!sodium_ready()) {
+            return error::backend_failure;
+        }
+        if (Init(&hashed) != 0) {
+            return error::backend_failure;
+        }
+        return {};
+    }
+
+    /**
+     Writes the digest.
+
+     @param hashed The state. @param output The digest, of `Size` bytes (the family's guard).
+     @return Success, or `error::backend_failure`.
+    */
+    [[nodiscard]] static boost::system::result<void> finish(
+        State& hashed, std::span<std::uint8_t> output) noexcept {
+        if (Final(&hashed, output.data()) != 0) {
+            return error::backend_failure;
+        }
+        return {};
+    }
+};
+
+/** `digests::sha2_256` on backends::sodium: `crypto_hash_sha256_*`. */
+template <>
+struct digest_engine<backends::sodium, digests::sha2_256>
+    : sodium_fixed_digest_engine<digests::sha2_256, crypto_hash_sha256_state,
+                                 crypto_hash_sha256_BYTES, &crypto_hash_sha256_init,
+                                 &crypto_hash_sha256_update, &crypto_hash_sha256_final> {};
+
+/** `digests::sha2_512` on backends::sodium: `crypto_hash_sha512_*`. */
+template <>
+struct digest_engine<backends::sodium, digests::sha2_512>
+    : sodium_fixed_digest_engine<digests::sha2_512, crypto_hash_sha512_state,
+                                 crypto_hash_sha512_BYTES, &crypto_hash_sha512_init,
+                                 &crypto_hash_sha512_update, &crypto_hash_sha512_final> {};
+
+/** `digests::sha3_256` on backends::sodium: `crypto_hash_sha3256_*`. */
+template <>
+struct digest_engine<backends::sodium, digests::sha3_256>
+    : sodium_fixed_digest_engine<digests::sha3_256, crypto_hash_sha3256_state,
+                                 crypto_hash_sha3256_BYTES, &crypto_hash_sha3256_init,
+                                 &crypto_hash_sha3256_update, &crypto_hash_sha3256_final> {};
+
+/** `digests::sha3_512` on backends::sodium: `crypto_hash_sha3512_*`. */
+template <>
+struct digest_engine<backends::sodium, digests::sha3_512>
+    : sodium_fixed_digest_engine<digests::sha3_512, crypto_hash_sha3512_state,
+                                 crypto_hash_sha3512_BYTES, &crypto_hash_sha3512_init,
+                                 &crypto_hash_sha3512_update, &crypto_hash_sha3512_final> {};
+
+/**
+ An extendable-output function on backends::sodium, over libsodium's `crypto_xof_*`, with the
+ interface of @ref digest_engine. It calls `_init_with_domain`, `_update` and `_squeeze`, and
+ serves every output size from 1 byte. The domain byte is TurboSHAKE's option (the family's guard
+ holds it to 0x01..0x7F, which libsodium does not check), and SHAKE's own, 0x1F, for a tag without
+ options. libsodium's
+ `_squeeze` does not wipe the state, which may squeeze more: `destroy` wipes it.
+
+ @tparam Digest The tag of `digests`. @tparam State libsodium's state. @tparam StandardDomain
+ libsodium's `_DOMAIN_STANDARD`. @tparam Init libsodium's `_init_with_domain`. @tparam Update
+ libsodium's `_update`. @tparam Squeeze libsodium's `_squeeze`.
+*/
+template <class Digest, class State, unsigned StandardDomain, int (*Init)(State*, unsigned char),
+          int (*Update)(State*, unsigned char const*, unsigned long long),
+          int (*Squeeze)(State*, unsigned char*, std::size_t)>
+struct sodium_xof_engine
+    : sodium_incremental_engine<
+          sodium_xof_engine<Digest, State, StandardDomain, Init, Update, Squeeze>, Digest, State,
+          Update> {
+    /**
+     The domain byte of `options`: TurboSHAKE's option, or SHAKE's standard byte.
+
+     @param options The tag's options. @return D.
+    */
+    static constexpr unsigned char domain_of(digest_options<Digest> const& options) noexcept {
+        if constexpr (requires { options.domain; }) {
+            return options.domain;
+        } else {
+            static_cast<void>(options);
+            return StandardDomain;
+        }
+    }
+
+    /**
+     Starts a hash with the options' domain byte.
+
+     @param hashed The state. @param options The tag's options.
+     @return Success, or `error::backend_failure`.
+    */
+    [[nodiscard]] static boost::system::result<void> init(
+        State& hashed, digest_options<Digest> const& options) noexcept {
+        // SHAKE's and TurboSHAKE's standard byte, RFC 9861's default, is libsodium's.
+        static_assert(StandardDomain == 0x1F);
+        if (!sodium_ready()) {
+            return error::backend_failure;
+        }
+        if (Init(&hashed, domain_of(options)) != 0) {
+            return error::backend_failure;
+        }
+        return {};
+    }
+
+    /**
+     Writes `output.size()` bytes of the output stream.
+
+     @param hashed The state. @param output The output, of any size from 1 byte.
+     @return Success, or `error::backend_failure`.
+    */
+    [[nodiscard]] static boost::system::result<void> finish(
+        State& hashed, std::span<std::uint8_t> output) noexcept {
+        if (Squeeze(&hashed, output.data(), output.size()) != 0) {
+            return error::backend_failure;
+        }
+        return {};
+    }
+};
+
+/** `digests::shake_128` on backends::sodium: `crypto_xof_shake128_*`, every output size. */
+template <>
+struct digest_engine<backends::sodium, digests::shake_128>
+    : sodium_xof_engine<digests::shake_128, crypto_xof_shake128_state,
+                        crypto_xof_shake128_DOMAIN_STANDARD, &crypto_xof_shake128_init_with_domain,
+                        &crypto_xof_shake128_update, &crypto_xof_shake128_squeeze> {};
+
+/** `digests::shake_256` on backends::sodium: `crypto_xof_shake256_*`, every output size. */
+template <>
+struct digest_engine<backends::sodium, digests::shake_256>
+    : sodium_xof_engine<digests::shake_256, crypto_xof_shake256_state,
+                        crypto_xof_shake256_DOMAIN_STANDARD, &crypto_xof_shake256_init_with_domain,
+                        &crypto_xof_shake256_update, &crypto_xof_shake256_squeeze> {};
+
+/**
+ `digests::turboshake_128` on backends::sodium: `crypto_xof_turboshake128_*`, every output size
+ and domain byte the family accepts.
+*/
+template <>
+struct digest_engine<backends::sodium, digests::turboshake_128>
+    : sodium_xof_engine<digests::turboshake_128, crypto_xof_turboshake128_state,
+                        crypto_xof_turboshake128_DOMAIN_STANDARD,
+                        &crypto_xof_turboshake128_init_with_domain,
+                        &crypto_xof_turboshake128_update, &crypto_xof_turboshake128_squeeze> {};
+
+/**
+ `digests::turboshake_256` on backends::sodium: `crypto_xof_turboshake256_*`, every output size
+ and domain byte the family accepts.
+*/
+template <>
+struct digest_engine<backends::sodium, digests::turboshake_256>
+    : sodium_xof_engine<digests::turboshake_256, crypto_xof_turboshake256_state,
+                        crypto_xof_turboshake256_DOMAIN_STANDARD,
+                        &crypto_xof_turboshake256_init_with_domain,
+                        &crypto_xof_turboshake256_update, &crypto_xof_turboshake256_squeeze> {};
+
+/**
+ HMAC over a digest on backends::sodium, over libsodium's `crypto_auth_hmacsha*`, with the
+ interface of @ref mac_engine. It calls `_init(state, key, keylen)`, which takes a key of any size
+ (hashed first past the block, RFC 2104), `_update` and `_final`, every key and tag size the family
+ accepts (ruling R23). libsodium's one-shot `crypto_auth_hmacsha*` take a 32-byte key alone, and
+ are not used. The tag is the digest cut to the output's size (RFC 2104, section 5): `_final`
+ writes the whole digest, into the output when it has the digest's size, else into a buffer of
+ this frame that is wiped; the state is wiped before the return.
+
+ @tparam Digest The tag of `digests`. @tparam State libsodium's state. @tparam Size The digest's
+ size, libsodium's `_BYTES`. @tparam Init libsodium's `_init`. @tparam Update libsodium's
+ `_update`. @tparam Final libsodium's `_final`.
+*/
+template <class Digest, class State, std::size_t Size,
+          int (*Init)(State*, unsigned char const*, std::size_t),
+          int (*Update)(State*, unsigned char const*, unsigned long long),
+          int (*Final)(State*, unsigned char*)>
+struct sodium_hmac_engine : full_engine {
+    /**
+     The tag of `input` under `key`.
+
+     @param output The tag, 10 bytes to the digest's size (the family's guard). @param key The key,
+     of any size. @param input The message.
+     @return Success, or `error::backend_failure`.
+    */
+    [[nodiscard]] static boost::system::result<void> compute(
+        std::span<std::uint8_t> output, std::span<std::uint8_t const> key,
+        std::span<std::uint8_t const> input,
+        mac_options<macs::hmac<Digest>> const& /*options*/) noexcept {
+        // The family's longest tag is libsodium's digest. Checked here, where mac.hpp's traits are
+        // complete whatever the order of includes.
+        static_assert(mac_traits<macs::hmac<Digest>>::max_output == Size);
+        if (!sodium_ready()) {
+            return error::backend_failure;
+        }
+        State keyed{};
+        std::array<std::uint8_t, Size> digest_bytes{};
+        bool const whole = output.size() == Size;
+        bool const computed = Init(&keyed, key.data(), key.size()) == 0 &&
+                              Update(&keyed, nonnull(input), input.size()) == 0 &&
+                              Final(&keyed, whole ? output.data() : digest_bytes.data()) == 0;
+        if (computed && !whole) {
+            std::copy_n(digest_bytes.begin(), output.size(), output.begin());
+        }
+        wipe_object(digest_bytes);
+        wipe_object(keyed);
+        if (!computed) {
+            return error::backend_failure;
+        }
+        return {};
+    }
+};
+
+/**
+ `macs::hmac<digests::sha2_256>` on backends::sodium: `crypto_auth_hmacsha256_*`, a key of any
+ size.
+*/
+template <>
+struct mac_engine<backends::sodium, macs::hmac<digests::sha2_256>>
+    : sodium_hmac_engine<digests::sha2_256, crypto_auth_hmacsha256_state,
+                         crypto_auth_hmacsha256_BYTES, &crypto_auth_hmacsha256_init,
+                         &crypto_auth_hmacsha256_update, &crypto_auth_hmacsha256_final> {};
+
+/**
+ `macs::hmac<digests::sha2_512>` on backends::sodium: `crypto_auth_hmacsha512_*`, a key of any
+ size. libsodium's `crypto_auth_hmacsha512256` is this HMAC cut to 32 bytes, which `mac` gives with
+ a 32-byte output; it is not HMAC over SHA-512/256 (`macs::hmac<digests::sha2_512_256>`), which
+ libsodium does not have (ruling R23).
+*/
+template <>
+struct mac_engine<backends::sodium, macs::hmac<digests::sha2_512>>
+    : sodium_hmac_engine<digests::sha2_512, crypto_auth_hmacsha512_state,
+                         crypto_auth_hmacsha512_BYTES, &crypto_auth_hmacsha512_init,
+                         &crypto_auth_hmacsha512_update, &crypto_auth_hmacsha512_final> {};
 
 /**
  What libsodium's SipHash one-shots, `crypto_shorthash_siphash24` and

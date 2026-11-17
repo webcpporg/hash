@@ -154,6 +154,17 @@ hash-run siphash_sodium : siphash_sodium_test.cpp
 hash-run kdf_blake2b_sodium : kdf_blake2b_sodium_test.cpp
   : <library>/third_party//sodium <library>/third_party//sodium_vectors ;
 
+# SHAKE128/256 and TurboSHAKE128/256 on backends::sodium, libsodium's
+# crypto_xof_*: RFC 9861's TurboSHAKE vectors, FIPS 202's SHAKE examples,
+# Boost.Hash2's SHAKE past one rate block, TurboSHAKE's domain byte.
+hash-run xof_sodium : xof_sodium_test.cpp : <library>/third_party//sodium ;
+
+# SHA-256, SHA-512, SHA3-256, SHA3-512 and HMAC over SHA-256 and SHA-512 on
+# backends::sodium: Boost.Hash2 on random inputs, RFC 4231, and libsodium's
+# HMAC-SHA-512-256 as HMAC-SHA-512 cut to 32 bytes.
+hash-run digests_sodium : digests_sodium_test.cpp
+  : <library>/third_party//sodium ;
+
 # HKDF on backends::sodium, over libsodium's crypto_kdf_hkdf_sha256 and
 # crypto_kdf_hkdf_sha512: RFC 5869's A.1 to A.3, a SHA-512 case that
 # backends::hash2 agrees with, the guards of spec 2.8, the empty inputs, and

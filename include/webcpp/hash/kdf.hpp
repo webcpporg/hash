@@ -211,6 +211,48 @@ inline constexpr bool backend_has_v<backends::blake3, digests::blake3, void> = t
 template <>
 inline constexpr bool backend_has_v<backends::sodium, digests::blake2b, void> = true;
 
+/** backends::sodium has `digests::sha2_256` (`crypto_hash_sha256_*`). */
+template <>
+inline constexpr bool backend_has_v<backends::sodium, digests::sha2_256, void> = true;
+
+/** backends::sodium has `digests::sha2_512` (`crypto_hash_sha512_*`). */
+template <>
+inline constexpr bool backend_has_v<backends::sodium, digests::sha2_512, void> = true;
+
+/** backends::sodium has `digests::sha3_256` (`crypto_hash_sha3256_*`). */
+template <>
+inline constexpr bool backend_has_v<backends::sodium, digests::sha3_256, void> = true;
+
+/** backends::sodium has `digests::sha3_512` (`crypto_hash_sha3512_*`). */
+template <>
+inline constexpr bool backend_has_v<backends::sodium, digests::sha3_512, void> = true;
+
+/**
+ backends::sodium has `digests::shake_128` (`crypto_xof_shake128_*`), with its extendable output.
+*/
+template <>
+inline constexpr bool backend_has_v<backends::sodium, digests::shake_128, void> = true;
+
+/**
+ backends::sodium has `digests::shake_256` (`crypto_xof_shake256_*`), with its extendable output.
+*/
+template <>
+inline constexpr bool backend_has_v<backends::sodium, digests::shake_256, void> = true;
+
+/**
+ backends::sodium has `digests::turboshake_128` (`crypto_xof_turboshake128_*`), with its domain
+ byte.
+*/
+template <>
+inline constexpr bool backend_has_v<backends::sodium, digests::turboshake_128, void> = true;
+
+/**
+ backends::sodium has `digests::turboshake_256` (`crypto_xof_turboshake256_*`), with its domain
+ byte.
+*/
+template <>
+inline constexpr bool backend_has_v<backends::sodium, digests::turboshake_256, void> = true;
+
 /** backends::hash2 has `macs::hmac<digests::md5>` (Boost.Hash2's `hmac<H>`). */
 template <>
 inline constexpr bool backend_has_v<backends::hash2, macs::hmac<digests::md5>, void> = true;
@@ -284,6 +326,20 @@ inline constexpr bool backend_has_v<backends::sodium, macs::siphash_2_4, void> =
 /** backends::sodium has `macs::siphash_2_4x` (`crypto_shorthash_siphashx24`). */
 template <>
 inline constexpr bool backend_has_v<backends::sodium, macs::siphash_2_4x, void> = true;
+
+/**
+ backends::sodium has `macs::hmac<digests::sha2_256>` (`crypto_auth_hmacsha256_*`), with a key of
+ any size.
+*/
+template <>
+inline constexpr bool backend_has_v<backends::sodium, macs::hmac<digests::sha2_256>, void> = true;
+
+/**
+ backends::sodium has `macs::hmac<digests::sha2_512>` (`crypto_auth_hmacsha512_*`), with a key of
+ any size.
+*/
+template <>
+inline constexpr bool backend_has_v<backends::sodium, macs::hmac<digests::sha2_512>, void> = true;
 
 /**
  backends::hash2 has `macs::blake2s_mac` in part: a 32-byte tag, Boost.Hash2's keyed `blake2s_256`

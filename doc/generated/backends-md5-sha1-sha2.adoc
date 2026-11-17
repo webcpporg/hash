@@ -97,6 +97,13 @@
 | -
 | not stated
 
+| `digests::sha2_256`
+| `sodium`
+| `/third_party//sodium`
+| native, wasip2, wasip3, emscripten
+| -
+| not stated
+
 | `digests::sha2_384`
 | `hash2`
 | `/webcpp/hash//hash`
@@ -107,6 +114,13 @@
 | `digests::sha2_512`
 | `hash2`
 | `/webcpp/hash//hash`
+| native, wasip2, wasip3, emscripten
+| -
+| not stated
+
+| `digests::sha2_512`
+| `sodium`
+| `/third_party//sodium`
 | native, wasip2, wasip3, emscripten
 | -
 | not stated
@@ -129,5 +143,6 @@
 What each backend states on constant time, as the capability table read it:
 
 * `hash2`: Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property.
+* `sodium`: libsodium 1.0.22: its headers state constant time for comparisons (sodium/utils.h) alone, not for its hashing, MAC, key derivation and password hashing functions (crypto_hash_*, crypto_xof_*, crypto_generichash_*, crypto_shorthash_*, crypto_auth_*, crypto_kdf_*, crypto_pwhash_*).
 
-The default of `digests::md5`, `digests::sha1`, `digests::sha2_224`, `digests::sha2_256`, `digests::sha2_384`, `digests::sha2_512`, `digests::sha2_512_224` and `digests::sha2_512_256`: `hash2` on every target, whatever the program links (<<hash-default-backend>>).
+The default of `digests::md5`, `digests::sha1`, `digests::sha2_224`, `digests::sha2_256`, `digests::sha2_384`, `digests::sha2_512`, `digests::sha2_512_224` and `digests::sha2_512_256`: `hash2` on every target, whatever the program links; `sodium` only where the call names it, as its second template argument (<<hash-default-backend>>).

@@ -916,6 +916,32 @@
             ],
             "choose": "To name the backend in the call, or to hash in pieces with a result that cannot be taken twice; shake_256 itself for hash_append and Boost.Hash2's other functions."
         },
+        "digests::turboshake_128": {
+            "summary": "TurboSHAKE128 (RFC 9861), an extendable-output function: SHAKE128's sponge with 12 rounds of the Keccak-p permutation instead of 24, about twice as fast, and a domain byte that makes each use its own function, as the tag of digest_of and hasher: one call, or pieces with one final result.",
+            "output": "any length",
+            "security": "up to 128 bits, and half the output length for collisions",
+            "status": "recommended",
+            "webcrypto": null,
+            "anchor": "hash-turboshake",
+            "uses": [
+                {"text": "KT128's inner function (KangarooTwelve)", "source": "https://www.rfc-editor.org/rfc/rfc9861#section-3"},
+                {"text": "libsodium's extendable-output functions, crypto_xof_turboshake128", "source": "https://github.com/jedisct1/libsodium/blob/master/src/libsodium/include/sodium/crypto_xof_turboshake128.h"}
+            ],
+            "choose": "For an extendable output faster than SHAKE128 with the same security claim, or for several functions from one primitive told apart by the domain byte; shake_128 where a standard names SHAKE."
+        },
+        "digests::turboshake_256": {
+            "summary": "TurboSHAKE256 (RFC 9861), an extendable-output function: SHAKE256's sponge with 12 rounds of the Keccak-p permutation instead of 24, about twice as fast, and a domain byte that makes each use its own function, as the tag of digest_of and hasher: one call, or pieces with one final result.",
+            "output": "any length",
+            "security": "up to 256 bits, and half the output length for collisions",
+            "status": "recommended",
+            "webcrypto": null,
+            "anchor": "hash-turboshake",
+            "uses": [
+                {"text": "KT256's inner function (KangarooTwelve)", "source": "https://www.rfc-editor.org/rfc/rfc9861#section-3"},
+                {"text": "libsodium's extendable-output functions, crypto_xof_turboshake256", "source": "https://github.com/jedisct1/libsodium/blob/master/src/libsodium/include/sodium/crypto_xof_turboshake256.h"}
+            ],
+            "choose": "For an extendable output faster than SHAKE256 with the same security claim, or for several functions from one primitive told apart by the domain byte; shake_256 where a standard names SHAKE."
+        },
         "digests::keccak_256": {
             "summary": "Keccak-256 with the original padding, Ethereum's hash; not SHA3-256, as the tag of digest_of and hasher: one call, or pieces with one final result, on any backend that has it.",
             "output": "256 bits",

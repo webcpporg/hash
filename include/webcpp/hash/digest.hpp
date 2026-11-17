@@ -96,6 +96,30 @@ struct digest_options<digests::blake2b> {
     std::size_t output_size = 64;
 };
 
+/**
+ TurboSHAKE's parameter (RFC 9861, section 2.1): the domain separation byte D, which the sponge
+ absorbs after the message, so that each value gives another function. The standard value is 0x1F;
+ a protocol that builds several functions over TurboSHAKE gives each its own byte.
+
+ @code
+ std::array<std::uint8_t, 32> output{};
+ auto done = webcpp::hash::digest_of<webcpp::hash::digests::turboshake_128>(
+     output, message, {.domain = 0x0B});
+ @endcode
+*/
+template <>
+struct digest_options<digests::turboshake_128> {
+    /** D, 0x01 to 0x7F (`invalid_parameters` otherwise); 0x1F by default. */
+    std::uint8_t domain = 0x1F;
+};
+
+/** TurboSHAKE256's parameter, as TurboSHAKE128's (RFC 9861, section 2.1). */
+template <>
+struct digest_options<digests::turboshake_256> {
+    /** D, 0x01 to 0x7F (`invalid_parameters` otherwise); 0x1F by default. */
+    std::uint8_t domain = 0x1F;
+};
+
 namespace detail {
 
 /** The output sizes of a digest of `Size` bytes, fixed: the output is exactly that. */
@@ -225,10 +249,6 @@ template <> struct digest_traits<digests::cshake_256> : extendable_output {};
 template <> struct digest_traits<digests::kt128> : extendable_output {};
 /** KT256: any size from 1 byte. */
 template <> struct digest_traits<digests::kt256> : extendable_output {};
-/** TurboSHAKE128: any size from 1 byte. */
-template <> struct digest_traits<digests::turboshake_128> : extendable_output {};
-/** TurboSHAKE256: any size from 1 byte. */
-template <> struct digest_traits<digests::turboshake_256> : extendable_output {};
 /** TupleHash128: any size from 1 byte (its L). */
 template <> struct digest_traits<digests::tuplehash_128> : extendable_output {};
 /** TupleHash256: any size from 1 byte (its L). */
@@ -313,6 +333,39 @@ struct digest_traits<digests::blake2b> {
         return {};
     }
 };
+
+/**
+ TurboSHAKE's guards (RFC 9861, ruling R25): any output size from 1 byte, and the domain byte within
+ 0x01 to 0x7F, which the RFC requires and which neither libsodium nor XKCP checks: the family
+ refuses another before any engine, the same way on every backend.
+*/
+struct turboshake_traits : extendable_output {
+    /** The smallest domain byte RFC 9861 allows. */
+    static constexpr std::uint8_t min_domain = 0x01;
+    /** The largest domain byte RFC 9861 allows. */
+    static constexpr std::uint8_t max_domain = 0x7F;
+
+    /**
+     Checks the domain byte.
+
+     @param options The options. @return Success, or `invalid_parameters`.
+    */
+    template <class Options>
+    static constexpr boost::system::result<void> check(Options const& options) noexcept {
+        if (options.domain < min_domain || options.domain > max_domain) {
+            return error::invalid_parameters;
+        }
+        return {};
+    }
+};
+
+/** TurboSHAKE128: any size from 1 byte, a domain byte of 0x01 to 0x7F. */
+template <>
+struct digest_traits<digests::turboshake_128> : turboshake_traits {};
+
+/** TurboSHAKE256: any size from 1 byte, a domain byte of 0x01 to 0x7F. */
+template <>
+struct digest_traits<digests::turboshake_256> : turboshake_traits {};
 
 /**
  The family's guard of `digest_of` and `hasher::finish` on an output of `output_size` bytes: the

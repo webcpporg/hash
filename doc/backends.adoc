@@ -131,6 +131,12 @@ states about its constant time. The backends:
 | not stated
 | native, wasip2, wasip3, emscripten
 
+| digests::sha2_256
+| sodium
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
 | digests::sha2_384
 | hash2
 | -
@@ -139,6 +145,12 @@ states about its constant time. The backends:
 
 | digests::sha2_512
 | hash2
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| digests::sha2_512
+| sodium
 | -
 | not stated
 | native, wasip2, wasip3, emscripten
@@ -203,6 +215,12 @@ states about its constant time. The backends:
 | not stated
 | native, wasip2, wasip3, emscripten
 
+| digests::sha3_256
+| sodium
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
 | digests::sha3_384
 | hash2
 | -
@@ -215,14 +233,44 @@ states about its constant time. The backends:
 | not stated
 | native, wasip2, wasip3, emscripten
 
+| digests::sha3_512
+| sodium
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
 | digests::shake_128
 | hash2 (partial: an output past 32 bytes, one Boost.Hash2 result)
 | -
 | not stated
 | native, wasip2, wasip3, emscripten
 
+| digests::shake_128
+| sodium
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
 | digests::shake_256
 | hash2 (partial: an output past 64 bytes, one Boost.Hash2 result)
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| digests::shake_256
+| sodium
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| digests::turboshake_128
+| sodium
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| digests::turboshake_256
+| sodium
 | -
 | not stated
 | native, wasip2, wasip3, emscripten
@@ -468,6 +516,12 @@ states about its constant time. The backends:
 | not stated
 | native, wasip2, wasip3, emscripten
 
+| macs::hmac<digests::sha2_256>
+| sodium
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
 | macs::hmac<digests::sha2_384>
 | hash2
 | -
@@ -476,6 +530,12 @@ states about its constant time. The backends:
 
 | macs::hmac<digests::sha2_512>
 | hash2
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| macs::hmac<digests::sha2_512>
+| sodium
 | -
 | not stated
 | native, wasip2, wasip3, emscripten
@@ -744,6 +804,12 @@ The backend a call that names none uses, on every target, whatever the program l
 | digests::shake_256
 | xkcp
 
+| digests::turboshake_128
+| xkcp
+
+| digests::turboshake_256
+| xkcp
+
 | digests::keccak_256
 | xkcp
 
@@ -842,6 +908,6 @@ What each backend's upstream states, and where:
 * hash2: not stated. Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property.
 * xkcp: not stated. XKCP at d20c8fc: README.markdown and lib/low/KeccakP-1600 state no constant-time property.
 * blake3: not stated. BLAKE3 1.8.7: README.md and c/README.md state no constant-time property.
-* sodium: not stated. libsodium 1.0.22: its headers state constant time for comparisons (sodium/utils.h) alone, not for its hashing, key derivation and password hashing functions (crypto_generichash_*, crypto_shorthash_*, crypto_kdf_*, crypto_pwhash_*).
+* sodium: not stated. libsodium 1.0.22: its headers state constant time for comparisons (sodium/utils.h) alone, not for its hashing, MAC, key derivation and password hashing functions (crypto_hash_*, crypto_xof_*, crypto_generichash_*, crypto_shorthash_*, crypto_auth_*, crypto_kdf_*, crypto_pwhash_*).
 * bearssl: not stated. BearSSL at webcpp::crypto's pin: bearssl_hmac.h states constant time for br_hmac_outCT alone; br_hkdf_* (src/kdf/hkdf.c) calls br_hmac_out.
 * openssl: not stated. OpenSSL 3.5.9: doc/man7/EVP_KDF-HKDF.pod and EVP_KDF-PBKDF2.pod state no constant-time property.
