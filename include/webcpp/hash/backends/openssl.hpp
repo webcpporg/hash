@@ -100,6 +100,8 @@ struct backend_limits<backends::openssl> {
     static constexpr std::uint64_t pbkdf2_salt = openssl_int_max;
     /** PBKDF2's output length is an `int` (`tkeylen`) in `pbkdf2_derive`. */
     static constexpr std::uint64_t pbkdf2_output = openssl_int_max;
+    /** PBKDF2's iteration count goes to OpenSSL as a `uint64_t` (`"iter"`): no limit of its own. */
+    static constexpr std::uint64_t pbkdf2_iterations = no_limit;
     /** OpenSSL has no Argon2id in increment 1: no limit of its own. */
     static constexpr std::uint64_t argon2id_password = no_limit;
     /** OpenSSL has no Argon2id in increment 1: no limit of its own. */

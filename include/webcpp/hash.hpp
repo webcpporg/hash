@@ -8,8 +8,9 @@
  Every public header of webcpp::hash: those that need no C library always, and
  each part over a C library when the program links that library (its target
  defines `WEBCPP_HASH_HAS_<NAME>`). It leaves out `<webcpp/hash/async.hpp>`, the
- asynchronous family, which brings webcpp::asio (`<library>/webcpp/asio//asio`):
- a program that wants it includes it by itself.
+ asynchronous family, and `<webcpp/hash/backends/webcrypto.hpp>`, its browser
+ backend, which bring webcpp::asio (`<library>/webcpp/asio//asio`): a program
+ that wants them includes one by itself.
 */
 #ifndef WEBCPP_HASH_HPP
 #define WEBCPP_HASH_HPP

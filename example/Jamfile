@@ -48,6 +48,8 @@ webcpp.example async_argon2id.cpp : <library>/webcpp/asio//asio
   <library>/third_party//sodium <threading>multi
   <toolset>emscripten:<linkflags>-sPTHREAD_POOL_SIZE=1
   : native emscripten ;
+# backends::webcrypto, the browser's WebCrypto, on Emscripten alone.
+webcpp.example async_webcrypto.cpp : <library>/webcpp/asio//asio : emscripten ;
 
 # Hashes that are not cryptographic.
 webcpp.example checksums.cpp ;

@@ -54,6 +54,10 @@ webcpp.headers-alone hash : ../include : hash/backends/blake3.hpp
 # bring (spec 11.2).
 webcpp.headers-alone hash : ../include : hash/async.hpp
   : <library>/webcpp/asio//asio ;
+# backends/webcrypto.hpp, which async.hpp includes, likewise: its engine on
+# Emscripten, its limits on every target.
+webcpp.headers-alone hash : ../include : hash/backends/webcrypto.hpp
+  : <library>/webcpp/asio//asio ;
 # backends/bearssl.hpp compiles alone only with BearSSL, whose target defines
 # WEBCPP_HASH_HAS_BEARSSL (without it, it stops with its message).
 webcpp.headers-alone hash : ../include : hash/backends/bearssl.hpp
@@ -248,6 +252,13 @@ hash-run webcrypto_oracle : webcrypto_oracle_test.cpp
 # with -pthread (threading=multi), whose pools' three workers start before
 # main blocks in run (PTHREAD_POOL_SIZE).
 hash-run async_post : async_post_test.cpp : <library>/webcpp/asio//asio ;
+# backends::webcrypto, node's crypto.subtle through webcpp::asio's promise
+# bridge (Emscripten only, asio's JSPI link): the published cases with three
+# completion tokens, 100 random cases per function against backends::hash2,
+# the guards and WebCrypto's limits, an executor of another context, a
+# cancellation and the handler's allocator.
+hash-run async_webcrypto : async_webcrypto_test.cpp
+  : <library>/webcpp/asio//asio : emscripten ;
 hash-run async_heavy : async_heavy_test.cpp
   : <library>/webcpp/asio//asio <library>/third_party//sodium <threading>multi
     <toolset>emscripten:<linkflags>-sPTHREAD_POOL_SIZE=3
@@ -325,7 +336,8 @@ path-constant HASH_TEST_INCLUDE : ../include ;
     <dependency>../include/webcpp/hash/kdf.hpp
     <dependency>../include/webcpp/hash/backends/bearssl.hpp
     <dependency>../include/webcpp/hash/backends/openssl.hpp
-    <dependency>../include/webcpp/hash/backends/sodium.hpp ;
+    <dependency>../include/webcpp/hash/backends/sodium.hpp
+    <dependency>../include/webcpp/hash/backends/webcrypto.hpp ;
 # capabilities links every library its target has, so that a backend's targets
 # in the table can be checked against what links here.
 hash-run capabilities : capabilities_test.cpp

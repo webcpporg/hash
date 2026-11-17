@@ -56,6 +56,8 @@ build-project async_argon2_without_threads ;
 build-project async_scrypt_without_threads ;
 build-project async_pbkdf2_without_threads ;
 build-project async_digest_not_in_webcrypto ;
+build-project async_hmac_not_in_webcrypto ;
+build-project async_hkdf_not_in_webcrypto ;
 build-project webcrypto_synchronous ;
 build-project webcrypto_off_emscripten ;
 build-project canary_xkcp_missing ;

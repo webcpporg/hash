@@ -82,6 +82,9 @@ template <class Hmac, class Backend>
     if (exceeds(output_size, limits::pbkdf2_output)) {
         return error::invalid_output_size;
     }
+    if (exceeds(iteration_count, limits::pbkdf2_iterations)) {
+        return error::invalid_iterations;
+    }
     if (exceeds(password_size, limits::pbkdf2_password) ||
         exceeds(salt_size, limits::pbkdf2_salt)) {
         return error::input_too_long;
@@ -101,7 +104,8 @@ template <class Hmac, class Backend>
  likewise.
  @param iteration_count The iteration count, at least 1.
  @return Success, or the error of the first guard that fails (`invalid_output_size`,
- `invalid_iterations`, then the backend's own limits: `invalid_output_size`, `input_too_long`;
+ `invalid_iterations`, then the backend's own limits: `invalid_output_size`, `invalid_iterations`,
+ `input_too_long`;
  for `backends::openssl` an output, a password or a salt of more than `INT_MAX` bytes),
  `output_bytes` untouched; or the backend's failure, `output_bytes` zeroed.
 */

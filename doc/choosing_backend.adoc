@@ -112,6 +112,15 @@ is not built for Emscripten.
 | `blake3`
 | Allocates nothing. Its keyed and `derive_key` modes hold the key in the
 object's state until it is destroyed, without wiping it (<<hash-blake3>>).
+
+| `webcrypto`
+| The browser computes outside the program's memory, with the asynchronous
+family alone, on Emscripten (<<hash-async-webcrypto>>). Each input (the key,
+the password, the IKM) is handed to it as a JavaScript copy, and the result
+comes back as an `ArrayBuffer` copied into the output: neither copy can be
+wiped, and each stays in JavaScript's heap until its garbage collector frees
+it. The imported key is not extractable. The operation's storage is the
+handler's associated allocator's, given back before the handler runs.
 |===
 
 No backend states that its key derivations run in constant time; the

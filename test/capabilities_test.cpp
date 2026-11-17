@@ -815,6 +815,20 @@ std::vector<refusal> const& refusals() {
             .hmacs = {},
         },
         {
+            .header = "backends/webcrypto.hpp",
+            .start = "backends::webcrypto completes through an io_context run on",
+            .backend = "webcrypto",
+            .functions = {},
+            .hmacs = {},
+        },
+        {
+            .header = "backends/webcrypto.hpp",
+            .start = "backends::webcrypto has PBKDF2 over hmac_sha1_160, hmac_sha2_256",
+            .backend = "webcrypto",
+            .functions = {},
+            .hmacs = {},
+        },
+        {
             .header = "kdf.hpp",
             .start = "the key derivations take a Boost.Hash2 hmac",
             .backend = "",

@@ -58,7 +58,6 @@
 #include <webcpp/hash/scrypt.hpp>
 
 #include <webcpp/asio/append.hpp>
-#include <webcpp/asio/associated_allocator.hpp>
 #include <webcpp/asio/associated_cancellation_slot.hpp>
 #include <webcpp/asio/associated_executor.hpp>
 #include <webcpp/asio/async_result.hpp>
@@ -478,7 +477,8 @@ auto run_on_work(WorkExecutor const& work, std::span<std::uint8_t> output, Guard
  the digests WebCrypto has; another refuses at compile time (`digest_of` has them all).
  @tparam Backend The backend; by default @ref default_async_backend of `Digest`, the synchronous
  default. `backends::webcrypto` only on Emscripten.
- @param executor The executor the completion is posted to.
+ @param executor The executor the completion is posted to; on `backends::webcrypto`, that of an
+ `io_context` run on the calling thread (see @ref async_pbkdf2).
  @param output The digest, of exactly the digest's size; the caller's until completion.
  @param input The data; the caller's until completion.
  @param token The completion token, of signature `void(boost::system::error_code)`.
@@ -512,7 +512,8 @@ auto async_digest(Executor const& executor, std::span<std::uint8_t> output,
  WebCrypto has; another refuses at compile time (`mac` has them all).
  @tparam Backend The backend; by default @ref default_async_backend of the HMAC's tag, the
  synchronous default. `backends::webcrypto` only on Emscripten.
- @param executor The executor the completion is posted to.
+ @param executor The executor the completion is posted to; on `backends::webcrypto`, that of an
+ `io_context` run on the calling thread (see @ref async_pbkdf2).
  @param output The tag, 10 bytes up to the digest's size; the caller's until completion.
  @param key The key, of any size. @param input The message. Both the caller's until completion.
  @param token The completion token, of signature `void(boost::system::error_code)`.
@@ -548,7 +549,8 @@ auto async_hmac(Executor const& executor, std::span<std::uint8_t> output,
  WebCrypto has HKDF over; another refuses at compile time (`hkdf` has them all).
  @tparam Backend The backend; by default @ref default_async_backend of `kdfs::hkdf`, the
  synchronous default. `backends::webcrypto` only on Emscripten.
- @param executor The executor the completion is posted to.
+ @param executor The executor the completion is posted to; on `backends::webcrypto`, that of an
+ `io_context` run on the calling thread (see @ref async_pbkdf2).
  @param output The output keying material, 1 to 255 times the digest size.
  @param salt The salt. @param ikm The input keying material. @param info The context, at most
  `hkdf_max_info_size` bytes. The spans are the caller's until completion.
@@ -582,8 +584,12 @@ auto async_hkdf(Executor const& executor, std::span<std::uint8_t> output,
  11.5): the work runs on a thread of `executor`'s context (a `webcpp::asio::thread_pool`'s) and
  completes on the handler's associated executor (`executor` by default; a program binds its event
  loop's with `bind_executor`), and it exists only where the build has threads
- (`WEBCPP_HASH_HAS_THREADS`). On `backends::webcrypto`, on Emscripten, the browser runs it: there
- `executor` is that of an `io_context` running on the calling thread, and no thread is needed.
+ (`WEBCPP_HASH_HAS_THREADS`). On `backends::webcrypto`, on Emscripten, the browser runs it and no
+ thread is needed: there `executor` must be that of an `io_context` run on the calling thread,
+ whose `run` returns to the JavaScript event loop where WebCrypto's promise settles (ruling R73).
+ A concrete executor of another context (a `thread_pool`'s) stops the build; a type-erased one
+ (`any_io_executor`) that holds none of an `io_context` completes with `invalid_parameters`,
+ posted to the handler's associated executor.
 
  Cancellation through the handler's slot: before the work starts, any type completes the
  operation at once with `operation_aborted`, the work never runs; during it, a `terminal` or
@@ -802,5 +808,9 @@ void async_scrypt(WorkExecutor const& /*work*/, std::span<std::uint8_t> /*output
 #endif
 
 }  // namespace webcpp::hash
+
+// backends::webcrypto's engine on Emscripten, and its limits on every target. That header includes
+// this one first, so that a program may include either.
+#include <webcpp/hash/backends/webcrypto.hpp>
 
 #endif  // WEBCPP_HASH_ASYNC_HPP

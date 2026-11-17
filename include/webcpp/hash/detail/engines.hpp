@@ -58,7 +58,8 @@ inline constexpr std::uint64_t no_limit = std::numeric_limits<std::uint64_t>::ma
  The longest input and output a backend's C library takes, in bytes, where its interface holds a
  length in a narrower type than `std::size_t`. The public functions' guards read it
  after the spec's own guards and before any call of the backend, and refuse a longer output with
- `invalid_output_size` and a longer input with `input_too_long`, the output untouched. The
+ `invalid_output_size`, a longer input with `input_too_long` and more iterations with
+ `invalid_iterations`, the output untouched. The
  primary template, every backend's unless its header specialises it, has no limit; a
  specialisation gives every member.
 
@@ -82,6 +83,8 @@ struct backend_limits {
     static constexpr std::uint64_t pbkdf2_salt = no_limit;
     /** PBKDF2's output, within (2^32 - 1) digests. */
     static constexpr std::uint64_t pbkdf2_output = no_limit;
+    /** PBKDF2's iteration count (`invalid_iterations` beyond it). */
+    static constexpr std::uint64_t pbkdf2_iterations = no_limit;
     /** Argon2id's password. */
     static constexpr std::uint64_t argon2id_password = no_limit;
     /** Argon2id's salt. */

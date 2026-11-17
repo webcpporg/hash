@@ -141,11 +141,24 @@ lacks
 | They take SHA-1, SHA-256, SHA-384 and SHA-512 (and HMAC and HKDF over them):
 call the synchronous function the message names.
 
+| `backends::webcrypto` given the executor of a `thread_pool` (or of another
+context than an `io_context`)
+| WebCrypto's promise settles in the JavaScript event loop, to which only an
+`io_context`'s `run` returns: pass the executor of the `io_context` run on the
+calling thread (<<hash-async-webcrypto>>). Behind `any_io_executor` the same
+mistake completes with `invalid_parameters`.
+
+| `async_pbkdf2` on `backends::webcrypto` over an hmac WebCrypto lacks
+| WebCrypto's PBKDF2 is over SHA-1 and SHA-2 alone: name a synchronous backend
+for the others.
+
 |===
 
 Every message is tested: each is a test of `test/messages/`, which compiles a
 program that makes the mistake and checks the compiler prints the whole
-text, on every target where the mistake is possible.
+text, on every target where the mistake is possible; on Emscripten, where
+the messages of `backends::webcrypto` alone arise, the same program is a case
+of the superproject's `tools/test/hash_jamfiles_test.py`.
 
 [#hash-exceptions]
 == Exceptions

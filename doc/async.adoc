@@ -40,7 +40,7 @@ everywhere.
 
 Each runs, by default, on the synchronous function's backend
 (<<hash-default-backend>>): `backends::webcrypto`, the browser's WebCrypto, is
-used only when the type names it, on Emscripten.
+used only when the type names it, on Emscripten (<<hash-async-webcrypto>>).
 
 [#hash-async-heavy]
 === The heavy functions on another thread
@@ -163,3 +163,68 @@ named in the type may run later (WebCrypto does).
 the build: "webcpp::hash: backends::webcrypto exists only on Emscripten: name
 a synchronous backend, or leave the default." In a synchronous function it
 stops the build on every target, naming the asynchronous function to call.
+
+[#hash-async-webcrypto]
+=== WebCrypto in the browser
+
+Every browser, and node, has a cryptography library of its own, the Web
+Cryptography API (`crypto.subtle`,
+https://www.w3.org/TR/WebCryptoAPI/[W3C]), usually called WebCrypto. It
+computes SHA-1 and SHA-2 digests, HMAC, HKDF and PBKDF2 in the browser's
+native code, off the page's thread, and answers with a JavaScript promise.
+A program built with Emscripten reaches it as `backends::webcrypto`, named in
+the type of an asynchronous function: nothing of it is compiled into the
+program, and a PBKDF2 of 600,000 iterations, the work of a login, runs while
+the page keeps drawing. It is never a default: the same call without it runs
+the synchronous default backend (<<hash-default-backend>>), the same bytes
+on every target.
+
+A password manager in the browser derives the key of its vault from the
+master password and hashes a file, each completion arriving through the
+page's event loop:
+
+[source]
+----
+include::{examples}/async_webcrypto.cpp[tag=example,indent=0]
+----
+
+[listing]
+----
+include::{examples}/async_webcrypto.expected[]
+----
+
+Each function checks the synchronous function's guards first, then
+WebCrypto's own limits, then the executor; a refusal is posted to the
+handler's executor, the output untouched. Then it calls WebCrypto through
+`emscripten::val` (`digest`; or `importKey`, then `sign` or `deriveBits`) and
+awaits each promise with webcpp::asio's `browser::async_await`, which keeps
+the operation alive until the promise settles. The completion copies the
+browser's bytes into the output; a rejected promise is `backend_failure`, the
+output zeroed. Include `<webcpp/hash/backends/webcrypto.hpp>` or
+`<webcpp/hash/async.hpp>`: each brings the other.
+
+*Pitfalls.*
+
+* *The executor is the page's `io_context`.* The promise settles in the
+JavaScript event loop, and only an `io_context` run on the calling thread
+returns to it while it waits. Given a `thread_pool`'s executor, whose threads
+never return to it, the call would never complete: the build stops, or, behind
+`any_io_executor`, the call completes with `invalid_parameters`.
+* *WebCrypto's limits are narrower.* An HKDF info longer than 1,024 bytes
+(node's limit, where the other backends take 32,768) completes with
+`input_too_long`; PBKDF2's iteration count is at most 2^32 - 1
+(`invalid_iterations`); an output of HKDF or PBKDF2 is at most
+(2^32 - 1) / 8 bytes. A program that needs more names a synchronous backend.
+* *An empty HMAC key is one zero byte.* WebCrypto refuses an empty key; HMAC
+pads every key with zeros to its block (RFC 2104), so the two are the same
+key, and webcpp passes one zero byte: the tag is the other backends'.
+* *A short tag is the tag cut.* `async_hmac` takes a tag of 10 bytes up to
+the digest's size, as `mac` does; WebCrypto computes the whole tag and the
+output keeps its first bytes.
+* *Cancellation does not stop the browser.* A `terminal` or `partial`
+cancellation through the handler's slot completes at once with
+`operation_aborted`, the output zeroed; the browser's work still runs to its
+end, and its result is dropped. A `total` one is not honoured.
+* *The spans are the caller's until the completion.* The browser reads a copy
+of the inputs, made when each call starts, and the output is written in the
+completion.
