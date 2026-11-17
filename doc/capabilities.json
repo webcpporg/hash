@@ -4,7 +4,7 @@
     "layout": {
         "schema": "This description. The version of the layout is \"version\"; a change of layout raises it.",
         "targets": "The targets webcpp builds for.",
-        "backends[]": "Each library a function runs on: name (as cells name it), tag (its webcpp::hash::backends type), macro (the word of WEBCPP_HASH_HAS_<macro>), library (name and pin), licence, jamfile (the target a program names), targets (where it builds).",
+        "backends[]": "Each library a function runs on: name (as cells name it), tag (its webcpp::hash::backends type), macro (the word of WEBCPP_HASH_HAS_<macro>, null for a backend that links no library of its own), library (name and pin), licence, jamfile (the target a program names), targets (where it builds), asynchronous_only (present and true on a backend that only the asynchronous family of async.hpp takes, backends::webcrypto: its cells are the asynchronous functions', async_digest, async_hmac, async_hkdf and async_pbkdf2, never the synchronous ones, and it is never a default).",
         "hmacs": "The hmac columns of a function over an hmac: the aliases of <webcpp/hash/hmac.hpp>, and \"other\", hmac<H> over any other Boost.Hash2 hash whose result is a digest.",
         "algorithms[]": "One row group of spec 3.5: name, macro (the algorithm's word in upper case), tag (its kdfs:: type, or null), chapter (the documentation's chapter: digests, macs, kdfs, password_hashing, non-cryptographic), standard, functions.",
         "functions[]": "One public name: name (a type's or function's own name; a family's row is named by its qualified tag, as digests::sha2_256 or macs::hmac<digests::sha2_256>), kind (\"type\": a Boost.Hash2-form type; \"function\": a function template with a Backend parameter; \"digest\": a tag of digest_of and hasher; \"mac\": a tag of mac; \"kdf\": a variant of argon2), header, default (for a function or a family's tag, the backend default_backend names when the call names none, null for a tag with no default (detail::no_default) and for a type; a family's default may be a backend whose cell lands in a later increment), backends.",
@@ -99,6 +99,18 @@
                 "wasip2",
                 "wasip3"
             ]
+        },
+        {
+            "name": "webcrypto",
+            "tag": "backends::webcrypto",
+            "macro": null,
+            "library": "the JavaScript runtime's Web Cryptography API (crypto.subtle): the browser's, or node's",
+            "licence": "none (an API of the JavaScript runtime, linked by nothing)",
+            "jamfile": "/webcpp/asio//asio",
+            "targets": [
+                "emscripten"
+            ],
+            "asynchronous_only": true
         }
     ],
     "hmacs": [
@@ -285,6 +297,14 @@
                                 "value": "not stated",
                                 "source": "Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property."
                             }
+                        },
+                        "webcrypto": {
+                            "since": 7,
+                            "hmacs": null,
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "The Web Cryptography API (W3C Recommendation, 2017) states no constant-time property of digest, sign or deriveBits; each JavaScript runtime's implementation decides, and webcpp reads none."
+                            }
                         }
                     }
                 },
@@ -317,6 +337,14 @@
                                 "value": "not stated",
                                 "source": "Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property."
                             }
+                        },
+                        "webcrypto": {
+                            "since": 7,
+                            "hmacs": null,
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "The Web Cryptography API (W3C Recommendation, 2017) states no constant-time property of digest, sign or deriveBits; each JavaScript runtime's implementation decides, and webcpp reads none."
+                            }
                         }
                     }
                 },
@@ -333,6 +361,14 @@
                                 "value": "not stated",
                                 "source": "Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property."
                             }
+                        },
+                        "webcrypto": {
+                            "since": 7,
+                            "hmacs": null,
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "The Web Cryptography API (W3C Recommendation, 2017) states no constant-time property of digest, sign or deriveBits; each JavaScript runtime's implementation decides, and webcpp reads none."
+                            }
                         }
                     }
                 },
@@ -348,6 +384,14 @@
                             "constant_time": {
                                 "value": "not stated",
                                 "source": "Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property."
+                            }
+                        },
+                        "webcrypto": {
+                            "since": 7,
+                            "hmacs": null,
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "The Web Cryptography API (W3C Recommendation, 2017) states no constant-time property of digest, sign or deriveBits; each JavaScript runtime's implementation decides, and webcpp reads none."
                             }
                         }
                     }
@@ -1184,6 +1228,14 @@
                                 "value": "not stated",
                                 "source": "Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property."
                             }
+                        },
+                        "webcrypto": {
+                            "since": 7,
+                            "hmacs": null,
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "The Web Cryptography API (W3C Recommendation, 2017) states no constant-time property of digest, sign or deriveBits; each JavaScript runtime's implementation decides, and webcpp reads none."
+                            }
                         }
                     }
                 },
@@ -1216,6 +1268,14 @@
                                 "value": "not stated",
                                 "source": "Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property."
                             }
+                        },
+                        "webcrypto": {
+                            "since": 7,
+                            "hmacs": null,
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "The Web Cryptography API (W3C Recommendation, 2017) states no constant-time property of digest, sign or deriveBits; each JavaScript runtime's implementation decides, and webcpp reads none."
+                            }
                         }
                     }
                 },
@@ -1232,6 +1292,14 @@
                                 "value": "not stated",
                                 "source": "Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property."
                             }
+                        },
+                        "webcrypto": {
+                            "since": 7,
+                            "hmacs": null,
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "The Web Cryptography API (W3C Recommendation, 2017) states no constant-time property of digest, sign or deriveBits; each JavaScript runtime's implementation decides, and webcpp reads none."
+                            }
                         }
                     }
                 },
@@ -1247,6 +1315,14 @@
                             "constant_time": {
                                 "value": "not stated",
                                 "source": "Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property."
+                            }
+                        },
+                        "webcrypto": {
+                            "since": 7,
+                            "hmacs": null,
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "The Web Cryptography API (W3C Recommendation, 2017) states no constant-time property of digest, sign or deriveBits; each JavaScript runtime's implementation decides, and webcpp reads none."
                             }
                         }
                     }
@@ -1763,6 +1839,19 @@
                                 "value": "not stated",
                                 "source": "OpenSSL 3.5.9: doc/man7/EVP_KDF-HKDF.pod and EVP_KDF-PBKDF2.pod state no constant-time property."
                             }
+                        },
+                        "webcrypto": {
+                            "since": 7,
+                            "hmacs": [
+                                "hmac_sha1_160",
+                                "hmac_sha2_256",
+                                "hmac_sha2_384",
+                                "hmac_sha2_512"
+                            ],
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "The Web Cryptography API (W3C Recommendation, 2017) states no constant-time property of digest, sign or deriveBits; each JavaScript runtime's implementation decides, and webcpp reads none."
+                            }
                         }
                     }
                 }
@@ -1830,6 +1919,19 @@
                             "constant_time": {
                                 "value": "not stated",
                                 "source": "OpenSSL 3.5.9: doc/man7/EVP_KDF-HKDF.pod and EVP_KDF-PBKDF2.pod state no constant-time property."
+                            }
+                        },
+                        "webcrypto": {
+                            "since": 7,
+                            "hmacs": [
+                                "hmac_sha1_160",
+                                "hmac_sha2_256",
+                                "hmac_sha2_384",
+                                "hmac_sha2_512"
+                            ],
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "The Web Cryptography API (W3C Recommendation, 2017) states no constant-time property of digest, sign or deriveBits; each JavaScript runtime's implementation decides, and webcpp reads none."
                             }
                         }
                     }

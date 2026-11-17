@@ -15,12 +15,21 @@
 // memory (Argon2id's matrix, 128 r N bytes of scrypt) comes from libsodium's own mmap, else
 // posix_memalign, else malloc, outside webcpp's code; the test asserts only that operator new is
 // not called, and prints the C allocator calls it saw (mmap is not among the calls the counter
-// sees, so those are libsodium's small bookkeeping blocks, not the memory). Every printed result
-// is one `record key=value ...` line, collected by bench/allocation_collect.py.
+// sees, so those are libsodium's small bookkeeping blocks, not the memory). The asynchronous
+// family (async.hpp, increment 7) takes its storage from the handler's associated allocator, as
+// Asio's operations do: with an arena of the test's bound to the handler, the cheap functions
+// (async_digest, async_hmac, async_hkdf, and their guards' refusals) call neither operator new
+// nor the C allocator, the arena gets back every block before the handler runs, and a heavy
+// function (async_pbkdf2 on a thread pool, natively) allocates one shared state of webcpp's with
+// operator new, a departure the guide records, besides what Asio's pool takes; its count is
+// printed. Every printed result is one `record key=value ...` line, collected by
+// bench/allocation_collect.py.
 
 #include <webcpp/hash/algorithms.hpp>
 #include <webcpp/hash/argon2.hpp>
+#include <webcpp/hash/async.hpp>
 #include <webcpp/hash/backends/hash2.hpp>
+#include <webcpp/hash/error.hpp>
 #include <webcpp/hash/hkdf.hpp>
 #include <webcpp/hash/hmac.hpp>
 #include <webcpp/hash/pbkdf2.hpp>
@@ -39,13 +48,22 @@
 #include <webcpp/hash/backends/bearssl.hpp>
 #endif
 
+#include <webcpp/asio/bind_allocator.hpp>
+#include <webcpp/asio/bind_executor.hpp>
+#include <webcpp/asio/io_context.hpp>
+#ifdef WEBCPP_HASH_HAS_THREADS
+#include <webcpp/asio/thread_pool.hpp>
+#endif
+
 #include <boost/core/lightweight_test.hpp>
+#include <boost/system/error_code.hpp>
 
 #include <webcpp/test/exit_status.hpp>
 
 #include "support/counting.hpp"
 
 #include <array>
+#include <atomic>
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
@@ -404,12 +422,173 @@ void sodium_memory_hard() {
 }
 #endif
 
+// The handler's allocator of the asynchronous family's windows: an arena of the test's, so that
+// the operation's storage moves neither counter. `taken` counts the blocks given, `live` those not
+// yet given back; the arena starts over when every block is back.
+struct arena {
+    alignas(std::max_align_t) std::array<std::byte, 16384> bytes{};
+    std::size_t top = 0;
+    std::atomic<int> live{0};
+    std::atomic<int> taken{0};
+};
+
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables): the handlers' storage
+arena handler_arena;
+
+template <class T>
+struct arena_allocator {
+    using value_type = T;
+
+    arena_allocator() noexcept = default;
+
+    // Allocator rebind conversions must be implicit (Allocator requirements).
+    template <class U>
+    // NOLINTNEXTLINE(misc-explicit-constructor)
+    arena_allocator(arena_allocator<U> const& /*other*/) noexcept {}
+
+    T* allocate(std::size_t count) {
+        constexpr std::size_t align = alignof(std::max_align_t);
+        std::size_t const size = ((count * sizeof(T)) + align - 1) / align * align;
+        if (handler_arena.top + size > handler_arena.bytes.size()) {
+            std::abort();
+        }
+        void* const block = &handler_arena.bytes[handler_arena.top];
+        handler_arena.top += size;
+        ++handler_arena.live;
+        ++handler_arena.taken;
+        return static_cast<T*>(block);
+    }
+
+    void deallocate(T* /*pointer*/, std::size_t /*count*/) noexcept {
+        if (--handler_arena.live == 0) {
+            handler_arena.top = 0;
+        }
+    }
+
+    template <class U>
+    bool operator==(arena_allocator<U> const& /*other*/) const noexcept {
+        return true;
+    }
+};
+
+// One asynchronous call in a window: `start(handler)` initiates it with a handler bound to the
+// arena, then the context runs until the handler has been called once with `expected`, with every
+// block of the arena given back. Neither counter moves, and the arena gave at least one block.
+template <class Start>
+void async_allocates_nothing(char const* name, webcpp::asio::io_context& context,
+                             boost::system::error_code expected, Start start) {
+    ++calls_made;
+    int const taken_before = handler_arena.taken.load();
+    int calls = 0;
+    int live_at_call = -1;
+    boost::system::error_code code;
+    window const w;
+    start(
+        webcpp::asio::bind_allocator(arena_allocator<char>(), [&](boost::system::error_code done) {
+            ++calls;
+            live_at_call = handler_arena.live.load();
+            code = done;
+        }));
+    context.restart();
+    context.run();  // lint-run: the call's completion, under the counter
+    std::size_t const news = w.news();
+    std::size_t const cs = w.cs();
+    BOOST_TEST_EQ(calls, 1);
+    BOOST_TEST(code == expected);
+    BOOST_TEST_EQ(live_at_call, 0);
+    BOOST_TEST_GE(handler_arena.taken.load() - taken_before, 1);
+    if (!BOOST_TEST_EQ(news, 0U) || !BOOST_TEST_EQ(cs, 0U)) {
+        std::printf("allocated: %s (new %zu, C %zu)\n", name, news, cs);
+    }
+}
+
+// The cheap functions on their default backend, a result and a refusal each (an output of 0
+// bytes): 6 calls. One call before the windows lets the io_context make what it makes once.
+void async_cheap() {
+    namespace asio = webcpp::asio;
+    std::size_t const before = calls_made;
+    asio::io_context context;
+    auto const executor = context.get_executor();
+    std::array<std::uint8_t, 32> out{};
+    std::span<std::uint8_t> const none{};
+    hash::async_digest<hash::digests::sha2_256>(executor, out, input,
+                                                [](boost::system::error_code) {});
+    context.run();  // lint-run: the context's first run, outside the windows
+    boost::system::error_code const fine;
+    boost::system::error_code const refused = hash::error::invalid_output_size;
+    async_allocates_nothing("async_digest", context, fine, [&](auto handler) {
+        hash::async_digest<hash::digests::sha2_256>(executor, out, input, std::move(handler));
+    });
+    async_allocates_nothing("async_digest refused", context, refused, [&](auto handler) {
+        hash::async_digest<hash::digests::sha2_256>(executor, none, input, std::move(handler));
+    });
+    async_allocates_nothing("async_hmac", context, fine, [&](auto handler) {
+        hash::async_hmac<hash::hmac_sha2_256>(executor, out, input.first(16), input,
+                                              std::move(handler));
+    });
+    async_allocates_nothing("async_hmac refused", context, refused, [&](auto handler) {
+        hash::async_hmac<hash::hmac_sha2_256>(executor, none, input.first(16), input,
+                                              std::move(handler));
+    });
+    async_allocates_nothing("async_hkdf", context, fine, [&](auto handler) {
+        hash::async_hkdf<hash::hmac_sha2_256>(executor, out, {}, input, {}, std::move(handler));
+    });
+    async_allocates_nothing("async_hkdf refused", context, refused, [&](auto handler) {
+        hash::async_hkdf<hash::hmac_sha2_256>(executor, none, {}, input, {}, std::move(handler));
+    });
+    BOOST_TEST_EQ(calls_made - before, 6U);
+}
+
+#ifdef WEBCPP_HASH_HAS_THREADS
+// A heavy function, async_pbkdf2 on backends::hash2, its work on a pool of one thread and its
+// completion on the context, the handler bound to the arena: the arena gets back every block
+// before the handler runs; operator new is called for webcpp's shared state of the operation (one
+// block: it may outlive the completion, held by the cancellation slot, so it is never the
+// handler's allocator's) and by Asio's pool for the job it queues. The
+// count is printed, never hidden; C allocator calls are not asserted, since the pool's thread
+// allocates on its own.
+void async_heavy() {
+    namespace asio = webcpp::asio;
+    asio::io_context context;
+    asio::thread_pool pool(1);
+    std::array<std::uint8_t, 32> out{};
+    auto const start = [&](auto handler) {
+        hash::async_pbkdf2<hash::hmac_sha2_256, hash::backends::hash2>(
+            pool.get_executor(), out, input.first(20), input.first(16), 2,
+            asio::bind_executor(context.get_executor(), std::move(handler)));
+    };
+    start([](boost::system::error_code) {});
+    context.run();  // lint-run: the context's first run, outside the window
+    int calls = 0;
+    int live_at_call = -1;
+    window const w;
+    start(asio::bind_allocator(arena_allocator<char>(), [&](boost::system::error_code done) {
+        ++calls;
+        live_at_call = handler_arena.live.load();
+        BOOST_TEST(!done);
+    }));
+    context.restart();
+    context.run();  // lint-run: the call's completion, under the counter
+    std::size_t const news = w.news();
+    pool.join();
+    BOOST_TEST_EQ(calls, 1);
+    BOOST_TEST_EQ(live_at_call, 0);
+    BOOST_TEST_GE(news, 1U);
+    std::printf("record operation=async_pbkdf2 backend=hash2 target=%s new=%zu\n",
+                webcpp::test::target_name, news);
+}
+#endif
+
 }  // namespace
 
 int main() {
     control();
     digests();
     all_hmacs<hash::backends::hash2>("hash2", 128);
+    async_cheap();
+#ifdef WEBCPP_HASH_HAS_THREADS
+    async_heavy();
+#endif
 #ifdef WEBCPP_HASH_HAS_XKCP
     keccak();
 #endif

@@ -48,7 +48,8 @@ explicit pbkdf2_sha512 ;
     <target-os>wasi:<linkflags>-Wl,--wrap=malloc,--wrap=calloc,--wrap=realloc
     <target-os>wasi:<linkflags>-Wl,--wrap=aligned_alloc,--wrap=posix_memalign ;
 webcpp.run allocation_release : ../test/allocation_test.cpp
-  : <library>/third_party//xkcp <library>/third_party//blake3
+  : <library>/webcpp/asio//asio
+    <library>/third_party//xkcp <library>/third_party//blake3
     <library>/third_party//sodium <library>/third_party//bearssl $(.counting) ;
 webcpp.run allocation_openssl_release : ../test/allocation_openssl_test.cpp
   : <library>/webcpp/hash//openssl $(.counting) : native wasip2 wasip3 ;

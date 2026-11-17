@@ -12,45 +12,58 @@
 Which backend implements each function, over which hmacs, on which targets, and what upstream
 states about its constant time. The backends:
 
-[cols="1,3,1,2,3",options="header"]
+[cols="1,3,1,2,2,2",options="header"]
 |===
-| Backend | Library | Licence | Jamfile | Targets
+| Backend | Library | Licence | Jamfile | Targets | Called by
 
 | hash2
 | Boost.Hash2 1.92, and webcpp's own HKDF and PBKDF2 over its hmac<H>
 | BSL-1.0
 | `/webcpp/hash//hash`
 | native, wasip2, wasip3, emscripten
+| every function of its cells
 
 | xkcp
 | XKCP's Keccak-p[1600] at d20c8fc
 | CC0-1.0
 | `/third_party//xkcp`
 | native, wasip2, wasip3, emscripten
+| every function of its cells
 
 | blake3
 | BLAKE3's C implementation 1.8.7
 | CC0-1.0 or Apache-2.0
 | `/third_party//blake3`
 | native, wasip2, wasip3, emscripten
+| every function of its cells
 
 | sodium
 | libsodium 1.0.22
 | ISC
 | `/third_party//sodium`
 | native, wasip2, wasip3, emscripten
+| every function of its cells
 
 | bearssl
 | BearSSL at webcpp::crypto's pin
 | MIT
 | `/third_party//bearssl`
 | native, wasip2, wasip3, emscripten
+| every function of its cells
 
 | openssl
 | OpenSSL 3.5.9
 | Apache-2.0
 | `/webcpp/hash//openssl`
 | native, wasip2, wasip3
+| every function of its cells
+
+| webcrypto
+| the JavaScript runtime's Web Cryptography API (crypto.subtle): the browser's, or node's
+| none (an API of the JavaScript runtime, linked by nothing)
+| `/webcpp/asio//asio`
+| emscripten
+| asynchronous family only (async.hpp)
 |===
 
 === Digests
@@ -119,6 +132,12 @@ states about its constant time. The backends:
 | not stated
 | native, wasip2, wasip3, emscripten
 
+| digests::sha1
+| webcrypto (asynchronous family only)
+| -
+| not stated
+| emscripten
+
 | digests::sha2_224
 | hash2
 | -
@@ -131,17 +150,35 @@ states about its constant time. The backends:
 | not stated
 | native, wasip2, wasip3, emscripten
 
+| digests::sha2_256
+| webcrypto (asynchronous family only)
+| -
+| not stated
+| emscripten
+
 | digests::sha2_384
 | hash2
 | -
 | not stated
 | native, wasip2, wasip3, emscripten
 
+| digests::sha2_384
+| webcrypto (asynchronous family only)
+| -
+| not stated
+| emscripten
+
 | digests::sha2_512
 | hash2
 | -
 | not stated
 | native, wasip2, wasip3, emscripten
+
+| digests::sha2_512
+| webcrypto (asynchronous family only)
+| -
+| not stated
+| emscripten
 
 | digests::sha2_512_224
 | hash2
@@ -438,6 +475,12 @@ states about its constant time. The backends:
 | not stated
 | native, wasip2, wasip3, emscripten
 
+| macs::hmac<digests::sha1>
+| webcrypto (asynchronous family only)
+| -
+| not stated
+| emscripten
+
 | macs::hmac<digests::sha2_224>
 | hash2
 | -
@@ -450,17 +493,35 @@ states about its constant time. The backends:
 | not stated
 | native, wasip2, wasip3, emscripten
 
+| macs::hmac<digests::sha2_256>
+| webcrypto (asynchronous family only)
+| -
+| not stated
+| emscripten
+
 | macs::hmac<digests::sha2_384>
 | hash2
 | -
 | not stated
 | native, wasip2, wasip3, emscripten
 
+| macs::hmac<digests::sha2_384>
+| webcrypto (asynchronous family only)
+| -
+| not stated
+| emscripten
+
 | macs::hmac<digests::sha2_512>
 | hash2
 | -
 | not stated
 | native, wasip2, wasip3, emscripten
+
+| macs::hmac<digests::sha2_512>
+| webcrypto (asynchronous family only)
+| -
+| not stated
+| emscripten
 
 | macs::hmac<digests::sha2_512_224>
 | hash2
@@ -638,6 +699,12 @@ states about its constant time. The backends:
 | not stated
 | native, wasip2, wasip3
 
+| hkdf
+| webcrypto (asynchronous family only)
+| hmac_sha1_160, hmac_sha2_256, hmac_sha2_384, hmac_sha2_512
+| not stated
+| emscripten
+
 | pbkdf2
 | hash2
 | hmac_md5_128, hmac_sha1_160, hmac_sha2_224, hmac_sha2_256, hmac_sha2_384, hmac_sha2_512, hmac_sha2_512_224, hmac_sha2_512_256, hmac_sha3_224, hmac_sha3_256, hmac_sha3_384, hmac_sha3_512, hmac_ripemd_128, hmac_ripemd_160, hmac_blake2b_512, hmac_blake2s_256, other
@@ -649,6 +716,12 @@ states about its constant time. The backends:
 | hmac_md5_128, hmac_sha1_160, hmac_sha2_224, hmac_sha2_256, hmac_sha2_384, hmac_sha2_512, hmac_sha2_512_224, hmac_sha2_512_256, hmac_sha3_224, hmac_sha3_256, hmac_sha3_384, hmac_sha3_512, hmac_ripemd_160, hmac_blake2b_512, hmac_blake2s_256
 | not stated
 | native, wasip2, wasip3
+
+| pbkdf2
+| webcrypto (asynchronous family only)
+| hmac_sha1_160, hmac_sha2_256, hmac_sha2_384, hmac_sha2_512
+| not stated
+| emscripten
 |===
 
 === Password hashing
@@ -810,6 +883,7 @@ The backend a call that names none uses, on every target, whatever the program l
 What each backend's upstream states, and where:
 
 * hash2: not stated. Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property.
+* webcrypto: not stated. The Web Cryptography API (W3C Recommendation, 2017) states no constant-time property of digest, sign or deriveBits; each JavaScript runtime's implementation decides, and webcpp reads none.
 * xkcp: not stated. XKCP at d20c8fc: README.markdown and lib/low/KeccakP-1600 state no constant-time property.
 * blake3: not stated. BLAKE3 1.8.7: README.md and c/README.md state no constant-time property.
 * sodium: not stated. libsodium 1.0.22: its headers state constant time for comparisons (sodium/utils.h) alone, not for crypto_kdf_hkdf_* or crypto_pwhash_*.

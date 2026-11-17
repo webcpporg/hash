@@ -87,7 +87,11 @@ memory
 SharedArrayBuffer's security requirements]); under node they run as they
 are. A program that blocks its main
 thread (`run`, `join`) links `-sPTHREAD_POOL_SIZE=<n>` so that the workers
-start before it blocks.
+start before it blocks. The completion reaches the page's thread through the
+handler's executor: an `io_context` run there, or
+`webcpp::asio::browser::main_thread_context`'s, whose handlers run as
+browser callbacks (bind it with `bind_executor`; the handler must not run an
+`io_context` itself).
 
 | wasip2, wasip3
 | Never: wasip2 has no threads, and wasip3's threads are cooperative, so the
@@ -124,6 +128,11 @@ the pool to the memory the program may spend, not to the number of logins.
 * *`use_future` without exceptions.* An error completes a future with an
 exception; a program built without exceptions reads errors with a callback or
 `as_tuple`.
+* *One block of webcpp's per call.* The operation's shared state, which a
+connected cancellation slot may hold past the completion, is allocated with
+`operator new`, never with the handler's allocator; Asio's pool allocates the
+job it queues. What the handler's allocator gives, Asio gives back before the
+handler runs (<<hash-departures-async>>).
 
 [#hash-async-cheap]
 === The cheap functions through the event loop
@@ -211,8 +220,10 @@ JavaScript event loop, and only an `io_context` run on the calling thread
 returns to it while it waits. Given a `thread_pool`'s executor, whose threads
 never return to it, the call would never complete: the build stops, or, behind
 `any_io_executor`, the call completes with `invalid_parameters`. Strands and
-type-erased executors of the `io_context` are accepted; one rebound to another
-allocator behind `any_io_executor` is not, since the erasure hides its type.
+type-erased executors of the `io_context` are accepted; behind
+`any_io_executor`, one rebound to another allocator, or a strand of a strand
+(`make_strand(make_strand(executor))`), is not, since the erasure hides its
+type: pass the inner strand, or the `io_context`'s executor.
 That the `io_context` runs on the calling thread is the program's duty: it
 cannot be checked.
 * *WebCrypto's limits are narrower.* An HKDF info longer than 1,024 bytes

@@ -12,9 +12,11 @@
 // them (an empty HMAC key is passed to WebCrypto as one zero byte, the same key by RFC 2104's
 // padding: ruling R74). The guards complete through the event loop, never inside the call, the
 // output untouched; WebCrypto's own limits (ruling R74) and an executor whose context is not an
-// io_context (ruling R73) refuse likewise. A cancellation completes at once with
-// operation_aborted, the output zeroed; and the handler's associated allocator gets back every
-// block it gave before the handler runs. Without exceptions an error is read by a callback and
+// io_context (ruling R73) refuse likewise; the executor's accepted forms, its tracked ones among
+// them, and a documented limit (a strand of a strand behind any_io_executor). A cancellation
+// completes at once with operation_aborted, the output zeroed, and the promise's later
+// settlement writes nothing; and the handler's associated allocator gets back every block it gave
+// before the handler runs. Without exceptions an error is read by a callback and
 // use_awaitable through as_tuple (ruling R71).
 
 #include <webcpp/hash/async.hpp>
@@ -65,6 +67,7 @@
 #include <exception>
 #include <iostream>
 #include <memory>
+#include <optional>
 #include <span>
 #include <string>
 #include <string_view>
@@ -482,6 +485,59 @@ void check_io_context_executors(asio::io_context& context) {
              asio::any_io_executor(asio::require(plain, asio::execution::blocking_t::never)));
 }
 
+// The executor of the io_context with outstanding_work.tracked, behind any_io_executor, alone
+// and with the other two properties: the four tracked forms the run-time check accepts. A tracked
+// executor keeps the context's run from returning while it lives, so each is made inside the
+// type-erased copy, never kept by the test, and that copy is dropped in the handler.
+void check_tracked_executors(asio::io_context& context) {
+    using asio::execution::blocking_t;
+    using asio::execution::outstanding_work_t;
+    using asio::execution::relationship_t;
+    auto const accepted = [&](std::string_view name, auto make) {
+        std::optional<asio::any_io_executor> erased(
+            make(asio::prefer(context.get_executor(), outstanding_work_t::tracked)));
+        std::array<std::uint8_t, 32> output{};
+        bool called = false;
+        boost::system::error_code code;
+        hash::async_digest<hash::digests::sha2_256, webcrypto>(
+            *erased, output, bytes_of("abc"),
+            asio::bind_executor(context.get_executor(), [&](boost::system::error_code done) {
+                called = true;
+                code = done;
+                erased.reset();
+            }));
+        context.restart();
+        context.run();  // lint-run: the test's event loop
+        if (!BOOST_TEST(called) || !BOOST_TEST(!code) ||
+            !BOOST_TEST_EQ(to_hex(output),
+                           std::string("ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f"
+                                       "20015ad"))) {
+            std::cerr << "  refused: " << name << ": " << code.message() << '\n';
+        }
+    };
+    accepted("tracked", [](auto tracked) { return tracked; });
+    accepted("tracked, blocking.never",
+             [](auto tracked) { return asio::require(tracked, blocking_t::never); });
+    accepted("tracked, relationship.continuation",
+             [](auto tracked) { return asio::prefer(tracked, relationship_t::continuation); });
+    accepted("tracked, blocking.never, relationship.continuation", [](auto tracked) {
+        return asio::prefer(asio::require(tracked, blocking_t::never),
+                            relationship_t::continuation);
+    });
+}
+
+// A limit of the check, as documented: behind any_io_executor, a strand of a strand of the
+// io_context's executor (two concrete strands, not type-erased ones) is not seen through, and
+// the call completes with invalid_parameters, the output untouched. One type-erased strand
+// between the two is seen through (check_io_context_executors).
+void check_strand_of_strand(asio::io_context& context) {
+    auto const seen = digest_on(
+        context,
+        asio::any_io_executor(asio::make_strand(asio::make_strand(context.get_executor()))));
+    BOOST_TEST(seen.code == hash::error::invalid_parameters);
+    BOOST_TEST(seen.untouched);
+}
+
 // An executor whose context is not an io_context (here a thread_pool's, of no thread, behind
 // any_io_executor or a strand of it, so that only a check at run time can see it): the bridge's
 // promise would never settle there, so the call refuses with invalid_parameters, posted to the
@@ -512,6 +568,20 @@ EM_JS(void, stub_subtle, (int mode), {
     if (mode === 2) subtle.digest = () => Promise.resolve(new ArrayBuffer(5));
     if (mode === 3) subtle.digest = () => Promise.resolve(new Uint8Array(32));
     if (mode === 4) subtle.sign = () => Promise.reject(new Error("stubbed rejection"));
+});
+
+EM_JS(void, stub_pending_digest, (), {
+    globalThis.crypto.subtle.digest = () => new Promise(resolve => {
+        globalThis.webcpp_test_settle = resolve;
+    });
+});
+
+EM_JS(int, settle_pending_digest, (), {
+    const settle = globalThis.webcpp_test_settle;
+    delete globalThis.webcpp_test_settle;
+    if (settle === undefined) return 0;
+    settle(new Uint8Array(32).fill(0xff).buffer);
+    return 1;
 });
 
 EM_JS(void, restore_subtle, (), {
@@ -602,6 +672,44 @@ void check_cancellation(asio::io_context& context) {
     BOOST_TEST_EQ(calls, 1);
     BOOST_TEST(code == asio::error::operation_aborted);
     BOOST_TEST((output == std::array<std::uint8_t, 32>{}));
+}
+
+// A cancellation before WebCrypto's promise settles: the completion is operation_aborted at once,
+// the output zeroed, and the promise's later settlement writes nothing. The digest's promise is
+// held pending by a stub, the operation cancelled, the output then refilled by the test; the
+// promise settles with 32 bytes of 0xff and the loop runs on (a timer of 20 ms, which returns to
+// the JavaScript event loop): the handler is not called again and the output keeps the test's
+// bytes.
+void check_no_later_write(asio::io_context& context) {
+    stub_pending_digest();
+    asio::cancellation_signal signal;
+    std::array<std::uint8_t, 32> output{};
+    output.fill(0xa5);
+    int calls = 0;
+    boost::system::error_code code;
+    hash::async_digest<hash::digests::sha2_256, webcrypto>(
+        context.get_executor(), output, bytes_of("abc"),
+        asio::bind_cancellation_slot(signal.slot(), [&](boost::system::error_code done) {
+            ++calls;
+            code = done;
+        }));
+    signal.emit(asio::cancellation_type::terminal);
+    context.restart();
+    context.run();  // lint-run: the test's event loop
+    BOOST_TEST_EQ(calls, 1);
+    BOOST_TEST(code == asio::error::operation_aborted);
+    BOOST_TEST((output == std::array<std::uint8_t, 32>{}));
+
+    output.fill(0x77);
+    BOOST_TEST_EQ(settle_pending_digest(), 1);
+    asio::steady_timer timer(context, std::chrono::milliseconds(20));
+    timer.async_wait([](boost::system::error_code) {});
+    context.restart();
+    context.run();  // lint-run: the test's event loop, the promise's settlement among it
+    restore_subtle();
+    BOOST_TEST_EQ(calls, 1);
+    BOOST_TEST_EQ(output[0], 0x77);
+    BOOST_TEST_EQ(output[31], 0x77);
 }
 
 // A partial cancellation is honoured as a terminal one: at once, operation_aborted, the output
@@ -757,9 +865,12 @@ int main() {
     check_random_pbkdf2s(context);
     check_guards(context);
     check_io_context_executors(context);
+    check_tracked_executors(context);
+    check_strand_of_strand(context);
     check_other_executors(context);
     check_failures(context);
     check_cancellation(context);
+    check_no_later_write(context);
     check_partial_cancellation(context);
     check_cancellation_between_promises(context);
     check_allocator(context);

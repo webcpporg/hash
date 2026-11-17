@@ -82,6 +82,13 @@
 | native, wasip2, wasip3
 | `hmac_md5_128`, `hmac_sha1_160`, `hmac_sha2_224`, `hmac_sha2_256`, `hmac_sha2_384`, `hmac_sha2_512`, `hmac_sha2_512_224`, `hmac_sha2_512_256`, `hmac_sha3_224`, `hmac_sha3_256`, `hmac_sha3_384`, `hmac_sha3_512`, `hmac_ripemd_160`, `hmac_blake2b_512`, `hmac_blake2s_256`
 | not stated
+
+| `hkdf`
+| `webcrypto` (asynchronous family only)
+| `/webcpp/asio//asio`
+| emscripten
+| `hmac_sha1_160`, `hmac_sha2_256`, `hmac_sha2_384`, `hmac_sha2_512`
+| not stated
 |===
 
 What each backend states on constant time, as the capability table read it:
@@ -90,5 +97,8 @@ What each backend states on constant time, as the capability table read it:
 * `hash2`: Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property.
 * `openssl`: OpenSSL 3.5.9: doc/man7/EVP_KDF-HKDF.pod and EVP_KDF-PBKDF2.pod state no constant-time property.
 * `sodium`: libsodium 1.0.22: its headers state constant time for comparisons (sodium/utils.h) alone, not for crypto_kdf_hkdf_* or crypto_pwhash_*.
+* `webcrypto`: The Web Cryptography API (W3C Recommendation, 2017) states no constant-time property of digest, sign or deriveBits; each JavaScript runtime's implementation decides, and webcpp reads none.
 
 The default of `hkdf_extract`, `hkdf_expand` and `hkdf`: `hash2` on every target, whatever the program links; `bearssl`, `openssl`, `sodium` only where the call names it, as its second template argument (<<hash-default-backend>>).
+
+`webcrypto` serves the asynchronous family alone, on Emscripten, where the type of its asynchronous call names it (<<hash-async-webcrypto>>).

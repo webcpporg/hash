@@ -616,11 +616,12 @@ auto async_hkdf(Executor const& executor, std::span<std::uint8_t> output,
  `io_context` run on the calling thread, whose `run` returns to the JavaScript event loop where
  WebCrypto's promise settles (ruling R73). The context is checked: a concrete executor of another
  context (a `thread_pool`'s) stops the build, and a type-erased one (`any_io_executor`) whose
- context is not an `io_context`, or whose `io_context` executor it hides behind another allocator,
- completes with `invalid_parameters`, posted to the handler's associated executor. The calling
- thread is the program's duty, not checked. WebCrypto takes at most 2^32 - 1 iterations
- (`invalid_iterations`) and an output of at most (2^32 - 1) / 8 bytes (`invalid_output_size`), over
- `hmac_sha1_160`, `hmac_sha2_256`, `hmac_sha2_384` and `hmac_sha2_512` alone.
+ context is not an `io_context`, or whose `io_context` executor it hides behind another allocator or
+ two concrete strands, completes with `invalid_parameters`, posted to the handler's associated
+ executor. The calling thread is the program's duty, not checked. WebCrypto takes at most 2^32 - 1
+ iterations (`invalid_iterations`) and an output of at most (2^32 - 1) / 8 bytes
+ (`invalid_output_size`), over `hmac_sha1_160`, `hmac_sha2_256`, `hmac_sha2_384` and `hmac_sha2_512`
+ alone.
 
  Cancellation through the handler's slot, on a synchronous backend: before the work starts, any
  type completes the operation at once with `operation_aborted`, the work never runs; during it, a

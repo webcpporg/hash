@@ -12,7 +12,14 @@
 // record the thread they run on, shows it. Each result equals the synchronous function's; a guard's
 // refusal completes through the executor, never inside the call; a handler with no executor of
 // its own completes on the pool; and a 10 ms timer on the caller's io_context fires while an
-// Argon2id of 64 MiB runs.
+// Argon2id of 64 MiB runs. Cancellation (spec 11.5): before the work starts it completes at once,
+// the work never run; after it starts, the work runs to its end and only then the completion is
+// operation_aborted, the output zeroed, while a `total` one is not honoured; a second test backend,
+// `gated`, holds its work until the test lets it go, and shows that the work reads the caller's
+// spans themselves, never a copy, so that they are the caller's until the completion. The
+// handler's associated allocator gets back every block before the handler runs; and co_await in
+// Asio (use_awaitable) completes on the caller's loop, an error read through as_tuple without
+// exceptions (ruling R71).
 
 #include <webcpp/hash/argon2.hpp>
 #include <webcpp/hash/async.hpp>
@@ -23,29 +30,36 @@
 #include <webcpp/hash/pbkdf2.hpp>
 #include <webcpp/hash/scrypt.hpp>
 
+#include <webcpp/asio/as_tuple.hpp>
+#include <webcpp/asio/awaitable.hpp>
 #include <webcpp/asio/bind_allocator.hpp>
 #include <webcpp/asio/bind_cancellation_slot.hpp>
 #include <webcpp/asio/bind_executor.hpp>
 #include <webcpp/asio/cancellation_signal.hpp>
 #include <webcpp/asio/cancellation_type.hpp>
+#include <webcpp/asio/co_spawn.hpp>
 #include <webcpp/asio/error.hpp>
 #include <webcpp/asio/io_context.hpp>
 #include <webcpp/asio/post.hpp>
 #include <webcpp/asio/steady_timer.hpp>
 #include <webcpp/asio/thread_pool.hpp>
+#include <webcpp/asio/use_awaitable.hpp>
 #include <webcpp/asio/use_future.hpp>
 
 #include <boost/core/lightweight_test.hpp>
 #include <boost/system/error_code.hpp>
 #include <boost/system/result.hpp>
+#include <boost/system/system_error.hpp>
 
 #include <webcpp/test/exit_status.hpp>
 
+#include <algorithm>
 #include <array>
 #include <atomic>
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
+#include <exception>
 #include <future>
 #include <memory>
 #include <span>
@@ -72,6 +86,17 @@ std::atomic<int> runs_off_caller{0};
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables): written by the pool's threads
 std::atomic<int> runs_on_caller{0};
 
+// The gate of the `gated` backend: whether its work has started, whether the test has let it go,
+// and the spans the work was given. Global, as the counters above.
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables): written by the pool's thread
+std::atomic<bool> gate_entered{false};
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables): set by the test
+std::atomic<bool> gate_open{false};
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables): written by the pool's thread
+std::atomic<std::uint8_t const*> gated_password{nullptr};
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables): written by the pool's thread
+std::atomic<std::uint8_t*> gated_output{nullptr};
+
 void record_thread() {
     if (std::this_thread::get_id() == caller_thread) {
         ++runs_on_caller;
@@ -93,6 +118,10 @@ namespace webcpp::test {
 // thread each runs on.
 struct recording;
 
+// A backend of this test whose Argon2id waits for the test's gate, then fills the output with 0x11:
+// a work that has started and has not ended, for as long as the test needs.
+struct gated;
+
 }  // namespace webcpp::test
 
 namespace webcpp::hash::detail {
@@ -109,6 +138,30 @@ struct argon2id_engine<test::recording> {
                                                             std::size_t memory) noexcept {
         record_thread();
         return argon2id_engine<backends::sodium>::derive(output, password, salt, passes, memory);
+    }
+};
+
+/**
+ Argon2id on `gated`: records the spans it was given, waits until the test opens the gate, then
+ fills the output with 0x11.
+*/
+template <>
+struct argon2id_engine<test::gated> {
+    static constexpr argon2id_limits limits = argon2id_engine<backends::sodium>::limits;
+
+    [[nodiscard]] static boost::system::result<void> derive(std::span<std::uint8_t> output,
+                                                            std::span<std::uint8_t const> password,
+                                                            std::span<std::uint8_t const> /*salt*/,
+                                                            std::uint64_t /*passes*/,
+                                                            std::size_t /*memory*/) noexcept {
+        gated_output = output.data();
+        gated_password = password.data();
+        gate_entered = true;
+        while (!gate_open) {
+            std::this_thread::yield();
+        }
+        std::ranges::fill(output, std::uint8_t{0x11});
+        return {};
     }
 };
 
@@ -167,6 +220,7 @@ struct argon2_engine<test::recording, kdfs::argon2id> {
 
 namespace {
 
+using webcpp::test::gated;
 using webcpp::test::recording;
 
 // What a callback saw: whether it ran, whether the initiating call had returned when it did, on
@@ -541,6 +595,135 @@ void check_responsive(asio::io_context& context, asio::thread_pool& pool) {
     BOOST_TEST(output == expected);
 }
 
+// Starts an Argon2id on `gated` in a pool of one thread, its handler bound to the caller's
+// io_context and to `signal`'s slot, and waits until its work has started.
+struct gated_call {
+    asio::thread_pool pool{1};
+    std::array<std::uint8_t, 32> output{};
+    std::string_view password = "password";
+    std::array<std::uint8_t, hash::argon2id_salt_size> salt{};
+    asio::cancellation_signal signal;
+    int calls = 0;
+    boost::system::error_code code;
+
+    explicit gated_call(asio::io_context& context) {
+        output.fill(0x5a);
+        gate_entered = false;
+        gate_open = false;
+        hash::async_argon2id<gated>(
+            pool.get_executor(), output, bytes_of(password), salt,
+            hash::argon2id_parameters{.passes = 1, .memory = 32768},
+            asio::bind_cancellation_slot(
+                signal.slot(),
+                asio::bind_executor(context.get_executor(), [this](boost::system::error_code done) {
+                    ++calls;
+                    code = done;
+                })));
+        while (!gate_entered) {
+            std::this_thread::yield();
+        }
+    }
+
+    gated_call(gated_call const&) = delete;
+    gated_call& operator=(gated_call const&) = delete;
+    gated_call(gated_call&&) = delete;
+    gated_call& operator=(gated_call&&) = delete;
+
+    ~gated_call() {
+        gate_open = true;
+        pool.join();
+    }
+};
+
+// A cancellation after the work has started (spec 11.5): the work runs to its end, which no
+// cancellation interrupts, so the handler waits for it; then the completion is operation_aborted
+// and the output, which the work had written, is zeroed. Until then the output is the caller's
+// own, untouched by the operation, and the work reads the caller's spans in place (spec 11.1:
+// the spans are the caller's until the completion). A `partial` cancellation is honoured as a
+// `terminal` one; a `total` one is not, and the work's result stands.
+void check_cancelled_running(asio::io_context& context) {
+    for (auto const type : {asio::cancellation_type::terminal, asio::cancellation_type::partial}) {
+        gated_call call(context);
+        BOOST_TEST(gated_output.load() == call.output.data());
+        BOOST_TEST(gated_password.load() == bytes_of(call.password).data());
+        call.signal.emit(type);
+        context.restart();
+        context.run_for(std::chrono::milliseconds(50));  // lint-run: the work still running
+        BOOST_TEST_EQ(call.calls, 0);
+        BOOST_TEST_EQ(call.output[0], 0x5a);
+        gate_open = true;
+        context.restart();
+        context.run_for(std::chrono::seconds(5));  // lint-run: the test's event loop
+        BOOST_TEST_EQ(call.calls, 1);
+        BOOST_TEST(call.code == asio::error::operation_aborted);
+        BOOST_TEST((call.output == std::array<std::uint8_t, 32>{}));
+    }
+
+    gated_call total(context);
+    total.signal.emit(asio::cancellation_type::total);
+    gate_open = true;
+    context.restart();
+    context.run_for(std::chrono::seconds(5));  // lint-run: the test's event loop
+    BOOST_TEST_EQ(total.calls, 1);
+    BOOST_TEST(!total.code);
+    BOOST_TEST_EQ(total.output[0], 0x11);
+    BOOST_TEST_EQ(total.output[31], 0x11);
+}
+
+// co_await in Asio: use_awaitable resumes the coroutine on the caller's io_context with the
+// synchronous function's result; an error through as_tuple(use_awaitable), and with exceptions a
+// plain use_awaitable throws boost::system::system_error with hash's code.
+void check_awaitable(asio::io_context& context, asio::thread_pool& pool) {
+    auto const password = bytes_of("password");
+    std::array<std::uint8_t, hash::argon2id_salt_size> const salt{};
+    hash::argon2id_parameters const small{.passes = 1, .memory = 32768};
+    std::array<std::uint8_t, 32> expected{};
+    BOOST_TEST(hash::argon2id(expected, password, salt, small).has_value());
+    std::array<std::uint8_t, 32> output{};
+    std::array<std::uint8_t, 64> scrypt_output{};
+    std::array<std::uint8_t, 64> scrypt_expected{};
+    hash::scrypt_parameters const costs{.n = 16, .r = 1, .p = 1};
+    BOOST_TEST(hash::scrypt(scrypt_expected, password, salt, costs).has_value());
+    bool done = false;
+    asio::co_spawn(
+        context,
+        [&]() -> asio::awaitable<void> {
+            auto [code] = co_await hash::async_argon2id(pool.get_executor(), output, password, salt,
+                                                        small, asio::as_tuple(asio::use_awaitable));
+            BOOST_TEST(!code);
+            BOOST_TEST(std::this_thread::get_id() == caller_thread);
+            auto [refused] = co_await hash::async_argon2id(pool.get_executor(), output, password,
+                                                           std::span(salt).first(8), small,
+                                                           asio::as_tuple(asio::use_awaitable));
+            BOOST_TEST(refused == hash::error::invalid_salt_size);
+#ifndef WEBCPP_HASH_NO_EXCEPTIONS
+            co_await hash::async_scrypt(pool.get_executor(), scrypt_output, password, salt, costs,
+                                        asio::use_awaitable);
+            bool thrown = false;
+            try {
+                co_await hash::async_scrypt(pool.get_executor(), scrypt_output, password, salt,
+                                            hash::scrypt_parameters{.n = 3, .r = 1, .p = 1},
+                                            asio::use_awaitable);
+            } catch (boost::system::system_error const& failure) {
+                thrown = failure.code() == hash::error::invalid_parameters;
+            }
+            BOOST_TEST(thrown);
+#else
+            auto [scrypt_code] =
+                co_await hash::async_scrypt(pool.get_executor(), scrypt_output, password, salt,
+                                            costs, asio::as_tuple(asio::use_awaitable));
+            BOOST_TEST(!scrypt_code);
+#endif
+            done = true;
+        },
+        [](std::exception_ptr const& failure) { BOOST_TEST(!failure); });
+    context.restart();
+    context.run();  // lint-run: the test's event loop
+    BOOST_TEST(done);
+    BOOST_TEST(output == expected);
+    BOOST_TEST(scrypt_output == scrypt_expected);
+}
+
 }  // namespace
 
 int main() {
@@ -553,6 +736,8 @@ int main() {
     check_responsive(context, pool);
     check_queued(context);
     check_allocator_released(context, pool);
+    check_cancelled_running(context);
+    check_awaitable(context, pool);
     pool.join();
     return webcpp::test::exit_status(boost::report_errors());
 }

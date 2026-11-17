@@ -220,8 +220,9 @@ bool targets_io_context(Executor const& executor,
  executor whose context is one (any allocator, any property); a strand, through the executor it
  wraps, recursively; a type-erased executor (`any_io_executor`) that holds an `io_context`'s
  executor with the standard allocator and any property, a strand over one, or a type-erased
- strand, recursively. Anything else is answered false, among it an `io_context`'s executor rebound
- to another allocator behind type erasure, whose type the erasure hides: the operation would
+ strand, recursively. Anything else is answered false, among it, behind type erasure, an
+ `io_context`'s executor rebound to another allocator and a concrete strand of a concrete strand
+ of one (`make_strand(make_strand(executor))`), whose types the erasure hides: the operation would
  await a promise on a context it cannot tell runs the JavaScript event loop.
 
  @param executor The executor. @return Whether it completes on an io_context.

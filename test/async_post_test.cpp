@@ -10,7 +10,8 @@
 // C-m2). Each completes through a post on the handler's associated executor, never inside the
 // initiating call: a callback records whether the call has returned. The result equals the
 // synchronous function's; a guard's refusal (an output of 0 bytes) completes with
-// invalid_output_size through the executor; use_future completes; and a counting allocator
+// invalid_output_size through the executor; use_future completes; co_await in Asio
+// (use_awaitable) gives the result and, through as_tuple, a refusal; and a counting allocator
 // associated with the handler holds the operation's storage. Without exceptions an error is
 // read by a callback alone: use_future's error path makes an exception (ruling R71). The
 // asynchronous default equals the synchronous one for every tag the family serves.
@@ -24,8 +25,13 @@
 #include <webcpp/hash/kdf.hpp>
 #include <webcpp/hash/mac.hpp>
 
+#include <webcpp/asio/as_tuple.hpp>
+#include <webcpp/asio/awaitable.hpp>
 #include <webcpp/asio/bind_allocator.hpp>
+#include <webcpp/asio/co_spawn.hpp>
 #include <webcpp/asio/io_context.hpp>
+#include <webcpp/asio/this_coro.hpp>
+#include <webcpp/asio/use_awaitable.hpp>
 #include <webcpp/asio/use_future.hpp>
 
 #include <boost/core/lightweight_test.hpp>
@@ -41,6 +47,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <exception>
 #include <memory>
 #include <span>
 #include <string>
@@ -269,6 +276,64 @@ void check_hkdf(asio::io_context& context) {
     BOOST_TEST(code == hash::error::invalid_output_size);
 }
 
+// co_await in Asio: each function with use_awaitable in a coroutine of the context, its result the
+// synchronous function's; a refusal (an output of 0 bytes) through as_tuple(use_awaitable), and
+// with exceptions a plain use_awaitable throws system_error with hash's code.
+void check_awaitable(asio::io_context& context) {
+    auto const input = bytes_of("abc");
+    auto const key = bytes_of("key");
+    std::array<std::uint8_t, 32> digest{};
+    std::array<std::uint8_t, 32> digest_expected{};
+    BOOST_TEST(hash::digest_of<hash::digests::sha2_256>(digest_expected, input).has_value());
+    std::array<std::uint8_t, 32> tag{};
+    std::array<std::uint8_t, 32> tag_expected{};
+    BOOST_TEST((hash::mac<hash::macs::hmac<hash::digests::sha2_256>>(tag_expected, key, input)
+                    .has_value()));
+    std::array<std::uint8_t, 42> okm{};
+    std::array<std::uint8_t, 42> okm_expected{};
+    BOOST_TEST(hash::hkdf<hash::hmac_sha2_256>(okm_expected, key, input, input).has_value());
+    bool done = false;
+    asio::co_spawn(
+        context,
+        [&]() -> asio::awaitable<void> {
+            auto const executor = co_await asio::this_coro::executor;
+            auto [digested] = co_await hash::async_digest<hash::digests::sha2_256>(
+                executor, digest, input, asio::as_tuple(asio::use_awaitable));
+            BOOST_TEST(!digested);
+            auto [tagged] = co_await hash::async_hmac<hash::hmac_sha2_256>(
+                executor, tag, key, input, asio::as_tuple(asio::use_awaitable));
+            BOOST_TEST(!tagged);
+            std::span<std::uint8_t> const nothing{};
+            auto [refused] = co_await hash::async_hkdf<hash::hmac_sha2_256>(
+                executor, nothing, key, input, input, asio::as_tuple(asio::use_awaitable));
+            BOOST_TEST(refused == hash::error::invalid_output_size);
+#ifndef WEBCPP_HASH_NO_EXCEPTIONS
+            co_await hash::async_hkdf<hash::hmac_sha2_256>(executor, okm, key, input, input,
+                                                           asio::use_awaitable);
+            bool thrown = false;
+            try {
+                co_await hash::async_digest<hash::digests::sha2_256>(executor, nothing, input,
+                                                                     asio::use_awaitable);
+            } catch (boost::system::system_error const& failure) {
+                thrown = failure.code() == hash::error::invalid_output_size;
+            }
+            BOOST_TEST(thrown);
+#else
+            auto [derived] = co_await hash::async_hkdf<hash::hmac_sha2_256>(
+                executor, okm, key, input, input, asio::as_tuple(asio::use_awaitable));
+            BOOST_TEST(!derived);
+#endif
+            done = true;
+        },
+        [](std::exception_ptr const& failure) { BOOST_TEST(!failure); });
+    context.restart();
+    context.run();  // lint-run: the test's event loop
+    BOOST_TEST(done);
+    BOOST_TEST(digest == digest_expected);
+    BOOST_TEST(tag == tag_expected);
+    BOOST_TEST(okm == okm_expected);
+}
+
 #ifndef WEBCPP_HASH_NO_EXCEPTIONS
 // With exceptions, use_future reports a guard's refusal as a system_error of hash's code.
 void check_future_error(asio::io_context& context) {
@@ -312,6 +377,7 @@ int main() {
     check_hmac<hash::backends::hash2>(context);
     check_hkdf<>(context);
     check_hkdf<hash::backends::hash2>(context);
+    check_awaitable(context);
 #ifndef WEBCPP_HASH_NO_EXCEPTIONS
     check_future_error(context);
 #endif
