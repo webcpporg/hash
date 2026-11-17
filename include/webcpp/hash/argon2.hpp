@@ -48,8 +48,9 @@
 namespace webcpp::hash {
 
 /**
- The costs of Argon2id with one lane, as libsodium's crypto_pwhash takes them, for `argon2id`. Its
- memory is in bytes; @ref argon2_parameters, the family's, counts KiB as RFC 9106 does.
+ The costs of Argon2id with one lane, as libsodium's crypto_pwhash takes them, for `argon2id`.
+
+ Its memory is in bytes; @ref argon2_parameters, the family's, counts KiB as RFC 9106 does.
 */
 struct argon2id_parameters {
     /** The number of passes over the memory, t: 1 to 4,294,967,295. */

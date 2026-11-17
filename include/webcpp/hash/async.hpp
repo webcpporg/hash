@@ -82,9 +82,11 @@
 namespace webcpp::hash {
 
 /**
- The backend of the asynchronous family when a call names none: the synchronous function's,
- @ref default_backend, on every target (ruling R76, the owner's decision O2). `backends::webcrypto`
- is never a default: a program on Emscripten names it in the type to reach the browser's WebCrypto.
+ The backend of the asynchronous family when a call names none.
+
+ It is the synchronous function's, @ref default_backend, on every target (ruling R76, the owner's
+ decision O2). `backends::webcrypto` is never a default: a program on Emscripten names it in the
+ type to reach the browser's WebCrypto.
 
  @tparam Algorithm A tag of `digests`, `macs` or `kdfs`. @tparam Hmac The hmac of a key derivation
  that takes one, else `void`; it does not change the answer.
@@ -233,10 +235,15 @@ public:
     /** The handler's associated executor, `work` by default. */
     using executor_type = webcpp::asio::associated_executor_t<Handler, WorkExecutor>;
 
+    /** Not copyable: the job and the slot share one state. */
     heavy_state(heavy_state const&) = delete;
+    /** Not movable: the job and the slot hold its address. */
     heavy_state(heavy_state&&) = delete;
+    /** Not copyable: the job and the slot share one state. */
     heavy_state& operator=(heavy_state const&) = delete;
+    /** Not movable: the job and the slot hold its address. */
     heavy_state& operator=(heavy_state&&) = delete;
+    /** Destroys the handler, if no owner took it, and the work's guard. */
     ~heavy_state() = default;
 
     /**
@@ -385,8 +392,11 @@ public:
     /** Takes `other`'s hold. @param other The job moved from. */
     heavy_job(heavy_job&& other) noexcept : state_(std::exchange(other.state_, nullptr)) {}
 
+    /** Not copyable: one job holds the state once. */
     heavy_job(heavy_job const&) = delete;
+    /** Not copyable: one job holds the state once. */
     heavy_job& operator=(heavy_job const&) = delete;
+    /** Not assignable: a job is moved into its executor once. */
     heavy_job& operator=(heavy_job&&) = delete;
 
     /** Abandons the state when the job never ran. */
@@ -477,6 +487,8 @@ auto run_on_work(WorkExecutor const& work, std::span<std::uint8_t> output, Guard
  the digests WebCrypto has; another refuses at compile time (`digest_of` has them all).
  @tparam Backend The backend; by default @ref default_async_backend of `Digest`, the synchronous
  default. `backends::webcrypto` only on Emscripten.
+ @tparam Executor An Asio executor, where the completion is posted.
+ @tparam CompletionToken An Asio completion token of signature `void(boost::system::error_code)`.
  @param executor The executor the completion is posted to; on `backends::webcrypto`, that of an
  `io_context` run on the calling thread (see @ref async_pbkdf2), and a refusal of another goes to
  the handler's associated executor, this one unless the handler is bound to another.
@@ -515,6 +527,8 @@ auto async_digest(Executor const& executor, std::span<std::uint8_t> output,
  WebCrypto has; another refuses at compile time (`mac` has them all).
  @tparam Backend The backend; by default @ref default_async_backend of the HMAC's tag, the
  synchronous default. `backends::webcrypto` only on Emscripten.
+ @tparam Executor An Asio executor, where the completion is posted.
+ @tparam CompletionToken An Asio completion token of signature `void(boost::system::error_code)`.
  @param executor The executor the completion is posted to; on `backends::webcrypto`, that of an
  `io_context` run on the calling thread (see @ref async_pbkdf2), and a refusal of another goes to
  the handler's associated executor, this one unless the handler is bound to another.
@@ -555,6 +569,8 @@ auto async_hmac(Executor const& executor, std::span<std::uint8_t> output,
  WebCrypto has HKDF over; another refuses at compile time (`hkdf` has them all).
  @tparam Backend The backend; by default @ref default_async_backend of `kdfs::hkdf`, the
  synchronous default. `backends::webcrypto` only on Emscripten.
+ @tparam Executor An Asio executor, where the completion is posted.
+ @tparam CompletionToken An Asio completion token of signature `void(boost::system::error_code)`.
  @param executor The executor the completion is posted to; on `backends::webcrypto`, that of an
  `io_context` run on the calling thread (see @ref async_pbkdf2), and a refusal of another goes to
  the handler's associated executor, this one unless the handler is bound to another.
@@ -590,20 +606,21 @@ auto async_hkdf(Executor const& executor, std::span<std::uint8_t> output,
 }
 
 /**
- PBKDF2 (RFC 8018), asynchronously. On a synchronous backend, the default, a heavy function (spec
- 11.5): the work runs on a thread of `executor`'s context (a `webcpp::asio::thread_pool`'s) and
- completes on the handler's associated executor (`executor` by default; a program binds its event
- loop's with `bind_executor`), and it exists only where the build has threads
- (`WEBCPP_HASH_HAS_THREADS`). On `backends::webcrypto`, on Emscripten, the browser runs it and no
- thread is needed: there `executor` must be that of an `io_context` run on the calling thread,
- whose `run` returns to the JavaScript event loop where WebCrypto's promise settles (ruling R73).
- The context is checked: a concrete executor of another context (a `thread_pool`'s) stops the
- build, and a type-erased one (`any_io_executor`) whose context is not an `io_context`, or whose
- `io_context` executor it hides behind another allocator, completes with `invalid_parameters`,
- posted to the handler's associated executor. The calling thread is the program's duty, not
- checked. WebCrypto takes at most 2^32 - 1 iterations (`invalid_iterations`) and an output of at
- most (2^32 - 1) / 8 bytes (`invalid_output_size`), over `hmac_sha1_160`, `hmac_sha2_256`,
- `hmac_sha2_384` and `hmac_sha2_512` alone.
+ PBKDF2 (RFC 8018), asynchronously.
+
+ On a synchronous backend, the default, a heavy function (spec 11.5): the work runs on a thread of
+ `executor`'s context (a `webcpp::asio::thread_pool`'s) and completes on the handler's associated
+ executor (`executor` by default; a program binds its event loop's with `bind_executor`), and it
+ exists only where the build has threads (`WEBCPP_HASH_HAS_THREADS`). On `backends::webcrypto`, on
+ Emscripten, the browser runs it and no thread is needed: there `executor` must be that of an
+ `io_context` run on the calling thread, whose `run` returns to the JavaScript event loop where
+ WebCrypto's promise settles (ruling R73). The context is checked: a concrete executor of another
+ context (a `thread_pool`'s) stops the build, and a type-erased one (`any_io_executor`) whose
+ context is not an `io_context`, or whose `io_context` executor it hides behind another allocator,
+ completes with `invalid_parameters`, posted to the handler's associated executor. The calling
+ thread is the program's duty, not checked. WebCrypto takes at most 2^32 - 1 iterations
+ (`invalid_iterations`) and an output of at most (2^32 - 1) / 8 bytes (`invalid_output_size`), over
+ `hmac_sha1_160`, `hmac_sha2_256`, `hmac_sha2_384` and `hmac_sha2_512` alone.
 
  Cancellation through the handler's slot, on a synchronous backend: before the work starts, any
  type completes the operation at once with `operation_aborted`, the work never runs; during it, a
@@ -617,6 +634,9 @@ auto async_hkdf(Executor const& executor, std::span<std::uint8_t> output,
  @tparam Hmac The pseudorandom function, as `hmac_sha2_512`.
  @tparam Backend The backend; by default @ref default_async_backend of `kdfs::pbkdf2`, the
  synchronous default.
+ @tparam Executor An Asio executor: of the threads the work runs on, or WebCrypto's
+ `io_context`'s.
+ @tparam CompletionToken An Asio completion token of signature `void(boost::system::error_code)`.
  @param executor The work executor, or WebCrypto's `io_context` executor.
  @param output The derived key, 1 to (2^32 - 1) times the digest size.
  @param password The password. @param salt The salt. The spans are the caller's until completion.
@@ -665,11 +685,13 @@ auto async_pbkdf2(Executor const& executor, std::span<std::uint8_t> output,
 #ifdef WEBCPP_HASH_HAS_THREADS
 
 /**
- Argon2id (RFC 9106, one lane) on a thread of `work`'s context (spec 11.5): the guards of
- `argon2id` first, whose refusal completes through a post; then the work, posted to `work` (a
- `webcpp::asio::thread_pool`'s executor, typically); the completion on the handler's associated
- executor (`work` by default; a program binds its event loop's with `bind_executor`), so that the
- event loop never blocks. Exists only where the build has threads (`WEBCPP_HASH_HAS_THREADS`).
+ Argon2id (RFC 9106, one lane) on a thread of `work`'s context (spec 11.5).
+
+ The guards of `argon2id` first, whose refusal completes through a post; then the work, posted to
+ `work` (a `webcpp::asio::thread_pool`'s executor, typically); the completion on the handler's
+ associated executor (`work` by default; a program binds its event loop's with `bind_executor`),
+ so that the event loop never blocks. Exists only where the build has threads
+ (`WEBCPP_HASH_HAS_THREADS`).
 
  Cancellation through the handler's slot: before the work starts, any type completes the
  operation at once with `operation_aborted`, the work never runs; during it, a `terminal` or
@@ -679,6 +701,8 @@ auto async_pbkdf2(Executor const& executor, std::span<std::uint8_t> output,
  the completion waits for its threads; bind the handler to the event loop's executor.
 
  @tparam Backend The backend; by default @ref default_backend of `kdfs::argon2id`.
+ @tparam WorkExecutor An Asio executor whose context runs on other threads.
+ @tparam CompletionToken An Asio completion token of signature `void(boost::system::error_code)`.
  @param work The executor of the threads the work runs on.
  @param output The tag, 16 to 4,294,967,295 bytes. @param password The password.
  @param salt The salt, of `argon2id_salt_size` bytes. The spans are the caller's until completion.
@@ -711,6 +735,8 @@ auto async_argon2id(WorkExecutor const& work, std::span<std::uint8_t> output,
 
  @tparam Variant `kdfs::argon2id`, `kdfs::argon2i` or `kdfs::argon2d`.
  @tparam Backend The backend; by default @ref default_backend of `Variant`.
+ @tparam WorkExecutor An Asio executor whose context runs on other threads.
+ @tparam CompletionToken An Asio completion token of signature `void(boost::system::error_code)`.
  @param work The executor of the threads the work runs on.
  @param output The tag, 4 to 4,294,967,295 bytes. @param password The password.
  @param salt The salt, 8 to 4,294,967,295 bytes. The spans, and those of `parameters`, are the
@@ -742,6 +768,8 @@ auto async_argon2(WorkExecutor const& work, std::span<std::uint8_t> output,
  scrypt (RFC 7914) on a thread of `work`'s context, as @ref async_argon2id runs.
 
  @tparam Backend The backend; by default @ref default_backend of `kdfs::scrypt`.
+ @tparam WorkExecutor An Asio executor whose context runs on other threads.
+ @tparam CompletionToken An Asio completion token of signature `void(boost::system::error_code)`.
  @param work The executor of the threads the work runs on.
  @param output The derived key. @param password The password. @param salt The salt. The spans
  are the caller's until completion.

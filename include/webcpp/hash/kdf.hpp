@@ -24,8 +24,9 @@
 namespace webcpp::hash {
 
 /**
- Whether `Backend` has the key derivation `Kdf` over `Hmac`, or the algorithm of a family's tag: a
- property of the library behind it (spec sections 3.2 and 3.5), whether or not the program links
+ Whether `Backend` has the key derivation `Kdf` over `Hmac`, or the algorithm of a family's tag.
+
+ A property of the library behind it (spec sections 3.2 and 3.5), whether or not the program links
  it. A backend that has a tag only in part (a partial cell of `doc/capabilities.json`, as
  `backends::hash2`'s SHAKE, at most one digest's size) has it.
 
@@ -432,7 +433,8 @@ struct digest_tag_of<hmac_blake2s_256> {
  that has every key derivation over every hmac on every target, header-only. Each tag of the
  families has its own below (design D34): the first of `backends::hash2`, `backends::xkcp`,
  `backends::blake3` and `backends::sodium` that has the tag fully in the capability table once
- increments 2 to 7 have landed, else the first of them with a partial cell, else @ref no_default.
+ increments 2 to 7 have landed, else the first of them with a partial cell, else
+ `detail::no_default`.
  A default never changes; until its backend's engine lands, a call on it refuses at compile time.
 
  @tparam Algorithm A tag of `kdfs`, `digests` or `macs`.

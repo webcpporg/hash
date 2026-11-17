@@ -306,9 +306,10 @@ template <class Digest, class Backend = default_backend<Digest>>
 }
 
 /**
- A hash fed in pieces, with one result: `make`, `update` as often as the data comes, then `finish`
- once (spec 2.15). Unlike Boost.Hash2's types, the result is final: an `update` or a `finish` after
- `finish`, or on a hasher moved from, is `error::invalid_state`.
+ A hash fed in pieces, with one result: `make`, `update` as often as the data comes, then `finish`.
+
+ `finish` is called once (spec 2.15). Unlike Boost.Hash2's types, the result is final: an `update`
+ or a `finish` after `finish`, or on a hasher moved from, is `error::invalid_state`.
 
  Move-only. The state is wiped (and what the backend allocated for it freed) by `finish`, by the
  destructor, and in the hasher moved from.
