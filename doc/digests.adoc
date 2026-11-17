@@ -289,6 +289,13 @@ SHAKE256 up to one Boost.Hash2 result, 32 and 64 bytes, and answers
 `unsupported_by_backend` past them; it has BLAKE2b with its 64-byte output and
 no options alone; a call that names a backend gets what that
 backend has, which its row of the tables says.
+* *Some backends are reached only by name.* `backends::bearssl` is never a
+default: its MD5, SHA-1, SHA-2 and SHAKE (any output size) run only when the
+call names it, as `digest_of<digests::sha2_256, backends::bearssl>`, and the
+program links `/third_party//bearssl`. `digests::md5_sha1`, TLS 1.0's 36 bytes
+(MD5 of the data followed by its SHA-1), is in BearSSL alone and has no
+default: a call that names no backend stops the build. Use it only to read or
+check TLS 1.0 and 1.1 data.
 * *A tag without its backend stops the build.* A tag whose backend the
 program does not link stops with a message that names the line to add; a tag
 that the backend does not have yet stops with a message that names the

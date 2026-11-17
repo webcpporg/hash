@@ -90,9 +90,23 @@
 | -
 | not stated
 
+| `digests::shake_128`
+| `bearssl`
+| `/third_party//bearssl`
+| native, wasip2, wasip3, emscripten
+| -
+| not stated
+
 | `digests::shake_256`
 | `hash2` (partial: an output past 64 bytes, one Boost.Hash2 result)
 | `/webcpp/hash//hash`
+| native, wasip2, wasip3, emscripten
+| -
+| not stated
+
+| `digests::shake_256`
+| `bearssl`
+| `/third_party//bearssl`
 | native, wasip2, wasip3, emscripten
 | -
 | not stated
@@ -100,10 +114,11 @@
 
 What each backend states on constant time, as the capability table read it:
 
+* `bearssl`: BearSSL at webcpp::crypto's pin: bearssl_kdf.h states no constant-time property for br_shake_*.
 * `hash2`: Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property.
 
 The default of `digests::shake_128` is `xkcp`, whose cell comes with a later increment: until then a call on the default stops at compile time, and a call names a backend of the table (<<hash-default-backend>>).
 
 The default of `digests::shake_256` is `xkcp`, whose cell comes with a later increment: until then a call on the default stops at compile time, and a call names a backend of the table (<<hash-default-backend>>).
 
-The default of `digests::sha3_224`, `digests::sha3_256`, `digests::sha3_384` and `digests::sha3_512`: `hash2` on every target, whatever the program links (<<hash-default-backend>>).
+The default of `digests::sha3_224`, `digests::sha3_256`, `digests::sha3_384` and `digests::sha3_512`: `hash2` on every target, whatever the program links; `bearssl` only where the call names it, as its second template argument (<<hash-default-backend>>).

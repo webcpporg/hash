@@ -269,6 +269,14 @@
                                 "value": "not stated",
                                 "source": "Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property."
                             }
+                        },
+                        "bearssl": {
+                            "since": 5,
+                            "hmacs": null,
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "BearSSL at webcpp::crypto's pin: bearssl_hash.h states constant time for its GHASH implementations alone, not for br_md5_*, br_sha1_*, br_sha224_* to br_sha512_* or br_md5sha1_*."
+                            }
                         }
                     }
                 },
@@ -284,6 +292,14 @@
                             "constant_time": {
                                 "value": "not stated",
                                 "source": "Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property."
+                            }
+                        },
+                        "bearssl": {
+                            "since": 5,
+                            "hmacs": null,
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "BearSSL at webcpp::crypto's pin: bearssl_hash.h states constant time for its GHASH implementations alone, not for br_md5_*, br_sha1_*, br_sha224_* to br_sha512_* or br_md5sha1_*."
                             }
                         }
                     }
@@ -301,6 +317,14 @@
                                 "value": "not stated",
                                 "source": "Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property."
                             }
+                        },
+                        "bearssl": {
+                            "since": 5,
+                            "hmacs": null,
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "BearSSL at webcpp::crypto's pin: bearssl_hash.h states constant time for its GHASH implementations alone, not for br_md5_*, br_sha1_*, br_sha224_* to br_sha512_* or br_md5sha1_*."
+                            }
                         }
                     }
                 },
@@ -316,6 +340,14 @@
                             "constant_time": {
                                 "value": "not stated",
                                 "source": "Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property."
+                            }
+                        },
+                        "bearssl": {
+                            "since": 5,
+                            "hmacs": null,
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "BearSSL at webcpp::crypto's pin: bearssl_hash.h states constant time for its GHASH implementations alone, not for br_md5_*, br_sha1_*, br_sha224_* to br_sha512_* or br_md5sha1_*."
                             }
                         }
                     }
@@ -333,6 +365,14 @@
                                 "value": "not stated",
                                 "source": "Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property."
                             }
+                        },
+                        "bearssl": {
+                            "since": 5,
+                            "hmacs": null,
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "BearSSL at webcpp::crypto's pin: bearssl_hash.h states constant time for its GHASH implementations alone, not for br_md5_*, br_sha1_*, br_sha224_* to br_sha512_* or br_md5sha1_*."
+                            }
                         }
                     }
                 },
@@ -348,6 +388,14 @@
                             "constant_time": {
                                 "value": "not stated",
                                 "source": "Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property."
+                            }
+                        },
+                        "bearssl": {
+                            "since": 5,
+                            "hmacs": null,
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "BearSSL at webcpp::crypto's pin: bearssl_hash.h states constant time for its GHASH implementations alone, not for br_md5_*, br_sha1_*, br_sha224_* to br_sha512_* or br_md5sha1_*."
                             }
                         }
                     }
@@ -380,6 +428,22 @@
                             "constant_time": {
                                 "value": "not stated",
                                 "source": "Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property."
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "digests::md5_sha1",
+                    "kind": "digest",
+                    "header": "webcpp/hash/digest.hpp",
+                    "default": null,
+                    "backends": {
+                        "bearssl": {
+                            "since": 5,
+                            "hmacs": null,
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "BearSSL at webcpp::crypto's pin: bearssl_hash.h states constant time for its GHASH implementations alone, not for br_md5_*, br_sha1_*, br_sha224_* to br_sha512_* or br_md5sha1_*."
                             }
                         }
                     }
@@ -567,6 +631,14 @@
                                 "value": "not stated",
                                 "source": "Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property."
                             }
+                        },
+                        "bearssl": {
+                            "since": 5,
+                            "hmacs": null,
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "BearSSL at webcpp::crypto's pin: bearssl_kdf.h states no constant-time property for br_shake_*."
+                            }
                         }
                     }
                 },
@@ -583,6 +655,14 @@
                             "constant_time": {
                                 "value": "not stated",
                                 "source": "Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property."
+                            }
+                        },
+                        "bearssl": {
+                            "since": 5,
+                            "hmacs": null,
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "BearSSL at webcpp::crypto's pin: bearssl_kdf.h states no constant-time property for br_shake_*."
                             }
                         }
                     }
@@ -1168,6 +1248,14 @@
                                 "value": "not stated",
                                 "source": "Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property."
                             }
+                        },
+                        "bearssl": {
+                            "since": 5,
+                            "hmacs": null,
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "BearSSL at webcpp::crypto's pin: bearssl_hmac.h states constant time for br_hmac_outCT alone; mac calls br_hmac_out."
+                            }
                         }
                     }
                 },
@@ -1183,6 +1271,14 @@
                             "constant_time": {
                                 "value": "not stated",
                                 "source": "Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property."
+                            }
+                        },
+                        "bearssl": {
+                            "since": 5,
+                            "hmacs": null,
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "BearSSL at webcpp::crypto's pin: bearssl_hmac.h states constant time for br_hmac_outCT alone; mac calls br_hmac_out."
                             }
                         }
                     }
@@ -1200,6 +1296,14 @@
                                 "value": "not stated",
                                 "source": "Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property."
                             }
+                        },
+                        "bearssl": {
+                            "since": 5,
+                            "hmacs": null,
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "BearSSL at webcpp::crypto's pin: bearssl_hmac.h states constant time for br_hmac_outCT alone; mac calls br_hmac_out."
+                            }
                         }
                     }
                 },
@@ -1215,6 +1319,14 @@
                             "constant_time": {
                                 "value": "not stated",
                                 "source": "Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property."
+                            }
+                        },
+                        "bearssl": {
+                            "since": 5,
+                            "hmacs": null,
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "BearSSL at webcpp::crypto's pin: bearssl_hmac.h states constant time for br_hmac_outCT alone; mac calls br_hmac_out."
                             }
                         }
                     }
@@ -1232,6 +1344,14 @@
                                 "value": "not stated",
                                 "source": "Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property."
                             }
+                        },
+                        "bearssl": {
+                            "since": 5,
+                            "hmacs": null,
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "BearSSL at webcpp::crypto's pin: bearssl_hmac.h states constant time for br_hmac_outCT alone; mac calls br_hmac_out."
+                            }
                         }
                     }
                 },
@@ -1247,6 +1367,14 @@
                             "constant_time": {
                                 "value": "not stated",
                                 "source": "Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property."
+                            }
+                        },
+                        "bearssl": {
+                            "since": 5,
+                            "hmacs": null,
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "BearSSL at webcpp::crypto's pin: bearssl_hmac.h states constant time for br_hmac_outCT alone; mac calls br_hmac_out."
                             }
                         }
                     }

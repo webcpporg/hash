@@ -32,7 +32,7 @@ sources, for the program's target:
 | `/third_party//sodium`
 | every target
 
-| HKDF on `backends::bearssl`
+| HKDF, a digest or HMAC on `backends::bearssl`
 | `/third_party//bearssl`
 | every target
 

@@ -139,6 +139,11 @@ gives; keep the whole digest unless a protocol fixes a shorter tag.
 * *The tag's name is the digest's.* `macs::hmac<digests::sha2_512>` cut to 32
 bytes is not HMAC over SHA-512/256 (`macs::hmac<digests::sha2_512_256>`): the
 two give different tags.
+* *BearSSL's HMAC is reached by name.* `backends::bearssl` has HMAC over MD5,
+SHA-1 and the four SHA-2s it has, any key and any tag `mac` accepts, but is
+never a default: name it, as
+`mac<macs::hmac<digests::sha2_256>, backends::bearssl>`, and link
+`/third_party//bearssl`.
 * *Keyed BLAKE2s on `backends::hash2` is 32 bytes.* `macs::blake2s_mac` takes
 a tag of 1 to 32 bytes, but BLAKE2s's output size is a parameter of the hash,
 not a cut: `backends::hash2` (Boost.Hash2's keyed `blake2s_256`) answers
