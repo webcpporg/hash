@@ -75,6 +75,8 @@
 #include <atomic>
 #include <cstddef>
 #include <cstdint>
+#include <memory>
+#include <new>
 #include <span>
 #include <type_traits>
 #include <utility>
@@ -83,8 +85,8 @@ namespace webcpp::hash {
 
 /**
  The backend of the asynchronous family when a call names none: the synchronous function's,
- @ref default_backend, on every target (design D35). `backends::webcrypto` is never a default: a
- program on Emscripten names it in the type to reach the browser's WebCrypto.
+ @ref default_backend, on every target (ruling R76, the owner's decision O2). `backends::webcrypto`
+ is never a default: a program on Emscripten names it in the type to reach the browser's WebCrypto.
 
  @tparam Algorithm A tag of `digests`, `macs` or `kdfs`. @tparam Hmac The hmac of a key derivation
  that takes one, else `void`; it does not change the answer.
@@ -196,88 +198,238 @@ auto complete_by_post(Executor const& executor, CompletionToken& token, Operatio
         post_initiation{}, token, executor, std::move(operation));
 }
 
-/**
- What a heavy function installs in the handler's cancellation slot, when it has one: a flag that a
- cancellation of any type sets, which the work reads on its thread before it starts and after it
- ends (spec 11.5). It lives in the slot's own storage, and holds no reference to the operation.
-*/
-struct cancel_flag {
-    /** Set by a cancellation. */
-    std::atomic<bool> cancelled{false};
-
-    /** Sets the flag, whatever the cancellation's type. */
-    void operator()(webcpp::asio::cancellation_type_t /*type*/) noexcept {
-        cancelled.store(true, std::memory_order_release);
-    }
+/** Where a heavy operation is: waiting in the work executor's queue, running, or completed. */
+enum class heavy_phase : std::uint8_t {
+    /** Posted to the work executor, not started. */
+    queued,
+    /** Running on a thread of the work executor. */
+    running,
+    /** Completed, or abandoned by a work executor that destroyed it unrun. */
+    finished,
 };
 
 /**
- A heavy function's work, posted to the caller's work executor: runs the synchronous function on
- that executor's thread, then dispatches the completion to the handler's associated executor
- (`work` itself by default), whose outstanding work it holds meanwhile, so that the caller's
- event loop keeps running until the completion. A cancellation before the work starts completes
- with `operation_aborted` without running it; one during the work lets it end (no C library here
- can be interrupted), then zeroes the output and completes with `operation_aborted`.
+ A heavy function's operation (spec 11.5), shared by the job posted to the work executor and, when
+ the handler has a connected cancellation slot, the handler installed in that slot; whichever of
+ the two lets go of it last frees it. Its storage is the handler's associated allocator's.
+
+ Whoever moves the phase from `queued` owns the handler and completes the operation, exactly once:
+ the job, which runs the synchronous function on the work executor's thread and dispatches the
+ completion to the handler's associated executor (`work` by default); or a cancellation before the
+ work starts, which posts `operation_aborted` to that executor at once, the output untouched, and
+ the job then does nothing. Every type of cancellation is honoured before the work starts (nothing
+ has happened yet); once the work runs, only `terminal` and `partial` are (no C library here can be
+ interrupted: the work ends, then the output is zeroed and the completion is `operation_aborted`, a
+ side effect that `total` does not allow). The handler's executor has outstanding work until the
+ completion, so that the caller's event loop does not return early.
 
  @tparam Handler The completion handler. @tparam WorkExecutor The work executor.
  @tparam Work The synchronous function, bound to its arguments.
 */
 template <class Handler, class WorkExecutor, class Work>
-class heavy_operation {
+class heavy_state {
 public:
+    /** The handler's associated executor, `work` by default. */
+    using executor_type = webcpp::asio::associated_executor_t<Handler, WorkExecutor>;
+    /** The handler's associated allocator, for this state. */
+    using allocator_type = std::allocator_traits<
+        webcpp::asio::associated_allocator_t<Handler>>::template rebind_alloc<heavy_state>;
+
+    heavy_state(heavy_state const&) = delete;
+    heavy_state(heavy_state&&) = delete;
+    heavy_state& operator=(heavy_state const&) = delete;
+    heavy_state& operator=(heavy_state&&) = delete;
+    ~heavy_state() = default;
+
     /**
-     Takes the handler, holds its executor's outstanding work and installs the cancellation flag.
+     A new state, in the handler's associated allocator's storage, held once (by the job).
 
      @param handler The completion handler. @param work The work executor.
      @param run The synchronous function, bound to its arguments. @param output The output.
+     @return The state.
     */
-    heavy_operation(Handler handler, WorkExecutor const& work, Work run,
-                    std::span<std::uint8_t> output)
-        : handler_work_(
-              webcpp::asio::make_work_guard(webcpp::asio::get_associated_executor(handler, work))),
-          handler_(std::move(handler)),
-          run_(std::move(run)),
-          output_(output) {
+    static heavy_state* make(Handler handler, WorkExecutor const& work, Work run,
+                             std::span<std::uint8_t> output) {
+        allocator_type allocator(webcpp::asio::get_associated_allocator(handler));
+        storage memory{allocator, std::allocator_traits<allocator_type>::allocate(allocator, 1)};
+        auto* const made = ::new (static_cast<void*>(memory.pointer))
+            heavy_state(allocator, std::move(handler), work, std::move(run), output);
+        memory.pointer = nullptr;
+        return made;
+    }
+
+    /** Installs the cancellation handler, when the handler's slot is connected; it holds the state.
+     */
+    void install_cancellation() {
         auto slot = webcpp::asio::get_associated_cancellation_slot(handler_);
         if (slot.is_connected()) {
-            cancelled_ = &slot.template emplace<cancel_flag>().cancelled;
+            references_.fetch_add(1, std::memory_order_relaxed);
+            slot.template emplace<cancellation>(this);
         }
     }
 
-    /** Runs the work on the work executor's thread and dispatches the completion. */
-    void operator()() {
-        boost::system::error_code code;
-        if (cancelled()) {
-            code = webcpp::asio::error::operation_aborted;
-        } else {
-            code = code_of(run_());
-            if (cancelled()) {
-                wipe(output_);
-                code = webcpp::asio::error::operation_aborted;
-            }
+    /** The job's work, on the work executor's thread: nothing when a cancellation won. */
+    void run_work() {
+        auto expected = heavy_phase::queued;
+        if (!phase_.compare_exchange_strong(expected, heavy_phase::running,
+                                            std::memory_order_acq_rel)) {
+            return;
         }
+        auto code = code_of(run_());
+        if (cancelled_.load(std::memory_order_acquire)) {
+            wipe(output_);
+            code = webcpp::asio::error::operation_aborted;
+        }
+        phase_.store(heavy_phase::finished, std::memory_order_release);
         auto const executor = handler_work_.get_executor();
         webcpp::asio::dispatch(executor, webcpp::asio::append(std::move(handler_), code));
-        handler_work_.reset();
+        finish();
+    }
+
+    /** A cancellation of type `type`, on the thread that emits it. */
+    void cancel(webcpp::asio::cancellation_type_t type) {
+        auto expected = heavy_phase::queued;
+        if (phase_.compare_exchange_strong(expected, heavy_phase::finished,
+                                           std::memory_order_acq_rel)) {
+            auto const executor = handler_work_.get_executor();
+            webcpp::asio::post(
+                executor, webcpp::asio::append(
+                              std::move(handler_),
+                              boost::system::error_code(webcpp::asio::error::operation_aborted)));
+            finish();
+            return;
+        }
+        using webcpp::asio::cancellation_type;
+        if ((type & (cancellation_type::terminal | cancellation_type::partial)) !=
+            cancellation_type::none) {
+            cancelled_.store(true, std::memory_order_release);
+        }
+    }
+
+    /** The job destroyed unrun (its executor shut down): the handler is never called. */
+    void abandon() {
+        auto expected = heavy_phase::queued;
+        if (phase_.compare_exchange_strong(expected, heavy_phase::finished,
+                                           std::memory_order_acq_rel)) {
+            finish();
+        }
+    }
+
+    /** Lets go of the state; the last one frees it. */
+    void release() noexcept {
+        if (references_.fetch_sub(1, std::memory_order_acq_rel) == 1) {
+            allocator_type allocator(allocator_);
+            this->~heavy_state();
+            std::allocator_traits<allocator_type>::deallocate(allocator, this, 1);
+        }
     }
 
 private:
-    [[nodiscard]] bool cancelled() const noexcept {
-        return cancelled_ != nullptr && cancelled_->load(std::memory_order_acquire);
-    }
+    // The storage of a state under construction, given back unless construction ends.
+    struct storage {
+        allocator_type& allocator;
+        heavy_state* pointer;
 
-    webcpp::asio::executor_work_guard<webcpp::asio::associated_executor_t<Handler, WorkExecutor>>
-        handler_work_;
+        storage(allocator_type& owner, heavy_state* allocated) noexcept
+            : allocator(owner), pointer(allocated) {}
+
+        storage(storage const&) = delete;
+        storage(storage&&) = delete;
+        storage& operator=(storage const&) = delete;
+        storage& operator=(storage&&) = delete;
+
+        ~storage() {
+            if (pointer != nullptr) {
+                std::allocator_traits<allocator_type>::deallocate(allocator, pointer, 1);
+            }
+        }
+    };
+
+    // The handler installed in the cancellation slot: it holds the state until the slot lets go
+    // of it (cleared, given another handler, or its signal destroyed).
+    class cancellation {
+    public:
+        explicit cancellation(heavy_state* state) noexcept : state_(state) {}
+
+        cancellation(cancellation const&) = delete;
+        cancellation(cancellation&&) = delete;
+        cancellation& operator=(cancellation const&) = delete;
+        cancellation& operator=(cancellation&&) = delete;
+
+        ~cancellation() { state_->release(); }
+
+        void operator()(webcpp::asio::cancellation_type_t type) { state_->cancel(type); }
+
+    private:
+        heavy_state* state_;
+    };
+
+    heavy_state(allocator_type const& allocator, Handler handler, WorkExecutor const& work,
+                Work run, std::span<std::uint8_t> output)
+        : allocator_(allocator),
+          handler_work_(
+              webcpp::asio::make_work_guard(webcpp::asio::get_associated_executor(handler, work))),
+          handler_(std::move(handler)),
+          run_(std::move(run)),
+          output_(output) {}
+
+    // The owner's last step: the executor's work released. The handler, moved from or (abandoned)
+    // never called, is destroyed with the state.
+    void finish() { handler_work_.reset(); }
+
+    allocator_type allocator_;
+    std::atomic<int> references_{1};
+    std::atomic<heavy_phase> phase_{heavy_phase::queued};
+    std::atomic<bool> cancelled_{false};
+    webcpp::asio::executor_work_guard<executor_type> handler_work_;
     Handler handler_;
     Work run_;
     std::span<std::uint8_t> output_;
-    std::atomic<bool>* cancelled_ = nullptr;
 };
 
 /**
- The initiation of a heavy function (spec 11.5): its guards first, whose refusal completes through
- a post with the guard's error, the output untouched; then the work posted to the work executor,
- its storage the handler's associated allocator's.
+ The job a heavy function posts to the work executor: runs its state's work, or, destroyed unrun
+ (the executor shut down), abandons it. Move-only; it holds the state once.
+
+ @tparam State The operation's @ref heavy_state.
+*/
+template <class State>
+class heavy_job {
+public:
+    /** Holds `state`. @param state The operation's state. */
+    explicit heavy_job(State* state) noexcept : state_(state) {}
+
+    /** Takes `other`'s hold. @param other The job moved from. */
+    heavy_job(heavy_job&& other) noexcept : state_(std::exchange(other.state_, nullptr)) {}
+
+    heavy_job(heavy_job const&) = delete;
+    heavy_job& operator=(heavy_job const&) = delete;
+    heavy_job& operator=(heavy_job&&) = delete;
+
+    /** Abandons the state when the job never ran. */
+    ~heavy_job() {
+        if (state_ != nullptr) {
+            state_->abandon();
+            state_->release();
+        }
+    }
+
+    /** Runs the work on the work executor's thread. */
+    void operator()() {
+        auto* const state = std::exchange(state_, nullptr);
+        state->run_work();
+        state->release();
+    }
+
+private:
+    State* state_;
+};
+
+/**
+ The initiation of a heavy function (spec 11.5): its guards first, whose refusal is posted to the
+ handler's associated executor with the guard's error, the output untouched, never waiting for the
+ work executor; then the work posted to the work executor, its storage the handler's associated
+ allocator's.
 */
 struct heavy_initiation {
     /**
@@ -292,15 +444,17 @@ struct heavy_initiation {
                     Guards const& guards, Work run) const {
         auto const guarded = guards();
         if (!guarded) {
+            auto const executor = webcpp::asio::get_associated_executor(handler, work);
             webcpp::asio::post(
-                work, webcpp::asio::append(std::forward<Handler>(handler), guarded.error()));
+                executor, webcpp::asio::append(std::forward<Handler>(handler), guarded.error()));
             return;
         }
+        using state = heavy_state<std::decay_t<Handler>, WorkExecutor, Work>;
         auto const allocator = webcpp::asio::get_associated_allocator(handler);
-        using operation = heavy_operation<std::decay_t<Handler>, WorkExecutor, Work>;
-        webcpp::asio::post(
-            work, webcpp::asio::bind_allocator(allocator, operation(std::forward<Handler>(handler),
-                                                                    work, std::move(run), output)));
+        auto* const made =
+            state::make(std::forward<Handler>(handler), work, std::move(run), output);
+        made->install_cancellation();
+        webcpp::asio::post(work, webcpp::asio::bind_allocator(allocator, heavy_job<state>(made)));
     }
 };
 
@@ -442,9 +596,10 @@ auto async_hkdf(Executor const& executor, std::span<std::uint8_t> output,
  (`WEBCPP_HASH_HAS_THREADS`). On `backends::webcrypto`, on Emscripten, the browser runs it: there
  `executor` is that of an `io_context` running on the calling thread, and no thread is needed.
 
- Cancellation through the handler's slot: before the work starts, the completion is
- `operation_aborted`; during it, the work ends, then `output` is zeroed and the completion is
- `operation_aborted`.
+ Cancellation through the handler's slot: before the work starts, any type completes the
+ operation at once with `operation_aborted`, the work never runs; during it, a `terminal` or
+ `partial` one lets the work end, then `output` is zeroed and the completion is
+ `operation_aborted` (a `total` one is then ignored).
 
  @tparam Hmac The pseudorandom function, as `hmac_sha2_512`.
  @tparam Backend The backend; by default @ref default_async_backend of `kdfs::pbkdf2`, the
@@ -501,9 +656,10 @@ auto async_pbkdf2(Executor const& executor, std::span<std::uint8_t> output,
  executor (`work` by default; a program binds its event loop's with `bind_executor`), so that the
  event loop never blocks. Exists only where the build has threads (`WEBCPP_HASH_HAS_THREADS`).
 
- Cancellation through the handler's slot: before the work starts, the completion is
- `operation_aborted`; during it, the work ends (libsodium cannot be interrupted), then `output` is
- zeroed and the completion is `operation_aborted`.
+ Cancellation through the handler's slot: before the work starts, any type completes the
+ operation at once with `operation_aborted`, the work never runs; during it, a `terminal` or
+ `partial` one lets the work end (libsodium cannot be interrupted), then `output` is zeroed and
+ the completion is `operation_aborted` (a `total` one is then ignored: zeroing is a side effect).
 
  @tparam Backend The backend; by default @ref default_backend of `kdfs::argon2id`.
  @param work The executor of the threads the work runs on.

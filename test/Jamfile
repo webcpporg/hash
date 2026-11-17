@@ -245,12 +245,12 @@ hash-run webcrypto_oracle : webcrypto_oracle_test.cpp
 # backend, their default and backends::hash2 named, complete through a post,
 # never inside the call, on every target. The heavy functions run on a
 # thread_pool's thread where the build has threads: natively and on Emscripten
-# with -pthread (threading=multi), whose pool's two workers start before main
-# blocks in run (PTHREAD_POOL_SIZE).
+# with -pthread (threading=multi), whose pools' three workers start before
+# main blocks in run (PTHREAD_POOL_SIZE).
 hash-run async_post : async_post_test.cpp : <library>/webcpp/asio//asio ;
 hash-run async_heavy : async_heavy_test.cpp
   : <library>/webcpp/asio//asio <library>/third_party//sodium <threading>multi
-    <toolset>emscripten:<linkflags>-sPTHREAD_POOL_SIZE=2
+    <toolset>emscripten:<linkflags>-sPTHREAD_POOL_SIZE=3
   : native emscripten ;
 
 # Argon2id on backends::sodium: RFC 9106's case through libsodium's core

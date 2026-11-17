@@ -23,8 +23,13 @@
 #include <webcpp/hash/pbkdf2.hpp>
 #include <webcpp/hash/scrypt.hpp>
 
+#include <webcpp/asio/bind_cancellation_slot.hpp>
 #include <webcpp/asio/bind_executor.hpp>
+#include <webcpp/asio/cancellation_signal.hpp>
+#include <webcpp/asio/cancellation_type.hpp>
+#include <webcpp/asio/error.hpp>
 #include <webcpp/asio/io_context.hpp>
+#include <webcpp/asio/post.hpp>
 #include <webcpp/asio/steady_timer.hpp>
 #include <webcpp/asio/thread_pool.hpp>
 #include <webcpp/asio/use_future.hpp>
@@ -40,6 +45,7 @@
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
+#include <future>
 #include <span>
 #include <string_view>
 #include <thread>
@@ -342,6 +348,66 @@ void check_guards(asio::io_context& context, asio::thread_pool& pool) {
     BOOST_TEST_EQ(untouched[0], 0x5a);
 }
 
+// A pool kept busy by a job of the test's: what waits in its queue must not wait for it. A
+// cancellation before the work starts completes at once with operation_aborted, the output
+// untouched, and the work never runs; a guard's refusal completes without the pool.
+void check_queued(asio::io_context& context) {
+    asio::thread_pool busy(1);
+    std::promise<void> release;
+    auto released = release.get_future();
+    std::atomic<bool> blocking{false};
+    asio::post(busy, [&] {
+        blocking = true;
+        released.wait();
+    });
+    while (!blocking) {
+        std::this_thread::yield();
+    }
+
+    auto const password = bytes_of("password");
+    std::array<std::uint8_t, hash::argon2id_salt_size> const salt{};
+    hash::argon2id_parameters const small{.passes = 1, .memory = 32768};
+    int const runs_before = runs_off_caller.load();
+
+    std::array<std::uint8_t, 32> output{};
+    output[0] = 0x5a;
+    asio::cancellation_signal signal;
+    bool cancelled = false;
+    boost::system::error_code cancel_code;
+    hash::async_argon2id<recording>(
+        busy.get_executor(), output, password, salt, small,
+        asio::bind_cancellation_slot(
+            signal.slot(),
+            asio::bind_executor(context.get_executor(), [&](boost::system::error_code code) {
+                cancelled = true;
+                cancel_code = code;
+            })));
+    signal.emit(asio::cancellation_type::terminal);
+    context.restart();
+    context.run_for(std::chrono::seconds(5));
+    BOOST_TEST(cancelled);
+    BOOST_TEST(cancel_code == asio::error::operation_aborted);
+    BOOST_TEST_EQ(output[0], 0x5a);
+
+    bool refused = false;
+    boost::system::error_code refusal_code;
+    hash::async_argon2id<recording>(
+        busy.get_executor(), output, password, std::span(salt).first(8), small,
+        asio::bind_executor(context.get_executor(), [&](boost::system::error_code code) {
+            refused = true;
+            refusal_code = code;
+        }));
+    context.restart();
+    context.run_for(std::chrono::seconds(5));
+    BOOST_TEST(refused);
+    BOOST_TEST(refusal_code == hash::error::invalid_salt_size);
+
+    release.set_value();
+    busy.join();
+    BOOST_TEST_EQ(runs_off_caller.load(), runs_before);
+    BOOST_TEST_EQ(output[0], 0x5a);
+}
+
 // The caller's event loop stays responsive: a 10 ms timer on its io_context fires while an Argon2id
 // of 64 MiB (libsodium's interactive costs) runs on the pool.
 void check_responsive(asio::io_context& context, asio::thread_pool& pool) {
@@ -383,6 +449,7 @@ int main() {
     check_defaults(context, pool);
     check_guards(context, pool);
     check_responsive(context, pool);
+    check_queued(context);
     pool.join();
     return webcpp::test::exit_status(boost::report_errors());
 }

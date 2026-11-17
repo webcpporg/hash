@@ -283,8 +283,8 @@ void check_backend_fields(json::object const& table) {
 }
 
 // Each function's default, the backend default_backend names for its tag; a type row has none.
-// The asynchronous family's default is the same (design D35, ruling R76): the table has no column
-// of its own for it.
+// The asynchronous family's default is the same (ruling R76, the owner's decision O2): the table
+// has no column of its own for it.
 template <class Function>
 void check_default(json::object const& table) {
     auto const& listed = function_row(table, function_name<Function>()).at("default");
