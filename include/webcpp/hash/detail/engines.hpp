@@ -685,7 +685,8 @@ template <class Backend>
 struct digest_engine<Backend, digests::kt128> : refused_digest_engine<digests::kt128>,
                                                 needs_library<Backend> {
     static_assert(refused_elsewhere_v<Backend>,
-                  "webcpp::hash: digests::kt128 is in no backend yet.");
+                  "webcpp::hash: digests::kt128 is not in this backend. Name one of: "
+                  "backends::xkcp.");
 };
 
 /** `digests::kt256` on a backend without it (spec 3.3, design D34). */
@@ -693,7 +694,8 @@ template <class Backend>
 struct digest_engine<Backend, digests::kt256> : refused_digest_engine<digests::kt256>,
                                                 needs_library<Backend> {
     static_assert(refused_elsewhere_v<Backend>,
-                  "webcpp::hash: digests::kt256 is in no backend yet.");
+                  "webcpp::hash: digests::kt256 is not in this backend. Name one of: "
+                  "backends::xkcp.");
 };
 
 /** `digests::turboshake_128` on a backend without it (spec 3.3, design D34). */
@@ -701,7 +703,8 @@ template <class Backend>
 struct digest_engine<Backend, digests::turboshake_128>
     : refused_digest_engine<digests::turboshake_128>, needs_library<Backend> {
     static_assert(refused_elsewhere_v<Backend>,
-                  "webcpp::hash: digests::turboshake_128 is in no backend yet.");
+                  "webcpp::hash: digests::turboshake_128 is not in this backend. Name one of: "
+                  "backends::xkcp.");
 };
 
 /** `digests::turboshake_256` on a backend without it (spec 3.3, design D34). */
@@ -709,7 +712,8 @@ template <class Backend>
 struct digest_engine<Backend, digests::turboshake_256>
     : refused_digest_engine<digests::turboshake_256>, needs_library<Backend> {
     static_assert(refused_elsewhere_v<Backend>,
-                  "webcpp::hash: digests::turboshake_256 is in no backend yet.");
+                  "webcpp::hash: digests::turboshake_256 is not in this backend. Name one of: "
+                  "backends::xkcp.");
 };
 
 /** `digests::tuplehash_128` on a backend without it (spec 3.3, design D34). */

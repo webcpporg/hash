@@ -107,7 +107,10 @@ or salt, or an HKDF salt (`input_too_long`) of more than `INT_MAX` bytes. It
 is not built for Emscripten.
 
 | `xkcp`
-| Hashes without a secret of their own; it allocates nothing.
+| Allocates nothing. KMAC's keyed state and every hash's state live on the
+call's stack or in the hasher, and are wiped when the call or the hasher
+ends. A KangarooTwelve hasher keeps the span of its customisation string,
+not a copy, and reads it at `finish` (<<hash-kangarootwelve>>).
 
 | `blake3`
 | Allocates nothing. Its keyed and `derive_key` modes hold the key in the

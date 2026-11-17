@@ -257,6 +257,22 @@ inline constexpr bool backend_has_v<backends::xkcp, digests::parallelhash_128, v
 template <>
 inline constexpr bool backend_has_v<backends::xkcp, digests::parallelhash_256, void> = true;
 
+/** backends::xkcp has `digests::kt128` (XKCP's `KangarooTwelve` at 128 bits, any output size). */
+template <>
+inline constexpr bool backend_has_v<backends::xkcp, digests::kt128, void> = true;
+
+/** backends::xkcp has `digests::kt256` (XKCP's `KangarooTwelve` at 256 bits, any output size). */
+template <>
+inline constexpr bool backend_has_v<backends::xkcp, digests::kt256, void> = true;
+
+/** backends::xkcp has `digests::turboshake_128` (XKCP's `TurboSHAKE`, any output size and D). */
+template <>
+inline constexpr bool backend_has_v<backends::xkcp, digests::turboshake_128, void> = true;
+
+/** backends::xkcp has `digests::turboshake_256` (XKCP's `TurboSHAKE`, any output size and D). */
+template <>
+inline constexpr bool backend_has_v<backends::xkcp, digests::turboshake_256, void> = true;
+
 /** backends::blake3 has `digests::blake3` (BLAKE3's C implementation), with its extendable output.
  */
 template <>

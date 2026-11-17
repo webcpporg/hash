@@ -12,8 +12,9 @@
  800-185's `digests::cshake_128` and `cshake_256`, `digests::tuplehash_128` and `tuplehash_256`,
  `digests::parallelhash_128` and `parallelhash_256` (a block size that is a power of two of at
  least 8 bytes), and `macs::kmac_128` and `kmac_256`, each in both forms, over XKCP's
- `SP800-185`; all through webcpp's adapter (`detail/xkcp.hpp`). Increment 3 brings the rest of
- XKCP's functions here.
+ `SP800-185`; RFC 9861's `digests::kt128` and `kt256` (with a customisation string) over XKCP's
+ `KangarooTwelve`, and `digests::turboshake_128` and `turboshake_256` (with a domain byte) over its
+ `TurboSHAKE`; all through webcpp's adapter (`detail/xkcp.hpp`).
 
  @see "Using webcpp::hash in your Jamfile", in the guide.
 */
@@ -680,6 +681,221 @@ struct xkcp_kmac_engine : full_engine {
         return {};
     }
 };
+
+/**
+ TurboSHAKE on backends::xkcp (its interface is @ref digest_engine); XKCP's `TurboSHAKE_Instance`
+ in `xkcp_turboshake_storage`, with the domain byte, both wiped by `destroy`. `finish` absorbs D
+ and squeezes `output.size()` bytes. The family's guard holds D within 0x01 to 0x7F (XKCP takes
+ any byte but 0); any nonzero answer of XKCP's is `backend_failure`. Every option and output
+ size the family accepts.
+
+ @tparam Digest The tag. @tparam Capacity 256 for TurboSHAKE128, 512 for TurboSHAKE256.
+*/
+template <class Digest, unsigned int Capacity>
+struct xkcp_turboshake_engine : full_engine {
+    /** XKCP's instance and the domain byte `finish` absorbs. */
+    struct state {
+        /** XKCP's `TurboSHAKE_Instance`, in storage the adapter checks is large enough. */
+        xkcp_turboshake_storage storage{};
+        /** The domain separation byte D. */
+        std::uint8_t domain = 0;
+    };
+
+    /**
+     Starts a hash with the domain byte the options name.
+
+     @param hashed The state. @param options D. @return Success, or backend_failure.
+    */
+    [[nodiscard]] static boost::system::result<void> init(
+        state& hashed, digest_options<Digest> const& options) noexcept {
+        hashed.domain = options.domain;
+        if (webcpp_hash_xkcp_turboshake_initialize(hashed.storage.data(), Capacity) != 0) {
+            return error::backend_failure;
+        }
+        return {};
+    }
+
+    /**
+     Absorbs `input`. @param hashed The state. @param input The bytes.
+     @return Success, or backend_failure.
+    */
+    [[nodiscard]] static boost::system::result<void> update(
+        state& hashed, std::span<std::uint8_t const> input) noexcept {
+        if (webcpp_hash_xkcp_turboshake_update(hashed.storage.data(), input.data(), input.size()) !=
+            0) {
+            return error::backend_failure;
+        }
+        return {};
+    }
+
+    /**
+     Absorbs D and writes the first `output.size()` bytes of the stream.
+
+     @param hashed The state. @param output The output. @return Success, or backend_failure.
+    */
+    [[nodiscard]] static boost::system::result<void> finish(
+        state& hashed, std::span<std::uint8_t> output) noexcept {
+        if (webcpp_hash_xkcp_turboshake_final(hashed.storage.data(), hashed.domain) != 0 ||
+            webcpp_hash_xkcp_turboshake_squeeze(hashed.storage.data(), output.data(),
+                                                output.size()) != 0) {
+            return error::backend_failure;
+        }
+        return {};
+    }
+
+    /** Wipes the state. @param hashed The state. */
+    static void destroy(state& hashed) noexcept { wipe_object(hashed); }
+
+    /**
+     The output of `input` at once, the state wiped.
+
+     @param output The output. @param input The bytes. @param options D.
+     @return Success, or backend_failure.
+    */
+    [[nodiscard]] static boost::system::result<void> one_shot(
+        std::span<std::uint8_t> output, std::span<std::uint8_t const> input,
+        digest_options<Digest> const& options) noexcept {
+        state hashed{};
+        auto done = init(hashed, options);
+        if (done) {
+            done = update(hashed, input);
+        }
+        if (done) {
+            done = finish(hashed, output);
+        }
+        destroy(hashed);
+        return done;
+    }
+};
+
+/**
+ KangarooTwelve on backends::xkcp (its interface is @ref digest_engine); XKCP's
+ `KangarooTwelve_Instance` in `xkcp_kangarootwelve_storage`, started with no fixed output, the
+ customisation's span, and the bytes counted so far, all wiped by `destroy`. XKCP takes C at
+ `KangarooTwelve_Final`, so the state keeps the span `init` took (ruling R33) and `finish` reads
+ it, then squeezes `output.size()` bytes. XKCP counts the 8,192-byte chunks of the message and C
+ in a `size_t`, which on wasm32 would wrap past 32 TiB: the engine counts the bytes of C and the
+ message in 64 bits and refuses the call that would take them past `kangarootwelve_max_bytes`
+ with `input_too_long`, before XKCP sees the bytes, after which a hasher is spent and
+ `digest_of`'s output zeroed. XKCP computes the chunks one after another (no parallel permutation
+ is compiled). Every output size the family accepts.
+
+ @tparam Digest The tag. @tparam SecurityLevel 128 for KT128, 256 for KT256.
+*/
+template <class Digest, int SecurityLevel>
+struct xkcp_kangarootwelve_engine : full_engine {
+    /** XKCP's instance, the customisation `finish` reads, and the bytes counted. */
+    struct state {
+        /** XKCP's `KangarooTwelve_Instance`, in storage the adapter checks is large enough. */
+        xkcp_kangarootwelve_storage storage{};
+        /** The customisation string C, which the caller keeps alive until `finish`. */
+        std::span<std::uint8_t const> customisation;
+        /** The bytes of C and of the message so far, in 64 bits on every target. */
+        std::uint64_t counted = 0;
+    };
+
+    /**
+     Starts a hash, keeping the customisation's span for `finish`.
+
+     @param hashed The state. @param options C.
+     @return Success, `input_too_long` for a C past `kangarootwelve_max_bytes`, or
+     backend_failure.
+    */
+    [[nodiscard]] static boost::system::result<void> init(
+        state& hashed, digest_options<Digest> const& options) noexcept {
+        if (exceeds(options.customisation.size(), kangarootwelve_max_bytes)) {
+            return error::input_too_long;
+        }
+        hashed.customisation = options.customisation;
+        hashed.counted = options.customisation.size();
+        if (webcpp_hash_xkcp_kangarootwelve_initialize(hashed.storage.data(), SecurityLevel, 0) !=
+            0) {
+            return error::backend_failure;
+        }
+        return {};
+    }
+
+    /**
+     Absorbs `input`, unless it would take the message and C past `kangarootwelve_max_bytes`.
+
+     @param hashed The state. @param input The bytes.
+     @return Success, `input_too_long`, or backend_failure.
+    */
+    [[nodiscard]] static boost::system::result<void> update(
+        state& hashed, std::span<std::uint8_t const> input) noexcept {
+        // hashed.counted never exceeds the limit, so the subtraction does not wrap.
+        if (exceeds(input.size(), kangarootwelve_max_bytes - hashed.counted)) {
+            return error::input_too_long;
+        }
+        if (webcpp_hash_xkcp_kangarootwelve_update(hashed.storage.data(), input.data(),
+                                                   input.size()) != 0) {
+            return error::backend_failure;
+        }
+        hashed.counted += input.size();
+        return {};
+    }
+
+    /**
+     Absorbs C, ends the input, and writes the first `output.size()` bytes of the stream.
+
+     @param hashed The state. @param output The output. @return Success, or backend_failure.
+    */
+    [[nodiscard]] static boost::system::result<void> finish(
+        state& hashed, std::span<std::uint8_t> output) noexcept {
+        if (webcpp_hash_xkcp_kangarootwelve_final(hashed.storage.data(), nullptr,
+                                                  hashed.customisation.data(),
+                                                  hashed.customisation.size()) != 0 ||
+            webcpp_hash_xkcp_kangarootwelve_squeeze(hashed.storage.data(), output.data(),
+                                                    output.size()) != 0) {
+            return error::backend_failure;
+        }
+        return {};
+    }
+
+    /** Wipes the state. @param hashed The state. */
+    static void destroy(state& hashed) noexcept { wipe_object(hashed); }
+
+    /**
+     The output of `input` at once, the state wiped.
+
+     @param output The output. @param input The bytes. @param options C.
+     @return Success, `input_too_long`, or backend_failure.
+    */
+    [[nodiscard]] static boost::system::result<void> one_shot(
+        std::span<std::uint8_t> output, std::span<std::uint8_t const> input,
+        digest_options<Digest> const& options) noexcept {
+        state hashed{};
+        auto done = init(hashed, options);
+        if (done) {
+            done = update(hashed, input);
+        }
+        if (done) {
+            done = finish(hashed, output);
+        }
+        destroy(hashed);
+        return done;
+    }
+};
+
+/** `digests::turboshake_128` on backends::xkcp: XKCP's TurboSHAKE, capacity 256. */
+template <>
+struct digest_engine<backends::xkcp, digests::turboshake_128>
+    : xkcp_turboshake_engine<digests::turboshake_128, 256> {};
+
+/** `digests::turboshake_256` on backends::xkcp: XKCP's TurboSHAKE, capacity 512. */
+template <>
+struct digest_engine<backends::xkcp, digests::turboshake_256>
+    : xkcp_turboshake_engine<digests::turboshake_256, 512> {};
+
+/** `digests::kt128` on backends::xkcp: XKCP's KangarooTwelve at 128 bits. */
+template <>
+struct digest_engine<backends::xkcp, digests::kt128>
+    : xkcp_kangarootwelve_engine<digests::kt128, 128> {};
+
+/** `digests::kt256` on backends::xkcp: XKCP's KangarooTwelve at 256 bits. */
+template <>
+struct digest_engine<backends::xkcp, digests::kt256>
+    : xkcp_kangarootwelve_engine<digests::kt256, 256> {};
 
 /** `digests::cshake_128` on backends::xkcp: XKCP's cSHAKE128. */
 template <>

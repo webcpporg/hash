@@ -147,8 +147,8 @@ struct digest_options<digests::tuplehash_256> {
  take fewer: XKCP takes a power of two of at least 8 bytes, and answers any other with
  `unsupported_by_backend`. The whole input, in one call or across a hasher's updates, is at most
  `SIZE_MAX / 8` bytes (`input_too_long`), since its length is counted in bits. The fixed-length
- form encodes the output's length, as TupleHash's
- does (@ref digest_options<digests::tuplehash_128>), and is at most `SIZE_MAX / 8` bytes
+ form encodes the output's length, as TupleHash's does
+ (@ref digest_options<digests::tuplehash_128>), and is at most `SIZE_MAX / 8` bytes
  (`invalid_output_size`), as is S (`input_too_long`), which is read during the call and not kept.
 */
 template <>
@@ -177,6 +177,61 @@ struct digest_options<digests::parallelhash_256> {
 
     /** The extendable-output form, ParallelHashXOF256, in place of the fixed-length one. */
     bool xof = false;
+};
+
+/**
+ KT128's parameter (RFC 9861, section 3): the customisation string C, which an application
+ chooses to separate its uses of the function from any other's; empty by default. KT128 is a tree
+ over TurboSHAKE128 that hashes a long input in chunks of 8,192 bytes, which an implementation
+ may hash in parallel; its output is any size from 1 byte, the shorter the start of the longer.
+
+ @code
+ std::array<std::uint8_t, 32> digest{};
+ auto done = webcpp::hash::digest_of<webcpp::hash::digests::kt128>(
+     digest, file_bytes, {.customisation = app_name});
+ @endcode
+
+ KangarooTwelve absorbs C after the message, so `hasher` keeps the span `make` took and reads C at
+ `finish`, not before: the caller keeps those bytes alive and unchanged until then (no copy, so no
+ allocation). `digest_of` reads C during the call. On backends::xkcp where a `size_t` has 32 bits
+ (wasm32), the message and C together are at most a little under 32 TiB (`input_too_long`, a
+ refusal after which a hasher is spent), since XKCP counts the chunks in a `size_t`.
+*/
+template <>
+struct digest_options<digests::kt128> {
+    /** The customisation string C, read at `finish` by a hasher. */
+    std::span<std::uint8_t const> customisation = {};
+};
+
+/** KT256's parameter, as KT128's (@ref digest_options<digests::kt128>), over TurboSHAKE256. */
+template <>
+struct digest_options<digests::kt256> {
+    /** The customisation string C, read at `finish` by a hasher. */
+    std::span<std::uint8_t const> customisation = {};
+};
+
+/**
+ TurboSHAKE's parameter (RFC 9861, section 2.1): the domain separation byte D, which the sponge
+ absorbs after the message, so that each value gives another function. The standard value is 0x1F;
+ a protocol that builds several functions over TurboSHAKE gives each its own byte.
+
+ @code
+ std::array<std::uint8_t, 32> output{};
+ auto done = webcpp::hash::digest_of<webcpp::hash::digests::turboshake_128>(
+     output, message, {.domain = 0x0B});
+ @endcode
+*/
+template <>
+struct digest_options<digests::turboshake_128> {
+    /** D, 0x01 to 0x7F (`invalid_parameters` otherwise); 0x1F by default. */
+    std::uint8_t domain = 0x1F;
+};
+
+/** TurboSHAKE256's parameter, as TurboSHAKE128's (RFC 9861, section 2.1). */
+template <>
+struct digest_options<digests::turboshake_256> {
+    /** D, 0x01 to 0x7F (`invalid_parameters` otherwise); 0x1F by default. */
+    std::uint8_t domain = 0x1F;
 };
 
 namespace detail {
@@ -300,14 +355,10 @@ template <> struct digest_traits<digests::keccak_256> : fixed_output<32> {};
 template <> struct digest_traits<digests::keccak_384> : fixed_output<48> {};
 /** Keccak-512: 64 bytes. */
 template <> struct digest_traits<digests::keccak_512> : fixed_output<64> {};
-/** KT128: any size from 1 byte. */
+/** KT128: any size from 1 byte, any customisation. */
 template <> struct digest_traits<digests::kt128> : extendable_output {};
-/** KT256: any size from 1 byte. */
+/** KT256: any size from 1 byte, any customisation. */
 template <> struct digest_traits<digests::kt256> : extendable_output {};
-/** TurboSHAKE128: any size from 1 byte. */
-template <> struct digest_traits<digests::turboshake_128> : extendable_output {};
-/** TurboSHAKE256: any size from 1 byte. */
-template <> struct digest_traits<digests::turboshake_256> : extendable_output {};
 /** BLAKE2s-256: 32 bytes. */
 template <> struct digest_traits<digests::blake2s_256> : fixed_output<32> {};
 /** BLAKE3: any size from 1 byte (its digest is the first 32). */
@@ -341,6 +392,40 @@ struct digest_traits<digests::blake2b> : fixed_output<64> {
         return 1;
     }
 };
+
+/**
+ TurboSHAKE's guards (RFC 9861, ruling R25): any output size from 1 byte, and the domain byte within
+ 0x01 to 0x7F, which the RFC requires and which neither libsodium nor XKCP checks: the family
+ refuses another before any engine, the same way on every backend.
+*/
+struct turboshake_traits : extendable_output {
+    /** The smallest domain byte RFC 9861 allows. */
+    static constexpr std::uint8_t min_domain = 0x01;
+    /** The largest domain byte RFC 9861 allows. */
+    static constexpr std::uint8_t max_domain = 0x7F;
+
+    /**
+     Checks the domain byte.
+
+     @param options The options. @return Success, or `invalid_parameters`.
+    */
+    template <class Options>
+    [[nodiscard]] static constexpr boost::system::result<void> check(
+        Options const& options) noexcept {
+        if (options.domain < min_domain || options.domain > max_domain) {
+            return error::invalid_parameters;
+        }
+        return {};
+    }
+};
+
+/** TurboSHAKE128: any size from 1 byte, a domain byte of 0x01 to 0x7F. */
+template <>
+struct digest_traits<digests::turboshake_128> : turboshake_traits {};
+
+/** TurboSHAKE256: any size from 1 byte, a domain byte of 0x01 to 0x7F. */
+template <>
+struct digest_traits<digests::turboshake_256> : turboshake_traits {};
 
 /**
  Whether a string of SP 800-185 is longer than its length in bits can be (`input_too_long`).
@@ -621,8 +706,10 @@ public:
      Absorbs `input`.
 
      @param input The next piece of the data, of any size.
-     @return Success; `invalid_state` after `finish` or once moved from; or the backend's failure,
-     after which the hasher is spent (`invalid_state`).
+     @return Success; `invalid_state` after `finish` or once moved from; `input_too_long` when the
+     input would pass a limit of the tag's options or of the backend (ParallelHash's whole input,
+     a TupleHash element, KangarooTwelve's input on 32-bit XKCP); or the backend's failure. After
+     either of the last two the hasher is spent (`invalid_state`).
     */
     [[nodiscard]] boost::system::result<void> update(std::span<std::uint8_t const> input) noexcept {
         if (phase_ != phase::hashing) {

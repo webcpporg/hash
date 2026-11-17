@@ -35,7 +35,7 @@
             "name": "xkcp",
             "tag": "backends::xkcp",
             "macro": "XKCP",
-            "library": "XKCP at d20c8fc: its Keccak-p[1600], FIPS 202's Keccak_Hash and SP 800-185's functions",
+            "library": "XKCP at d20c8fc: its Keccak-p[1600], FIPS 202's Keccak_Hash, SP 800-185's functions, KangarooTwelve and TurboSHAKE",
             "licence": "CC0-1.0",
             "jamfile": "/third_party//xkcp",
             "targets": [
@@ -827,6 +827,88 @@
                             "constant_time": {
                                 "value": "not stated",
                                 "source": "XKCP at d20c8fc: README.markdown, lib/low/KeccakP-1600 and lib/high/Keccak (KeccakSponge, FIPS202/KeccakHash, SP800-185) state no constant-time property."
+                            }
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "kangarootwelve",
+            "macro": "KANGAROOTWELVE",
+            "tag": null,
+            "chapter": "digests",
+            "standard": "RFC 9861",
+            "functions": [
+                {
+                    "name": "digests::kt128",
+                    "kind": "digest",
+                    "header": "webcpp/hash/digest.hpp",
+                    "default": "xkcp",
+                    "backends": {
+                        "xkcp": {
+                            "since": 3,
+                            "hmacs": null,
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "XKCP at d20c8fc: README.markdown, lib/low/KeccakP-1600 and lib/high (KangarooTwelve, TurboSHAKE, Keccak/KeccakSponge) state no constant-time property."
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "digests::kt256",
+                    "kind": "digest",
+                    "header": "webcpp/hash/digest.hpp",
+                    "default": "xkcp",
+                    "backends": {
+                        "xkcp": {
+                            "since": 3,
+                            "hmacs": null,
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "XKCP at d20c8fc: README.markdown, lib/low/KeccakP-1600 and lib/high (KangarooTwelve, TurboSHAKE, Keccak/KeccakSponge) state no constant-time property."
+                            }
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "turboshake",
+            "macro": "TURBOSHAKE",
+            "tag": null,
+            "chapter": "digests",
+            "standard": "RFC 9861",
+            "functions": [
+                {
+                    "name": "digests::turboshake_128",
+                    "kind": "digest",
+                    "header": "webcpp/hash/digest.hpp",
+                    "default": "xkcp",
+                    "backends": {
+                        "xkcp": {
+                            "since": 3,
+                            "hmacs": null,
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "XKCP at d20c8fc: README.markdown, lib/low/KeccakP-1600 and lib/high (KangarooTwelve, TurboSHAKE, Keccak/KeccakSponge) state no constant-time property."
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "digests::turboshake_256",
+                    "kind": "digest",
+                    "header": "webcpp/hash/digest.hpp",
+                    "default": "xkcp",
+                    "backends": {
+                        "xkcp": {
+                            "since": 3,
+                            "hmacs": null,
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "XKCP at d20c8fc: README.markdown, lib/low/KeccakP-1600 and lib/high (KangarooTwelve, TurboSHAKE, Keccak/KeccakSponge) state no constant-time property."
                             }
                         }
                     }

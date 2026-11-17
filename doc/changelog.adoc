@@ -25,5 +25,5 @@ of every version are on webcpp's index page.
 * Added the default backend, hash2 for key derivation and sodium for argon2id and scrypt, and doc/capabilities.json, the capability table naming each function's default.
 * Added the measured tables (doc/measurements.*) from release builds, a reference of 2026-11-16 that decides nothing, and allocation tests: none in hash's code.
 * Added the guide: chapters per family and per use case, an example per section, generated tables and llms.txt, and a Boost.Hash2 proposal of keccak_224 to keccak_512.
-* Added the families digest_of, hasher, mac and argon2 over digests, macs and kdfs tags, with defaults, on hash2, xkcp (Keccak, SHA-3, SHAKE, SP 800-185), blake3, and error::invalid_state.
+* Added the families digest_of, hasher, mac and argon2 over digests, macs and kdfs tags, with defaults, on hash2, xkcp (Keccak, SHA-3, SHAKE, SP 800-185, KangarooTwelve, TurboSHAKE), blake3, and error::invalid_state.
 // end::unreleased[]

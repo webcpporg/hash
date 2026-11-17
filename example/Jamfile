@@ -20,6 +20,7 @@ webcpp.example sha3_shake.cpp ;
 webcpp.example keccak_256.cpp : <library>/third_party//xkcp ;
 webcpp.example keccak_family.cpp : <library>/third_party//xkcp ;
 webcpp.example sp800_185.cpp : <library>/third_party//xkcp ;
+webcpp.example kangarootwelve.cpp : <library>/third_party//xkcp ;
 webcpp.example blake2b.cpp ;
 webcpp.example blake3.cpp : <library>/third_party//blake3 ;
 webcpp.example ripemd160.cpp ;

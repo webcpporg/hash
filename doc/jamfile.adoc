@@ -20,7 +20,8 @@ sources, for the program's target:
 | nothing more
 | every target
 
-| `keccak_256`
+| `keccak_256`, or a tag on `backends::xkcp` (Keccak, SHA-3, SHAKE, SP 800-185,
+KMAC, KangarooTwelve, TurboSHAKE)
 | `/third_party//xkcp`
 | every target
 

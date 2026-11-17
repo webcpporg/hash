@@ -104,6 +104,99 @@ the first block, not from a second call.
 
 include::generated/backends-sha3-shake.adoc[]
 
+[#hash-turboshake]
+=== TurboSHAKE
+
+TurboSHAKE128 and TurboSHAKE256 (RFC 9861, 2025, from the Keccak team) are
+SHAKE128 and SHAKE256 with half the rounds: the same sponge over the same
+1,600-bit state, its permutation run 12 rounds instead of 24, which makes
+them roughly twice as fast with the same claimed security (128 and 256
+bits; RFC 9861, sections 1 and 7). They are extendable-output functions, as
+SHAKE is, and take one parameter more: a domain separation byte D, from 0x01
+to 0x7F (0x1F by default), absorbed after the message, so that each value is
+another function. A program that hashes several kinds of things gives each
+kind its own byte, and a value of one kind never stands for a value of
+another. TurboSHAKE is also the inner function of KangarooTwelve
+(<<hash-kangarootwelve>>). `digest_of` and `hasher` take the byte in
+`digest_options<digests::turboshake_128>` (or `_256`), on `backends::xkcp`,
+their default: XKCP's own TurboSHAKE code. A program links
+`/third_party//xkcp`.
+
+[source]
+----
+include::{examples}/kangarootwelve.cpp[tag=turboshake,indent=0]
+----
+
+[listing]
+----
+include::{examples}/kangarootwelve.expected[lines=4..5]
+----
+
+*Pitfalls.*
+
+* *TurboSHAKE is not SHAKE.* With 12 rounds instead of 24 it gives other
+bytes for the same message: a format that names SHAKE128 needs SHAKE128
+(<<hash-sha3>>).
+* *The domain byte is part of the function.* Both sides of a protocol use
+the same byte for the same purpose; a byte outside 0x01 to 0x7F is refused
+(`invalid_parameters`) before any backend sees it, on every backend,
+although XKCP itself would take any byte but 0, since RFC 9861 allows that
+range alone.
+* *The output's length is the caller's security choice,* as for SHAKE: 32
+bytes of TurboSHAKE128 give 128-bit security, 16 bytes give only 64-bit
+collision resistance.
+
+include::generated/backends-turboshake.adoc[]
+
+[#hash-kangarootwelve]
+=== KangarooTwelve (KT128 and KT256)
+
+KT128 and KT256 (RFC 9861) are KangarooTwelve, the Keccak team's fast hash
+of large inputs: a tree over TurboSHAKE (<<hash-turboshake>>) that cuts its
+input in chunks of 8,192 bytes, hashes each chunk on its own and hashes the
+results, so that an implementation can hash a large file on several cores
+or vector units, as ParallelHash does (<<hash-sp800-185>>), but faster and
+with no block size to choose (RFC 9861, section 1). An input of up to
+8,192 bytes is one TurboSHAKE call, so a short message costs little more.
+Both are extendable-output functions with the security of SHAKE128 and
+SHAKE256 (RFC 9861, section 7), and take a customisation string C, as
+cSHAKE does: an application gives each of its uses its own string, and the
+outputs are unrelated. They are tags of `digest_of` and `hasher`
+(<<hash-digest-family>>), on `backends::xkcp`, their default: XKCP's own
+KangarooTwelve code, which computes the chunks one after another. A
+program links `/third_party//xkcp`.
+
+[source]
+----
+include::{examples}/kangarootwelve.cpp[tag=example,indent=0]
+----
+
+[listing]
+----
+include::{examples}/kangarootwelve.expected[]
+----
+
+*Pitfalls.*
+
+* *A hasher reads C at `finish`.* KangarooTwelve absorbs the customisation
+string after the message, and `hasher` keeps the span `make` took instead of
+copying it (no allocation): the bytes stay alive and unchanged until
+`finish`, or the digest is another one or the read is a dangling one.
+`digest_of` reads C during the call.
+* *C is part of the function.* KT128 with "app/v1" and KT128 with "app/v2"
+are unrelated; an empty C is the RFC's default, and the 32-byte KT128 of a
+message with no C is what IANA's "k12-256" names.
+* *KT128 is not ParallelHash or BLAKE3.* Each tree hash gives its own
+bytes: a format names one, and a file's KT128 never matches another's
+ParallelHash128.
+* *The output's length is the caller's security choice,* as for SHAKE:
+32 bytes of KT128 give 128-bit security, 64 bytes of KT256 256-bit.
+* *32-bit XKCP counts chunks in a `size_t`.* On wasm32 a message and C past
+a little under 32 TiB together would wrap XKCP's count into a wrong digest;
+they are refused (`input_too_long`) before XKCP sees them.
+
+include::generated/backends-kangarootwelve.adoc[]
+
 [#hash-keccak]
 === Keccak
 

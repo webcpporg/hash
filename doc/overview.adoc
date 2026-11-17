@@ -36,6 +36,10 @@ hashes, HMAC
 | Keccak-256 with the original padding (Ethereum's)
 | XKCP's Keccak-p[1600] permutation, in Hash2's HashAlgorithm form
 
+| Keccak-224 to Keccak-512, SHA-3 and SHAKE; SP 800-185's cSHAKE, KMAC,
+TupleHash and ParallelHash; RFC 9861's KangarooTwelve and TurboSHAKE
+| XKCP's own code, `backends::xkcp`, through `digest_of`, `hasher` and `mac`
+
 | BLAKE3, keyed BLAKE3, BLAKE3's key derivation and its extendable output
 | the official BLAKE3 C implementation, in Hash2's HashAlgorithm form
 

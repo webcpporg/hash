@@ -23,7 +23,7 @@ states about its constant time. The backends:
 | native, wasip2, wasip3, emscripten
 
 | xkcp
-| XKCP at d20c8fc: its Keccak-p[1600], FIPS 202's Keccak_Hash and SP 800-185's functions
+| XKCP at d20c8fc: its Keccak-p[1600], FIPS 202's Keccak_Hash, SP 800-185's functions, KangarooTwelve and TurboSHAKE
 | CC0-1.0
 | `/third_party//xkcp`
 | native, wasip2, wasip3, emscripten
@@ -325,6 +325,30 @@ states about its constant time. The backends:
 
 | digests::parallelhash_256
 | xkcp (partial: a block size that is not a power of two of at least 8 bytes; SP 800-185 takes any from 1)
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| digests::kt128
+| xkcp
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| digests::kt256
+| xkcp
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| digests::turboshake_128
+| xkcp
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| digests::turboshake_256
+| xkcp
 | -
 | not stated
 | native, wasip2, wasip3, emscripten
@@ -852,6 +876,18 @@ The backend a call that names none uses, on every target, whatever the program l
 | digests::parallelhash_256
 | xkcp
 
+| digests::kt128
+| xkcp
+
+| digests::kt256
+| xkcp
+
+| digests::turboshake_128
+| xkcp
+
+| digests::turboshake_256
+| xkcp
+
 | digests::blake2b
 | sodium
 
@@ -947,6 +983,7 @@ What each backend's upstream states, and where:
 * hash2: not stated. Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property.
 * xkcp: not stated. XKCP at d20c8fc: README.markdown, lib/low/KeccakP-1600 and lib/high/Keccak (KeccakSponge, FIPS202/KeccakHash) state no constant-time property.
 * xkcp: not stated. XKCP at d20c8fc: README.markdown, lib/low/KeccakP-1600 and lib/high/Keccak (KeccakSponge, FIPS202/KeccakHash, SP800-185) state no constant-time property.
+* xkcp: not stated. XKCP at d20c8fc: README.markdown, lib/low/KeccakP-1600 and lib/high (KangarooTwelve, TurboSHAKE, Keccak/KeccakSponge) state no constant-time property.
 * blake3: not stated. BLAKE3 1.8.7: README.md and c/README.md state no constant-time property.
 * sodium: not stated. libsodium 1.0.22: its headers state constant time for comparisons (sodium/utils.h) alone, not for crypto_kdf_hkdf_* or crypto_pwhash_*.
 * openssl: not stated. OpenSSL 3.5.9: doc/man7/EVP_KDF-HKDF.pod and EVP_KDF-PBKDF2.pod state no constant-time property.

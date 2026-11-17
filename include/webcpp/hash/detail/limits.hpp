@@ -45,6 +45,26 @@ inline constexpr std::uint64_t sp800_185_max_bytes = WEBCPP_HASH_DETAIL_TEST_SP8
 inline constexpr std::uint64_t sp800_185_max_bytes = std::numeric_limits<std::size_t>::max() / 8;
 #endif
 
+#ifdef WEBCPP_HASH_DETAIL_TEST_KANGAROOTWELVE_MAX_BYTES
+// The test seam's value; the Doc Comment is in the #else branch, the one the reference reads.
+inline constexpr std::uint64_t kangarootwelve_max_bytes =
+    WEBCPP_HASH_DETAIL_TEST_KANGAROOTWELVE_MAX_BYTES;
+#else
+/**
+ The most bytes XKCP's KangarooTwelve takes, its message and its customisation string together.
+ XKCP counts the 8,192-byte chunks of M || C || length_encode(|C|) in a `size_t`
+ (`blockNumber`), which on wasm32 would wrap past 32 TiB into a wrong digest: there the limit is
+ `SIZE_MAX` chunks less the length encoding's bytes, and webcpp refuses a call that would pass it
+ (`input_too_long`) before XKCP sees the bytes; where a `size_t` has 64 bits, there is no limit.
+ The test seam `WEBCPP_HASH_DETAIL_TEST_KANGAROOTWELVE_MAX_BYTES` lowers it.
+*/
+inline constexpr std::uint64_t kangarootwelve_max_bytes =
+    sizeof(std::size_t) < sizeof(std::uint64_t)
+        ? (std::uint64_t{std::numeric_limits<std::size_t>::max()} * 8192) -
+              (sizeof(std::size_t) + 1)
+        : std::numeric_limits<std::uint64_t>::max();
+#endif
+
 /** The byte @ref nonnull points at for an empty span: a constant, never written. */
 inline constexpr std::uint8_t nonnull_byte = 0;
 

@@ -111,6 +111,15 @@ hash-run xkcp_sp800_185 : xkcp_sp800_185_test.cpp
 hash-run xkcp_sp800_185_limits : xkcp_sp800_185_limits_test.cpp
   : <library>/third_party//xkcp
     <define>WEBCPP_HASH_DETAIL_TEST_SP800_185_MAX_BYTES=16 ;
+# RFC 9861's KT128, KT256, TurboSHAKE128 and TurboSHAKE256 on XKCP: every
+# vector of the RFC, in one call and in pieces; the domain byte's guard. Then
+# the guard of XKCP's count of KangarooTwelve's chunks, the limit lowered to
+# 16 bytes through the seam WEBCPP_HASH_DETAIL_TEST_KANGAROOTWELVE_MAX_BYTES.
+hash-run xkcp_kangarootwelve : xkcp_kangarootwelve_test.cpp
+  : <library>/third_party//xkcp ;
+hash-run xkcp_kangarootwelve_limits : xkcp_kangarootwelve_limits_test.cpp
+  : <library>/third_party//xkcp
+    <define>WEBCPP_HASH_DETAIL_TEST_KANGAROOTWELVE_MAX_BYTES=16 ;
 # hash.hpp's branch for XKCP.
 webcpp.compile hash_keccak : hash_keccak_test.cpp : <library>/third_party//xkcp ;
 # keccak_256's read of the canary survives optimisation: with the library it

@@ -286,6 +286,34 @@
 | recommended
 | no
 
+| <<hash-kangarootwelve,`digests::kt128`>>
+| any length
+| up to 128 bits, as SHAKE128, and half the output length for collisions (RFC 9861, section 7)
+| RFC 9861
+| recommended
+| no
+
+| <<hash-kangarootwelve,`digests::kt256`>>
+| any length
+| up to 256 bits, as SHAKE256, and half the output length for collisions (RFC 9861, section 7)
+| RFC 9861
+| recommended
+| no
+
+| <<hash-turboshake,`digests::turboshake_128`>>
+| any length
+| up to 128 bits, and half the output length for collisions
+| RFC 9861
+| recommended
+| no
+
+| <<hash-turboshake,`digests::turboshake_256`>>
+| any length
+| up to 256 bits, and half the output length for collisions
+| RFC 9861
+| recommended
+| no
+
 | <<hash-blake2,`blake2b_512`>>
 | 512 bits
 | 256-bit collision resistance
@@ -596,6 +624,30 @@
 | -
 | link:https://doi.org/10.6028/NIST.SP.800-185[NIST SP 800-185, the SHA-3 derived functions]
 | As ParallelHash128, where a format asks for 256-bit security.
+
+| <<hash-kangarootwelve,`digests::kt128`>>
+| -
+| -
+| link:https://www.rfc-editor.org/rfc/rfc9861#section-6[IANA's COSE algorithms (KT128, -263) and named information hashes (k12-256)]
+| For a fast hash of large files or a hash with an application's customisation string, where no format names SHA-2 or SHA-3; BLAKE3 is the other fast choice.
+
+| <<hash-kangarootwelve,`digests::kt256`>>
+| -
+| -
+| link:https://www.rfc-editor.org/rfc/rfc9861#section-6[IANA's COSE algorithms (KT256, -264) and named information hashes (k12-512)]
+| As KT128, where a format asks for 256-bit security.
+
+| <<hash-turboshake,`digests::turboshake_128`>>
+| -
+| -
+| link:https://www.rfc-editor.org/rfc/rfc9861#section-3[KT128's inner function (KangarooTwelve)]
+| For an extendable output faster than SHAKE128 with the same security claim, or for several functions from one primitive told apart by the domain byte; shake_128 where a standard names SHAKE.
+
+| <<hash-turboshake,`digests::turboshake_256`>>
+| -
+| -
+| link:https://www.rfc-editor.org/rfc/rfc9861#section-3[KT256's inner function (KangarooTwelve)]
+| As TurboSHAKE128, where a format asks for 256-bit security; shake_256 where a standard names SHAKE.
 
 | <<hash-blake2,`blake2b_512`>>
 | 1,617 MiB/s (hash2)
