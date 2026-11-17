@@ -945,6 +945,7 @@ The backend a call that names none uses, on every target, whatever the program l
 What each backend's upstream states, and where:
 
 * hash2: not stated. Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property.
+* xkcp: not stated. XKCP at d20c8fc: README.markdown, lib/low/KeccakP-1600 and lib/high/Keccak (KeccakSponge, FIPS202/KeccakHash) state no constant-time property.
 * xkcp: not stated. XKCP at d20c8fc: README.markdown, lib/low/KeccakP-1600 and lib/high/Keccak (KeccakSponge, FIPS202/KeccakHash, SP800-185) state no constant-time property.
 * blake3: not stated. BLAKE3 1.8.7: README.md and c/README.md state no constant-time property.
 * sodium: not stated. libsodium 1.0.22: its headers state constant time for comparisons (sodium/utils.h) alone, not for crypto_kdf_hkdf_* or crypto_pwhash_*.

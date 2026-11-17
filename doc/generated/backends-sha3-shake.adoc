@@ -143,7 +143,7 @@
 What each backend states on constant time, as the capability table read it:
 
 * `hash2`: Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property.
-* `xkcp`: XKCP at d20c8fc: README.markdown, lib/low/KeccakP-1600 and lib/high/Keccak (KeccakSponge, FIPS202/KeccakHash, SP800-185) state no constant-time property.
+* `xkcp`: XKCP at d20c8fc: README.markdown, lib/low/KeccakP-1600 and lib/high/Keccak (KeccakSponge, FIPS202/KeccakHash) state no constant-time property.
 
 The default of `digests::sha3_224`, `digests::sha3_256`, `digests::sha3_384` and `digests::sha3_512`: `hash2` on every target, whatever the program links; `xkcp` only where the call names it, as its second template argument (<<hash-default-backend>>).
 

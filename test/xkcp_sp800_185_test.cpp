@@ -25,7 +25,11 @@
 //   https://csrc.nist.gov/CSRC/media/Projects/Cryptographic-Standards-and-Guidelines/documents/examples/TupleHashXOF_samples.pdf
 //   https://csrc.nist.gov/CSRC/media/Projects/Cryptographic-Standards-and-Guidelines/documents/examples/ParallelHash_samples.pdf
 //   https://csrc.nist.gov/CSRC/media/Projects/Cryptographic-Standards-and-Guidelines/documents/examples/ParallelHashXOF_samples.pdf
-// - webcpp's own cases, each value from that independent implementation: a function name, an
+// - webcpp's own cases, each value from that independent implementation (a Python script written
+//   for this test from SP 800-185's text over its own Keccak-f[1600], whose sponge agrees with
+//   Python's hashlib on SHA3-256 and SHAKE, and which reproduces NIST's 40 samples; kept beside
+//   the plan's Task 32 report as task-32-sp800185.py, not in the repository):
+//   a function name, an
 //   output past the rate, the tuple of one element, the empty tuple and the tuple of one empty
 //   element, a ParallelHash with a last block shorter than the others, an empty KMAC key.
 // - cSHAKE with no function name and no customisation is SHAKE (SP 800-185, section 3.3).

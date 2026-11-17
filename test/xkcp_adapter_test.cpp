@@ -538,6 +538,43 @@ void check_final_length() {
     BOOST_TEST_EQ(webcpp_hash_xkcp_parallelhash128_final(parallel.data(), nullptr), 0);
     BOOST_TEST_NE(
         webcpp_hash_xkcp_parallelhash128_final_length(parallel.data(), output128.data(), 32), 0);
+
+    // At other lengths, against XKCP's own path, L given to initialize: 1 and 200 bytes, both
+    // functions, so that the deferred L has an oracle beside NIST's 32 and 64 bytes.
+    for (std::size_t const length : {std::size_t{1}, std::size_t{200}}) {
+        std::vector<std::uint8_t> early(length);
+        std::vector<std::uint8_t> late(length);
+        BOOST_TEST_EQ(
+            webcpp_hash_xkcp_tuplehash256_initialize(tuple.data(), length, app.data(), app.size()),
+            0);
+        BOOST_TEST_EQ(
+            webcpp_hash_xkcp_tuplehash256_update(tuple.data(), first.data(), first.size()), 0);
+        BOOST_TEST_EQ(webcpp_hash_xkcp_tuplehash256_final(tuple.data(), early.data()), 0);
+        BOOST_TEST_EQ(
+            webcpp_hash_xkcp_tuplehash256_initialize(tuple.data(), 0, app.data(), app.size()), 0);
+        BOOST_TEST_EQ(
+            webcpp_hash_xkcp_tuplehash256_update(tuple.data(), first.data(), first.size()), 0);
+        BOOST_TEST_EQ(webcpp_hash_xkcp_tuplehash256_final_length(tuple.data(), late.data(), length),
+                      0);
+        BOOST_TEST(early == late);
+
+        BOOST_TEST_EQ(webcpp_hash_xkcp_parallelhash128_initialize(parallel.data(), 8, length,
+                                                                  data.data(), data.size()),
+                      0);
+        BOOST_TEST_EQ(webcpp_hash_xkcp_parallelhash128_update(parallel.data(), message.data(),
+                                                              message.size()),
+                      0);
+        BOOST_TEST_EQ(webcpp_hash_xkcp_parallelhash128_final(parallel.data(), early.data()), 0);
+        BOOST_TEST_EQ(webcpp_hash_xkcp_parallelhash128_initialize(parallel.data(), 8, 0,
+                                                                  data.data(), data.size()),
+                      0);
+        BOOST_TEST_EQ(webcpp_hash_xkcp_parallelhash128_update(parallel.data(), message.data(),
+                                                              message.size()),
+                      0);
+        BOOST_TEST_EQ(
+            webcpp_hash_xkcp_parallelhash128_final_length(parallel.data(), late.data(), length), 0);
+        BOOST_TEST(early == late);
+    }
 }
 
 // The phases' refusals the Doc Comments state, on the kinds that track their phase: squeezing

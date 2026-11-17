@@ -178,8 +178,9 @@ concatenation gives ("ab", "c") and ("a", "bc") the same digest, and an
 attacker who controls one field can move bytes across the bound; TupleHash
 encodes each field's length and cannot be fooled that way. *ParallelHash*
 cuts a long input in blocks of B bytes, hashes each block on its own and
-hashes the results, so that a large file can be hashed on several cores; the
-block size is part of the function. All three come in a 128-bit and a 256-bit
+hashes the results, so that a large file can be hashed on several cores
+(`backends::xkcp` computes the blocks one after another); the block size is
+part of the function. All three come in a 128-bit and a 256-bit
 strength (SP 800-185, section 8.1) and give any number of bytes; TupleHash and
 ParallelHash have a fixed-length form, which encodes the output's length so
 that their 32-byte and 64-byte digests are unrelated, and an XOF form, which
@@ -216,9 +217,10 @@ samples with B = 12 included; 8192 is common for large files.
 functions NIST defines on it; an application separates its uses with
 `customisation`. With both empty, cSHAKE is SHAKE.
 * *Lengths in bits.* SP 800-185 counts every string in bits, which XKCP holds
-in a `size_t`: on wasm32 a customisation, a TupleHash element or a
-fixed-length output past 512 MiB is refused (`input_too_long`,
-`invalid_output_size`) before XKCP sees it.
+in a `size_t`: on wasm32 a customisation, a TupleHash element, a
+ParallelHash input (all its pieces together) or a fixed-length output past
+512 MiB is refused (`input_too_long`, `invalid_output_size`) before XKCP sees
+it, rather than hashed into a wrong digest.
 
 include::generated/backends-sp800-185.adoc[]
 

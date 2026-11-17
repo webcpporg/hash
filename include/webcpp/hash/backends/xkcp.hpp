@@ -422,7 +422,8 @@ struct xkcp_cshake_engine : full_engine {
 
 /**
  The state of TupleHash and ParallelHash on backends::xkcp: XKCP's instance, started with an
- output length of 0 since the fixed-length form's length is known only at `finish`, and the form.
+ output length of 0 since the fixed-length form's length is known only at `finish`, the form, and
+ the bytes absorbed so far (ParallelHash's guard; TupleHash leaves it at 0).
 
  @tparam Storage The instance's storage.
 */
@@ -432,6 +433,8 @@ struct xkcp_sp800_185_state {
     Storage storage{};
     /** The extendable-output form. */
     bool xof = false;
+    /** The bytes absorbed so far, in 64 bits on every target. */
+    std::uint64_t absorbed = 0;
 };
 
 /**
@@ -541,9 +544,12 @@ struct xkcp_tuplehash_engine : full_engine {
 /**
  ParallelHash on backends::xkcp (its interface is @ref digest_engine), in part: XKCP takes a
  block size that is a power of two of at least 8 bytes, its lane's size, and `accepts` refuses
- any other (`unsupported_by_backend`), which the family's guard of 0 leaves to it. XKCP computes
- the blocks one after another (no parallel permutation is compiled). Both forms; the state is
- wiped by `destroy`.
+ any other (`unsupported_by_backend`), which the family's guard of 0 leaves to it. XKCP counts
+ the whole input in bits in a `size_t` (`totalInputSize`), which on wasm32 would wrap past 512 MiB
+ into a wrong block count: the engine counts the bytes itself and refuses the call that would take
+ the input past `sp800_185_max_bytes` with `input_too_long`, before XKCP sees it, after which a
+ hasher is spent and `digest_of`'s output zeroed. XKCP computes the blocks one after another (no
+ parallel permutation is compiled). Both forms; the state is wiped by `destroy`.
 
  @tparam Digest The tag. @tparam Functions The adapter's functions of its security strength.
 */
@@ -583,15 +589,22 @@ struct xkcp_parallelhash_engine : full_engine {
     }
 
     /**
-     Absorbs `input`, which the adapter passes to XKCP in pieces of at most `SIZE_MAX / 8` bytes.
+     Absorbs `input`, which the adapter passes to XKCP in pieces of at most `SIZE_MAX / 8` bytes,
+     unless the whole input would pass `sp800_185_max_bytes`.
 
-     @param hashed The state. @param input The bytes. @return Success, or backend_failure.
+     @param hashed The state. @param input The bytes.
+     @return Success, `input_too_long`, or backend_failure.
     */
     [[nodiscard]] static boost::system::result<void> update(
         state& hashed, std::span<std::uint8_t const> input) noexcept {
+        // hashed.absorbed never exceeds the limit, so the subtraction does not wrap.
+        if (exceeds(input.size(), sp800_185_max_bytes - hashed.absorbed)) {
+            return error::input_too_long;
+        }
         if (Functions::update(hashed.storage.data(), input.data(), input.size()) != 0) {
             return error::backend_failure;
         }
+        hashed.absorbed += input.size();
         return {};
     }
 
@@ -612,7 +625,7 @@ struct xkcp_parallelhash_engine : full_engine {
      The digest of `input` at once, the state wiped.
 
      @param output The output. @param input The bytes. @param options B, S and the form.
-     @return Success, or backend_failure.
+     @return Success, `input_too_long`, or backend_failure.
     */
     [[nodiscard]] static boost::system::result<void> one_shot(
         std::span<std::uint8_t> output, std::span<std::uint8_t const> input,

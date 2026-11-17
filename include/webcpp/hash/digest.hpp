@@ -145,7 +145,9 @@ struct digest_options<digests::tuplehash_256> {
 
  SP 800-185 sets no default B: the call states it, and 0 is `invalid_parameters`. A backend may
  take fewer: XKCP takes a power of two of at least 8 bytes, and answers any other with
- `unsupported_by_backend`. The fixed-length form encodes the output's length, as TupleHash's
+ `unsupported_by_backend`. The whole input, in one call or across a hasher's updates, is at most
+ `SIZE_MAX / 8` bytes (`input_too_long`), since its length is counted in bits. The fixed-length
+ form encodes the output's length, as TupleHash's
  does (@ref digest_options<digests::tuplehash_128>), and is at most `SIZE_MAX / 8` bytes
  (`invalid_output_size`), as is S (`input_too_long`), which is read during the call and not kept.
 */

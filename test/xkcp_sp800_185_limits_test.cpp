@@ -22,6 +22,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <span>
 #include <vector>
 
 namespace {
@@ -139,8 +140,8 @@ void check_key_and_outputs() {
 }
 
 // A TupleHash element over the limit: input_too_long, from hasher::update (the hasher then
-// spent) and from digest_of, whose input is the tuple's one element; ParallelHash and cSHAKE
-// take any input, fed to XKCP in pieces.
+// spent) and from digest_of, whose input is the tuple's one element; cSHAKE takes any input, fed
+// to XKCP in pieces.
 void check_elements() {
     bytes const at(limit, 0x61);
     bytes const over(limit + 1, 0x61);
@@ -153,9 +154,42 @@ void check_elements() {
     BOOST_TEST(hashing->update(at).has_value());
     BOOST_TEST(failed_with(hashing->update(over), hash::error::input_too_long));
     BOOST_TEST(failed_with(hashing->finish(output), hash::error::invalid_state));
-    BOOST_TEST((hash::digest_of<digests::parallelhash_128, xkcp>(output, over, {.block_size = 8})
-                    .has_value()));
     BOOST_TEST((hash::digest_of<digests::cshake_256, xkcp>(output, over).has_value()));
+}
+
+// ParallelHash's whole input over the limit: XKCP counts it in bits in a size_t, across calls,
+// and on wasm32 that count wraps past 512 MiB into a wrong digest. The engine counts the bytes
+// itself and refuses the call that would pass the limit with input_too_long, before XKCP sees
+// it: from digest_of, and from the update that crosses it in a hasher (then spent), however the
+// input is cut; up to the limit, in pieces, the digest is digest_of's.
+void check_parallel_total() {
+    bytes const at(limit, 0x61);
+    bytes const over(limit + 1, 0x61);
+    std::span<std::uint8_t const> const half(at.data(), limit / 2);
+    bytes output(limit);
+    bytes once(limit);
+    BOOST_TEST((
+        hash::digest_of<digests::parallelhash_128, xkcp>(once, at, {.block_size = 8}).has_value()));
+    BOOST_TEST(failed_with(
+        hash::digest_of<digests::parallelhash_128, xkcp>(output, over, {.block_size = 8}),
+        hash::error::input_too_long));
+    BOOST_TEST(failed_with(hash::digest_of<digests::parallelhash_256, xkcp>(
+                               output, over, {.block_size = 8, .xof = true}),
+                           hash::error::input_too_long));
+
+    auto hashing = hash::hasher<digests::parallelhash_128, xkcp>::make({.block_size = 8});
+    test::require(BOOST_TEST(hashing.has_value()));
+    BOOST_TEST(hashing->update(half).has_value());
+    BOOST_TEST(hashing->update(half).has_value());
+    BOOST_TEST(hashing->finish(output).has_value());
+    BOOST_TEST(output == once);
+
+    auto crossing = hash::hasher<digests::parallelhash_256, xkcp>::make({.block_size = 8});
+    test::require(BOOST_TEST(crossing.has_value()));
+    BOOST_TEST(crossing->update(at).has_value());
+    BOOST_TEST(crossing->update(bytes{}).has_value());
+    BOOST_TEST(failed_with(crossing->update(bytes{0x61}), hash::error::input_too_long));
+    BOOST_TEST(failed_with(crossing->finish(output), hash::error::invalid_state));
 }
 
 }  // namespace
@@ -164,5 +198,6 @@ int main() {
     check_strings();
     check_key_and_outputs();
     check_elements();
+    check_parallel_total();
     return webcpp::test::exit_status(boost::report_errors());
 }

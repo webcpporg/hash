@@ -16,11 +16,11 @@
  TurboSHAKE, KangarooTwelve, and SP 800-185's cSHAKE, KMAC, TupleHash and ParallelHash, each in
  four phases, `initialize`, `update`, `final` and `squeeze`, named
  `webcpp_hash_xkcp_<interface>_<phase>`; TupleHash and ParallelHash also end with
- `final_length`, which takes the output length at the end. An instance lives in the caller's storage, the
- `xkcp_<kind>_storage` below, opaque to it: its size is the native maximum of XKCP's structure
- (smaller on wasm32, where `size_t` is 4 bytes), which the adapter's static assertions check on
- every target. A storage is used for one instance from its `initialize` on, and wiped by its
- owner when done. Every length is in bytes; every function returns XKCP's answer, 0 on success
+ `final_length`, which takes the output length at the end. An instance lives in the caller's
+ storage, the `xkcp_<kind>_storage` below, opaque to it: its size is the native maximum of XKCP's
+ structure (smaller on wasm32, where `size_t` is 4 bytes), which the adapter's static assertions
+ check on every target. A storage is used for one instance from its `initialize` on, and wiped by
+ its owner when done. Every length is in bytes; every function returns XKCP's answer, 0 on success
  and nonzero on a refusal (a phase out of order, a parameter XKCP does not take). SP 800-185's
  and `Keccak_Hash`'s lengths are bits in a `size_t`: the adapter passes input and squeezed
  output in chunks, and refuses a key, function name, customisation, tuple element or fixed
