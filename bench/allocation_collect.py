@@ -116,7 +116,10 @@ def collect(outputs):
     counted = {}
     toolsets = {}
     for target, output in outputs:
-        toolsets[target] = build_of(output)[0]
+        build = build_of(output)
+        if build is None:  # check_release, which runs first, refuses such an output
+            sys.exit(f"allocation_collect.py: {output} is not under b2's bench/ build directory")
+        toolsets[target] = build[0]
         for record in parse(output):
             if record["operation"] == "counter":
                 counted[target] = record["c_counted"] == "1"
