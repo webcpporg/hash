@@ -4,10 +4,11 @@
 // accompanying file LICENSE_1_0.txt or copy at
 // https://www.boost.org/LICENSE_1_0.txt)
 
-// scrypt on another backend than backends::sodium stops with spec section 3.3's text.
+// scrypt on another backend than backends::sodium and backends::openssl stops with spec section
+// 3.3's text.
 
 // clang-format off
-// expected-error@webcpp/hash/detail/engines.hpp:* {{webcpp::hash: scrypt is in backends::sodium alone. Name backends::sodium and add /third_party//sodium to the program's Jamfile.}}
+// expected-error@webcpp/hash/detail/engines.hpp:* {{webcpp::hash: scrypt is in backends::sodium and backends::openssl alone. Name one, and add /third_party//sodium or /webcpp/hash//openssl to the program's Jamfile.}}
 // clang-format on
 #include <webcpp/hash/backends/hash2.hpp>
 #include <webcpp/hash/scrypt.hpp>

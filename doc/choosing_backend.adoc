@@ -107,6 +107,14 @@ from. A MAC allocates an `EVP_MAC_CTX` and the MAC's context, which `mac`
 frees before it returns. OpenSSL documents that it cleans up and frees these
 contexts, not that it clears them; its HMAC, KMAC and BLAKE2 MACs clear their
 copy of the key, and its SipHash frees its keyed state without clearing it.
+Its Argon2 and scrypt allocate the memory their costs name from OpenSSL's
+allocator, the C heap, and free it before the call returns; Argon2 clears its
+copies of the password, salt, secret and associated data, scrypt its copy of
+the password but not of the salt. Its scrypt takes r p below 2^24^ and a
+password, salt and output of at most `INT_MAX` bytes (`invalid_parameters`,
+`input_too_long`, `invalid_output_size` otherwise); its Argon2, on wasm32, at
+most 4,194,303 KiB of memory (`unsupported_by_backend` for the family,
+`invalid_parameters` for `argon2id`).
 Its KMAC takes a key of 4 to 512 bytes, a customisation of at most 512 and a
 tag of at most 2,097,151, and its HMAC a key of at most `INT_MAX` bytes:
 `mac` answers others `unsupported_by_backend`. Its first call reads OpenSSL's

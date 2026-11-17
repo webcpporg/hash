@@ -44,6 +44,10 @@ webcpp.example blake2b_subkey.cpp : <library>/third_party//sodium ;
 # Password hashing.
 webcpp.example argon2id.cpp : <library>/third_party//sodium ;
 webcpp.example scrypt.cpp : <library>/third_party//sodium ;
+webcpp.example argon2_openssl.cpp : <library>/webcpp/hash//openssl
+  : native wasip2 wasip3 ;
+webcpp.example scrypt_openssl.cpp : <library>/webcpp/hash//openssl
+  : native wasip2 wasip3 ;
 
 # Hashes that are not cryptographic.
 webcpp.example checksums.cpp ;

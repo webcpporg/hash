@@ -11,14 +11,19 @@
 // errc::not_enough_memory or backend_failure (OpenSSL's last error decides, openssl_outcome),
 // zeroes its output, frees every block OpenSSL allocated for it (the live blocks are back to where
 // they were), and leaves the thread's error queue empty. The calls: mac over HMAC, KMAC, keyed
-// BLAKE2b and SipHash, digest_of, and a hasher's make. A hasher's update and finish allocate
-// nothing on OpenSSL 3.5.9 (counted below), so no allocation can make them fail: the hasher's
-// failures reachable through this seam are its make's.
+// BLAKE2b and SipHash, digest_of, a hasher's make, argon2, argon2id and scrypt. OpenSSL's Argon2
+// does not check some of its allocations (its first hash and its first and last blocks), and
+// returns success over a wrong tag when one fails: backends::openssl answers a call during which
+// OpenSSL raised an error as a failure, whatever OpenSSL returned. A hasher's update and finish
+// allocate nothing on OpenSSL 3.5.9 (counted below), so no allocation can make them fail: the
+// hasher's failures reachable through this seam are its make's.
 
+#include <webcpp/hash/argon2.hpp>
 #include <webcpp/hash/backends/openssl.hpp>
 #include <webcpp/hash/digest.hpp>
 #include <webcpp/hash/error.hpp>
 #include <webcpp/hash/mac.hpp>
+#include <webcpp/hash/scrypt.hpp>
 #include <webcpp/test/exit_status.hpp>
 
 #include "require.hpp"
@@ -148,6 +153,18 @@ void fail_each_allocation(std::string_view name, std::span<std::uint8_t> output,
     }
 }
 
+// OpenSSL keeps, in each slot of the thread's error queue, the buffer of the text an error carries,
+// for the next error in that slot, until the thread's state is freed: the test gives every slot
+// its buffer first, so that the buffer of a failure's error (Argon2's "cannot allocate required
+// memory") is not counted as a block the call left.
+void give_each_error_slot_its_buffer() {
+    for (int slot = 0; slot < ERR_NUM_ERRORS; ++slot) {
+        // NOLINTNEXTLINE(bugprone-signed-bitwise): OpenSSL's reason macro ORs signed flags
+        ERR_raise_data(ERR_LIB_USER, ERR_R_PASSED_INVALID_ARGUMENT, "slot %d", slot);
+    }
+    ERR_clear_error();
+}
+
 void check_macs() {
     std::array<std::uint8_t, 32> const key{1, 2, 3};
     std::array<std::uint8_t, 100> const input{4, 5, 6};
@@ -197,14 +214,37 @@ void check_digests() {
     BOOST_TEST_EQ(allocations, 0U);
 }
 
+void check_password_hashing() {
+    std::array<std::uint8_t, 16> const salt{7, 8, 9};
+    std::array<std::uint8_t, 8> const secret{1, 2};
+    std::array<std::uint8_t, 32> tag{};
+    fail_each_allocation("argon2 argon2id, two lanes, secret and associated data", tag, [&] {
+        return hash::argon2<webcpp::hash::kdfs::argon2id, openssl>(
+            tag, secret, salt,
+            {.passes = 1, .memory_kib = 16, .lanes = 2, .secret = secret, .associated_data = salt});
+    });
+    fail_each_allocation("argon2 argon2d", tag, [&] {
+        return hash::argon2<webcpp::hash::kdfs::argon2d, openssl>(tag, secret, salt,
+                                                                  {.passes = 1, .memory_kib = 8});
+    });
+    fail_each_allocation("argon2id", tag, [&] {
+        return hash::argon2id<openssl>(tag, secret, salt, {.passes = 1, .memory = 8192});
+    });
+    fail_each_allocation("scrypt", tag, [&] {
+        return hash::scrypt<openssl>(tag, secret, salt, {.n = 16, .r = 1, .p = 1});
+    });
+}
+
 }  // namespace
 
 int main() {
     // Before anything: OpenSSL allocates through the test's functions from here on.
     test::require(BOOST_TEST(
         (CRYPTO_set_mem_functions(&failing_malloc, &failing_realloc, &failing_free) == 1)));
+    give_each_error_slot_its_buffer();
     check_macs();
     check_digests();
+    check_password_hashing();
     // OpenSSL's allocation failure is the last error of some failing calls: the mapping to
     // not_enough_memory is reached. The counts are printed only when it is not.
     if (!BOOST_TEST(out_of_memory > 0)) {

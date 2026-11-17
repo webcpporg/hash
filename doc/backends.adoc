@@ -981,11 +981,41 @@ states about its constant time. The backends:
 | not stated
 | native, wasip2, wasip3, emscripten
 
+| argon2id
+| openssl
+| -
+| not stated
+| native, wasip2, wasip3
+
+| kdfs::argon2d
+| openssl (partial: m above 4,194,303 KiB on wasm32: OpenSSL sizes Argon2's memory, m blocks of 1 KiB, in a size_t)
+| -
+| not stated
+| native, wasip2, wasip3
+
+| kdfs::argon2i
+| openssl (partial: m above 4,194,303 KiB on wasm32: OpenSSL sizes Argon2's memory, m blocks of 1 KiB, in a size_t)
+| -
+| not stated
+| native, wasip2, wasip3
+
+| kdfs::argon2id
+| openssl (partial: m above 4,194,303 KiB on wasm32: OpenSSL sizes Argon2's memory, m blocks of 1 KiB, in a size_t)
+| -
+| not stated
+| native, wasip2, wasip3
+
 | scrypt
 | sodium
 | -
 | not stated
 | native, wasip2, wasip3, emscripten
+
+| scrypt
+| openssl (partial: r p of 2^24 or more, or a password, salt or output of more than INT_MAX bytes: OpenSSL passes them to PBKDF2, whose lengths are ints)
+| -
+| not stated
+| native, wasip2, wasip3
 |===
 
 === The default backends
@@ -1164,6 +1194,15 @@ The backend a call that names none uses, on every target, whatever the program l
 | argon2id
 | sodium
 
+| kdfs::argon2d
+| none: the call names its backend
+
+| kdfs::argon2i
+| sodium
+
+| kdfs::argon2id
+| sodium
+
 | scrypt
 | sodium
 |===
@@ -1180,3 +1219,5 @@ What each backend's upstream states, and where:
 * openssl: not stated. OpenSSL 3.5.9: doc/man7/EVP_MD-*.pod, doc/man3/EVP_DigestInit.pod and providers/implementations/digests/ state no constant-time property.
 * openssl: not stated. OpenSSL 3.5.9: doc/man3/EVP_MAC.pod, doc/man7/EVP_MAC-HMAC.pod, EVP_MAC-KMAC.pod, EVP_MAC-BLAKE2.pod, EVP_MAC-Siphash.pod and providers/implementations/macs/ state no constant-time property.
 * openssl: not stated. OpenSSL 3.5.9: doc/man7/EVP_KDF-HKDF.pod and EVP_KDF-PBKDF2.pod state no constant-time property.
+* openssl: not stated. OpenSSL 3.5.9: doc/man7/EVP_KDF-ARGON2.pod states that Argon2i's memory accesses are independent of the data and Argon2d's depend on it, and states no constant-time property.
+* openssl: not stated. OpenSSL 3.5.9: doc/man7/EVP_KDF-SCRYPT.pod states no constant-time property.

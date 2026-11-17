@@ -5,9 +5,9 @@
 // https://www.boost.org/LICENSE_1_0.txt)
 
 /**
- `backends::openssl`: HKDF (RFC 5869) and PBKDF2 (RFC 8018) of OpenSSL 3.5.9, its `EVP_KDF`s
- "HKDF" and "PBKDF2", the digests of its default provider through `EVP_MD` and its MACs through
- `EVP_MAC`, built from
+ `backends::openssl`: HKDF (RFC 5869), PBKDF2 (RFC 8018), scrypt (RFC 7914) and Argon2 (RFC 9106)
+ of OpenSSL 3.5.9, its `EVP_KDF`s "HKDF", "PBKDF2", "SCRYPT", "ARGON2D", "ARGON2I" and "ARGON2ID",
+ the digests of its default provider through `EVP_MD` and its MACs through `EVP_MAC`, built from
  `third_party/libs/openssl` by `/webcpp/hash//openssl`, static, on native, wasip2 and wasip3;
  never on Emscripten, and never a default backend (design D34): a call names it. The key
  derivations have every hmac of `hmac.hpp` but `hmac_ripemd_128` (spec section 3.2). The digests
@@ -17,7 +17,10 @@
  MDC2 are in the legacy provider, which webcpp does not load (`doc/capabilities.json` says why).
  The MACs are HMAC over each of those digests but SHAKE and MD5-SHA1 (no standard defines an
  HMAC over it), KMAC128 and KMAC256 (fixed-length and XOF), keyed BLAKE2b and BLAKE2s, and
- SipHash-2-4 with an 8-byte or a 16-byte tag; its CMAC, GMAC and Poly1305 are not exposed.
+ SipHash-2-4 with an 8-byte or a 16-byte tag; its CMAC, GMAC and Poly1305 are not exposed. Its
+ Argon2 has the three variants with every parameter of RFC 9106 (the family `argon2`) and serves
+ the function `argon2id`; it computes the lanes one after the other in the calling thread. Its
+ scrypt runs with its own memory limit, `maxmem_bytes`, at its largest.
 
  Each key derivation fetches the KDF, makes a context, sets the parameters, derives and frees
  both (spec section 3.4): OpenSSL allocates them through its own allocator, and webcpp keeps no
@@ -35,12 +38,15 @@
  call, reads the configuration file of the directory it was configured with, as any program of
  OpenSSL does.
 
- Its limits: OpenSSL 3.5.9 holds some lengths in an `int`, so the public functions
- refuse, before OpenSSL is called, PBKDF2's output (`invalid_output_size`), password and salt
- (`input_too_long`) and HKDF's salt (`input_too_long`) of more than `INT_MAX` bytes, and `mac`
- an HMAC key of more than `INT_MAX` bytes (`unsupported_by_backend`); its KMAC takes a key of 4
- to 512 bytes, a customisation of at most 512 and a tag of at most 2,097,151
- (`unsupported_by_backend` otherwise). PBKDF2 keeps
+ Its limits: OpenSSL 3.5.9 holds some lengths in an `int`, so the public functions refuse,
+ before OpenSSL is called, PBKDF2's output (`invalid_output_size`), password and salt
+ (`input_too_long`), HKDF's salt (`input_too_long`) and scrypt's password, salt
+ (`input_too_long`) and output (`invalid_output_size`) of more than `INT_MAX` bytes, scrypt's
+ r p of 2^24 or more (`invalid_parameters`), and `mac` an HMAC key of more than `INT_MAX` bytes
+ (`unsupported_by_backend`); its KMAC takes a key of 4 to 512 bytes, a customisation of at most
+ 512 and a tag of at most 2,097,151 (`unsupported_by_backend` otherwise); its Argon2 sizes the
+ memory in a `size_t`, at most 4,194,303 KiB on wasm32 (`unsupported_by_backend` for `argon2`,
+ `invalid_parameters` for `argon2id`). PBKDF2 keeps
  the output's and the salt's lengths in `int`s, and HMAC, through `HMAC_Init_ex`, its key's
  length, which is PBKDF2's password and HKDF-Extract's salt; HKDF-Expand's key, the PRK, takes
  the same path and is limited alike, though it is always one digest. HKDF's IKM, info and output
@@ -65,11 +71,13 @@
 // clang-format on
 #else
 
+#include <webcpp/hash/argon2.hpp>
 #include <webcpp/hash/detail/engines.hpp>
 #include <webcpp/hash/detail/limits.hpp>
 #include <webcpp/hash/detail/wipe.hpp>
 #include <webcpp/hash/error.hpp>
 #include <webcpp/hash/hmac.hpp>
+#include <webcpp/hash/scrypt.hpp>
 
 #include <boost/system/errc.hpp>
 #include <boost/system/result.hpp>
@@ -85,6 +93,7 @@
 #include <climits>
 #include <cstddef>
 #include <cstdint>
+#include <limits>
 #include <span>
 #include <type_traits>
 #include <utility>
@@ -106,7 +115,8 @@ inline constexpr std::uint64_t openssl_int_max = INT_MAX;
 
 /**
  The limits of backends::openssl: `INT_MAX` bytes wherever OpenSSL 3.5.9 holds a
- length in an `int` (this header's comment lists them); no limit elsewhere.
+ length in an `int` (this header's comment lists them), Argon2's `uint32_t` lengths; no limit
+ elsewhere.
 */
 template <>
 struct backend_limits<backends::openssl> {
@@ -126,18 +136,18 @@ struct backend_limits<backends::openssl> {
     static constexpr std::uint64_t pbkdf2_salt = openssl_int_max;
     /** PBKDF2's output length is an `int` (`tkeylen`) in `pbkdf2_derive`. */
     static constexpr std::uint64_t pbkdf2_output = openssl_int_max;
-    /** OpenSSL has no Argon2id in increment 1: no limit of its own. */
-    static constexpr std::uint64_t argon2id_password = no_limit;
-    /** OpenSSL has no Argon2id in increment 1: no limit of its own. */
-    static constexpr std::uint64_t argon2id_salt = no_limit;
-    /** OpenSSL has no Argon2id in increment 1: no limit of its own. */
-    static constexpr std::uint64_t argon2id_output = no_limit;
-    /** OpenSSL has no scrypt in increment 1: no limit of its own. */
-    static constexpr std::uint64_t scrypt_password = no_limit;
-    /** OpenSSL has no scrypt in increment 1: no limit of its own. */
-    static constexpr std::uint64_t scrypt_salt = no_limit;
-    /** OpenSSL has no scrypt in increment 1: no limit of its own. */
-    static constexpr std::uint64_t scrypt_output = no_limit;
+    /** Argon2's password length is a `uint32_t` in OpenSSL, RFC 9106's own bound. */
+    static constexpr std::uint64_t argon2id_password = 0xffffffffULL;
+    /** Argon2's salt length is a `uint32_t` in OpenSSL, RFC 9106's own bound. */
+    static constexpr std::uint64_t argon2id_salt = 0xffffffffULL;
+    /** Argon2's tag length is a `uint32_t` in OpenSSL, RFC 9106's own bound. */
+    static constexpr std::uint64_t argon2id_output = 0xffffffffULL;
+    /** scrypt's password goes to PBKDF2 (`ossl_pkcs5_pbkdf2_hmac_ex`), whose length is an `int`. */
+    static constexpr std::uint64_t scrypt_password = openssl_int_max;
+    /** scrypt's salt goes to PBKDF2 alike. */
+    static constexpr std::uint64_t scrypt_salt = openssl_int_max;
+    /** scrypt's output is PBKDF2's, whose length is an `int`. */
+    static constexpr std::uint64_t scrypt_output = openssl_int_max;
 };
 
 /**
@@ -452,21 +462,44 @@ inline OSSL_PARAM openssl_text(char const* param_name, char const* text_value) n
 }
 
 /**
- OpenSSL's answer to a call made since the caller's `ERR_set_mark()`, whose mark it pops, so that
- the thread's error queue is left as it was found: only an error raised since the mark is
- OpenSSL's answer, an older one is the caller's.
+ An error of OpenSSL's that means that the memory a call needs cannot be had, beside an
+ allocation's failure: its library and its reason. The default names none.
+*/
+struct openssl_memory_error {
+    /** The library, `ERR_LIB_*`; 0 for none. */
+    int library = 0;
+    /** The reason within the library. */
+    int reason = 0;
+};
+
+/**
+ OpenSSL's answer to a call made since the caller's `ERR_set_mark()`, whose mark it pops with every
+ error raised since, so that the thread's error queue is left as it was found: only an error
+ raised since the mark is OpenSSL's answer, an older one is the caller's. A call during which
+ OpenSSL raised an error failed, whatever its functions returned: OpenSSL's Argon2 leaves some of
+ its allocations unchecked and returns success over a wrong tag when one fails.
 
  @param succeeded Whether OpenSSL's functions returned success.
- @return Success; `errc::not_enough_memory` when the last error OpenSSL raised since the mark is an
- allocation's; `error::backend_failure` for any other failure.
+ @param memory_error An error that means the memory cannot be had, beside an allocation's.
+ @return Success when OpenSSL succeeded and raised nothing; `errc::not_enough_memory` when an error
+ raised since the mark is an allocation's or `memory_error`; `error::backend_failure` otherwise.
 */
-[[nodiscard]] inline boost::system::result<void> openssl_outcome(bool succeeded) noexcept {
+[[nodiscard]] inline boost::system::result<void> openssl_outcome(
+    bool succeeded, openssl_memory_error memory_error = {}) noexcept {
     // NOLINTNEXTLINE(bugprone-signed-bitwise): OpenSSL's macro ORs signed constants
     constexpr int malloc_failure_reason = ERR_R_MALLOC_FAILURE;
-    const bool is_out_of_memory = !succeeded && ERR_count_to_mark() > 0 &&
-                                  ERR_GET_REASON(ERR_peek_last_error()) == malloc_failure_reason;
+    const bool raised = ERR_count_to_mark() > 0;
+    bool is_out_of_memory = false;
+    while (ERR_count_to_mark() > 0) {
+        unsigned long const error_code = ERR_peek_last_error();
+        is_out_of_memory =
+            is_out_of_memory || ERR_GET_REASON(error_code) == malloc_failure_reason ||
+            (memory_error.library != 0 && ERR_GET_LIB(error_code) == memory_error.library &&
+             ERR_GET_REASON(error_code) == memory_error.reason);
+        ERR_pop();
+    }
     ERR_pop_to_mark();
-    if (succeeded) {
+    if (succeeded && !raised) {
         return {};
     }
     if (is_out_of_memory) {
@@ -479,15 +512,16 @@ inline OSSL_PARAM openssl_text(char const* param_name, char const* text_value) n
  Fetches the KDF named `kdf_name`, makes a context, and derives `output_bytes` from `ossl_params`
  (spec section 3.4), freeing both; the thread's error queue is left as it was found.
 
- @param kdf_name OpenSSL's name of the KDF, "HKDF" or "PBKDF2".
+ @param kdf_name OpenSSL's name of the KDF: "HKDF", "PBKDF2", "SCRYPT", "ARGON2D", "ARGON2I"
+ or "ARGON2ID".
  @param output_bytes What is derived, its whole size.
  @param ossl_params The parameters, ending with `OSSL_PARAM_construct_end()`.
- @return Success; `errc::not_enough_memory` when the last error OpenSSL raised is an allocation's;
- `error::backend_failure` for any other failure.
+ @param memory_error An error of the KDF's that means the memory cannot be had.
+ @return As @ref openssl_outcome.
 */
 [[nodiscard]] inline boost::system::result<void> openssl_kdf(
-    char const* kdf_name, std::span<std::uint8_t> output_bytes,
-    std::span<OSSL_PARAM> ossl_params) noexcept {
+    char const* kdf_name, std::span<std::uint8_t> output_bytes, std::span<OSSL_PARAM> ossl_params,
+    openssl_memory_error memory_error = {}) noexcept {
     ERR_set_mark();
     EVP_KDF* kdf_algorithm = EVP_KDF_fetch(nullptr, kdf_name, nullptr);
     EVP_KDF_CTX* kdf_context = kdf_algorithm != nullptr ? EVP_KDF_CTX_new(kdf_algorithm) : nullptr;
@@ -497,7 +531,7 @@ inline OSSL_PARAM openssl_text(char const* param_name, char const* text_value) n
     // The frees raise no error: the outcome read after them is the derivation's.
     EVP_KDF_CTX_free(kdf_context);
     EVP_KDF_free(kdf_algorithm);
-    return openssl_outcome(derive_status);
+    return openssl_outcome(derive_status, memory_error);
 }
 
 /**
@@ -623,6 +657,199 @@ struct pbkdf2_engine<backends::openssl, Hmac> {
             OSSL_PARAM_construct_end(),
         };
         return openssl_kdf("PBKDF2", output_bytes, ossl_params);
+    }
+};
+
+/**
+ The most memory OpenSSL's Argon2 takes, in KiB: m is a `uint32_t`, and the memory, m blocks of
+ 1 KiB, a `size_t` (4,194,303 KiB on wasm32, where a larger m overflows it).
+*/
+inline constexpr std::uint32_t openssl_argon2_max_memory_kib = static_cast<std::uint32_t>(
+    std::min<std::uint64_t>(0xffffffffULL, std::numeric_limits<std::size_t>::max() / 1024));
+
+/**
+ One Argon2 of OpenSSL, version 0x13 (its default), with one thread: OpenSSL's Argon2 runs its
+ lanes in turn with one thread, and builds without threads where webcpp builds it `no-threads`.
+ OpenSSL copies the password, the salt, the secret and the associated data into its context, and
+ clears each copy when the context is freed.
+
+ @param kdf_name "ARGON2D", "ARGON2I" or "ARGON2ID".
+ @param output_bytes The tag. @param password_bytes The password. @param salt_bytes The salt.
+ @param parameters t, m in KiB, p, the secret and the associated data, within RFC 9106's
+ bounds and `openssl_argon2_max_memory_kib`.
+ @return Success; `errc::not_enough_memory` when the memory cannot be allocated (OpenSSL raises
+ its allocation's error, then its own "invalid memory size"); `error::backend_failure` otherwise.
+*/
+[[nodiscard]] inline boost::system::result<void> openssl_argon2(
+    char const* kdf_name, std::span<std::uint8_t> output_bytes,
+    std::span<std::uint8_t const> password_bytes, std::span<std::uint8_t const> salt_bytes,
+    argon2_parameters const& parameters) noexcept {
+    std::uint32_t pass_count = parameters.passes;
+    std::uint32_t memory_kib = parameters.memory_kib;
+    std::uint32_t lane_count = parameters.lanes;
+    std::uint32_t thread_count = 1;
+    // An empty secret or associated data is hashed as OpenSSL hashes none: its length, 0, alone.
+    std::array<OSSL_PARAM, 9> ossl_params{
+        openssl_octets("pass", password_bytes),
+        openssl_octets("salt", salt_bytes),
+        openssl_octets("secret", parameters.secret),
+        openssl_octets("ad", parameters.associated_data),
+        OSSL_PARAM_construct_uint32("iter", &pass_count),
+        OSSL_PARAM_construct_uint32("memcost", &memory_kib),
+        OSSL_PARAM_construct_uint32("lanes", &lane_count),
+        OSSL_PARAM_construct_uint32("threads", &thread_count),
+        OSSL_PARAM_construct_end(),
+    };
+    return openssl_kdf(kdf_name, output_bytes, ossl_params);
+}
+
+/**
+ OpenSSL's name of an Argon2 variant, its `value`.
+
+ @tparam Variant `kdfs::argon2d`, `kdfs::argon2i` or `kdfs::argon2id`.
+*/
+template <class Variant>
+struct openssl_argon2_name;
+
+/** Argon2d: "ARGON2D". */
+template <>
+struct openssl_argon2_name<kdfs::argon2d> {
+    /** The name. */
+    static constexpr char const* value = "ARGON2D";
+};
+
+/** Argon2i: "ARGON2I". */
+template <>
+struct openssl_argon2_name<kdfs::argon2i> {
+    /** The name. */
+    static constexpr char const* value = "ARGON2I";
+};
+
+/** Argon2id: "ARGON2ID". */
+template <>
+struct openssl_argon2_name<kdfs::argon2id> {
+    /** The name. */
+    static constexpr char const* value = "ARGON2ID";
+};
+
+/**
+ Argon2 of the variant `Variant` on backends::openssl, OpenSSL's "ARGON2D", "ARGON2I" or
+ "ARGON2ID" with every parameter of RFC 9106 (the engine's interface: @ref argon2_engine).
+
+ @tparam Variant `kdfs::argon2d`, `kdfs::argon2i` or `kdfs::argon2id`.
+*/
+template <class Variant>
+struct openssl_argon2_engine {
+    /** RFC 9106's bounds, but the memory: at most `openssl_argon2_max_memory_kib`. */
+    static constexpr argon2_limits limits{
+        .max_memory_kib = openssl_argon2_max_memory_kib,
+    };
+
+    /**
+     RFC 9106, version 0x13.
+
+     @param output_bytes The tag. @param password_bytes The password. @param salt_bytes The salt.
+     @param parameters The costs, the lanes, the secret and the associated data.
+     @return Success, `errc::not_enough_memory` or `error::backend_failure`.
+    */
+    [[nodiscard]] static boost::system::result<void> derive(
+        std::span<std::uint8_t> output_bytes, std::span<std::uint8_t const> password_bytes,
+        std::span<std::uint8_t const> salt_bytes, argon2_parameters const& parameters) noexcept {
+        return openssl_argon2(openssl_argon2_name<Variant>::value, output_bytes, password_bytes,
+                              salt_bytes, parameters);
+    }
+};
+
+/** `kdfs::argon2d` on backends::openssl: "ARGON2D". */
+template <>
+struct argon2_engine<backends::openssl, kdfs::argon2d> : openssl_argon2_engine<kdfs::argon2d> {};
+
+/** `kdfs::argon2i` on backends::openssl: "ARGON2I". */
+template <>
+struct argon2_engine<backends::openssl, kdfs::argon2i> : openssl_argon2_engine<kdfs::argon2i> {};
+
+/** `kdfs::argon2id` on backends::openssl: "ARGON2ID". */
+template <>
+struct argon2_engine<backends::openssl, kdfs::argon2id> : openssl_argon2_engine<kdfs::argon2id> {};
+
+/**
+ The function argon2id on backends::openssl: "ARGON2ID" with one lane, no secret and no associated
+ data, the memory in bytes given to OpenSSL in KiB (the engine's interface: @ref argon2id_engine).
+*/
+template <>
+struct argon2id_engine<backends::openssl> {
+    /** OpenSSL's m of at most 2^32 - 1 KiB, in bytes, within a `size_t` (4 GiB less 1 KiB on
+     * wasm32). */
+    static constexpr argon2id_limits limits{
+        .memory = std::uint64_t{openssl_argon2_max_memory_kib} * argon2id_memory_unit,
+    };
+
+    /**
+     The tag.
+
+     @param output_bytes The tag. @param password_bytes The password. @param salt_bytes The 16-byte
+     salt.
+     @param pass_count t, at most 2^32 - 1. @param memory_limit The memory in bytes, a multiple of
+     1,024 within `limits`.
+     @return Success, `errc::not_enough_memory` or `error::backend_failure`.
+    */
+    [[nodiscard]] static boost::system::result<void> derive(
+        std::span<std::uint8_t> output_bytes, std::span<std::uint8_t const> password_bytes,
+        std::span<std::uint8_t const> salt_bytes, std::uint64_t pass_count,
+        std::size_t memory_limit) noexcept {
+        return openssl_argon2(
+            openssl_argon2_name<kdfs::argon2id>::value, output_bytes, password_bytes, salt_bytes,
+            {
+                .passes = static_cast<std::uint32_t>(pass_count),
+                .memory_kib = static_cast<std::uint32_t>(memory_limit / argon2id_memory_unit),
+            });
+    }
+};
+
+/**
+ scrypt on backends::openssl: OpenSSL's "SCRYPT", whose memory limit, `maxmem_bytes`, 1,025 MiB by
+ default, is set to its largest (OpenSSL takes `SIZE_MAX` for it), so that it refuses no cost
+ RFC 7914 allows that the address space holds (the engine's interface: @ref scrypt_engine).
+ OpenSSL copies the password and the salt; it clears the password's copy when the context is freed,
+ not the salt's.
+*/
+template <>
+struct scrypt_engine<backends::openssl> {
+    /**
+     No N of its own; r p below 2^24, since OpenSSL passes PBKDF2 128 r p bytes as an `int`
+     (`scrypt_alg`).
+    */
+    static constexpr scrypt_limits limits{
+        .n = no_limit,
+        .rp = (std::uint64_t{1} << 24U) - 1,
+    };
+
+    /**
+     RFC 7914. OpenSSL's "memory limit exceeded", once the guards have passed, means that 128 r
+     (N + p + 2) bytes are more than a `size_t` holds: `not_enough_memory`, as an allocation's
+     failure.
+
+     @param output_bytes The derived key. @param password_bytes The password. @param salt_bytes The
+     salt.
+     @param cost_n N. @param block_size_r r. @param parallelism_p p.
+     @return Success, `errc::not_enough_memory` or `error::backend_failure`.
+    */
+    [[nodiscard]] static boost::system::result<void> derive(
+        std::span<std::uint8_t> output_bytes, std::span<std::uint8_t const> password_bytes,
+        std::span<std::uint8_t const> salt_bytes, std::uint64_t cost_n, std::uint32_t block_size_r,
+        std::uint32_t parallelism_p) noexcept {
+        std::uint64_t memory_limit = std::numeric_limits<std::uint64_t>::max();
+        std::array<OSSL_PARAM, 7> ossl_params{
+            openssl_octets("pass", password_bytes),
+            openssl_octets("salt", salt_bytes),
+            OSSL_PARAM_construct_uint64("n", &cost_n),
+            OSSL_PARAM_construct_uint32("r", &block_size_r),
+            OSSL_PARAM_construct_uint32("p", &parallelism_p),
+            OSSL_PARAM_construct_uint64("maxmem_bytes", &memory_limit),
+            OSSL_PARAM_construct_end(),
+        };
+        return openssl_kdf("SCRYPT", output_bytes, ossl_params,
+                           {.library = ERR_LIB_EVP, .reason = EVP_R_MEMORY_LIMIT_EXCEEDED});
     }
 };
 

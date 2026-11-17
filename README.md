@@ -11,7 +11,8 @@ The guide (`doc/hash.adoc`) teaches each family of functions with two comparison
 program of `example/` per section and its pitfalls, then three applications from end to end; its
 tables and `doc/llms.txt` are generated from `doc/capabilities.json` and the measured data by
 `tools/hash/doc_tables.py`. Every key derivation runs on `backends::hash2` unless the call names
-another backend; Argon2id and scrypt run on `backends::sodium`, their only backend. The measured
+another backend; Argon2id and scrypt run on `backends::sodium` unless the call names
+`backends::openssl`. The measured
 table, `doc/measurements.json`, is a reference measured on 2026-11-16 that decides nothing. `NOTICE.md` keeps the notice of the documentation it adapts.
 
 ## Building and testing

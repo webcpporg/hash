@@ -53,6 +53,7 @@ build-project sodium_default_not_linked ;
 build-project digest_no_default ;
 build-project mac_no_default ;
 build-project argon2_no_default ;
+build-project argon2d_on_sodium ;
 build-project canary_xkcp_missing ;
 build-project canary_xkcp_other_commit ;
 build-project canary_blake3_missing ;

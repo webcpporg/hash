@@ -721,6 +721,43 @@
             ],
             "choose": "Storing passwords and deriving keys from them."
         },
+        "kdfs::argon2id": {
+            "summary": "Argon2id with every parameter of RFC 9106, the tag of argon2: lanes, a secret (pepper) and associated data beside the passes and the memory in KiB.",
+            "output": "4 to 2^32 - 1 bytes",
+            "security": "each guess costs its memory and passes, on a GPU too",
+            "status": "recommended",
+            "webcrypto": null,
+            "anchor": "hash-argon2-family",
+            "uses": [
+                {"text": "RFC 9106's recommended variant, with its parameters p, K and X", "source": "https://www.rfc-editor.org/rfc/rfc9106"},
+                {"text": "OWASP's first choice for password storage", "source": "https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html"}
+            ],
+            "choose": "Passwords with a pepper, several lanes or associated data, or a format that fixes them; otherwise the function argon2id."
+        },
+        "kdfs::argon2i": {
+            "summary": "Argon2i with every parameter of RFC 9106, the tag of argon2: memory accesses independent of the password.",
+            "output": "4 to 2^32 - 1 bytes",
+            "security": "weaker than Argon2id against trade-offs of time and memory",
+            "status": "legacy",
+            "webcrypto": null,
+            "anchor": "hash-argon2-family",
+            "uses": [
+                {"text": "RFC 9106's variant for side channels alone, which it does not recommend over Argon2id", "source": "https://www.rfc-editor.org/rfc/rfc9106"}
+            ],
+            "choose": "Only where a format names Argon2i; Argon2id for anything new."
+        },
+        "kdfs::argon2d": {
+            "summary": "Argon2d with every parameter of RFC 9106, the tag of argon2: memory accesses that depend on the password, on a backend the call names (it has no default).",
+            "output": "4 to 2^32 - 1 bytes",
+            "security": "the strongest against trade-offs, open to side channels on a shared machine",
+            "status": "where no attacker shares the machine",
+            "webcrypto": null,
+            "anchor": "hash-argon2-family",
+            "uses": [
+                {"text": "RFC 9106's variant where no attacker shares the machine, such as proof of work", "source": "https://www.rfc-editor.org/rfc/rfc9106"}
+            ],
+            "choose": "Never for passwords; only where a format names Argon2d and no attacker shares the machine."
+        },
         "scrypt": {
             "summary": "scrypt: a memory-hard password hash, older than Argon2id.",
             "output": "1 to (2^32 - 1) times 32 bytes",

@@ -11,7 +11,8 @@
 // few: the guard refuses it before anything reads or writes it, so OpenSSL's behaviour beyond its
 // limit is never exercised. Native only (the Jamfile), as the guard test of PBKDF2's output. mac's
 // HMAC on OpenSSL refuses a key of more than INT_MAX bytes alike, with unsupported_by_backend (the
-// engine's narrower limit, ruling R41), after the family's guards.
+// engine's narrower limit, ruling R41), after the family's guards. scrypt on OpenSSL passes its
+// password, its salt and its output to PBKDF2, whose lengths are ints: the same INT_MAX bytes.
 
 #include <webcpp/hash/backends/openssl.hpp>
 #include <webcpp/hash/error.hpp>
@@ -19,6 +20,7 @@
 #include <webcpp/hash/hmac.hpp>
 #include <webcpp/hash/mac.hpp>
 #include <webcpp/hash/pbkdf2.hpp>
+#include <webcpp/hash/scrypt.hpp>
 
 #include <boost/core/lightweight_test.hpp>
 
@@ -44,6 +46,11 @@ using limits = hash::detail::backend_limits<openssl>;
 static_assert(limits::pbkdf2_output == INT_MAX && limits::pbkdf2_password == INT_MAX &&
               limits::pbkdf2_salt == INT_MAX && limits::hkdf_salt == INT_MAX &&
               limits::hkdf_prk == INT_MAX);
+static_assert(limits::scrypt_password == INT_MAX && limits::scrypt_salt == INT_MAX &&
+              limits::scrypt_output == INT_MAX);
+// Argon2's lengths are OpenSSL's uint32_t, RFC 9106's own bound, which argon2id's guards keep.
+static_assert(limits::argon2id_password == 0xffffffffU && limits::argon2id_salt == 0xffffffffU &&
+              limits::argon2id_output == 0xffffffffU);
 static_assert(limits::hkdf_ikm == hash::detail::no_limit &&
               limits::hkdf_info == hash::detail::no_limit &&
               limits::hkdf_output == hash::detail::no_limit);
@@ -123,6 +130,31 @@ void mac_limits(std::span<std::uint8_t const> few) {
     BOOST_TEST(!is_untouched(output));
 }
 
+void scrypt_limits(std::span<std::uint8_t const> few) {
+    std::array<std::uint8_t, 32> output{};
+    output.fill(untouched);
+    const std::span<std::uint8_t const> long_input(few.data(), past);
+    constexpr hash::scrypt_parameters cheap{.n = 16, .r = 1, .p = 1};
+
+    auto refused =
+        hash::scrypt<openssl>(std::span<std::uint8_t>(output.data(), past), few, few, cheap);
+    BOOST_TEST(refused.has_error() && refused.error() == hash::error::invalid_output_size);
+    refused = hash::scrypt<openssl>(output, long_input, few, cheap);
+    BOOST_TEST(refused.has_error() && refused.error() == hash::error::input_too_long);
+    refused = hash::scrypt<openssl>(output, few, long_input, cheap);
+    BOOST_TEST(refused.has_error() && refused.error() == hash::error::input_too_long);
+    BOOST_TEST(is_untouched(output));
+
+    // The spec's own guards come first: N not a power of two.
+    refused = hash::scrypt<openssl>(output, long_input, few, {.n = 15, .r = 1, .p = 1});
+    BOOST_TEST(refused.has_error() && refused.error() == hash::error::invalid_parameters);
+    BOOST_TEST(is_untouched(output));
+
+    // Within the limits, OpenSSL derives.
+    BOOST_TEST((hash::scrypt<openssl>(output, few, few, cheap).has_value()));
+    BOOST_TEST(!is_untouched(output));
+}
+
 }  // namespace
 
 int main() {
@@ -130,5 +162,6 @@ int main() {
     pbkdf2_limits(few);
     hkdf_limits(few);
     mac_limits(few);
+    scrypt_limits(few);
     return webcpp::test::exit_status(boost::report_errors());
 }

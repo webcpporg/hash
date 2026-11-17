@@ -32,13 +32,13 @@
 
 | store users' passwords for a login
 | <<hash-privacy-passwords,argon2id with argon2id_interactive or stronger, a random 16-byte salt per user>>
-| `sodium`: `/third_party//sodium`
+| `sodium`: `/third_party//sodium`, `openssl`: `/webcpp/hash//openssl`
 | link /third_party//sodium
 | `example/password_storage.cpp`
 
 | turn a password into an encryption key (a password manager, an encrypted backup)
 | <<hash-argon2id,argon2id with argon2id_moderate or argon2id_sensitive, then hkdf for each purpose>>
-| `sodium`: `/third_party//sodium`
+| `sodium`: `/third_party//sodium`, `openssl`: `/webcpp/hash//openssl`
 | link /third_party//sodium
 | `example/argon2id.cpp`
 

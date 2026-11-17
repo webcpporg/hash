@@ -59,10 +59,10 @@
 #include <webcpp/hash/backends/openssl.hpp>
 #endif
 
-// scrypt, whose only backend is libsodium's: a program that does not link it leaves it out.
-// argon2.hpp, above, needs no library: its functions refuse at compile time, with the Jamfile
+// scrypt, whose backends are libsodium's and OpenSSL's: a program that links neither leaves it
+// out. argon2.hpp, above, needs no library: its functions refuse at compile time, with the Jamfile
 // line to add, when they are called without one.
-#ifdef WEBCPP_HASH_HAS_SODIUM
+#if defined(WEBCPP_HASH_HAS_SODIUM) || defined(WEBCPP_HASH_HAS_OPENSSL)
 #include <webcpp/hash/scrypt.hpp>
 #endif
 

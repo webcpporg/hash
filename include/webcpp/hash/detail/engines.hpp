@@ -173,20 +173,31 @@ struct pbkdf2_engine {
 
 /** The costs an Argon2id engine accepts beyond spec section 2.10's lower bounds. */
 struct argon2id_limits {
-    /** The most memory, in bytes (libsodium's `crypto_pwhash_argon2id_MEMLIMIT_MAX`). */
+    /**
+     The most memory, in bytes (libsodium's `crypto_pwhash_argon2id_MEMLIMIT_MAX`; OpenSSL's m of
+     at most 2^32 - 1 KiB, within a `size_t`).
+    */
     std::uint64_t memory;
 };
 
-/** The costs a scrypt engine accepts beyond RFC 7914's conditions. */
+/**
+ The costs a scrypt engine accepts beyond RFC 7914's conditions; `scrypt` refuses a cost past them
+ with `invalid_parameters`.
+*/
 struct scrypt_limits {
     /** The largest N (libsodium's `_ll` refuses an N above `UINT32_MAX`). */
-    std::uint64_t n;
+    std::uint64_t n = no_limit;
+    /**
+     The largest r p (OpenSSL passes 128 r p bytes to PBKDF2 as an `int`): RFC 7914's bound, r p
+     below 2^30, unless the engine names a narrower one.
+    */
+    std::uint64_t rp = no_limit;
 };
 
 /**
- The Argon2id of a backend (spec sections 2.10 and 2.12), which `backends::sodium` alone
- specialises. The primary template refuses every other backend with spec 3.3's text; its members
- exist so that the refusal is the only error.
+ The Argon2id of a backend (spec sections 2.10 and 2.12), which `backends::sodium` and
+ `backends::openssl` specialise. The primary template refuses every other backend with spec 3.3's
+ text; its members exist so that the refusal is the only error.
 
  A specialisation has a constant and a static member function, called by `argon2id` only after
  every guard of spec 2.10 has passed, the memory a multiple of 1,024 bytes within `limits`:
@@ -208,13 +219,21 @@ template <class Backend>
 struct argon2id_engine {
     // backends::sodium, the default, reaches this template only when the program does not link
     // libsodium, whose header specialises it: the refusal is then sodium.hpp's own (spec 5.7).
+    // backends::openssl reaches it only when the program does not link OpenSSL, whose header
+    // specialises it too: the refusal is then the one of every function on backends::openssl.
     static_assert(!std::is_same_v<Backend, backends::sodium>,
                   "webcpp::hash: backends::sodium, argon2id and scrypt need libsodium. Add "
                   "/third_party//sodium to the program's Jamfile: exe app : app.cpp "
                   "/webcpp/hash//hash /third_party//sodium ;");
-    static_assert(std::is_same_v<Backend, backends::sodium>,
-                  "webcpp::hash: argon2id is in backends::sodium alone. Name backends::sodium "
-                  "and add /third_party//sodium to the program's Jamfile.");
+    static_assert(!std::is_same_v<Backend, backends::openssl>,
+                  "webcpp::hash: backends::openssl needs OpenSSL. Add /webcpp/hash//openssl to "
+                  "the program's Jamfile (native, wasip2 and wasip3): exe app : app.cpp "
+                  "/webcpp/hash//hash /webcpp/hash//openssl ;");
+    static_assert(std::is_same_v<Backend, backends::sodium> ||
+                      std::is_same_v<Backend, backends::openssl>,
+                  "webcpp::hash: argon2id is in backends::sodium and backends::openssl alone. "
+                  "Name one, and add /third_party//sodium or /webcpp/hash//openssl to the "
+                  "program's Jamfile.");
 
     /** Never read: the refusal has stopped the build. */
     static constexpr argon2id_limits limits{0};
@@ -229,9 +248,9 @@ struct argon2id_engine {
 };
 
 /**
- The scrypt of a backend (spec sections 2.11 and 2.12), which `backends::sodium` alone
- specialises, as @ref argon2id_engine is. A specialisation's `derive` is called by `scrypt` only
- after every guard of spec 2.11 has passed, N within `limits`:
+ The scrypt of a backend (spec sections 2.11 and 2.12), which `backends::sodium` and
+ `backends::openssl` specialise, as @ref argon2id_engine is. A specialisation's `derive` is called
+ by `scrypt` only after every guard of spec 2.11 has passed, N within `limits`:
 
  @code
  static constexpr scrypt_limits limits{...};
@@ -247,16 +266,24 @@ template <class Backend>
 struct scrypt_engine {
     // backends::sodium, the default, reaches this template only when the program does not link
     // libsodium, whose header specialises it: the refusal is then sodium.hpp's own (spec 5.7).
+    // backends::openssl reaches it only when the program does not link OpenSSL, whose header
+    // specialises it too: the refusal is then the one of every function on backends::openssl.
     static_assert(!std::is_same_v<Backend, backends::sodium>,
                   "webcpp::hash: backends::sodium, argon2id and scrypt need libsodium. Add "
                   "/third_party//sodium to the program's Jamfile: exe app : app.cpp "
                   "/webcpp/hash//hash /third_party//sodium ;");
-    static_assert(std::is_same_v<Backend, backends::sodium>,
-                  "webcpp::hash: scrypt is in backends::sodium alone. Name backends::sodium and "
-                  "add /third_party//sodium to the program's Jamfile.");
+    static_assert(!std::is_same_v<Backend, backends::openssl>,
+                  "webcpp::hash: backends::openssl needs OpenSSL. Add /webcpp/hash//openssl to "
+                  "the program's Jamfile (native, wasip2 and wasip3): exe app : app.cpp "
+                  "/webcpp/hash//hash /webcpp/hash//openssl ;");
+    static_assert(std::is_same_v<Backend, backends::sodium> ||
+                      std::is_same_v<Backend, backends::openssl>,
+                  "webcpp::hash: scrypt is in backends::sodium and backends::openssl alone. Name "
+                  "one, and add /third_party//sodium or /webcpp/hash//openssl to the program's "
+                  "Jamfile.");
 
     /** Never read: the refusal has stopped the build. */
-    static constexpr scrypt_limits limits{0};
+    static constexpr scrypt_limits limits{.n = 0};
 
     /** Never called: the refusal has stopped the build. */
     [[nodiscard]] static boost::system::result<void> derive(
@@ -1301,9 +1328,11 @@ template <class Backend>
 struct argon2_engine<Backend, kdfs::argon2d> : refused_argon2_engine<kdfs::argon2d>,
                                                needs_library<Backend> {
     static_assert(!std::is_same_v<Backend, no_default>,
-                  "webcpp::hash: kdfs::argon2d has no default backend, and no backend has it yet.");
+                  "webcpp::hash: kdfs::argon2d has no default backend. Name one of: "
+                  "backends::openssl.");
     static_assert(refused_elsewhere_v<Backend>,
-                  "webcpp::hash: kdfs::argon2d is in no backend yet.");
+                  "webcpp::hash: kdfs::argon2d is not in this backend. Name one of: "
+                  "backends::openssl.");
 };
 
 /** `kdfs::argon2i` on a backend without it (spec 3.3, design D34). */
@@ -1311,7 +1340,8 @@ template <class Backend>
 struct argon2_engine<Backend, kdfs::argon2i> : refused_argon2_engine<kdfs::argon2i>,
                                                needs_library<Backend> {
     static_assert(refused_elsewhere_v<Backend>,
-                  "webcpp::hash: kdfs::argon2i is in no backend yet.");
+                  "webcpp::hash: kdfs::argon2i is not in this backend. Name one of: "
+                  "backends::openssl.");
 };
 
 /** `kdfs::argon2id` on a backend without it (spec 3.3, design D34). */
@@ -1319,8 +1349,8 @@ template <class Backend>
 struct argon2_engine<Backend, kdfs::argon2id> : refused_argon2_engine<kdfs::argon2id>,
                                                 needs_library<Backend> {
     static_assert(refused_elsewhere_v<Backend>,
-                  "webcpp::hash: kdfs::argon2id is in no backend of argon2 yet: call the function "
-                  "argon2id.");
+                  "webcpp::hash: kdfs::argon2id is not in this backend. Name one of: "
+                  "backends::openssl.");
 };
 
 }  // namespace webcpp::hash::detail

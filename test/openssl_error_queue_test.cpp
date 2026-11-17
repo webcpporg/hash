@@ -5,19 +5,22 @@
 // https://www.boost.org/LICENSE_1_0.txt)
 
 // OpenSSL's error queue (spec section 3.4): on an empty queue, hkdf_extract, hkdf_expand, hkdf,
-// pbkdf2, digest_of, a hasher's make, update and finish, and mac (HMAC, KMAC, keyed BLAKE2s and
-// SipHash) on backends::openssl leave it empty,
+// pbkdf2, digest_of, a hasher's make, update and finish, mac (HMAC, KMAC, keyed BLAKE2s and
+// SipHash), argon2 (Argon2d with a secret and associated data), argon2id and scrypt on
+// backends::openssl leave it empty,
 // OpenSSL's first fetch and initialisation among them; an entry of the caller's survives each, and
 // nothing of webcpp's is left beside it; a mark the caller set on its own entry survives them too,
 // and the caller's pop to it still finds it. openssl_failure_test.cpp checks the same around a
 // failure.
 
+#include <webcpp/hash/argon2.hpp>
 #include <webcpp/hash/backends/openssl.hpp>
 #include <webcpp/hash/digest.hpp>
 #include <webcpp/hash/hkdf.hpp>
 #include <webcpp/hash/hmac.hpp>
 #include <webcpp/hash/mac.hpp>
 #include <webcpp/hash/pbkdf2.hpp>
+#include <webcpp/hash/scrypt.hpp>
 
 #include <boost/core/lightweight_test.hpp>
 
@@ -47,8 +50,8 @@ std::size_t drain(unsigned long& first) {
 }
 
 /**
- Each of the four key derivations, the digest family and the MAC family once, on OpenSSL, each a
- success.
+ Each of the four key derivations, the digest family, the MAC family, Argon2 and scrypt once, on
+ OpenSSL, each a success.
 */
 void call_each() {
     std::array<std::uint8_t, 13> const salt{1, 2, 3};
@@ -83,6 +86,16 @@ void call_each() {
     BOOST_TEST((hash::mac<macs::blake2s_mac, openssl>(digest, key, ikm)));
     std::array<std::uint8_t, 8> short_tag{};
     BOOST_TEST((hash::mac<macs::siphash_2_4, openssl>(short_tag, key, ikm)));
+
+    std::array<std::uint8_t, 16> const password_salt{1, 2, 3};
+    BOOST_TEST(
+        (hash::argon2<hash::kdfs::argon2d, openssl>(
+             digest, ikm, password_salt,
+             {.passes = 1, .memory_kib = 16, .lanes = 2, .secret = key, .associated_data = info})
+             .has_value()));
+    BOOST_TEST((hash::argon2id<openssl>(digest, ikm, password_salt, {.passes = 1, .memory = 8192})
+                    .has_value()));
+    BOOST_TEST((hash::scrypt<openssl>(digest, ikm, salt, {.n = 16, .r = 1, .p = 1}).has_value()));
 }
 
 }  // namespace

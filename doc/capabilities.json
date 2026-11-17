@@ -2489,6 +2489,74 @@
                                 "value": "not stated",
                                 "source": "libsodium 1.0.22: its headers state constant time for comparisons (sodium/utils.h) alone, not for its hashing, key derivation and password hashing functions (crypto_generichash_*, crypto_shorthash_*, crypto_kdf_*, crypto_pwhash_*)."
                             }
+                        },
+                        "openssl": {
+                            "since": 4,
+                            "hmacs": null,
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "OpenSSL 3.5.9: doc/man7/EVP_KDF-ARGON2.pod states that Argon2i's memory accesses are independent of the data and Argon2d's depend on it, and states no constant-time property."
+                            }
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "argon2",
+            "macro": "ARGON2",
+            "tag": null,
+            "chapter": "password_hashing",
+            "standard": "RFC 9106, every parameter",
+            "functions": [
+                {
+                    "name": "kdfs::argon2d",
+                    "kind": "kdf",
+                    "header": "webcpp/hash/argon2.hpp",
+                    "default": null,
+                    "backends": {
+                        "openssl": {
+                            "since": 4,
+                            "hmacs": null,
+                            "partial": "m above 4,194,303 KiB on wasm32: OpenSSL sizes Argon2's memory, m blocks of 1 KiB, in a size_t",
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "OpenSSL 3.5.9: doc/man7/EVP_KDF-ARGON2.pod states that Argon2i's memory accesses are independent of the data and Argon2d's depend on it, and states no constant-time property."
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "kdfs::argon2i",
+                    "kind": "kdf",
+                    "header": "webcpp/hash/argon2.hpp",
+                    "default": "sodium",
+                    "backends": {
+                        "openssl": {
+                            "since": 4,
+                            "hmacs": null,
+                            "partial": "m above 4,194,303 KiB on wasm32: OpenSSL sizes Argon2's memory, m blocks of 1 KiB, in a size_t",
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "OpenSSL 3.5.9: doc/man7/EVP_KDF-ARGON2.pod states that Argon2i's memory accesses are independent of the data and Argon2d's depend on it, and states no constant-time property."
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "kdfs::argon2id",
+                    "kind": "kdf",
+                    "header": "webcpp/hash/argon2.hpp",
+                    "default": "sodium",
+                    "backends": {
+                        "openssl": {
+                            "since": 4,
+                            "hmacs": null,
+                            "partial": "m above 4,194,303 KiB on wasm32: OpenSSL sizes Argon2's memory, m blocks of 1 KiB, in a size_t",
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "OpenSSL 3.5.9: doc/man7/EVP_KDF-ARGON2.pod states that Argon2i's memory accesses are independent of the data and Argon2d's depend on it, and states no constant-time property."
+                            }
                         }
                     }
                 }
@@ -2514,6 +2582,15 @@
                             "constant_time": {
                                 "value": "not stated",
                                 "source": "libsodium 1.0.22: its headers state constant time for comparisons (sodium/utils.h) alone, not for its hashing, key derivation and password hashing functions (crypto_generichash_*, crypto_shorthash_*, crypto_kdf_*, crypto_pwhash_*)."
+                            }
+                        },
+                        "openssl": {
+                            "since": 4,
+                            "hmacs": null,
+                            "partial": "r p of 2^24 or more, or a password, salt or output of more than INT_MAX bytes: OpenSSL passes them to PBKDF2, whose lengths are ints",
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "OpenSSL 3.5.9: doc/man7/EVP_KDF-SCRYPT.pod states no constant-time property."
                             }
                         }
                     }

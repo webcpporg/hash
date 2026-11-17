@@ -113,6 +113,26 @@ inline constexpr bool backend_has_v<backends::sodium, kdfs::argon2id, void> = tr
 template <>
 inline constexpr bool backend_has_v<backends::sodium, kdfs::scrypt, void> = true;
 
+/** backends::openssl has the function argon2id (OpenSSL 3.5.9's `EVP_KDF` "ARGON2ID"). */
+template <>
+inline constexpr bool backend_has_v<backends::openssl, kdfs::argon2id, void> = true;
+
+/** backends::openssl has scrypt (OpenSSL 3.5.9's `EVP_KDF` "SCRYPT"). */
+template <>
+inline constexpr bool backend_has_v<backends::openssl, kdfs::scrypt, void> = true;
+
+/** backends::openssl has Argon2d with every parameter (OpenSSL 3.5.9's `EVP_KDF` "ARGON2D"). */
+template <>
+inline constexpr bool backend_has_v<backends::openssl, kdfs::argon2d, argon2_parameters> = true;
+
+/** backends::openssl has Argon2i with every parameter (OpenSSL 3.5.9's `EVP_KDF` "ARGON2I"). */
+template <>
+inline constexpr bool backend_has_v<backends::openssl, kdfs::argon2i, argon2_parameters> = true;
+
+/** backends::openssl has Argon2id with every parameter (OpenSSL 3.5.9's `EVP_KDF` "ARGON2ID"). */
+template <>
+inline constexpr bool backend_has_v<backends::openssl, kdfs::argon2id, argon2_parameters> = true;
+
 /**
  backends::sodium has BLAKE2b subkeys (`crypto_kdf_blake2b_derive_from_key`), the function
  `blake2b_subkey`, which takes no hmac.

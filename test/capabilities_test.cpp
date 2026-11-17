@@ -691,23 +691,25 @@ std::vector<refusal> const& refusals() {
             .functions = {"pbkdf2"},
             .hmacs = {"*"},
         },
+        // A library's text, as the other backends' below: it names argon2id and scrypt as the
+        // functions whose default backend is libsodium's, not as the functions only libsodium has.
         {
             .header = "detail/engines.hpp",
             .start = "backends::sodium, argon2id and scrypt need libsodium.",
             .backend = "sodium",
-            .functions = {"argon2id", "scrypt"},
+            .functions = {},
             .hmacs = {},
         },
         {
             .header = "detail/engines.hpp",
-            .start = "argon2id is in backends::sodium alone.",
+            .start = "argon2id is in backends::sodium and backends::openssl alone.",
             .backend = "",
             .functions = {"argon2id"},
             .hmacs = {},
         },
         {
             .header = "detail/engines.hpp",
-            .start = "scrypt is in backends::sodium alone.",
+            .start = "scrypt is in backends::sodium and backends::openssl alone.",
             .backend = "",
             .functions = {"scrypt"},
             .hmacs = {},

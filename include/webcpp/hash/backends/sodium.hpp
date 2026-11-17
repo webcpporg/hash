@@ -600,7 +600,7 @@ struct argon2id_engine<backends::sodium> {
 template <>
 struct scrypt_engine<backends::sodium> {
     /** libsodium's `_ll` refuses an N above `UINT32_MAX`. */
-    static constexpr scrypt_limits limits{0xffffffffULL};
+    static constexpr scrypt_limits limits{.n = 0xffffffffULL};
 
     /**
      The derived key, by `crypto_pwhash_scryptsalsa208sha256_ll`, which declares every pointer

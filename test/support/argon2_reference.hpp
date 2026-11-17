@@ -4,8 +4,9 @@
 // accompanying file LICENSE_1_0.txt or copy at
 // https://www.boost.org/LICENSE_1_0.txt)
 
-// Argon2id by libsodium's private core, argon2_ctx, which takes what crypto_pwhash_argon2id does
-// not: lanes, a secret and associated data. The tests reach it through
+// Argon2id, or Argon2i, by libsodium's private core, argon2_ctx, which takes what
+// crypto_pwhash_argon2id does not: lanes, a secret and associated data (libsodium has no
+// Argon2d). The tests reach it through
 // /third_party//sodium-test-config, whose include directories hold crypto_pwhash/argon2.
 
 #ifndef WEBCPP_TEST_HASH_SUPPORT_ARGON2_REFERENCE_HPP
@@ -23,7 +24,7 @@ extern "C" {
 
 namespace webcpp::test {
 
-// The costs and the inputs of one Argon2id run of argon2_ctx.
+// The costs and the inputs of one run of argon2_ctx.
 struct argon2_reference_case {
     std::span<std::uint8_t const> password;
     std::span<std::uint8_t const> salt;
@@ -34,9 +35,11 @@ struct argon2_reference_case {
     std::uint32_t lanes;
 };
 
-// Fills `tag` by argon2_ctx(Argon2_id), version 0x13, with as many threads as lanes, and wipes the
-// context, which holds the pointers to the inputs and their lengths. Returns argon2_ctx's code.
-inline int argon2_reference(std::span<std::uint8_t> tag, argon2_reference_case const& c) {
+// Fills `tag` by argon2_ctx of `type` (Argon2_id unless named), version 0x13, with as many threads
+// as lanes, and wipes the context, which holds the pointers to the inputs and their lengths.
+// Returns argon2_ctx's code.
+inline int argon2_reference(std::span<std::uint8_t> tag, argon2_reference_case const& c,
+                            argon2_type type = Argon2_id) {
     // argon2_ctx writes nothing through the input pointers: with ARGON2_DEFAULT_FLAGS it clears
     // neither the password nor the secret.
     // NOLINTBEGIN(cppcoreguidelines-pro-type-const-cast)
@@ -58,7 +61,7 @@ inline int argon2_reference(std::span<std::uint8_t> tag, argon2_reference_case c
         .flags = ARGON2_DEFAULT_FLAGS,
     };
     // NOLINTEND(cppcoreguidelines-pro-type-const-cast)
-    int const code = argon2_ctx(&context, Argon2_id);
+    int const code = argon2_ctx(&context, type);
     webcpp::hash::detail::wipe_object(context);
     return code;
 }

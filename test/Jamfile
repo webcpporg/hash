@@ -225,9 +225,9 @@ hash-run macs_openssl : macs_openssl_test.cpp
     <library>/third_party//blake2_vectors <library>/webcpp//boost_json
   : native wasip2 wasip3 ;
 # OpenSSL out of memory: each allocation of a call of backends::openssl (mac,
-# digest_of, hasher::make) made to fail in turn, through
-# CRYPTO_set_mem_functions; the answer, the output zeroed, every block freed and
-# the error queue empty.
+# digest_of, hasher::make, argon2, argon2id, scrypt) made to fail in turn,
+# through CRYPTO_set_mem_functions; the answer, the output zeroed, every block
+# freed and the error queue empty.
 hash-run openssl_out_of_memory : openssl_out_of_memory_test.cpp
   : <library>/webcpp/hash//openssl : native wasip2 wasip3 ;
 # backends::openssl's limits (OpenSSL holds some lengths in an int), natively:
@@ -287,6 +287,24 @@ hash-run scrypt : scrypt_test.cpp : <library>/third_party//sodium ;
 # each in 5 to 25 seconds unoptimised (wasmtime 47.0.3, node 26.13).
 hash-run scrypt_rfc7914_large : scrypt_rfc7914_large_test.cpp
   : <library>/third_party//sodium ;
+
+# Argon2 and scrypt on backends::openssl (OpenSSL 3.5.9's EVP_KDFs ARGON2D,
+# ARGON2I, ARGON2ID and SCRYPT, one thread), where webcpp builds OpenSSL:
+# RFC 9106's three cases, every case of OpenSSL's evpkdf_argon2.txt, argon2_ctx
+# on random cases and libsodium at one lane; RFC 7914's first three cases,
+# libsodium's scrypt and OpenSSL's narrower r p; RFC 7914's fourth case and a
+# case past OpenSSL's default memory limit (1.125 GiB) in a program of its own.
+hash-run argon2_openssl : argon2_openssl_test.cpp
+  : <library>/webcpp/hash//openssl <library>/third_party//sodium
+    <library>/third_party//sodium-test-config
+    <library>/third_party//openssl_evp_data
+  : native wasip2 wasip3 ;
+hash-run scrypt_openssl : scrypt_openssl_test.cpp
+  : <library>/webcpp/hash//openssl <library>/third_party//sodium
+  : native wasip2 wasip3 ;
+hash-run scrypt_openssl_large : scrypt_openssl_large_test.cpp
+  : <library>/webcpp/hash//openssl <library>/third_party//sodium
+  : native wasip2 wasip3 ;
 
 # The default backends (spec 4.1): backends::hash2 for every key derivation,
 # backends::sodium for argon2id and scrypt, whatever the program links and
