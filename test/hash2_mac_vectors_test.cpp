@@ -60,9 +60,10 @@ void check_siphash() {
             test::require(BOOST_TEST_EQ(vector.at("result").as_string(), "valid"));
             auto const key = test::from_hex(vector.at("key").as_string());
             auto const message = test::from_hex(vector.at("msg").as_string());
-            std::vector<std::uint8_t> tag(vector.at("tag").as_string().size() / 2);
+            auto const& expected = vector.at("tag").as_string();
+            std::vector<std::uint8_t> tag(expected.size() / 2);
             BOOST_TEST(hash::mac<hash::macs::siphash_2_4>(tag, key, message).has_value());
-            if (!BOOST_TEST_EQ(test::to_hex(tag), vector.at("tag").as_string())) {
+            if (!BOOST_TEST_EQ(test::to_hex(tag), expected)) {
                 std::cerr << "  siphash_2_4, tcId " << vector.at("tcId").as_int64() << '\n';
             }
             ++run;
