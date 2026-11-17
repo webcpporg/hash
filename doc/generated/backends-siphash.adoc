@@ -56,4 +56,4 @@ What each backend states on constant time, as the capability table read it:
 
 The default of `macs::siphash_2_4`: `hash2` on every target, whatever the program links; `sodium` only where the call names it, as its second template argument (<<hash-default-backend>>).
 
-The default of `macs::siphash_2_4x`: `sodium` on every target, whatever the program links; `hash2` only where the call names it, as its second template argument (<<hash-default-backend>>).
+The default of `macs::siphash_2_4x`: `sodium` on every target, whatever the program links (<<hash-default-backend>>).

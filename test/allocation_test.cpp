@@ -611,7 +611,7 @@ int main() {
 #endif
     // Two calls per tag a backend has (doc/capabilities.json): hash2 17 digests and 17 MACs,
     // xkcp and blake3 one digest each, sodium 9 digests and 4 MACs; one call per tag whose
-    // default backend has it, 17 digests and 18 MACs.
+    // default backend has it, 19 digests and 18 MACs.
     families_on<hash::backends::hash2>("hash2", 68);
 #ifdef WEBCPP_HASH_HAS_XKCP
     families_on<hash::backends::xkcp>("xkcp", 2);
@@ -624,7 +624,7 @@ int main() {
 #endif
 #if defined(WEBCPP_HASH_HAS_XKCP) && defined(WEBCPP_HASH_HAS_BLAKE3) && \
     defined(WEBCPP_HASH_HAS_SODIUM)
-    families_on_defaults(35);
+    families_on_defaults(37);
 #endif
 #ifdef WEBCPP_HASH_HAS_BEARSSL
     all_hmacs<hash::backends::bearssl, false>("bearssl", 18);

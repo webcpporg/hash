@@ -10,7 +10,7 @@
 // byte it prints, the 10,032-byte outputs and the messages of up to 17^6 bytes); SHAKE128 and
 // SHAKE256 against FIPS 202's examples (4,096 bits of output); SHAKE against Boost.Hash2's
 // shake_128 and shake_256 on random inputs, past one rate block (Hash2's result() gives the stream
-// block after block), and against backends::hash2 within its 32 and 64 bytes; then TurboSHAKE's
+// block after block), and against backends::hash2 at every size (ruling R89); then TurboSHAKE's
 // domain byte, the family's guard (ruling R25), before any engine. The agreement with XKCP comes
 // with increment 3 (ruling R6).
 
@@ -199,9 +199,9 @@ std::vector<std::uint8_t> hash2_stream(std::span<std::uint8_t const> input, std:
 constexpr std::array<std::size_t, 11> out_sizes{1, 32, 64, 136, 137, 167, 168, 169, 300, 337, 1000};
 
 // SHAKE on backends::sodium against Boost.Hash2's stream on random inputs (the empty one first),
-// by digest_of and by a hasher split at random; within the 32 or 64 bytes of backends::hash2's
-// cell, against it as well.
-template <class Digest, class Hash, std::size_t Hash2Limit>
+// by digest_of and by a hasher split at random; against backends::hash2's whole extendable output
+// as well (ruling R89).
+template <class Digest, class Hash>
 void check_hash2_agreement(std::string_view name) {
     test::random_source random(test::agreement_seed);
     for (std::size_t i = 0; i < test::agreement_cases; ++i) {
@@ -211,11 +211,9 @@ void check_hash2_agreement(std::string_view name) {
         auto const once = hash_at_once<Digest>(message, size);
         auto const pieces = hash_in_two<Digest>(message, random.between(0, message.size()), size);
         bool agreed = BOOST_TEST(once == expected) && BOOST_TEST(pieces == expected);
-        if (size <= Hash2Limit) {
-            std::vector<std::uint8_t> on_hash2(size);
-            agreed = BOOST_TEST((hash::digest_of<Digest, backends::hash2>(on_hash2, message))) &&
-                     BOOST_TEST(on_hash2 == expected) && agreed;
-        }
+        std::vector<std::uint8_t> on_hash2(size);
+        agreed = BOOST_TEST((hash::digest_of<Digest, backends::hash2>(on_hash2, message))) &&
+                 BOOST_TEST(on_hash2 == expected) && agreed;
         if (!agreed) {
             std::cerr << "  " << name << ", seed " << test::agreement_seed << ", case " << i << ": "
                       << message.size() << " bytes in, " << size << " out\n";
@@ -267,8 +265,8 @@ void check_domain(std::string_view name) {
 int main() {
     check_rfc9861();
     check_fips202();
-    check_hash2_agreement<digests::shake_128, boost::hash2::shake_128, 32>("shake_128");
-    check_hash2_agreement<digests::shake_256, boost::hash2::shake_256, 64>("shake_256");
+    check_hash2_agreement<digests::shake_128, boost::hash2::shake_128>("shake_128");
+    check_hash2_agreement<digests::shake_256, boost::hash2::shake_256>("shake_256");
     check_domain<digests::turboshake_128>("turboshake_128");
     check_domain<digests::turboshake_256>("turboshake_256");
     return webcpp::test::exit_status(boost::report_errors());
