@@ -32,6 +32,7 @@ webcpp.example hmac_sha256.cpp : <library>/webcpp/crypto//crypto ;
 webcpp.example siphash.cpp : <library>/webcpp/crypto//crypto ;
 webcpp.example mac_family.cpp : <library>/webcpp/crypto//crypto ;
 webcpp.example siphash_sodium.cpp : <library>/third_party//sodium ;
+webcpp.example macs_openssl.cpp : <library>/webcpp/hash//openssl : native wasip2 wasip3 ;
 
 # Key derivation.
 webcpp.example hkdf.cpp ;

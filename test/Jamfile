@@ -213,6 +213,23 @@ hash-run digests_openssl : digests_openssl_test.cpp
   : <library>/webcpp/hash//openssl <library>/third_party//xkcp
     <library>/third_party//sodium
   : native wasip2 wasip3 ;
+# The MACs of backends::openssl (OpenSSL 3.5.9's EVP_MAC), through mac: HMAC
+# over every digest against Boost.Hash2's hmac<H> and Wycheproof; KMAC against
+# NIST's samples (evpmac_common.txt), Wycheproof and a second implementation
+# over Hash2's Keccak; keyed BLAKE2 against BLAKE2's KAT, evpmac_blake.txt,
+# libsodium and Hash2; SipHash against Wycheproof, evpmac_siphash.txt, Hash2
+# and libsodium.
+hash-run macs_openssl : macs_openssl_test.cpp
+  : <library>/webcpp/hash//openssl <library>/third_party//sodium
+    <library>/third_party//wycheproof <library>/third_party//openssl_evp_data
+    <library>/third_party//blake2_vectors <library>/webcpp//boost_json
+  : native wasip2 wasip3 ;
+# OpenSSL out of memory: each allocation of a call of backends::openssl (mac,
+# digest_of, hasher::make) made to fail in turn, through
+# CRYPTO_set_mem_functions; the answer, the output zeroed, every block freed and
+# the error queue empty.
+hash-run openssl_out_of_memory : openssl_out_of_memory_test.cpp
+  : <library>/webcpp/hash//openssl : native wasip2 wasip3 ;
 # backends::openssl's limits (OpenSSL holds some lengths in an int), natively:
 # spans of INT_MAX + 1 bytes over a few, which the guards refuse before
 # anything reads them.

@@ -315,6 +315,19 @@ struct digest_traits<digests::blake2b> {
 };
 
 /**
+ Whether a string of SP 800-185 is longer than its length in bits can be (`input_too_long`).
+
+ @param string_bytes The string. @return Its refusal, or success.
+*/
+inline boost::system::result<void> check_sp800_185_string(
+    std::span<std::uint8_t const> string_bytes) noexcept {
+    if (exceeds(string_bytes.size(), sp800_185_max_bytes)) {
+        return error::input_too_long;
+    }
+    return {};
+}
+
+/**
  The family's guard of `digest_of` and `hasher::finish` on an output of `output_size` bytes: the
  tag's sizes for its options (`invalid_output_size`).
 

@@ -9,12 +9,15 @@
 // the public functions refuse more than INT_MAX bytes of them before OpenSSL is called, after the
 // spec's own guards, the output untouched. Each long span is INT_MAX + 1 bytes over a buffer of a
 // few: the guard refuses it before anything reads or writes it, so OpenSSL's behaviour beyond its
-// limit is never exercised. Native only (the Jamfile), as the guard test of PBKDF2's output.
+// limit is never exercised. Native only (the Jamfile), as the guard test of PBKDF2's output. mac's
+// HMAC on OpenSSL refuses a key of more than INT_MAX bytes alike, with unsupported_by_backend (the
+// engine's narrower limit, ruling R41), after the family's guards.
 
 #include <webcpp/hash/backends/openssl.hpp>
 #include <webcpp/hash/error.hpp>
 #include <webcpp/hash/hkdf.hpp>
 #include <webcpp/hash/hmac.hpp>
+#include <webcpp/hash/mac.hpp>
 #include <webcpp/hash/pbkdf2.hpp>
 
 #include <boost/core/lightweight_test.hpp>
@@ -99,11 +102,33 @@ void hkdf_limits(std::span<std::uint8_t const> few) {
     BOOST_TEST(is_untouched(output));
 }
 
+void mac_limits(std::span<std::uint8_t const> few) {
+    using hmac_tag = hash::macs::hmac<hash::digests::sha2_256>;
+    std::array<std::uint8_t, 32> output{};
+    output.fill(untouched);
+    const std::span<std::uint8_t const> long_key(few.data(), past);
+
+    auto refused = hash::mac<hmac_tag, openssl>(output, long_key, few);
+    BOOST_TEST(refused.has_error() && refused.error() == hash::error::unsupported_by_backend);
+    BOOST_TEST(is_untouched(output));
+
+    // The family's guard comes first: a tag under 10 bytes.
+    refused =
+        hash::mac<hmac_tag, openssl>(std::span<std::uint8_t>(output.data(), 9), long_key, few);
+    BOOST_TEST(refused.has_error() && refused.error() == hash::error::invalid_output_size);
+    BOOST_TEST(is_untouched(output));
+
+    // Within the limit, OpenSSL computes.
+    BOOST_TEST((hash::mac<hmac_tag, openssl>(output, few, few).has_value()));
+    BOOST_TEST(!is_untouched(output));
+}
+
 }  // namespace
 
 int main() {
     std::array<std::uint8_t, 32> const few{1, 2, 3, 4};
     pbkdf2_limits(few);
     hkdf_limits(few);
+    mac_limits(few);
     return webcpp::test::exit_status(boost::report_errors());
 }

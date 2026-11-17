@@ -37,7 +37,7 @@ sources, for the program's target:
 | `/third_party//bearssl`
 | every target
 
-| HKDF, PBKDF2 or a digest on `backends::openssl`
+| HKDF, PBKDF2, a digest or a MAC on `backends::openssl`
 | `/webcpp/hash//openssl`
 | native, wasip2, wasip3
 |===

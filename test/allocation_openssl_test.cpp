@@ -8,7 +8,8 @@
 // measured, printed and not bounded (spec section 7.7): the test sets OpenSSL's allocator with
 // CRYPTO_set_mem_functions before anything, counts each call OpenSSL makes through it per
 // function (HKDF and PBKDF2 over four hmacs; digest_of, and a hasher's whole hash, over three
-// digests, whose EVP_MD_CTX OpenSSL allocates with EVP_MD_CTX_new), prints the counts as records
+// digests, whose EVP_MD_CTX OpenSSL allocates with EVP_MD_CTX_new; mac over four MACs, whose
+// EVP_MAC_CTX OpenSSL allocates with EVP_MAC_CTX_new), prints the counts as records
 // (bench/allocation_collect.py collects the key derivations' into doc/measurements.allocation.json
 // and doc/allocation.adoc) and asserts only that operator new is never called: the count of
 // OpenSSL's allocator is a measurement, never a bound. OpenSSL's allocations are outside the user's
@@ -19,6 +20,7 @@
 #include <webcpp/hash/digest.hpp>
 #include <webcpp/hash/hkdf.hpp>
 #include <webcpp/hash/hmac.hpp>
+#include <webcpp/hash/mac.hpp>
 #include <webcpp/hash/pbkdf2.hpp>
 
 #include <boost/core/lightweight_test.hpp>
@@ -148,6 +150,24 @@ void measure_digest(char const* name) {
     }
 }
 
+/** A MAC's allocations through OpenSSL: mac with a key of `KeySize` bytes and a 32-byte tag. */
+template <class Mac, std::size_t KeySize>
+void measure_mac(char const* name) {
+    using hash::backends::openssl;
+    std::array<std::uint8_t, 32> tag{};
+    std::span<std::uint8_t const> const input(bytes);
+    for (int round = 1; round != 3; ++round) {
+        std::size_t const own_before = openssl_allocations.load();
+        std::size_t const new_before = webcpp::test::counted_new.load();
+        BOOST_TEST((hash::mac<Mac, openssl>(tag, input.first(KeySize), input).has_value()));
+        std::size_t const own = openssl_allocations.load() - own_before;
+        BOOST_TEST_EQ(webcpp::test::counted_new.load(), new_before);
+        std::printf(
+            "record operation=mac mac=%s backend=openssl target=%s call=%d openssl=%zu new=0\n",
+            name, webcpp::test::target_name, round, own);
+    }
+}
+
 }  // namespace
 
 int main() {
@@ -160,6 +180,10 @@ int main() {
     measure_digest<hash::digests::sha2_256>("sha2_256");
     measure_digest<hash::digests::sha3_256>("sha3_256");
     measure_digest<hash::digests::shake_256>("shake_256");
+    measure_mac<hash::macs::hmac<hash::digests::sha2_256>, 32>("hmac_sha2_256");
+    measure_mac<hash::macs::kmac_128, 32>("kmac_128");
+    measure_mac<hash::macs::blake2b_mac, 32>("blake2b_mac");
+    measure_mac<hash::macs::blake2s_mac, 32>("blake2s_mac");
     std::printf("record operation=counter backend=none target=%s c_counted=%d\n",
                 webcpp::test::target_name, webcpp::test::c_allocations_counted ? 1 : 0);
     return webcpp::test::exit_status(boost::report_errors());

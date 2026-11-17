@@ -335,7 +335,7 @@ void check_cell_fields(json::object const& table, names const& tagged) {
 }
 
 // Every tag of the families (spec 2.15), with its qualified name: a row of the file has it as its
-// name. `macs::hmac` over keccak_256 and sm3 stand for the hmacs no backend has yet.
+// name. `macs::hmac` over whirlpool stands for the hmacs no backend has yet.
 using digest_tags =
     std::tuple<digests::md5, digests::sha1, digests::sha2_224, digests::sha2_256, digests::sha2_384,
                digests::sha2_512, digests::sha2_512_224, digests::sha2_512_256, digests::sha3_224,
@@ -393,10 +393,12 @@ using mac_tags = std::tuple<
     macs::hmac<digests::sha2_512_224>, macs::hmac<digests::sha2_512_256>,
     macs::hmac<digests::sha3_224>, macs::hmac<digests::sha3_256>, macs::hmac<digests::sha3_384>,
     macs::hmac<digests::sha3_512>, macs::hmac<digests::ripemd_160>, macs::hmac<digests::blake2b>,
-    macs::hmac<digests::blake2s_256>, macs::hmac<digests::keccak_256>, macs::hmac<digests::sm3>,
-    macs::kmac_128, macs::kmac_256, macs::siphash_2_4, macs::siphash_2_4x, macs::blake2b_mac,
-    macs::blake2s_mac>;
-constexpr std::array<std::string_view, 23> mac_names{
+    macs::hmac<digests::blake2s_256>, macs::hmac<digests::keccak_224>,
+    macs::hmac<digests::keccak_256>, macs::hmac<digests::keccak_384>,
+    macs::hmac<digests::keccak_512>, macs::hmac<digests::md5_sha1>, macs::hmac<digests::sm3>,
+    macs::hmac<digests::whirlpool>, macs::kmac_128, macs::kmac_256, macs::siphash_2_4,
+    macs::siphash_2_4x, macs::blake2b_mac, macs::blake2s_mac>;
+constexpr std::array<std::string_view, 28> mac_names{
     "macs::hmac<digests::md5>",
     "macs::hmac<digests::sha1>",
     "macs::hmac<digests::sha2_224>",
@@ -412,8 +414,13 @@ constexpr std::array<std::string_view, 23> mac_names{
     "macs::hmac<digests::ripemd_160>",
     "macs::hmac<digests::blake2b>",
     "macs::hmac<digests::blake2s_256>",
+    "macs::hmac<digests::keccak_224>",
     "macs::hmac<digests::keccak_256>",
+    "macs::hmac<digests::keccak_384>",
+    "macs::hmac<digests::keccak_512>",
+    "macs::hmac<digests::md5_sha1>",
     "macs::hmac<digests::sm3>",
+    "macs::hmac<digests::whirlpool>",
     "macs::kmac_128",
     "macs::kmac_256",
     "macs::siphash_2_4",
@@ -487,14 +494,19 @@ void call_digest(std::string_view name) {
 }
 
 // Where Backend has the MAC and the program links it, mac compiles and runs on it, with its
-// longest tag (32 bytes when it has no limit) and its shortest key.
+// longest tag (at most 64 bytes) and its shortest key that the backend takes.
 template <class Tag, class Backend>
 void call_mac(std::string_view name) {
     if constexpr (hash::backend_has_v<Backend, Tag, void> && hash::detail::linked_v<Backend>) {
         using traits = hash::detail::mac_traits<Tag>;
-        std::vector<std::uint8_t> output(
-            traits::max_output == hash::detail::no_limit ? 32 : traits::max_output);
-        std::vector<std::uint8_t> const key(traits::min_key, 0x0b);
+        using engine = hash::detail::mac_engine<Backend, Tag>;
+        std::vector<std::uint8_t> output(std::min(traits::max_output, std::uint64_t{64}));
+        auto key_size = static_cast<std::size_t>(traits::min_key);
+        while (!engine::accepts(hash::mac_options<Tag>{}, key_size, output.size()) &&
+               key_size < 64) {
+            ++key_size;
+        }
+        std::vector<std::uint8_t> const key(key_size, 0x0b);
         std::array<std::uint8_t, 3> const input{0x61, 0x62, 0x63};
         if (!BOOST_TEST((hash::mac<Tag, Backend>(output, key, input).has_value()))) {
             std::cerr << "  " << name << " on " << test::name_of<Backend>() << '\n';

@@ -975,7 +975,7 @@ struct mac_engine<Backend, macs::hmac<digests::md5>> : refused_mac_engine<macs::
                                                        needs_library<Backend> {
     static_assert(refused_elsewhere_v<Backend>,
                   "webcpp::hash: macs::hmac<digests::md5> is not in this backend. Name one of: "
-                  "backends::hash2.");
+                  "backends::hash2, backends::openssl.");
 };
 
 /** `macs::hmac<digests::sha1>` on a backend without it (spec 3.3, design D34). */
@@ -984,7 +984,7 @@ struct mac_engine<Backend, macs::hmac<digests::sha1>>
     : refused_mac_engine<macs::hmac<digests::sha1>>, needs_library<Backend> {
     static_assert(refused_elsewhere_v<Backend>,
                   "webcpp::hash: macs::hmac<digests::sha1> is not in this backend. Name one of: "
-                  "backends::hash2.");
+                  "backends::hash2, backends::openssl.");
 };
 
 /** `macs::hmac<digests::sha2_224>` on a backend without it (spec 3.3, design D34). */
@@ -993,7 +993,7 @@ struct mac_engine<Backend, macs::hmac<digests::sha2_224>>
     : refused_mac_engine<macs::hmac<digests::sha2_224>>, needs_library<Backend> {
     static_assert(refused_elsewhere_v<Backend>,
                   "webcpp::hash: macs::hmac<digests::sha2_224> is not in this backend. Name one "
-                  "of: backends::hash2.");
+                  "of: backends::hash2, backends::openssl.");
 };
 
 /** `macs::hmac<digests::sha2_256>` on a backend without it (spec 3.3, design D34). */
@@ -1002,7 +1002,7 @@ struct mac_engine<Backend, macs::hmac<digests::sha2_256>>
     : refused_mac_engine<macs::hmac<digests::sha2_256>>, needs_library<Backend> {
     static_assert(refused_elsewhere_v<Backend>,
                   "webcpp::hash: macs::hmac<digests::sha2_256> is not in this backend. Name one "
-                  "of: backends::hash2.");
+                  "of: backends::hash2, backends::openssl.");
 };
 
 /** `macs::hmac<digests::sha2_384>` on a backend without it (spec 3.3, design D34). */
@@ -1011,7 +1011,7 @@ struct mac_engine<Backend, macs::hmac<digests::sha2_384>>
     : refused_mac_engine<macs::hmac<digests::sha2_384>>, needs_library<Backend> {
     static_assert(refused_elsewhere_v<Backend>,
                   "webcpp::hash: macs::hmac<digests::sha2_384> is not in this backend. Name one "
-                  "of: backends::hash2.");
+                  "of: backends::hash2, backends::openssl.");
 };
 
 /** `macs::hmac<digests::sha2_512>` on a backend without it (spec 3.3, design D34). */
@@ -1020,7 +1020,7 @@ struct mac_engine<Backend, macs::hmac<digests::sha2_512>>
     : refused_mac_engine<macs::hmac<digests::sha2_512>>, needs_library<Backend> {
     static_assert(refused_elsewhere_v<Backend>,
                   "webcpp::hash: macs::hmac<digests::sha2_512> is not in this backend. Name one "
-                  "of: backends::hash2.");
+                  "of: backends::hash2, backends::openssl.");
 };
 
 /** `macs::hmac<digests::sha2_512_224>` on a backend without it (spec 3.3, design D34). */
@@ -1029,7 +1029,7 @@ struct mac_engine<Backend, macs::hmac<digests::sha2_512_224>>
     : refused_mac_engine<macs::hmac<digests::sha2_512_224>>, needs_library<Backend> {
     static_assert(refused_elsewhere_v<Backend>,
                   "webcpp::hash: macs::hmac<digests::sha2_512_224> is not in this backend. Name "
-                  "one of: backends::hash2.");
+                  "one of: backends::hash2, backends::openssl.");
 };
 
 /** `macs::hmac<digests::sha2_512_256>` on a backend without it (spec 3.3, design D34). */
@@ -1038,7 +1038,7 @@ struct mac_engine<Backend, macs::hmac<digests::sha2_512_256>>
     : refused_mac_engine<macs::hmac<digests::sha2_512_256>>, needs_library<Backend> {
     static_assert(refused_elsewhere_v<Backend>,
                   "webcpp::hash: macs::hmac<digests::sha2_512_256> is not in this backend. Name "
-                  "one of: backends::hash2.");
+                  "one of: backends::hash2, backends::openssl.");
 };
 
 /** `macs::hmac<digests::sha3_224>` on a backend without it (spec 3.3, design D34). */
@@ -1047,7 +1047,7 @@ struct mac_engine<Backend, macs::hmac<digests::sha3_224>>
     : refused_mac_engine<macs::hmac<digests::sha3_224>>, needs_library<Backend> {
     static_assert(refused_elsewhere_v<Backend>,
                   "webcpp::hash: macs::hmac<digests::sha3_224> is not in this backend. Name one "
-                  "of: backends::hash2.");
+                  "of: backends::hash2, backends::openssl.");
 };
 
 /** `macs::hmac<digests::sha3_256>` on a backend without it (spec 3.3, design D34). */
@@ -1056,7 +1056,7 @@ struct mac_engine<Backend, macs::hmac<digests::sha3_256>>
     : refused_mac_engine<macs::hmac<digests::sha3_256>>, needs_library<Backend> {
     static_assert(refused_elsewhere_v<Backend>,
                   "webcpp::hash: macs::hmac<digests::sha3_256> is not in this backend. Name one "
-                  "of: backends::hash2.");
+                  "of: backends::hash2, backends::openssl.");
 };
 
 /** `macs::hmac<digests::sha3_384>` on a backend without it (spec 3.3, design D34). */
@@ -1065,7 +1065,7 @@ struct mac_engine<Backend, macs::hmac<digests::sha3_384>>
     : refused_mac_engine<macs::hmac<digests::sha3_384>>, needs_library<Backend> {
     static_assert(refused_elsewhere_v<Backend>,
                   "webcpp::hash: macs::hmac<digests::sha3_384> is not in this backend. Name one "
-                  "of: backends::hash2.");
+                  "of: backends::hash2, backends::openssl.");
 };
 
 /** `macs::hmac<digests::sha3_512>` on a backend without it (spec 3.3, design D34). */
@@ -1074,7 +1074,7 @@ struct mac_engine<Backend, macs::hmac<digests::sha3_512>>
     : refused_mac_engine<macs::hmac<digests::sha3_512>>, needs_library<Backend> {
     static_assert(refused_elsewhere_v<Backend>,
                   "webcpp::hash: macs::hmac<digests::sha3_512> is not in this backend. Name one "
-                  "of: backends::hash2.");
+                  "of: backends::hash2, backends::openssl.");
 };
 
 /** `macs::hmac<digests::ripemd_160>` on a backend without it (spec 3.3, design D34). */
@@ -1083,7 +1083,7 @@ struct mac_engine<Backend, macs::hmac<digests::ripemd_160>>
     : refused_mac_engine<macs::hmac<digests::ripemd_160>>, needs_library<Backend> {
     static_assert(refused_elsewhere_v<Backend>,
                   "webcpp::hash: macs::hmac<digests::ripemd_160> is not in this backend. Name one "
-                  "of: backends::hash2.");
+                  "of: backends::hash2, backends::openssl.");
 };
 
 /** `macs::hmac<digests::blake2b>` on a backend without it (spec 3.3, design D34). */
@@ -1092,7 +1092,7 @@ struct mac_engine<Backend, macs::hmac<digests::blake2b>>
     : refused_mac_engine<macs::hmac<digests::blake2b>>, needs_library<Backend> {
     static_assert(refused_elsewhere_v<Backend>,
                   "webcpp::hash: macs::hmac<digests::blake2b> is not in this backend. Name one "
-                  "of: backends::hash2.");
+                  "of: backends::hash2, backends::openssl.");
 };
 
 /** `macs::hmac<digests::blake2s_256>` on a backend without it (spec 3.3, design D34). */
@@ -1101,7 +1101,79 @@ struct mac_engine<Backend, macs::hmac<digests::blake2s_256>>
     : refused_mac_engine<macs::hmac<digests::blake2s_256>>, needs_library<Backend> {
     static_assert(refused_elsewhere_v<Backend>,
                   "webcpp::hash: macs::hmac<digests::blake2s_256> is not in this backend. Name "
-                  "one of: backends::hash2.");
+                  "one of: backends::hash2, backends::openssl.");
+};
+
+/** `macs::hmac<digests::keccak_224>` on a backend without it (spec 3.3, design D34). */
+template <class Backend>
+struct mac_engine<Backend, macs::hmac<digests::keccak_224>>
+    : refused_mac_engine<macs::hmac<digests::keccak_224>>, needs_library<Backend> {
+    static_assert(!std::is_same_v<Backend, no_default>,
+                  "webcpp::hash: macs::hmac<digests::keccak_224> has no default backend. Name one "
+                  "of: backends::openssl.");
+    static_assert(refused_elsewhere_v<Backend>,
+                  "webcpp::hash: macs::hmac<digests::keccak_224> is not in this backend. Name one "
+                  "of: backends::openssl.");
+};
+
+/** `macs::hmac<digests::keccak_256>` on a backend without it (spec 3.3, design D34). */
+template <class Backend>
+struct mac_engine<Backend, macs::hmac<digests::keccak_256>>
+    : refused_mac_engine<macs::hmac<digests::keccak_256>>, needs_library<Backend> {
+    static_assert(!std::is_same_v<Backend, no_default>,
+                  "webcpp::hash: macs::hmac<digests::keccak_256> has no default backend. Name one "
+                  "of: backends::openssl.");
+    static_assert(refused_elsewhere_v<Backend>,
+                  "webcpp::hash: macs::hmac<digests::keccak_256> is not in this backend. Name one "
+                  "of: backends::openssl.");
+};
+
+/** `macs::hmac<digests::keccak_384>` on a backend without it (spec 3.3, design D34). */
+template <class Backend>
+struct mac_engine<Backend, macs::hmac<digests::keccak_384>>
+    : refused_mac_engine<macs::hmac<digests::keccak_384>>, needs_library<Backend> {
+    static_assert(!std::is_same_v<Backend, no_default>,
+                  "webcpp::hash: macs::hmac<digests::keccak_384> has no default backend. Name one "
+                  "of: backends::openssl.");
+    static_assert(refused_elsewhere_v<Backend>,
+                  "webcpp::hash: macs::hmac<digests::keccak_384> is not in this backend. Name one "
+                  "of: backends::openssl.");
+};
+
+/** `macs::hmac<digests::keccak_512>` on a backend without it (spec 3.3, design D34). */
+template <class Backend>
+struct mac_engine<Backend, macs::hmac<digests::keccak_512>>
+    : refused_mac_engine<macs::hmac<digests::keccak_512>>, needs_library<Backend> {
+    static_assert(!std::is_same_v<Backend, no_default>,
+                  "webcpp::hash: macs::hmac<digests::keccak_512> has no default backend. Name one "
+                  "of: backends::openssl.");
+    static_assert(refused_elsewhere_v<Backend>,
+                  "webcpp::hash: macs::hmac<digests::keccak_512> is not in this backend. Name one "
+                  "of: backends::openssl.");
+};
+
+/** `macs::hmac<digests::md5_sha1>` on a backend without it (spec 3.3, design D34). */
+template <class Backend>
+struct mac_engine<Backend, macs::hmac<digests::md5_sha1>>
+    : refused_mac_engine<macs::hmac<digests::md5_sha1>>, needs_library<Backend> {
+    static_assert(!std::is_same_v<Backend, no_default>,
+                  "webcpp::hash: macs::hmac<digests::md5_sha1> has no default backend. Name one "
+                  "of: backends::openssl.");
+    static_assert(refused_elsewhere_v<Backend>,
+                  "webcpp::hash: macs::hmac<digests::md5_sha1> is not in this backend. Name one "
+                  "of: backends::openssl.");
+};
+
+/** `macs::hmac<digests::sm3>` on a backend without it (spec 3.3, design D34). */
+template <class Backend>
+struct mac_engine<Backend, macs::hmac<digests::sm3>> : refused_mac_engine<macs::hmac<digests::sm3>>,
+                                                       needs_library<Backend> {
+    static_assert(!std::is_same_v<Backend, no_default>,
+                  "webcpp::hash: macs::hmac<digests::sm3> has no default backend. Name one "
+                  "of: backends::openssl.");
+    static_assert(refused_elsewhere_v<Backend>,
+                  "webcpp::hash: macs::hmac<digests::sm3> is not in this backend. Name one "
+                  "of: backends::openssl.");
 };
 
 /** `macs::kmac_128` on a backend without it (spec 3.3, design D34). */
@@ -1109,7 +1181,8 @@ template <class Backend>
 struct mac_engine<Backend, macs::kmac_128> : refused_mac_engine<macs::kmac_128>,
                                              needs_library<Backend> {
     static_assert(refused_elsewhere_v<Backend>,
-                  "webcpp::hash: macs::kmac_128 is in no backend yet.");
+                  "webcpp::hash: macs::kmac_128 is not in this backend. Name one of: "
+                  "backends::openssl.");
 };
 
 /** `macs::kmac_256` on a backend without it (spec 3.3, design D34). */
@@ -1117,7 +1190,8 @@ template <class Backend>
 struct mac_engine<Backend, macs::kmac_256> : refused_mac_engine<macs::kmac_256>,
                                              needs_library<Backend> {
     static_assert(refused_elsewhere_v<Backend>,
-                  "webcpp::hash: macs::kmac_256 is in no backend yet.");
+                  "webcpp::hash: macs::kmac_256 is not in this backend. Name one of: "
+                  "backends::openssl.");
 };
 
 /** `macs::siphash_2_4` on a backend without it (spec 3.3, design D34). */
@@ -1126,7 +1200,7 @@ struct mac_engine<Backend, macs::siphash_2_4> : refused_mac_engine<macs::siphash
                                                 needs_library<Backend> {
     static_assert(refused_elsewhere_v<Backend>,
                   "webcpp::hash: macs::siphash_2_4 is not in this backend. Name one of: "
-                  "backends::hash2, backends::sodium.");
+                  "backends::hash2, backends::sodium, backends::openssl.");
 };
 
 /** `macs::siphash_2_4x` on a backend without it (spec 3.3, design D34). */
@@ -1135,7 +1209,7 @@ struct mac_engine<Backend, macs::siphash_2_4x> : refused_mac_engine<macs::siphas
                                                  needs_library<Backend> {
     static_assert(refused_elsewhere_v<Backend>,
                   "webcpp::hash: macs::siphash_2_4x is not in this backend. Name one of: "
-                  "backends::sodium.");
+                  "backends::sodium, backends::openssl.");
 };
 
 /** `macs::blake2b_mac` on a backend without it (spec 3.3, design D34). */
@@ -1143,7 +1217,8 @@ template <class Backend>
 struct mac_engine<Backend, macs::blake2b_mac> : refused_mac_engine<macs::blake2b_mac>,
                                                 needs_library<Backend> {
     static_assert(refused_elsewhere_v<Backend>,
-                  "webcpp::hash: macs::blake2b_mac is in no backend yet.");
+                  "webcpp::hash: macs::blake2b_mac is not in this backend. Name one of: "
+                  "backends::openssl.");
 };
 
 /** `macs::blake2s_mac` on a backend without it (spec 3.3, design D34). */
@@ -1152,7 +1227,7 @@ struct mac_engine<Backend, macs::blake2s_mac> : refused_mac_engine<macs::blake2s
                                                 needs_library<Backend> {
     static_assert(refused_elsewhere_v<Backend>,
                   "webcpp::hash: macs::blake2s_mac is not in this backend. Name one of: "
-                  "backends::hash2.");
+                  "backends::hash2, backends::openssl.");
 };
 
 /**

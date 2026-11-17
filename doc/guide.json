@@ -1229,6 +1229,79 @@
             ],
             "choose": "To compute a tag in one call, on a backend named in the call; hmac_blake2s_256 itself to feed the message in pieces."
         },
+        "macs::hmac<digests::keccak_224>": {
+            "summary": "HMAC over Keccak-224 with the original padding, not SHA3-224, as the tag of mac: the tag of a message under a key in one call, cut to 10 bytes or more if needed, on a backend the call names (it has no default).",
+            "output": "224 bits",
+            "security": "112 bits and more",
+            "status": "legacy",
+            "webcrypto": null,
+            "anchor": "hash-macs-openssl",
+            "uses": [
+                {"text": "The Keccak team's final SHA-3 submission, before FIPS 202 changed the padding", "source": "https://keccak.team/files/Keccak-reference-3.0.pdf"}
+            ],
+            "choose": "Only where a format names HMAC over Keccak-224; HMAC over SHA3-224 for anything new."
+        },
+        "macs::hmac<digests::keccak_256>": {
+            "summary": "HMAC over Keccak-256 with the original padding, not SHA3-256, as the tag of mac: the tag of a message under a key in one call, cut to 10 bytes or more if needed, on a backend the call names (it has no default).",
+            "output": "256 bits",
+            "security": "128 bits and more",
+            "status": "legacy",
+            "webcrypto": null,
+            "anchor": "hash-macs-openssl",
+            "uses": [
+                {"text": "The Keccak team's final SHA-3 submission, before FIPS 202 changed the padding", "source": "https://keccak.team/files/Keccak-reference-3.0.pdf"}
+            ],
+            "choose": "Only where a format names HMAC over Keccak-256; HMAC over SHA3-256 for anything new."
+        },
+        "macs::hmac<digests::keccak_384>": {
+            "summary": "HMAC over Keccak-384 with the original padding, not SHA3-384, as the tag of mac: the tag of a message under a key in one call, cut to 10 bytes or more if needed, on a backend the call names (it has no default).",
+            "output": "384 bits",
+            "security": "192 bits and more",
+            "status": "legacy",
+            "webcrypto": null,
+            "anchor": "hash-macs-openssl",
+            "uses": [
+                {"text": "The Keccak team's final SHA-3 submission, before FIPS 202 changed the padding", "source": "https://keccak.team/files/Keccak-reference-3.0.pdf"}
+            ],
+            "choose": "Only where a format names HMAC over Keccak-384; HMAC over SHA3-384 for anything new."
+        },
+        "macs::hmac<digests::keccak_512>": {
+            "summary": "HMAC over Keccak-512 with the original padding, not SHA3-512, as the tag of mac: the tag of a message under a key in one call, cut to 10 bytes or more if needed, on a backend the call names (it has no default).",
+            "output": "512 bits",
+            "security": "256 bits and more",
+            "status": "legacy",
+            "webcrypto": null,
+            "anchor": "hash-macs-openssl",
+            "uses": [
+                {"text": "The Keccak team's final SHA-3 submission, before FIPS 202 changed the padding", "source": "https://keccak.team/files/Keccak-reference-3.0.pdf"}
+            ],
+            "choose": "Only where a format names HMAC over Keccak-512; HMAC over SHA3-512 for anything new."
+        },
+        "macs::hmac<digests::md5_sha1>": {
+            "summary": "HMAC over MD5-SHA1, TLS 1.0's 36-byte digest, as the tag of mac: the tag of a message under a key in one call, cut to 10 bytes or more if needed, on a backend the call names (it has no default).",
+            "output": "288 bits",
+            "security": "legacy: no standard defines it, and it rests on MD5 and SHA-1",
+            "status": "legacy",
+            "webcrypto": null,
+            "anchor": "hash-macs-openssl",
+            "uses": [
+                {"text": "OpenSSL's HMAC, which takes any digest of its provider", "source": "https://docs.openssl.org/3.5/man7/EVP_MAC-HMAC/"}
+            ],
+            "choose": "Only to agree with a program that computes it through OpenSSL; HMAC-SHA-256 for anything new."
+        },
+        "macs::hmac<digests::sm3>": {
+            "summary": "HMAC over SM3, China's national 256-bit digest, as the tag of mac: the tag of a message under a key in one call, cut to 10 bytes or more if needed, on a backend the call names (it has no default).",
+            "output": "256 bits",
+            "security": "128 bits and more",
+            "status": "recommended",
+            "webcrypto": null,
+            "anchor": "hash-macs-openssl",
+            "uses": [
+                {"text": "RFC 8998, ShangMi cipher suites for TLS 1.3, whose HKDF runs HMAC-SM3", "source": "https://www.rfc-editor.org/rfc/rfc8998"},
+                {"text": "GM/T 0042-2015's HMAC-SM3 test cases, in OpenSSL's evpmac_sm3.txt", "source": "https://github.com/openssl/openssl/blob/openssl-3.5.9/test/recipes/30-test_evp_data/evpmac_sm3.txt"}
+            ],
+            "choose": "Where a Chinese standard or a regulator requires SM3, naming backends::openssl; HMAC-SHA-256 everywhere else."
+        },
         "macs::siphash_2_4": {
             "standard": "SipHash-2-4 (Aumasson, Bernstein)",
             "summary": "SipHash-2-4, a keyed 64-bit hash with a 16-byte key, as the tag of mac: the tag of a message under a key in one call, on any backend that has it.",
@@ -1255,6 +1328,45 @@
                 {"text": "the SipHash reference implementation's 128-bit output", "source": "https://github.com/veorq/SipHash"}
             ],
             "choose": "For a 128-bit SipHash, as a libsodium program computes it: a large table, a filter or an identifier keyed against flooding; siphash_2_4 for 64 bits."
+        },
+        "macs::kmac_128": {
+            "standard": "NIST SP 800-185, section 4",
+            "summary": "KMAC128, the MAC built on cSHAKE128 with a key and a customisation string, as the tag of mac: the tag of a message under a key in one call, fixed-length or XOF form.",
+            "output": "any length from 4 bytes (32 bits, SP 800-185 section 8.4.2)",
+            "security": "128-bit security with a key of at least 16 bytes (SP 800-185, section 8.4)",
+            "status": "recommended",
+            "webcrypto": null,
+            "anchor": "hash-macs-openssl",
+            "uses": [
+                {"text": "A MAC and a KDF of NIST SP 800-56C (KMAC-based key derivation)", "source": "https://doi.org/10.6028/NIST.SP.800-56Cr2"}
+            ],
+            "choose": "Where a standard or a format names KMAC; HMAC-SHA-256 elsewhere, which every platform has."
+        },
+        "macs::kmac_256": {
+            "standard": "NIST SP 800-185, section 4",
+            "summary": "KMAC256, the MAC built on cSHAKE256 with a key and a customisation string, as the tag of mac: the tag of a message under a key in one call, fixed-length or XOF form.",
+            "output": "any length from 4 bytes (32 bits, SP 800-185 section 8.4.2)",
+            "security": "256-bit security with a key of at least 32 bytes (SP 800-185, section 8.4)",
+            "status": "recommended",
+            "webcrypto": null,
+            "anchor": "hash-macs-openssl",
+            "uses": [
+                {"text": "A MAC and a KDF of NIST SP 800-56C (KMAC-based key derivation)", "source": "https://doi.org/10.6028/NIST.SP.800-56Cr2"}
+            ],
+            "choose": "As KMAC128, where a format asks for 256-bit security."
+        },
+        "macs::blake2b_mac": {
+            "summary": "BLAKE2b keyed with a key of 1 to 64 bytes (RFC 7693), as the tag of mac: the tag of a message under a key in one call, on any backend that has it.",
+            "output": "1 to 64 bytes",
+            "security": "up to 256 bits, bounded by the key's and the tag's sizes",
+            "status": "recommended",
+            "webcrypto": null,
+            "anchor": "hash-macs-openssl",
+            "uses": [
+                {"text": "RFC 7693's keyed BLAKE2b, a MAC without HMAC's two passes", "source": "https://www.rfc-editor.org/rfc/rfc7693#section-2.5"},
+                {"text": "libsodium's keyed generic hash, crypto_generichash with a key", "source": "https://doc.libsodium.org/hashing/generic_hashing"}
+            ],
+            "choose": "A fast keyed tag on 64-bit machines, of any size from 1 to 64 bytes; HMAC-SHA-256 where a format or WebCrypto must agree."
         },
         "macs::blake2s_mac": {
             "summary": "BLAKE2s keyed with a key of 1 to 32 bytes (RFC 7693), as the tag of mac: the tag of a message under a key in one call, on any backend that has it.",

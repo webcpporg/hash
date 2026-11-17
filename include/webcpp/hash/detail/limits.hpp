@@ -9,7 +9,9 @@
 
 #include <webcpp/hash/config.hpp>
 
+#include <cstddef>
 #include <cstdint>
+#include <limits>
 #include <span>
 
 namespace webcpp::hash::detail {
@@ -27,6 +29,20 @@ namespace webcpp::hash::detail {
 inline bool exceeds(std::uint64_t checked_value, std::uint64_t size_limit) noexcept {
     return checked_value > size_limit;
 }
+
+/**
+ The longest string, key or fixed-length output of SP 800-185's functions, in bytes: the most
+ whose length in bits a `size_t` holds, `SIZE_MAX / 8` (2^61 - 1 natively, 2^29 - 1, 512 MiB, on
+ wasm32). SP 800-185 encodes each length in bits, and its implementations hold them in a
+ `size_t`; the families refuse a longer one before any backend sees it, on every target
+ (`input_too_long` for a string, `invalid_key_size` for a KMAC key, `invalid_output_size` for an
+ output). The test seam `WEBCPP_HASH_DETAIL_TEST_SP800_185_MAX_BYTES` lowers it.
+*/
+#ifdef WEBCPP_HASH_DETAIL_TEST_SP800_185_MAX_BYTES
+inline constexpr std::uint64_t sp800_185_max_bytes = WEBCPP_HASH_DETAIL_TEST_SP800_185_MAX_BYTES;
+#else
+inline constexpr std::uint64_t sp800_185_max_bytes = std::numeric_limits<std::size_t>::max() / 8;
+#endif
 
 /** The byte @ref nonnull points at for an empty span: a constant, never written. */
 inline constexpr std::uint8_t nonnull_byte = 0;

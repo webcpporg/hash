@@ -301,6 +301,122 @@ inline constexpr bool backend_has_v<backends::openssl, digests::md5_sha1, void> 
 template <>
 inline constexpr bool backend_has_v<backends::openssl, digests::sm3, void> = true;
 
+/** backends::openssl has `macs::hmac<digests::md5>` (OpenSSL 3.5.9's `EVP_MAC` "HMAC"). */
+template <>
+inline constexpr bool backend_has_v<backends::openssl, macs::hmac<digests::md5>, void> = true;
+
+/** backends::openssl has `macs::hmac<digests::sha1>` (OpenSSL 3.5.9's `EVP_MAC` "HMAC"). */
+template <>
+inline constexpr bool backend_has_v<backends::openssl, macs::hmac<digests::sha1>, void> = true;
+
+/** backends::openssl has `macs::hmac<digests::sha2_224>` (OpenSSL 3.5.9's `EVP_MAC` "HMAC"). */
+template <>
+inline constexpr bool backend_has_v<backends::openssl, macs::hmac<digests::sha2_224>, void> = true;
+
+/** backends::openssl has `macs::hmac<digests::sha2_256>` (OpenSSL 3.5.9's `EVP_MAC` "HMAC"). */
+template <>
+inline constexpr bool backend_has_v<backends::openssl, macs::hmac<digests::sha2_256>, void> = true;
+
+/** backends::openssl has `macs::hmac<digests::sha2_384>` (OpenSSL 3.5.9's `EVP_MAC` "HMAC"). */
+template <>
+inline constexpr bool backend_has_v<backends::openssl, macs::hmac<digests::sha2_384>, void> = true;
+
+/** backends::openssl has `macs::hmac<digests::sha2_512>` (OpenSSL 3.5.9's `EVP_MAC` "HMAC"). */
+template <>
+inline constexpr bool backend_has_v<backends::openssl, macs::hmac<digests::sha2_512>, void> = true;
+
+/** backends::openssl has `macs::hmac<digests::sha2_512_224>` (OpenSSL 3.5.9's `EVP_MAC` "HMAC"). */
+template <>
+inline constexpr bool backend_has_v<backends::openssl, macs::hmac<digests::sha2_512_224>, void> =
+    true;
+
+/** backends::openssl has `macs::hmac<digests::sha2_512_256>` (OpenSSL 3.5.9's `EVP_MAC` "HMAC"). */
+template <>
+inline constexpr bool backend_has_v<backends::openssl, macs::hmac<digests::sha2_512_256>, void> =
+    true;
+
+/** backends::openssl has `macs::hmac<digests::sha3_224>` (OpenSSL 3.5.9's `EVP_MAC` "HMAC"). */
+template <>
+inline constexpr bool backend_has_v<backends::openssl, macs::hmac<digests::sha3_224>, void> = true;
+
+/** backends::openssl has `macs::hmac<digests::sha3_256>` (OpenSSL 3.5.9's `EVP_MAC` "HMAC"). */
+template <>
+inline constexpr bool backend_has_v<backends::openssl, macs::hmac<digests::sha3_256>, void> = true;
+
+/** backends::openssl has `macs::hmac<digests::sha3_384>` (OpenSSL 3.5.9's `EVP_MAC` "HMAC"). */
+template <>
+inline constexpr bool backend_has_v<backends::openssl, macs::hmac<digests::sha3_384>, void> = true;
+
+/** backends::openssl has `macs::hmac<digests::sha3_512>` (OpenSSL 3.5.9's `EVP_MAC` "HMAC"). */
+template <>
+inline constexpr bool backend_has_v<backends::openssl, macs::hmac<digests::sha3_512>, void> = true;
+
+/** backends::openssl has `macs::hmac<digests::keccak_224>` (OpenSSL 3.5.9's `EVP_MAC` "HMAC"). */
+template <>
+inline constexpr bool backend_has_v<backends::openssl, macs::hmac<digests::keccak_224>, void> =
+    true;
+
+/** backends::openssl has `macs::hmac<digests::keccak_256>` (OpenSSL 3.5.9's `EVP_MAC` "HMAC"). */
+template <>
+inline constexpr bool backend_has_v<backends::openssl, macs::hmac<digests::keccak_256>, void> =
+    true;
+
+/** backends::openssl has `macs::hmac<digests::keccak_384>` (OpenSSL 3.5.9's `EVP_MAC` "HMAC"). */
+template <>
+inline constexpr bool backend_has_v<backends::openssl, macs::hmac<digests::keccak_384>, void> =
+    true;
+
+/** backends::openssl has `macs::hmac<digests::keccak_512>` (OpenSSL 3.5.9's `EVP_MAC` "HMAC"). */
+template <>
+inline constexpr bool backend_has_v<backends::openssl, macs::hmac<digests::keccak_512>, void> =
+    true;
+
+/** backends::openssl has `macs::hmac<digests::ripemd_160>` (OpenSSL 3.5.9's `EVP_MAC` "HMAC"). */
+template <>
+inline constexpr bool backend_has_v<backends::openssl, macs::hmac<digests::ripemd_160>, void> =
+    true;
+
+/** backends::openssl has `macs::hmac<digests::blake2b>` (OpenSSL 3.5.9's `EVP_MAC` "HMAC"). */
+template <>
+inline constexpr bool backend_has_v<backends::openssl, macs::hmac<digests::blake2b>, void> = true;
+
+/** backends::openssl has `macs::hmac<digests::blake2s_256>` (OpenSSL 3.5.9's `EVP_MAC` "HMAC"). */
+template <>
+inline constexpr bool backend_has_v<backends::openssl, macs::hmac<digests::blake2s_256>, void> =
+    true;
+
+/** backends::openssl has `macs::hmac<digests::md5_sha1>` (OpenSSL 3.5.9's `EVP_MAC` "HMAC"). */
+template <>
+inline constexpr bool backend_has_v<backends::openssl, macs::hmac<digests::md5_sha1>, void> = true;
+
+/** backends::openssl has `macs::hmac<digests::sm3>` (OpenSSL 3.5.9's `EVP_MAC` "HMAC"). */
+template <>
+inline constexpr bool backend_has_v<backends::openssl, macs::hmac<digests::sm3>, void> = true;
+
+/** backends::openssl has `macs::kmac_128` (OpenSSL 3.5.9's `EVP_MAC` "KMAC-128"). */
+template <>
+inline constexpr bool backend_has_v<backends::openssl, macs::kmac_128, void> = true;
+
+/** backends::openssl has `macs::kmac_256` (OpenSSL 3.5.9's `EVP_MAC` "KMAC-256"). */
+template <>
+inline constexpr bool backend_has_v<backends::openssl, macs::kmac_256, void> = true;
+
+/** backends::openssl has `macs::siphash_2_4` (OpenSSL 3.5.9's `EVP_MAC` "SIPHASH"). */
+template <>
+inline constexpr bool backend_has_v<backends::openssl, macs::siphash_2_4, void> = true;
+
+/** backends::openssl has `macs::siphash_2_4x` (OpenSSL 3.5.9's `EVP_MAC` "SIPHASH"). */
+template <>
+inline constexpr bool backend_has_v<backends::openssl, macs::siphash_2_4x, void> = true;
+
+/** backends::openssl has `macs::blake2b_mac` (OpenSSL 3.5.9's `EVP_MAC` "BLAKE2BMAC"). */
+template <>
+inline constexpr bool backend_has_v<backends::openssl, macs::blake2b_mac, void> = true;
+
+/** backends::openssl has `macs::blake2s_mac` (OpenSSL 3.5.9's `EVP_MAC` "BLAKE2SMAC"). */
+template <>
+inline constexpr bool backend_has_v<backends::openssl, macs::blake2s_mac, void> = true;
+
 /**
  backends::openssl has `digests::blake2b` in part: unkeyed, every output size from 1 to 64 bytes
  (OpenSSL's "BLAKE2B-512" with its "size"); no key, salt or personalisation.

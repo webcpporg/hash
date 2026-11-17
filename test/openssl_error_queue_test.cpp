@@ -5,7 +5,8 @@
 // https://www.boost.org/LICENSE_1_0.txt)
 
 // OpenSSL's error queue (spec section 3.4): on an empty queue, hkdf_extract, hkdf_expand, hkdf,
-// pbkdf2, digest_of and a hasher's make, update and finish on backends::openssl leave it empty,
+// pbkdf2, digest_of, a hasher's make, update and finish, and mac (HMAC, KMAC, keyed BLAKE2s and
+// SipHash) on backends::openssl leave it empty,
 // OpenSSL's first fetch and initialisation among them; an entry of the caller's survives each, and
 // nothing of webcpp's is left beside it; a mark the caller set on its own entry survives them too,
 // and the caller's pop to it still finds it. openssl_failure_test.cpp checks the same around a
@@ -15,6 +16,7 @@
 #include <webcpp/hash/digest.hpp>
 #include <webcpp/hash/hkdf.hpp>
 #include <webcpp/hash/hmac.hpp>
+#include <webcpp/hash/mac.hpp>
 #include <webcpp/hash/pbkdf2.hpp>
 
 #include <boost/core/lightweight_test.hpp>
@@ -44,7 +46,10 @@ std::size_t drain(unsigned long& first) {
     return count;
 }
 
-/** Each of the four key derivations and the digest family once, on OpenSSL, each a success. */
+/**
+ Each of the four key derivations, the digest family and the MAC family once, on OpenSSL, each a
+ success.
+*/
 void call_each() {
     std::array<std::uint8_t, 13> const salt{1, 2, 3};
     std::array<std::uint8_t, 22> const ikm{4, 5, 6};
@@ -70,6 +75,14 @@ void call_each() {
         BOOST_TEST(hashing->update(ikm).has_value());
         BOOST_TEST(hashing->finish(output).has_value());
     }
+
+    namespace macs = hash::macs;
+    std::array<std::uint8_t, 16> const key{1, 2, 3};
+    BOOST_TEST((hash::mac<macs::hmac<hash::digests::sha2_256>, openssl>(digest, key, ikm)));
+    BOOST_TEST((hash::mac<macs::kmac_256, openssl>(output, key, ikm, {.customisation = info})));
+    BOOST_TEST((hash::mac<macs::blake2s_mac, openssl>(digest, key, ikm)));
+    std::array<std::uint8_t, 8> short_tag{};
+    BOOST_TEST((hash::mac<macs::siphash_2_4, openssl>(short_tag, key, ikm)));
 }
 
 }  // namespace

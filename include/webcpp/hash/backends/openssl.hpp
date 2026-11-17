@@ -6,7 +6,8 @@
 
 /**
  `backends::openssl`: HKDF (RFC 5869) and PBKDF2 (RFC 8018) of OpenSSL 3.5.9, its `EVP_KDF`s
- "HKDF" and "PBKDF2", and the digests of its default provider through `EVP_MD`, built from
+ "HKDF" and "PBKDF2", the digests of its default provider through `EVP_MD` and its MACs through
+ `EVP_MAC`, built from
  `third_party/libs/openssl` by `/webcpp/hash//openssl`, static, on native, wasip2 and wasip3;
  never on Emscripten, and never a default backend (design D34): a call names it. The key
  derivations have every hmac of `hmac.hpp` but `hmac_ripemd_128` (spec section 3.2). The digests
@@ -14,21 +15,32 @@
  Keccak-224 to Keccak-512, BLAKE2s-256, BLAKE2b unkeyed (1 to 64 bytes), RIPEMD-160, MD5-SHA1
  and SM3; the default provider's SHA-256/192 and KMAC hashes have no tag, and Whirlpool, MD4 and
  MDC2 are in the legacy provider, which webcpp does not load (`doc/capabilities.json` says why).
+ The MACs are HMAC over each of those digests but SHAKE, KMAC128 and KMAC256 (fixed-length and
+ XOF), keyed BLAKE2b and BLAKE2s, and SipHash-2-4 with an 8-byte or a 16-byte tag; its CMAC, GMAC
+ and Poly1305 are not exposed.
 
  Each key derivation fetches the KDF, makes a context, sets the parameters, derives and frees
  both (spec section 3.4): OpenSSL allocates them through its own allocator, and webcpp keeps no
  OpenSSL object between calls (spec section 6.2). A digest allocates an `EVP_MD_CTX` and the
  digest's context the same way: `digest_of` frees them before it returns, and a `hasher` owns
  them until it finishes or is destroyed, so that a hash in pieces is the one OpenSSL object that
- outlives a call; it is the hasher's alone. OpenSSL copies the inputs into its context:
- the key (HKDF's IKM or PRK, PBKDF2's password) and the info are cleared when the context is
- freed; the salt is freed without being cleared (OpenSSL clears it only when built with
- `OPENSSL_PEDANTIC_ZEROIZATION`). Its default initialisation, on the first call, reads the
- configuration file of the directory it was configured with, as any program of OpenSSL does.
+ outlives a call; it is the hasher's alone. A MAC fetches the MAC and makes an `EVP_MAC_CTX` in
+ each call of `mac`, and frees both before it returns. OpenSSL copies the inputs into its
+ context: the key (HKDF's IKM or PRK, PBKDF2's password) and the info are cleared when the
+ context is freed; the salt is freed without being cleared (OpenSSL clears it only when built
+ with `OPENSSL_PEDANTIC_ZEROIZATION`). OpenSSL documents `EVP_MD_CTX_free` as cleaning up and
+ freeing a digest's context and `EVP_MAC_CTX_free` as freeing a MAC's, not as clearing them; as
+ read at 3.5.9, its HMAC, KMAC and BLAKE2 MACs clear their copy of the key when freed, and its
+ SipHash frees its keyed state without clearing it. Its default initialisation, on the first
+ call, reads the configuration file of the directory it was configured with, as any program of
+ OpenSSL does.
 
  Its limits: OpenSSL 3.5.9 holds some lengths in an `int`, so the public functions
  refuse, before OpenSSL is called, PBKDF2's output (`invalid_output_size`), password and salt
- (`input_too_long`) and HKDF's salt (`input_too_long`) of more than `INT_MAX` bytes. PBKDF2 keeps
+ (`input_too_long`) and HKDF's salt (`input_too_long`) of more than `INT_MAX` bytes, and `mac`
+ an HMAC key of more than `INT_MAX` bytes (`unsupported_by_backend`); its KMAC takes a key of 4
+ to 512 bytes, a customisation of at most 512 and a tag of at most 2,097,151
+ (`unsupported_by_backend` otherwise). PBKDF2 keeps
  the output's and the salt's lengths in `int`s, and HMAC, through `HMAC_Init_ex`, its key's
  length, which is PBKDF2's password and HKDF-Extract's salt; HKDF-Expand's key, the PRK, takes
  the same path and is limited alike, though it is always one digest. HKDF's IKM, info and output
@@ -54,6 +66,7 @@
 #else
 
 #include <webcpp/hash/detail/engines.hpp>
+#include <webcpp/hash/detail/limits.hpp>
 #include <webcpp/hash/detail/wipe.hpp>
 #include <webcpp/hash/error.hpp>
 #include <webcpp/hash/hmac.hpp>
@@ -67,6 +80,7 @@
 #include <openssl/kdf.h>
 #include <openssl/params.h>
 
+#include <algorithm>
 #include <array>
 #include <climits>
 #include <cstddef>
@@ -78,8 +92,8 @@
 namespace webcpp::hash::backends {
 
 /**
- OpenSSL 3.5.9's HKDF, PBKDF2 and digests, through `/webcpp/hash//openssl`, on native, wasip2 and
- wasip3; never a default backend.
+ OpenSSL 3.5.9's HKDF, PBKDF2, digests and MACs, through `/webcpp/hash//openssl`, on native,
+ wasip2 and wasip3; never a default backend.
 */
 struct openssl {};
 
@@ -632,8 +646,8 @@ constexpr char const* openssl_md() noexcept {
 
 /**
  The state of a digest on backends::openssl: the `EVP_MD_CTX` it owns, null before `init` and
- once freed or moved from. Freeing it (`EVP_MD_CTX_free`) clears the digest's own context
- (OpenSSL's providers free it with `OPENSSL_clear_free`) and cleanses the `EVP_MD_CTX`.
+ once freed or moved from. Freeing it is `EVP_MD_CTX_free`, which OpenSSL documents as cleaning
+ up the context and freeing it.
 */
 class openssl_md_state {
 public:
@@ -774,7 +788,7 @@ struct openssl_digest_engine : full_engine {
     }
 
     /**
-     Frees the context, which OpenSSL clears; a second call does nothing.
+     Frees the context (`EVP_MD_CTX_free`); a second call does nothing.
 
      @param hashed The state.
     */
@@ -955,6 +969,370 @@ struct digest_engine<backends::openssl, digests::blake2b>
         return options.key.empty() && options.salt.empty() && options.personalisation.empty();
     }
 };
+
+/**
+ OpenSSL's name of a tag of `macs`, its `value`: the first of the names OpenSSL 3.5.9's default
+ provider gives the MAC (`PROV_NAMES_*`), which `EVP_MAC_fetch` takes. Declared for every tag,
+ defined for each tag backends::openssl has.
+
+ @tparam Mac A tag of `macs`.
+*/
+template <class Mac>
+struct openssl_mac_name;
+
+/** HMAC over any digest: "HMAC", its digest the parameter "digest". */
+template <class Digest>
+struct openssl_mac_name<macs::hmac<Digest>> {
+    /** OpenSSL's name. */
+    static constexpr char const* value = "HMAC";
+};
+
+/** KMAC128: "KMAC-128". */
+template <>
+struct openssl_mac_name<macs::kmac_128> {
+    /** OpenSSL's name. */
+    static constexpr char const* value = "KMAC-128";
+};
+
+/** KMAC256: "KMAC-256". */
+template <>
+struct openssl_mac_name<macs::kmac_256> {
+    /** OpenSSL's name. */
+    static constexpr char const* value = "KMAC-256";
+};
+
+/** SipHash-2-4 with an 8-byte tag: "SIPHASH" (2 and 4 rounds by default). */
+template <>
+struct openssl_mac_name<macs::siphash_2_4> {
+    /** OpenSSL's name. */
+    static constexpr char const* value = "SIPHASH";
+};
+
+/** SipHash-2-4 with a 16-byte tag: "SIPHASH" with its parameter "size" at 16. */
+template <>
+struct openssl_mac_name<macs::siphash_2_4x> {
+    /** OpenSSL's name. */
+    static constexpr char const* value = "SIPHASH";
+};
+
+/** BLAKE2b keyed: "BLAKE2BMAC". */
+template <>
+struct openssl_mac_name<macs::blake2b_mac> {
+    /** OpenSSL's name. */
+    static constexpr char const* value = "BLAKE2BMAC";
+};
+
+/** BLAKE2s keyed: "BLAKE2SMAC". */
+template <>
+struct openssl_mac_name<macs::blake2s_mac> {
+    /** OpenSSL's name. */
+    static constexpr char const* value = "BLAKE2SMAC";
+};
+
+/**
+ Fetches the MAC named `mac_name`, makes a context (`EVP_MAC_CTX_new`, through OpenSSL's
+ allocator), and computes the tag of `input` under `key` into `output` with `ossl_params`:
+ `EVP_MAC_init`, `EVP_MAC_update`, then `EVP_MAC_final` once OpenSSL's size of the tag is seen to
+ be the output's; frees both before it returns. The thread's error queue is left as it was found.
+
+ @param mac_name OpenSSL's name of the MAC.
+ @param output The tag, its whole size. @param key The key, possibly empty (HMAC's).
+ @param input The message. @param ossl_params The parameters, ending with
+ `OSSL_PARAM_construct_end()`, which `EVP_MAC_init` sets before the key.
+ @return Success; `errc::not_enough_memory` when the last error OpenSSL raised is an allocation's;
+ `error::backend_failure` for any other failure.
+*/
+[[nodiscard]] inline boost::system::result<void> openssl_mac(
+    char const* mac_name, std::span<std::uint8_t> output, std::span<std::uint8_t const> key,
+    std::span<std::uint8_t const> input, OSSL_PARAM const* ossl_params) noexcept {
+    ERR_set_mark();
+    EVP_MAC* mac_algorithm = EVP_MAC_fetch(nullptr, mac_name, nullptr);
+    EVP_MAC_CTX* mac_context = mac_algorithm != nullptr ? EVP_MAC_CTX_new(mac_algorithm) : nullptr;
+    std::size_t written = 0;
+    // A key's or an input's pointer is never null: OpenSSL takes a null key for "no key given".
+    const bool computed = mac_context != nullptr &&
+                          EVP_MAC_init(mac_context, nonnull(key), key.size(), ossl_params) == 1 &&
+                          EVP_MAC_update(mac_context, nonnull(input), input.size()) == 1 &&
+                          EVP_MAC_CTX_get_mac_size(mac_context) == output.size() &&
+                          EVP_MAC_final(mac_context, output.data(), &written, output.size()) == 1 &&
+                          written == output.size();
+    // The frees raise no error: the outcome read after them is the computation's.
+    EVP_MAC_CTX_free(mac_context);
+    EVP_MAC_free(mac_algorithm);
+    return openssl_outcome(computed);
+}
+
+/**
+ HMAC over `Digest` on backends::openssl, OpenSSL's "HMAC" with the parameter "digest" that
+ @ref openssl_md names (its interface is @ref mac_engine). OpenSSL writes the whole HMAC, which a
+ shorter tag takes the start of (RFC 2104, section 5), the rest wiped. OpenSSL takes the key's
+ length as an `int` (`HMAC_Init_ex`): a key of more than `INT_MAX` bytes is
+ `unsupported_by_backend`.
+
+ @tparam Digest A tag of `digests` of a fixed size that OpenSSL's default provider has.
+*/
+template <class Digest>
+struct openssl_hmac_engine : full_engine {
+    /**
+     Whether OpenSSL takes a key of `key_size` bytes: at most `INT_MAX`.
+
+     @param key_size The key's size. @return Whether it is taken.
+    */
+    template <class Options>
+    static constexpr bool accepts(Options const& /*options*/, std::size_t key_size,
+                                  std::size_t /*output_size*/) noexcept {
+        return !exceeds(key_size, openssl_int_max);
+    }
+
+    /**
+     The tag of `input` under `key`, the HMAC cut to `output.size()` bytes.
+
+     @param output The tag. @param key The key. @param input The message.
+     @return Success, or OpenSSL's failure.
+    */
+    template <class Options>
+    [[nodiscard]] static boost::system::result<void> compute(std::span<std::uint8_t> output,
+                                                             std::span<std::uint8_t const> key,
+                                                             std::span<std::uint8_t const> input,
+                                                             Options const& /*options*/) noexcept {
+        constexpr std::uint64_t digest_size = mac_traits<macs::hmac<Digest>>::max_output;
+        static_assert(digest_size <= EVP_MAX_MD_SIZE);
+        std::array<OSSL_PARAM, 2> ossl_params{
+            openssl_text("digest", openssl_md<Digest>()),
+            OSSL_PARAM_construct_end(),
+        };
+        std::array<std::uint8_t, EVP_MAX_MD_SIZE> whole{};
+        auto const tag = std::span(whole).first(digest_size);
+        auto computed = openssl_mac("HMAC", tag, key, input, ossl_params.data());
+        if (computed) {
+            std::copy_n(tag.begin(), output.size(), output.begin());
+        }
+        wipe_object(whole);
+        return computed;
+    }
+};
+
+/**
+ KMAC128 or KMAC256 on backends::openssl, OpenSSL's "KMAC-128" or "KMAC-256" with the
+ parameters "size" (the tag's), "xof" and "custom" (the customisation); its interface is @ref
+ mac_engine. Its limits are narrower than SP 800-185's (`providers/implementations/macs/
+ kmac_prov.c`): a key of 4 to 512 bytes, a customisation of at most 512 bytes and a tag of at
+ most 2,097,151 bytes (`0xFFFFFF / 8`, in either form); `mac` answers any other
+ `unsupported_by_backend` (ruling R41).
+
+ @tparam Mac `macs::kmac_128` or `macs::kmac_256`.
+*/
+template <class Mac>
+struct openssl_kmac_engine : full_engine {
+    /** OpenSSL's shortest key, `KMAC_MIN_KEY`. */
+    static constexpr std::size_t min_key = 4;
+    /** OpenSSL's longest key, `KMAC_MAX_KEY`. */
+    static constexpr std::size_t max_key = 512;
+    /** OpenSSL's longest customisation, `KMAC_MAX_CUSTOM`. */
+    static constexpr std::size_t max_customisation = 512;
+    /** OpenSSL's longest tag, `KMAC_MAX_OUTPUT_LEN`: 0xFFFFFF bits, in bytes. */
+    static constexpr std::size_t max_tag = 0xFFFFFF / 8;
+
+    /**
+     Whether OpenSSL takes these options, key size and tag size. A template, so that it reads
+     `mac_options<Mac>`, which mac.hpp defines after this header.
+
+     @param options The customisation and the form. @param key_size The key's size.
+     @param output_size The tag's size. @return Whether OpenSSL takes them.
+    */
+    template <class Options>
+    static constexpr bool accepts(Options const& options, std::size_t key_size,
+                                  std::size_t output_size) noexcept {
+        return key_size >= min_key && key_size <= max_key &&
+               options.customisation.size() <= max_customisation && output_size <= max_tag;
+    }
+
+    /**
+     The tag of `input` under `key`, of `output.size()` bytes, in the form the options choose.
+
+     @param output The tag. @param key The key. @param input The message.
+     @param options The customisation and the form.
+     @return Success, or OpenSSL's failure.
+    */
+    template <class Options>
+    [[nodiscard]] static boost::system::result<void> compute(std::span<std::uint8_t> output,
+                                                             std::span<std::uint8_t const> key,
+                                                             std::span<std::uint8_t const> input,
+                                                             Options const& options) noexcept {
+        std::size_t tag_size = output.size();
+        int xof_form = options.xof ? 1 : 0;
+        std::array<OSSL_PARAM, 4> ossl_params{
+            OSSL_PARAM_construct_size_t("size", &tag_size),
+            OSSL_PARAM_construct_int("xof", &xof_form),
+            openssl_octets("custom", options.customisation),
+            OSSL_PARAM_construct_end(),
+        };
+        return openssl_mac(openssl_mac_name<Mac>::value, output, key, input, ossl_params.data());
+    }
+};
+
+/**
+ A MAC of backends::openssl whose one parameter is the tag's size, "size", whose interface is
+ @ref mac_engine. It serves SipHash ("SIPHASH", 8 or 16 bytes, 2 and 4 rounds, OpenSSL's
+ defaults) and keyed BLAKE2 ("BLAKE2BMAC", "BLAKE2SMAC", 1 to 64 or 32 bytes). Every key and tag
+ size the family's guards accept is OpenSSL's.
+
+ @tparam Mac `macs::siphash_2_4`, `siphash_2_4x`, `blake2b_mac` or `blake2s_mac`.
+*/
+template <class Mac>
+struct openssl_sized_mac_engine : full_engine {
+    /**
+     The tag of `input` under `key`, of `output.size()` bytes.
+
+     @param output The tag. @param key The key. @param input The message.
+     @return Success, or OpenSSL's failure.
+    */
+    template <class Options>
+    [[nodiscard]] static boost::system::result<void> compute(std::span<std::uint8_t> output,
+                                                             std::span<std::uint8_t const> key,
+                                                             std::span<std::uint8_t const> input,
+                                                             Options const& /*options*/) noexcept {
+        std::size_t tag_size = output.size();
+        std::array<OSSL_PARAM, 2> ossl_params{
+            OSSL_PARAM_construct_size_t("size", &tag_size),
+            OSSL_PARAM_construct_end(),
+        };
+        return openssl_mac(openssl_mac_name<Mac>::value, output, key, input, ossl_params.data());
+    }
+};
+
+/** `macs::hmac<digests::md5>` on backends::openssl: "HMAC" over "MD5". */
+template <>
+struct mac_engine<backends::openssl, macs::hmac<digests::md5>> : openssl_hmac_engine<digests::md5> {
+};
+
+/** `macs::hmac<digests::sha1>` on backends::openssl: "HMAC" over "SHA1". */
+template <>
+struct mac_engine<backends::openssl, macs::hmac<digests::sha1>>
+    : openssl_hmac_engine<digests::sha1> {};
+
+/** `macs::hmac<digests::sha2_224>` on backends::openssl: "HMAC" over "SHA2-224". */
+template <>
+struct mac_engine<backends::openssl, macs::hmac<digests::sha2_224>>
+    : openssl_hmac_engine<digests::sha2_224> {};
+
+/** `macs::hmac<digests::sha2_256>` on backends::openssl: "HMAC" over "SHA2-256". */
+template <>
+struct mac_engine<backends::openssl, macs::hmac<digests::sha2_256>>
+    : openssl_hmac_engine<digests::sha2_256> {};
+
+/** `macs::hmac<digests::sha2_384>` on backends::openssl: "HMAC" over "SHA2-384". */
+template <>
+struct mac_engine<backends::openssl, macs::hmac<digests::sha2_384>>
+    : openssl_hmac_engine<digests::sha2_384> {};
+
+/** `macs::hmac<digests::sha2_512>` on backends::openssl: "HMAC" over "SHA2-512". */
+template <>
+struct mac_engine<backends::openssl, macs::hmac<digests::sha2_512>>
+    : openssl_hmac_engine<digests::sha2_512> {};
+
+/** `macs::hmac<digests::sha2_512_224>` on backends::openssl: "HMAC" over "SHA2-512/224". */
+template <>
+struct mac_engine<backends::openssl, macs::hmac<digests::sha2_512_224>>
+    : openssl_hmac_engine<digests::sha2_512_224> {};
+
+/** `macs::hmac<digests::sha2_512_256>` on backends::openssl: "HMAC" over "SHA2-512/256". */
+template <>
+struct mac_engine<backends::openssl, macs::hmac<digests::sha2_512_256>>
+    : openssl_hmac_engine<digests::sha2_512_256> {};
+
+/** `macs::hmac<digests::sha3_224>` on backends::openssl: "HMAC" over "SHA3-224". */
+template <>
+struct mac_engine<backends::openssl, macs::hmac<digests::sha3_224>>
+    : openssl_hmac_engine<digests::sha3_224> {};
+
+/** `macs::hmac<digests::sha3_256>` on backends::openssl: "HMAC" over "SHA3-256". */
+template <>
+struct mac_engine<backends::openssl, macs::hmac<digests::sha3_256>>
+    : openssl_hmac_engine<digests::sha3_256> {};
+
+/** `macs::hmac<digests::sha3_384>` on backends::openssl: "HMAC" over "SHA3-384". */
+template <>
+struct mac_engine<backends::openssl, macs::hmac<digests::sha3_384>>
+    : openssl_hmac_engine<digests::sha3_384> {};
+
+/** `macs::hmac<digests::sha3_512>` on backends::openssl: "HMAC" over "SHA3-512". */
+template <>
+struct mac_engine<backends::openssl, macs::hmac<digests::sha3_512>>
+    : openssl_hmac_engine<digests::sha3_512> {};
+
+/** `macs::hmac<digests::keccak_224>` on backends::openssl: "HMAC" over "KECCAK-224". */
+template <>
+struct mac_engine<backends::openssl, macs::hmac<digests::keccak_224>>
+    : openssl_hmac_engine<digests::keccak_224> {};
+
+/** `macs::hmac<digests::keccak_256>` on backends::openssl: "HMAC" over "KECCAK-256". */
+template <>
+struct mac_engine<backends::openssl, macs::hmac<digests::keccak_256>>
+    : openssl_hmac_engine<digests::keccak_256> {};
+
+/** `macs::hmac<digests::keccak_384>` on backends::openssl: "HMAC" over "KECCAK-384". */
+template <>
+struct mac_engine<backends::openssl, macs::hmac<digests::keccak_384>>
+    : openssl_hmac_engine<digests::keccak_384> {};
+
+/** `macs::hmac<digests::keccak_512>` on backends::openssl: "HMAC" over "KECCAK-512". */
+template <>
+struct mac_engine<backends::openssl, macs::hmac<digests::keccak_512>>
+    : openssl_hmac_engine<digests::keccak_512> {};
+
+/** `macs::hmac<digests::ripemd_160>` on backends::openssl: "HMAC" over "RIPEMD-160". */
+template <>
+struct mac_engine<backends::openssl, macs::hmac<digests::ripemd_160>>
+    : openssl_hmac_engine<digests::ripemd_160> {};
+
+/** `macs::hmac<digests::blake2b>` on backends::openssl: "HMAC" over "BLAKE2B-512" (64 bytes). */
+template <>
+struct mac_engine<backends::openssl, macs::hmac<digests::blake2b>>
+    : openssl_hmac_engine<digests::blake2b> {};
+
+/** `macs::hmac<digests::blake2s_256>` on backends::openssl: "HMAC" over "BLAKE2S-256". */
+template <>
+struct mac_engine<backends::openssl, macs::hmac<digests::blake2s_256>>
+    : openssl_hmac_engine<digests::blake2s_256> {};
+
+/** `macs::hmac<digests::md5_sha1>` on backends::openssl: "HMAC" over "MD5-SHA1". */
+template <>
+struct mac_engine<backends::openssl, macs::hmac<digests::md5_sha1>>
+    : openssl_hmac_engine<digests::md5_sha1> {};
+
+/** `macs::hmac<digests::sm3>` on backends::openssl: "HMAC" over "SM3". */
+template <>
+struct mac_engine<backends::openssl, macs::hmac<digests::sm3>> : openssl_hmac_engine<digests::sm3> {
+};
+
+/** `macs::kmac_128` on backends::openssl: "KMAC-128" and its XOF form. */
+template <>
+struct mac_engine<backends::openssl, macs::kmac_128> : openssl_kmac_engine<macs::kmac_128> {};
+
+/** `macs::kmac_256` on backends::openssl: "KMAC-256" and its XOF form. */
+template <>
+struct mac_engine<backends::openssl, macs::kmac_256> : openssl_kmac_engine<macs::kmac_256> {};
+
+/** `macs::siphash_2_4` on backends::openssl: "SIPHASH" at 8 bytes. */
+template <>
+struct mac_engine<backends::openssl, macs::siphash_2_4>
+    : openssl_sized_mac_engine<macs::siphash_2_4> {};
+
+/** `macs::siphash_2_4x` on backends::openssl: "SIPHASH" at 16 bytes. */
+template <>
+struct mac_engine<backends::openssl, macs::siphash_2_4x>
+    : openssl_sized_mac_engine<macs::siphash_2_4x> {};
+
+/** `macs::blake2b_mac` on backends::openssl: "BLAKE2BMAC", a key and a tag of 1 to 64 bytes. */
+template <>
+struct mac_engine<backends::openssl, macs::blake2b_mac>
+    : openssl_sized_mac_engine<macs::blake2b_mac> {};
+
+/** `macs::blake2s_mac` on backends::openssl: "BLAKE2SMAC", a key and a tag of 1 to 32 bytes. */
+template <>
+struct mac_engine<backends::openssl, macs::blake2s_mac>
+    : openssl_sized_mac_engine<macs::blake2s_mac> {};
 
 }  // namespace webcpp::hash::detail
 
