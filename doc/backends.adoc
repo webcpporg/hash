@@ -107,6 +107,54 @@ states about its constant time. The backends:
 | not stated
 | native, wasip2, wasip3, emscripten
 
+| digests::md5
+| hash2
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| digests::sha1
+| hash2
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| digests::sha2_224
+| hash2
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| digests::sha2_256
+| hash2
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| digests::sha2_384
+| hash2
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| digests::sha2_512
+| hash2
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| digests::sha2_512_224
+| hash2
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| digests::sha2_512_256
+| hash2
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
 | sha3_224
 | hash2
 | -
@@ -143,7 +191,49 @@ states about its constant time. The backends:
 | not stated
 | native, wasip2, wasip3, emscripten
 
+| digests::sha3_224
+| hash2
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| digests::sha3_256
+| hash2
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| digests::sha3_384
+| hash2
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| digests::sha3_512
+| hash2
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| digests::shake_128
+| hash2 (partial: an output past 32 bytes, one Boost.Hash2 result)
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| digests::shake_256
+| hash2 (partial: an output past 64 bytes, one Boost.Hash2 result)
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
 | keccak_256
+| xkcp
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| digests::keccak_256
 | xkcp
 | -
 | not stated
@@ -161,7 +251,19 @@ states about its constant time. The backends:
 | not stated
 | native, wasip2, wasip3, emscripten
 
+| digests::blake2s_256
+| hash2
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
 | blake3
+| blake3
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| digests::blake3
 | blake3
 | -
 | not stated
@@ -174,6 +276,12 @@ states about its constant time. The backends:
 | native, wasip2, wasip3, emscripten
 
 | ripemd_160
+| hash2
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| digests::ripemd_160
 | hash2
 | -
 | not stated
@@ -295,6 +403,96 @@ states about its constant time. The backends:
 | native, wasip2, wasip3, emscripten
 
 | hmac_blake2s_256
+| hash2
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| macs::hmac<digests::md5>
+| hash2
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| macs::hmac<digests::sha1>
+| hash2
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| macs::hmac<digests::sha2_224>
+| hash2
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| macs::hmac<digests::sha2_256>
+| hash2
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| macs::hmac<digests::sha2_384>
+| hash2
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| macs::hmac<digests::sha2_512>
+| hash2
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| macs::hmac<digests::sha2_512_224>
+| hash2
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| macs::hmac<digests::sha2_512_256>
+| hash2
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| macs::hmac<digests::sha3_224>
+| hash2
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| macs::hmac<digests::sha3_256>
+| hash2
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| macs::hmac<digests::sha3_384>
+| hash2
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| macs::hmac<digests::sha3_512>
+| hash2
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| macs::hmac<digests::ripemd_160>
+| hash2
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| macs::hmac<digests::blake2b>
+| hash2
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| macs::hmac<digests::blake2s_256>
 | hash2
 | -
 | not stated
@@ -461,6 +659,105 @@ The backend a call that names none uses, on every target, whatever the program l
 [cols="2,1",options="header"]
 |===
 | Function | Default
+
+| digests::md5
+| hash2
+
+| digests::sha1
+| hash2
+
+| digests::sha2_224
+| hash2
+
+| digests::sha2_256
+| hash2
+
+| digests::sha2_384
+| hash2
+
+| digests::sha2_512
+| hash2
+
+| digests::sha2_512_224
+| hash2
+
+| digests::sha2_512_256
+| hash2
+
+| digests::sha3_224
+| hash2
+
+| digests::sha3_256
+| hash2
+
+| digests::sha3_384
+| hash2
+
+| digests::sha3_512
+| hash2
+
+| digests::shake_128
+| xkcp
+
+| digests::shake_256
+| xkcp
+
+| digests::keccak_256
+| xkcp
+
+| digests::blake2s_256
+| hash2
+
+| digests::blake3
+| blake3
+
+| digests::ripemd_160
+| hash2
+
+| macs::hmac<digests::md5>
+| hash2
+
+| macs::hmac<digests::sha1>
+| hash2
+
+| macs::hmac<digests::sha2_224>
+| hash2
+
+| macs::hmac<digests::sha2_256>
+| hash2
+
+| macs::hmac<digests::sha2_384>
+| hash2
+
+| macs::hmac<digests::sha2_512>
+| hash2
+
+| macs::hmac<digests::sha2_512_224>
+| hash2
+
+| macs::hmac<digests::sha2_512_256>
+| hash2
+
+| macs::hmac<digests::sha3_224>
+| hash2
+
+| macs::hmac<digests::sha3_256>
+| hash2
+
+| macs::hmac<digests::sha3_384>
+| hash2
+
+| macs::hmac<digests::sha3_512>
+| hash2
+
+| macs::hmac<digests::ripemd_160>
+| hash2
+
+| macs::hmac<digests::blake2b>
+| hash2
+
+| macs::hmac<digests::blake2s_256>
+| hash2
 
 | hkdf_extract
 | hash2

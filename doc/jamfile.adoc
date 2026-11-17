@@ -76,8 +76,8 @@ messages, by what causes them:
 |===
 | Cause | What to change
 
-| `keccak_256`, `blake3`, `argon2id`, `scrypt` or a backend used without its
-library
+| `keccak_256`, `blake3`, `argon2id`, `scrypt`, a backend, or a tag whose
+default is a backend, used without its library
 | The message is "... needs XKCP" (or BLAKE3's C implementation, libsodium,
 BearSSL, OpenSSL) and gives the whole Jamfile line, as
 `exe app : app.cpp /webcpp/hash//hash /third_party//xkcp ;`: add that library.
@@ -107,6 +107,18 @@ one asked for.
 
 | A key derivation over a type that is not a Boost.Hash2 hmac of a digest
 | Pass an hmac, as `hmac_sha2_256`.
+
+| `digest_of`, `hasher`, `mac` or `argon2` over a tag a backend does not have
+| The message names the backends that have it, as "digests::blake3 is not in
+this backend. Name one of: backends::blake3.": name one of them.
+
+| A tag with no default backend, called without a backend
+| The message is "... has no default backend. Name one of: ...": name one of
+the backends it lists as the second template argument.
+
+| `digest_of`, `hasher`, `mac` or `argon2` over a type that is not a tag
+| Pass a tag of `digests`, `macs`, or `kdfs::argon2id` (`argon2i`,
+`argon2d`).
 
 |===
 

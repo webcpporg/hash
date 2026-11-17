@@ -8,7 +8,7 @@
 
 
 [#hash-backends-of-blake2]
-.Who implements `blake2b_512`, `blake2s_256` (RFC 7693)
+.Who implements `blake2b_512`, `blake2s_256`, `digests::blake2s_256` (RFC 7693)
 [cols="2,1,2,2,3,1",options="header"]
 |===
 | Function | Backend | The program's Jamfile names | Targets | Hmacs | Constant time
@@ -26,10 +26,17 @@
 | native, wasip2, wasip3, emscripten
 | -
 | not stated
+
+| `digests::blake2s_256`
+| `hash2`
+| `/webcpp/hash//hash`
+| native, wasip2, wasip3, emscripten
+| -
+| not stated
 |===
 
 What each backend states on constant time, as the capability table read it:
 
 * `hash2`: Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property.
 
-One backend, `hash2`: the types take no backend.
+The default of `digests::blake2s_256`: `hash2` on every target, whatever the program links (<<hash-default-backend>>).

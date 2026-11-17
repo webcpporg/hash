@@ -5,8 +5,9 @@
 // https://www.boost.org/LICENSE_1_0.txt)
 
 /**
- What the key derivations share: which backend has which key derivation over which hmac, and
- the backend a call uses when it names none.
+ What the key derivations and the families share: which backend has which key derivation over
+ which hmac, and which digest, MAC and Argon2 variant (the capability table, spec 3.5), and the
+ backend a call uses when it names none (spec 4.1).
 
  @see "Key derivation", in the guide.
 */
@@ -23,11 +24,17 @@
 namespace webcpp::hash {
 
 /**
- Whether `Backend` has the key derivation `Kdf` over `Hmac`: a property of the library behind it
- (spec section 3.2), whether or not the program links it.
+ Whether `Backend` has the key derivation `Kdf` over `Hmac`, or the algorithm of a family's tag: a
+ property of the library behind it (spec sections 3.2 and 3.5), whether or not the program links
+ it. A backend that has a tag only in part (a partial cell of `doc/capabilities.json`, as
+ `backends::hash2`'s SHAKE, at most one digest's size) has it.
 
- @tparam Backend A backend of `backends`. @tparam Kdf `kdfs::hkdf` or `kdfs::pbkdf2`.
- @tparam Hmac A Boost.Hash2 hmac.
+ @tparam Backend A backend of `backends`. @tparam Kdf `kdfs::hkdf`, `kdfs::pbkdf2` or another
+ tag of `kdfs`; or a tag of `digests` or `macs`; or, for `argon2`, `kdfs::argon2d`,
+ `kdfs::argon2i` or `kdfs::argon2id`.
+ @tparam Hmac A Boost.Hash2 hmac for a key derivation over one; `void` for a function over none
+ and for a family's tag; `argon2_parameters` for the family `argon2`, whose tags `kdfs::argon2id`
+ also names the function `argon2id`.
 */
 template <class Backend, class Kdf, class Hmac>
 inline constexpr bool backend_has_v = false;
@@ -106,6 +113,145 @@ inline constexpr bool backend_has_v<backends::sodium, kdfs::argon2id, void> = tr
 template <>
 inline constexpr bool backend_has_v<backends::sodium, kdfs::scrypt, void> = true;
 
+/** backends::hash2 has `digests::md5` (Boost.Hash2's type). */
+template <>
+inline constexpr bool backend_has_v<backends::hash2, digests::md5, void> = true;
+
+/** backends::hash2 has `digests::sha1` (Boost.Hash2's type). */
+template <>
+inline constexpr bool backend_has_v<backends::hash2, digests::sha1, void> = true;
+
+/** backends::hash2 has `digests::sha2_224` (Boost.Hash2's type). */
+template <>
+inline constexpr bool backend_has_v<backends::hash2, digests::sha2_224, void> = true;
+
+/** backends::hash2 has `digests::sha2_256` (Boost.Hash2's type). */
+template <>
+inline constexpr bool backend_has_v<backends::hash2, digests::sha2_256, void> = true;
+
+/** backends::hash2 has `digests::sha2_384` (Boost.Hash2's type). */
+template <>
+inline constexpr bool backend_has_v<backends::hash2, digests::sha2_384, void> = true;
+
+/** backends::hash2 has `digests::sha2_512` (Boost.Hash2's type). */
+template <>
+inline constexpr bool backend_has_v<backends::hash2, digests::sha2_512, void> = true;
+
+/** backends::hash2 has `digests::sha2_512_224` (Boost.Hash2's type). */
+template <>
+inline constexpr bool backend_has_v<backends::hash2, digests::sha2_512_224, void> = true;
+
+/** backends::hash2 has `digests::sha2_512_256` (Boost.Hash2's type). */
+template <>
+inline constexpr bool backend_has_v<backends::hash2, digests::sha2_512_256, void> = true;
+
+/** backends::hash2 has `digests::sha3_224` (Boost.Hash2's type). */
+template <>
+inline constexpr bool backend_has_v<backends::hash2, digests::sha3_224, void> = true;
+
+/** backends::hash2 has `digests::sha3_256` (Boost.Hash2's type). */
+template <>
+inline constexpr bool backend_has_v<backends::hash2, digests::sha3_256, void> = true;
+
+/** backends::hash2 has `digests::sha3_384` (Boost.Hash2's type). */
+template <>
+inline constexpr bool backend_has_v<backends::hash2, digests::sha3_384, void> = true;
+
+/** backends::hash2 has `digests::sha3_512` (Boost.Hash2's type). */
+template <>
+inline constexpr bool backend_has_v<backends::hash2, digests::sha3_512, void> = true;
+
+/** backends::hash2 has `digests::ripemd_160` (Boost.Hash2's type). */
+template <>
+inline constexpr bool backend_has_v<backends::hash2, digests::ripemd_160, void> = true;
+
+/** backends::hash2 has `digests::blake2s_256` (Boost.Hash2's type). */
+template <>
+inline constexpr bool backend_has_v<backends::hash2, digests::blake2s_256, void> = true;
+
+/**
+ backends::hash2 has `digests::shake_128` in part: at most 32 bytes, one Hash2 result (ruling R14).
+*/
+template <>
+inline constexpr bool backend_has_v<backends::hash2, digests::shake_128, void> = true;
+
+/**
+ backends::hash2 has `digests::shake_256` in part: at most 64 bytes, one Hash2 result (ruling R14).
+*/
+template <>
+inline constexpr bool backend_has_v<backends::hash2, digests::shake_256, void> = true;
+
+/** backends::xkcp has `digests::keccak_256` (webcpp's `keccak_256` over XKCP). */
+template <>
+inline constexpr bool backend_has_v<backends::xkcp, digests::keccak_256, void> = true;
+
+/** backends::blake3 has `digests::blake3` (BLAKE3's C implementation), with its extendable output.
+ */
+template <>
+inline constexpr bool backend_has_v<backends::blake3, digests::blake3, void> = true;
+
+/** backends::hash2 has `macs::hmac<digests::md5>` (Boost.Hash2's `hmac<H>`). */
+template <>
+inline constexpr bool backend_has_v<backends::hash2, macs::hmac<digests::md5>, void> = true;
+
+/** backends::hash2 has `macs::hmac<digests::sha1>` (Boost.Hash2's `hmac<H>`). */
+template <>
+inline constexpr bool backend_has_v<backends::hash2, macs::hmac<digests::sha1>, void> = true;
+
+/** backends::hash2 has `macs::hmac<digests::sha2_224>` (Boost.Hash2's `hmac<H>`). */
+template <>
+inline constexpr bool backend_has_v<backends::hash2, macs::hmac<digests::sha2_224>, void> = true;
+
+/** backends::hash2 has `macs::hmac<digests::sha2_256>` (Boost.Hash2's `hmac<H>`). */
+template <>
+inline constexpr bool backend_has_v<backends::hash2, macs::hmac<digests::sha2_256>, void> = true;
+
+/** backends::hash2 has `macs::hmac<digests::sha2_384>` (Boost.Hash2's `hmac<H>`). */
+template <>
+inline constexpr bool backend_has_v<backends::hash2, macs::hmac<digests::sha2_384>, void> = true;
+
+/** backends::hash2 has `macs::hmac<digests::sha2_512>` (Boost.Hash2's `hmac<H>`). */
+template <>
+inline constexpr bool backend_has_v<backends::hash2, macs::hmac<digests::sha2_512>, void> = true;
+
+/** backends::hash2 has `macs::hmac<digests::sha2_512_224>` (Boost.Hash2's `hmac<H>`). */
+template <>
+inline constexpr bool backend_has_v<backends::hash2, macs::hmac<digests::sha2_512_224>, void> =
+    true;
+
+/** backends::hash2 has `macs::hmac<digests::sha2_512_256>` (Boost.Hash2's `hmac<H>`). */
+template <>
+inline constexpr bool backend_has_v<backends::hash2, macs::hmac<digests::sha2_512_256>, void> =
+    true;
+
+/** backends::hash2 has `macs::hmac<digests::sha3_224>` (Boost.Hash2's `hmac<H>`). */
+template <>
+inline constexpr bool backend_has_v<backends::hash2, macs::hmac<digests::sha3_224>, void> = true;
+
+/** backends::hash2 has `macs::hmac<digests::sha3_256>` (Boost.Hash2's `hmac<H>`). */
+template <>
+inline constexpr bool backend_has_v<backends::hash2, macs::hmac<digests::sha3_256>, void> = true;
+
+/** backends::hash2 has `macs::hmac<digests::sha3_384>` (Boost.Hash2's `hmac<H>`). */
+template <>
+inline constexpr bool backend_has_v<backends::hash2, macs::hmac<digests::sha3_384>, void> = true;
+
+/** backends::hash2 has `macs::hmac<digests::sha3_512>` (Boost.Hash2's `hmac<H>`). */
+template <>
+inline constexpr bool backend_has_v<backends::hash2, macs::hmac<digests::sha3_512>, void> = true;
+
+/** backends::hash2 has `macs::hmac<digests::ripemd_160>` (Boost.Hash2's `hmac<H>`). */
+template <>
+inline constexpr bool backend_has_v<backends::hash2, macs::hmac<digests::ripemd_160>, void> = true;
+
+/** backends::hash2 has `macs::hmac<digests::blake2b>` (Boost.Hash2's `hmac<H>`). */
+template <>
+inline constexpr bool backend_has_v<backends::hash2, macs::hmac<digests::blake2b>, void> = true;
+
+/** backends::hash2 has `macs::hmac<digests::blake2s_256>` (Boost.Hash2's `hmac<H>`). */
+template <>
+inline constexpr bool backend_has_v<backends::hash2, macs::hmac<digests::blake2s_256>, void> = true;
+
 namespace detail {
 
 /**
@@ -144,37 +290,134 @@ struct hmac_result<Hmac, std::void_t<typename Hmac::result_type>> {
     using type = Hmac::result_type;
 };
 
-/** Whether the program links `Backend`: backends::hash2 always, another when its target says so. */
-template <class Backend>
-inline constexpr bool linked_v = false;
+/**
+ The tag of `digests` of a Boost.Hash2 hmac's hash, so that `macs::hmac<digest_tag_of<Hmac>::type>`
+ names the same function as the Hash2 alias `Hmac` (ruling R15): `void` for an hmac without one
+ (`hmac_ripemd_128`, and `hmac<H>` over a hash of no alias). `hmac_blake2b_512` is HMAC over
+ BLAKE2b with its default options, a 64-byte digest: `digests::blake2b`.
 
-/** backends::hash2 needs no library. */
-template <>
-inline constexpr bool linked_v<backends::hash2> = true;
+ @tparam Hmac A Boost.Hash2 hmac.
+*/
+template <class Hmac>
+struct digest_tag_of {
+    /** No tag. */
+    using type = void;
+};
 
-#ifdef WEBCPP_HASH_HAS_SODIUM
-/** `/third_party//sodium` defines `WEBCPP_HASH_HAS_SODIUM`. */
+/** `hmac_md5_128`: `digests::md5`. */
 template <>
-inline constexpr bool linked_v<backends::sodium> = true;
-#endif
+struct digest_tag_of<hmac_md5_128> {
+    /** digests::md5. */
+    using type = digests::md5;
+};
 
-#ifdef WEBCPP_HASH_HAS_BEARSSL
-/** `/third_party//bearssl` defines `WEBCPP_HASH_HAS_BEARSSL`. */
+/** `hmac_sha1_160`: `digests::sha1`. */
 template <>
-inline constexpr bool linked_v<backends::bearssl> = true;
-#endif
+struct digest_tag_of<hmac_sha1_160> {
+    /** digests::sha1. */
+    using type = digests::sha1;
+};
 
-#ifdef WEBCPP_HASH_HAS_OPENSSL
-/** `/webcpp/hash//openssl` defines `WEBCPP_HASH_HAS_OPENSSL`. */
+/** `hmac_sha2_224`: `digests::sha2_224`. */
 template <>
-inline constexpr bool linked_v<backends::openssl> = true;
-#endif
+struct digest_tag_of<hmac_sha2_224> {
+    /** digests::sha2_224. */
+    using type = digests::sha2_224;
+};
+
+/** `hmac_sha2_256`: `digests::sha2_256`. */
+template <>
+struct digest_tag_of<hmac_sha2_256> {
+    /** digests::sha2_256. */
+    using type = digests::sha2_256;
+};
+
+/** `hmac_sha2_384`: `digests::sha2_384`. */
+template <>
+struct digest_tag_of<hmac_sha2_384> {
+    /** digests::sha2_384. */
+    using type = digests::sha2_384;
+};
+
+/** `hmac_sha2_512`: `digests::sha2_512`. */
+template <>
+struct digest_tag_of<hmac_sha2_512> {
+    /** digests::sha2_512. */
+    using type = digests::sha2_512;
+};
+
+/** `hmac_sha2_512_224`: `digests::sha2_512_224`. */
+template <>
+struct digest_tag_of<hmac_sha2_512_224> {
+    /** digests::sha2_512_224. */
+    using type = digests::sha2_512_224;
+};
+
+/** `hmac_sha2_512_256`: `digests::sha2_512_256`. */
+template <>
+struct digest_tag_of<hmac_sha2_512_256> {
+    /** digests::sha2_512_256. */
+    using type = digests::sha2_512_256;
+};
+
+/** `hmac_sha3_224`: `digests::sha3_224`. */
+template <>
+struct digest_tag_of<hmac_sha3_224> {
+    /** digests::sha3_224. */
+    using type = digests::sha3_224;
+};
+
+/** `hmac_sha3_256`: `digests::sha3_256`. */
+template <>
+struct digest_tag_of<hmac_sha3_256> {
+    /** digests::sha3_256. */
+    using type = digests::sha3_256;
+};
+
+/** `hmac_sha3_384`: `digests::sha3_384`. */
+template <>
+struct digest_tag_of<hmac_sha3_384> {
+    /** digests::sha3_384. */
+    using type = digests::sha3_384;
+};
+
+/** `hmac_sha3_512`: `digests::sha3_512`. */
+template <>
+struct digest_tag_of<hmac_sha3_512> {
+    /** digests::sha3_512. */
+    using type = digests::sha3_512;
+};
+
+/** `hmac_ripemd_160`: `digests::ripemd_160`. */
+template <>
+struct digest_tag_of<hmac_ripemd_160> {
+    /** digests::ripemd_160. */
+    using type = digests::ripemd_160;
+};
+
+/** `hmac_blake2b_512`: `digests::blake2b`. */
+template <>
+struct digest_tag_of<hmac_blake2b_512> {
+    /** digests::blake2b. */
+    using type = digests::blake2b;
+};
+
+/** `hmac_blake2s_256`: `digests::blake2s_256`. */
+template <>
+struct digest_tag_of<hmac_blake2s_256> {
+    /** digests::blake2s_256. */
+    using type = digests::blake2s_256;
+};
 
 /**
  The backend of `Algorithm` when the call names none (spec 4.1): backends::hash2, the one backend
- that has every key derivation over every hmac on every target, header-only.
+ that has every key derivation over every hmac on every target, header-only. Each tag of the
+ families has its own below (design D34): the first of `backends::hash2`, `backends::xkcp`,
+ `backends::blake3` and `backends::sodium` that has the tag fully in the capability table once
+ increments 2 to 7 have landed, else the first of them with a partial cell, else @ref no_default.
+ A default never changes; until its backend's engine lands, a call on it refuses at compile time.
 
- @tparam Algorithm A tag of `kdfs`.
+ @tparam Algorithm A tag of `kdfs`, `digests` or `macs`.
 */
 template <class Algorithm>
 struct default_of {
@@ -196,6 +439,485 @@ struct default_of<kdfs::scrypt> {
     using type = backends::sodium;
 };
 
+/** HMAC over a digest that Boost.Hash2 lacks: no default. */
+template <class Digest>
+struct default_of<macs::hmac<Digest>> {
+    /** detail::no_default. */
+    using type = no_default;
+};
+
+/** `digests::md5`: Boost.Hash2 has it. */
+template <>
+struct default_of<digests::md5> {
+    /** backends::hash2. */
+    using type = backends::hash2;
+};
+
+/** `digests::sha1`: Boost.Hash2 has it. */
+template <>
+struct default_of<digests::sha1> {
+    /** backends::hash2. */
+    using type = backends::hash2;
+};
+
+/** `digests::sha2_224`: Boost.Hash2 has it. */
+template <>
+struct default_of<digests::sha2_224> {
+    /** backends::hash2. */
+    using type = backends::hash2;
+};
+
+/** `digests::sha2_256`: Boost.Hash2 has it. */
+template <>
+struct default_of<digests::sha2_256> {
+    /** backends::hash2. */
+    using type = backends::hash2;
+};
+
+/** `digests::sha2_384`: Boost.Hash2 has it. */
+template <>
+struct default_of<digests::sha2_384> {
+    /** backends::hash2. */
+    using type = backends::hash2;
+};
+
+/** `digests::sha2_512`: Boost.Hash2 has it. */
+template <>
+struct default_of<digests::sha2_512> {
+    /** backends::hash2. */
+    using type = backends::hash2;
+};
+
+/** `digests::sha2_512_224`: Boost.Hash2 has it. */
+template <>
+struct default_of<digests::sha2_512_224> {
+    /** backends::hash2. */
+    using type = backends::hash2;
+};
+
+/** `digests::sha2_512_256`: Boost.Hash2 has it. */
+template <>
+struct default_of<digests::sha2_512_256> {
+    /** backends::hash2. */
+    using type = backends::hash2;
+};
+
+/** `digests::sha3_224`: Boost.Hash2 has it. */
+template <>
+struct default_of<digests::sha3_224> {
+    /** backends::hash2. */
+    using type = backends::hash2;
+};
+
+/** `digests::sha3_256`: Boost.Hash2 has it. */
+template <>
+struct default_of<digests::sha3_256> {
+    /** backends::hash2. */
+    using type = backends::hash2;
+};
+
+/** `digests::sha3_384`: Boost.Hash2 has it. */
+template <>
+struct default_of<digests::sha3_384> {
+    /** backends::hash2. */
+    using type = backends::hash2;
+};
+
+/** `digests::sha3_512`: Boost.Hash2 has it. */
+template <>
+struct default_of<digests::sha3_512> {
+    /** backends::hash2. */
+    using type = backends::hash2;
+};
+
+/** `digests::ripemd_160`: Boost.Hash2 has it. */
+template <>
+struct default_of<digests::ripemd_160> {
+    /** backends::hash2. */
+    using type = backends::hash2;
+};
+
+/** `digests::blake2s_256`: Boost.Hash2 has it. */
+template <>
+struct default_of<digests::blake2s_256> {
+    /** backends::hash2. */
+    using type = backends::hash2;
+};
+
+/** `digests::shake_128`: backends::xkcp (increment 3) has it whole; Boost.Hash2 has 32 bytes alone.
+ */
+template <>
+struct default_of<digests::shake_128> {
+    /** backends::xkcp. */
+    using type = backends::xkcp;
+};
+
+/** `digests::shake_256`: backends::xkcp (increment 3) has it whole; Boost.Hash2 has 64 bytes alone.
+ */
+template <>
+struct default_of<digests::shake_256> {
+    /** backends::xkcp. */
+    using type = backends::xkcp;
+};
+
+/** `macs::hmac<digests::md5>`: Boost.Hash2 has it. */
+template <>
+struct default_of<macs::hmac<digests::md5>> {
+    /** backends::hash2. */
+    using type = backends::hash2;
+};
+
+/** `macs::hmac<digests::sha1>`: Boost.Hash2 has it. */
+template <>
+struct default_of<macs::hmac<digests::sha1>> {
+    /** backends::hash2. */
+    using type = backends::hash2;
+};
+
+/** `macs::hmac<digests::sha2_224>`: Boost.Hash2 has it. */
+template <>
+struct default_of<macs::hmac<digests::sha2_224>> {
+    /** backends::hash2. */
+    using type = backends::hash2;
+};
+
+/** `macs::hmac<digests::sha2_256>`: Boost.Hash2 has it. */
+template <>
+struct default_of<macs::hmac<digests::sha2_256>> {
+    /** backends::hash2. */
+    using type = backends::hash2;
+};
+
+/** `macs::hmac<digests::sha2_384>`: Boost.Hash2 has it. */
+template <>
+struct default_of<macs::hmac<digests::sha2_384>> {
+    /** backends::hash2. */
+    using type = backends::hash2;
+};
+
+/** `macs::hmac<digests::sha2_512>`: Boost.Hash2 has it. */
+template <>
+struct default_of<macs::hmac<digests::sha2_512>> {
+    /** backends::hash2. */
+    using type = backends::hash2;
+};
+
+/** `macs::hmac<digests::sha2_512_224>`: Boost.Hash2 has it. */
+template <>
+struct default_of<macs::hmac<digests::sha2_512_224>> {
+    /** backends::hash2. */
+    using type = backends::hash2;
+};
+
+/** `macs::hmac<digests::sha2_512_256>`: Boost.Hash2 has it. */
+template <>
+struct default_of<macs::hmac<digests::sha2_512_256>> {
+    /** backends::hash2. */
+    using type = backends::hash2;
+};
+
+/** `macs::hmac<digests::sha3_224>`: Boost.Hash2 has it. */
+template <>
+struct default_of<macs::hmac<digests::sha3_224>> {
+    /** backends::hash2. */
+    using type = backends::hash2;
+};
+
+/** `macs::hmac<digests::sha3_256>`: Boost.Hash2 has it. */
+template <>
+struct default_of<macs::hmac<digests::sha3_256>> {
+    /** backends::hash2. */
+    using type = backends::hash2;
+};
+
+/** `macs::hmac<digests::sha3_384>`: Boost.Hash2 has it. */
+template <>
+struct default_of<macs::hmac<digests::sha3_384>> {
+    /** backends::hash2. */
+    using type = backends::hash2;
+};
+
+/** `macs::hmac<digests::sha3_512>`: Boost.Hash2 has it. */
+template <>
+struct default_of<macs::hmac<digests::sha3_512>> {
+    /** backends::hash2. */
+    using type = backends::hash2;
+};
+
+/** `macs::hmac<digests::ripemd_160>`: Boost.Hash2 has it. */
+template <>
+struct default_of<macs::hmac<digests::ripemd_160>> {
+    /** backends::hash2. */
+    using type = backends::hash2;
+};
+
+/** `macs::hmac<digests::blake2b>`: Boost.Hash2 has it. */
+template <>
+struct default_of<macs::hmac<digests::blake2b>> {
+    /** backends::hash2. */
+    using type = backends::hash2;
+};
+
+/** `macs::hmac<digests::blake2s_256>`: Boost.Hash2 has it. */
+template <>
+struct default_of<macs::hmac<digests::blake2s_256>> {
+    /** backends::hash2. */
+    using type = backends::hash2;
+};
+
+/** `macs::siphash_2_4`: Boost.Hash2 has it. */
+template <>
+struct default_of<macs::siphash_2_4> {
+    /** backends::hash2. */
+    using type = backends::hash2;
+};
+
+/** `macs::blake2s_mac`: Boost.Hash2 has it in part: its keyed `blake2s_256`, a 32-byte tag alone.
+ */
+template <>
+struct default_of<macs::blake2s_mac> {
+    /** backends::hash2. */
+    using type = backends::hash2;
+};
+
+/** `digests::keccak_224`: XKCP is the first backend of the order that has it. */
+template <>
+struct default_of<digests::keccak_224> {
+    /** backends::xkcp. */
+    using type = backends::xkcp;
+};
+
+/** `digests::keccak_256`: XKCP is the first backend of the order that has it. */
+template <>
+struct default_of<digests::keccak_256> {
+    /** backends::xkcp. */
+    using type = backends::xkcp;
+};
+
+/** `digests::keccak_384`: XKCP is the first backend of the order that has it. */
+template <>
+struct default_of<digests::keccak_384> {
+    /** backends::xkcp. */
+    using type = backends::xkcp;
+};
+
+/** `digests::keccak_512`: XKCP is the first backend of the order that has it. */
+template <>
+struct default_of<digests::keccak_512> {
+    /** backends::xkcp. */
+    using type = backends::xkcp;
+};
+
+/** `digests::cshake_128`: XKCP is the first backend of the order that has it. */
+template <>
+struct default_of<digests::cshake_128> {
+    /** backends::xkcp. */
+    using type = backends::xkcp;
+};
+
+/** `digests::cshake_256`: XKCP is the first backend of the order that has it. */
+template <>
+struct default_of<digests::cshake_256> {
+    /** backends::xkcp. */
+    using type = backends::xkcp;
+};
+
+/** `digests::kt128`: XKCP is the first backend of the order that has it. */
+template <>
+struct default_of<digests::kt128> {
+    /** backends::xkcp. */
+    using type = backends::xkcp;
+};
+
+/** `digests::kt256`: XKCP is the first backend of the order that has it. */
+template <>
+struct default_of<digests::kt256> {
+    /** backends::xkcp. */
+    using type = backends::xkcp;
+};
+
+/** `digests::turboshake_128`: XKCP is the first backend of the order that has it. */
+template <>
+struct default_of<digests::turboshake_128> {
+    /** backends::xkcp. */
+    using type = backends::xkcp;
+};
+
+/** `digests::turboshake_256`: XKCP is the first backend of the order that has it. */
+template <>
+struct default_of<digests::turboshake_256> {
+    /** backends::xkcp. */
+    using type = backends::xkcp;
+};
+
+/** `digests::tuplehash_128`: XKCP is the first backend of the order that has it. */
+template <>
+struct default_of<digests::tuplehash_128> {
+    /** backends::xkcp. */
+    using type = backends::xkcp;
+};
+
+/** `digests::tuplehash_256`: XKCP is the first backend of the order that has it. */
+template <>
+struct default_of<digests::tuplehash_256> {
+    /** backends::xkcp. */
+    using type = backends::xkcp;
+};
+
+/** `digests::parallelhash_128`: XKCP is the first backend of the order that has it. */
+template <>
+struct default_of<digests::parallelhash_128> {
+    /** backends::xkcp. */
+    using type = backends::xkcp;
+};
+
+/** `digests::parallelhash_256`: XKCP is the first backend of the order that has it. */
+template <>
+struct default_of<digests::parallelhash_256> {
+    /** backends::xkcp. */
+    using type = backends::xkcp;
+};
+
+/** `macs::kmac_128`: XKCP is the first backend of the order that has it. */
+template <>
+struct default_of<macs::kmac_128> {
+    /** backends::xkcp. */
+    using type = backends::xkcp;
+};
+
+/** `macs::kmac_256`: XKCP is the first backend of the order that has it. */
+template <>
+struct default_of<macs::kmac_256> {
+    /** backends::xkcp. */
+    using type = backends::xkcp;
+};
+
+/** `digests::blake3`: its official C implementation. */
+template <>
+struct default_of<digests::blake3> {
+    /** backends::blake3. */
+    using type = backends::blake3;
+};
+
+/** `digests::blake2b`: libsodium is the first backend of the order that has it whole. */
+template <>
+struct default_of<digests::blake2b> {
+    /** backends::sodium. */
+    using type = backends::sodium;
+};
+
+/** `macs::siphash_2_4x`: libsodium is the first backend of the order that has it whole. */
+template <>
+struct default_of<macs::siphash_2_4x> {
+    /** backends::sodium. */
+    using type = backends::sodium;
+};
+
+/** `macs::blake2b_mac`: libsodium is the first backend of the order that has it whole. */
+template <>
+struct default_of<macs::blake2b_mac> {
+    /** backends::sodium. */
+    using type = backends::sodium;
+};
+
+/** `kdfs::argon2i`: libsodium is the first backend of the order that has it whole. */
+template <>
+struct default_of<kdfs::argon2i> {
+    /** backends::sodium. */
+    using type = backends::sodium;
+};
+
+/** `kdfs::blake2b_subkey`: libsodium is the first backend of the order that has it whole. */
+template <>
+struct default_of<kdfs::blake2b_subkey> {
+    /** backends::sodium. */
+    using type = backends::sodium;
+};
+
+/** `digests::md5_sha1`: no backend of the order has it. */
+template <>
+struct default_of<digests::md5_sha1> {
+    /** detail::no_default. */
+    using type = no_default;
+};
+
+/** `digests::sm3`: no backend of the order has it. */
+template <>
+struct default_of<digests::sm3> {
+    /** detail::no_default. */
+    using type = no_default;
+};
+
+/** `digests::streebog_256`: no backend of the order has it. */
+template <>
+struct default_of<digests::streebog_256> {
+    /** detail::no_default. */
+    using type = no_default;
+};
+
+/** `digests::streebog_512`: no backend of the order has it. */
+template <>
+struct default_of<digests::streebog_512> {
+    /** detail::no_default. */
+    using type = no_default;
+};
+
+/** `digests::whirlpool`: no backend of the order has it. */
+template <>
+struct default_of<digests::whirlpool> {
+    /** detail::no_default. */
+    using type = no_default;
+};
+
+/** `digests::skein_512`: no backend of the order has it. */
+template <>
+struct default_of<digests::skein_512> {
+    /** detail::no_default. */
+    using type = no_default;
+};
+
+/** `kdfs::argon2d`: no backend of the order has it. */
+template <>
+struct default_of<kdfs::argon2d> {
+    /** detail::no_default. */
+    using type = no_default;
+};
+
+/** `kdfs::bcrypt`: no backend of the order has it. */
+template <>
+struct default_of<kdfs::bcrypt> {
+    /** detail::no_default. */
+    using type = no_default;
+};
+
+/** `kdfs::bcrypt_pbkdf`: no backend of the order has it. */
+template <>
+struct default_of<kdfs::bcrypt_pbkdf> {
+    /** detail::no_default. */
+    using type = no_default;
+};
+
+/** `kdfs::kbkdf_hmac`: no backend of the order has it. */
+template <>
+struct default_of<kdfs::kbkdf_hmac> {
+    /** detail::no_default. */
+    using type = no_default;
+};
+
+/** `kdfs::sskdf`: no backend of the order has it. */
+template <>
+struct default_of<kdfs::sskdf> {
+    /** detail::no_default. */
+    using type = no_default;
+};
+
+/** `kdfs::x963kdf`: no backend of the order has it. */
+template <>
+struct default_of<kdfs::x963kdf> {
+    /** detail::no_default. */
+    using type = no_default;
+};
+
 }  // namespace detail
 
 /**
@@ -204,11 +926,14 @@ struct default_of<kdfs::scrypt> {
  `backends::hash2` for `hkdf_extract`, `hkdf_expand`, `hkdf` and `pbkdf2`, on every target and
  whatever the program links; `backends::sodium` for `argon2id` and `scrypt`, the one backend that
  has them, which stops the build with the line to add to the Jamfile when the program does not
- link libsodium. No define changes it: another backend is chosen by naming it in the call, as
- `hkdf<hmac_sha2_256, backends::openssl>`.
+ link libsodium. A tag of the families defaults to the first of `backends::hash2`,
+ `backends::xkcp`, `backends::blake3` and `backends::sodium` that has it (design D34), or to
+ `detail::no_default`, which refuses: the call names its backend. `backends::bearssl` and
+ `backends::openssl` are never a default. No define changes it: another backend is chosen by
+ naming it in the call, as `hkdf<hmac_sha2_256, backends::openssl>`.
 
- @tparam Algorithm A tag of `kdfs`: `hkdf`, `hkdf_extract`, `hkdf_expand`, `pbkdf2`, `argon2id`
- or `scrypt`.
+ @tparam Algorithm A tag of `kdfs` (`hkdf`, `hkdf_extract`, `hkdf_expand`, `pbkdf2`, `argon2id`,
+ `scrypt`, ...), `digests` or `macs`.
  @tparam Hmac The hmac of a key derivation that takes one, else `void`; it does not change the
  answer.
 */

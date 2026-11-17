@@ -8,12 +8,19 @@
 
 
 [#hash-backends-of-blake3]
-.Who implements `blake3` (the BLAKE3 specification (hash, keyed hash, derive_key, extendable output))
+.Who implements `blake3`, `digests::blake3` (the BLAKE3 specification (hash, keyed hash, derive_key, extendable output))
 [cols="2,1,2,2,3,1",options="header"]
 |===
 | Function | Backend | The program's Jamfile names | Targets | Hmacs | Constant time
 
 | `blake3`
+| `blake3`
+| `/third_party//blake3`
+| native, wasip2, wasip3, emscripten
+| -
+| not stated
+
+| `digests::blake3`
 | `blake3`
 | `/third_party//blake3`
 | native, wasip2, wasip3, emscripten
@@ -25,4 +32,4 @@ What each backend states on constant time, as the capability table read it:
 
 * `blake3`: BLAKE3 1.8.7: README.md and c/README.md state no constant-time property.
 
-One backend, `blake3`: the types take no backend.
+The default of `digests::blake3`: `blake3` on every target, whatever the program links (<<hash-default-backend>>).

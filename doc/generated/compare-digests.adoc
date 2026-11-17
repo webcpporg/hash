@@ -69,6 +69,62 @@
 | recommended
 | no
 
+| <<hash-digest-family,`digests::md5`>>
+| 128 bits
+| broken: collisions are found in seconds
+| RFC 1321
+| broken
+| no
+
+| <<hash-digest-family,`digests::sha1`>>
+| 160 bits
+| broken: chosen-prefix collisions are practical
+| RFC 3174, FIPS 180-4
+| broken
+| SHA-1
+
+| <<hash-digest-family,`digests::sha2_224`>>
+| 224 bits
+| 112-bit collision resistance
+| FIPS 180-4
+| recommended
+| no
+
+| <<hash-digest-family,`digests::sha2_256`>>
+| 256 bits
+| 128-bit collision resistance
+| FIPS 180-4
+| recommended
+| SHA-256
+
+| <<hash-digest-family,`digests::sha2_384`>>
+| 384 bits
+| 192-bit collision resistance
+| FIPS 180-4
+| recommended
+| SHA-384
+
+| <<hash-digest-family,`digests::sha2_512`>>
+| 512 bits
+| 256-bit collision resistance
+| FIPS 180-4
+| recommended
+| SHA-512
+
+| <<hash-digest-family,`digests::sha2_512_224`>>
+| 224 bits
+| 112-bit collision resistance
+| FIPS 180-4
+| recommended
+| no
+
+| <<hash-digest-family,`digests::sha2_512_256`>>
+| 256 bits
+| 128-bit collision resistance
+| FIPS 180-4
+| recommended
+| no
+
 | <<hash-sha3,`sha3_224`>>
 | 224 bits
 | 112-bit collision resistance
@@ -111,7 +167,56 @@
 | recommended
 | no
 
+| <<hash-digest-family,`digests::sha3_224`>>
+| 224 bits
+| 112-bit collision resistance
+| FIPS 202
+| recommended
+| no
+
+| <<hash-digest-family,`digests::sha3_256`>>
+| 256 bits
+| 128-bit collision resistance
+| FIPS 202
+| recommended
+| no
+
+| <<hash-digest-family,`digests::sha3_384`>>
+| 384 bits
+| 192-bit collision resistance
+| FIPS 202
+| recommended
+| no
+
+| <<hash-digest-family,`digests::sha3_512`>>
+| 512 bits
+| 256-bit collision resistance
+| FIPS 202
+| recommended
+| no
+
+| <<hash-digest-family,`digests::shake_128`>>
+| any length
+| up to 128 bits, and half the output length for collisions
+| FIPS 202
+| recommended
+| no
+
+| <<hash-digest-family,`digests::shake_256`>>
+| any length
+| up to 256 bits, and half the output length for collisions
+| FIPS 202
+| recommended
+| no
+
 | <<hash-keccak,`keccak_256`>>
+| 256 bits
+| 128-bit collision resistance
+| Keccak (the SHA-3 submission's padding), as Ethereum uses it
+| recommended
+| no
+
+| <<hash-digest-family,`digests::keccak_256`>>
 | 256 bits
 | 128-bit collision resistance
 | Keccak (the SHA-3 submission's padding), as Ethereum uses it
@@ -132,7 +237,21 @@
 | recommended
 | no
 
+| <<hash-digest-family,`digests::blake2s_256`>>
+| 256 bits
+| 128-bit collision resistance
+| RFC 7693
+| recommended
+| no
+
 | <<hash-blake3,`blake3`>>
+| 256 bits, or any length
+| 128-bit security in every mode
+| the BLAKE3 specification (hash, keyed hash, derive_key, extendable output)
+| recommended
+| no
+
+| <<hash-digest-family,`digests::blake3`>>
 | 256 bits, or any length
 | 128-bit security in every mode
 | the BLAKE3 specification (hash, keyed hash, derive_key, extendable output)
@@ -147,6 +266,13 @@
 | no
 
 | <<hash-legacy,`ripemd_160`>>
+| 160 bits
+| 80-bit collision resistance
+| RIPEMD-160 (Dobbertin, Bosselaers, Preneel)
+| legacy
+| no
+
+| <<hash-digest-family,`digests::ripemd_160`>>
 | 160 bits
 | 80-bit collision resistance
 | RIPEMD-160 (Dobbertin, Bosselaers, Preneel)
@@ -208,6 +334,54 @@
 | link:https://doi.org/10.6028/NIST.FIPS.180-4[FIPS 180-4's truncated SHA-512]
 | A 256-bit SHA-2 digest that resists length extension, fast on 64-bit machines.
 
+| <<hash-digest-family,`digests::md5`>>
+| -
+| -
+| link:https://www.rfc-editor.org/rfc/rfc6151[legacy checksums and old protocols; RFC 6151 retires it for signatures]
+| To name the backend in the call, or to hash in pieces with a result that cannot be taken twice; md5_128 itself for hash_append and Boost.Hash2's other functions.
+
+| <<hash-digest-family,`digests::sha1`>>
+| -
+| -
+| link:https://git-scm.com/docs/hash-function-transition[Git's original object ids, with collision detection]; link:https://shattered.io/[the first public collision, SHAttered (2017)]; link:https://sha-mbles.github.io/[the first public chosen-prefix collision, SHA-1 is a Shambles (2020)]
+| To name the backend in the call, or to hash in pieces with a result that cannot be taken twice; sha1_160 itself for hash_append and Boost.Hash2's other functions.
+
+| <<hash-digest-family,`digests::sha2_224`>>
+| -
+| -
+| link:https://doi.org/10.6028/NIST.FIPS.180-4[FIPS 180-4's shorter SHA-2]
+| To name the backend in the call, or to hash in pieces with a result that cannot be taken twice; sha2_224 itself for hash_append and Boost.Hash2's other functions.
+
+| <<hash-digest-family,`digests::sha2_256`>>
+| -
+| -
+| link:https://bitcoin.org/bitcoin.pdf[Bitcoin's block and transaction ids (twice)]; link:https://github.com/nostr-protocol/nips/blob/master/01.md[Nostr's event ids (NIP-01)]; link:https://git-scm.com/docs/hash-function-transition[Git's SHA-256 object format]; link:https://www.rfc-editor.org/rfc/rfc8446#appendix-B.4[TLS 1.3's cipher suites]
+| To name the backend in the call, or to hash in pieces with a result that cannot be taken twice; sha2_256 itself for hash_append and Boost.Hash2's other functions.
+
+| <<hash-digest-family,`digests::sha2_384`>>
+| -
+| -
+| link:https://www.rfc-editor.org/rfc/rfc8446#appendix-B.4[TLS 1.3's AES-256 cipher suite]
+| To name the backend in the call, or to hash in pieces with a result that cannot be taken twice; sha2_384 itself for hash_append and Boost.Hash2's other functions.
+
+| <<hash-digest-family,`digests::sha2_512`>>
+| -
+| -
+| link:https://www.rfc-editor.org/rfc/rfc8032#section-5.1[Ed25519's signatures]; link:https://github.com/bitcoin/bips/blob/master/bip-0039.mediawiki[BIP39's seeds, through PBKDF2-HMAC-SHA-512]
+| To name the backend in the call, or to hash in pieces with a result that cannot be taken twice; sha2_512 itself for hash_append and Boost.Hash2's other functions.
+
+| <<hash-digest-family,`digests::sha2_512_224`>>
+| -
+| -
+| link:https://doi.org/10.6028/NIST.FIPS.180-4[FIPS 180-4's truncated SHA-512]
+| To name the backend in the call, or to hash in pieces with a result that cannot be taken twice; sha2_512_224 itself for hash_append and Boost.Hash2's other functions.
+
+| <<hash-digest-family,`digests::sha2_512_256`>>
+| -
+| -
+| link:https://doi.org/10.6028/NIST.FIPS.180-4[FIPS 180-4's truncated SHA-512]
+| To name the backend in the call, or to hash in pieces with a result that cannot be taken twice; sha2_512_256 itself for hash_append and Boost.Hash2's other functions.
+
 | <<hash-sha3,`sha3_224`>>
 | 733 MiB/s (hash2)
 | 7,175 bytes (hash2)
@@ -244,11 +418,53 @@
 | link:https://www.rfc-editor.org/rfc/rfc8032#section-5.2[Ed448's signatures]
 | To draw a long stream of bytes from one input, at 256-bit security.
 
+| <<hash-digest-family,`digests::sha3_224`>>
+| -
+| -
+| link:https://doi.org/10.6028/NIST.FIPS.202[FIPS 202]
+| To name the backend in the call, or to hash in pieces with a result that cannot be taken twice; sha3_224 itself for hash_append and Boost.Hash2's other functions.
+
+| <<hash-digest-family,`digests::sha3_256`>>
+| -
+| -
+| link:https://doi.org/10.6028/NIST.FIPS.203[ML-KEM, NIST's post-quantum key encapsulation]
+| To name the backend in the call, or to hash in pieces with a result that cannot be taken twice; sha3_256 itself for hash_append and Boost.Hash2's other functions.
+
+| <<hash-digest-family,`digests::sha3_384`>>
+| -
+| -
+| link:https://doi.org/10.6028/NIST.FIPS.202[FIPS 202]
+| To name the backend in the call, or to hash in pieces with a result that cannot be taken twice; sha3_384 itself for hash_append and Boost.Hash2's other functions.
+
+| <<hash-digest-family,`digests::sha3_512`>>
+| -
+| -
+| link:https://doi.org/10.6028/NIST.FIPS.203[ML-KEM, NIST's post-quantum key encapsulation]
+| To name the backend in the call, or to hash in pieces with a result that cannot be taken twice; sha3_512 itself for hash_append and Boost.Hash2's other functions.
+
+| <<hash-digest-family,`digests::shake_128`>>
+| -
+| -
+| link:https://doi.org/10.6028/NIST.FIPS.203[ML-KEM's and ML-DSA's matrix expansion]
+| To name the backend in the call, or to hash in pieces with a result that cannot be taken twice; shake_128 itself for hash_append and Boost.Hash2's other functions.
+
+| <<hash-digest-family,`digests::shake_256`>>
+| -
+| -
+| link:https://www.rfc-editor.org/rfc/rfc8032#section-5.2[Ed448's signatures]
+| To name the backend in the call, or to hash in pieces with a result that cannot be taken twice; shake_256 itself for hash_append and Boost.Hash2's other functions.
+
 | <<hash-keccak,`keccak_256`>>
 | 998 MiB/s (xkcp)
 | 24,057 bytes (xkcp)
 | link:https://ethereum.github.io/yellowpaper/paper.pdf[Ethereum's addresses, transaction ids and state]; link:https://eips.ethereum.org/EIPS/eip-55[EIP-55's checksummed addresses]
 | For Ethereum and every format that names Keccak-256; never in place of SHA3-256.
+
+| <<hash-digest-family,`digests::keccak_256`>>
+| -
+| -
+| link:https://ethereum.github.io/yellowpaper/paper.pdf[Ethereum's addresses, transaction ids and state]; link:https://eips.ethereum.org/EIPS/eip-55[EIP-55's checksummed addresses]
+| To name the backend in the call, or to hash in pieces with a result that cannot be taken twice; keccak_256 itself for hash_append and Boost.Hash2's other functions.
 
 | <<hash-blake2,`blake2b_512`>>
 | 1,617 MiB/s (hash2)
@@ -262,11 +478,23 @@
 | link:https://www.wireguard.com/protocol/[WireGuard's hash, MAC and HKDF]
 | For WireGuard-style protocols and 32-bit targets.
 
+| <<hash-digest-family,`digests::blake2s_256`>>
+| -
+| -
+| link:https://www.wireguard.com/protocol/[WireGuard's hash, MAC and HKDF]
+| To name the backend in the call, or to hash in pieces with a result that cannot be taken twice; blake2s_256 itself for hash_append and Boost.Hash2's other functions.
+
 | <<hash-blake3,`blake3`>>
 | 2,414 MiB/s (blake3)
 | 21,252 bytes (blake3)
 | link:https://github.com/BLAKE3-team/BLAKE3-specs/blob/master/blake3.pdf[the BLAKE3 specification: a Merkle tree, for verified streaming and content addressing]
 | Large data verified in parts, content addressing, and key derivation from a context string.
+
+| <<hash-digest-family,`digests::blake3`>>
+| -
+| -
+| link:https://github.com/BLAKE3-team/BLAKE3-specs/blob/master/blake3.pdf[the BLAKE3 specification: a Merkle tree, for verified streaming and content addressing]
+| To name the backend in the call, or to hash in pieces with a result that cannot be taken twice; blake3 itself for hash_append and Boost.Hash2's other functions.
 
 | <<hash-legacy,`ripemd_128`>>
 | 989 MiB/s (hash2)
@@ -279,6 +507,12 @@
 | 11,607 bytes (hash2)
 | link:https://github.com/bitcoin/bips/blob/master/bip-0141.mediawiki[Bitcoin's hash160 (P2PKH, P2WPKH)]
 | For Bitcoin's hash160; never in a new design.
+
+| <<hash-digest-family,`digests::ripemd_160`>>
+| -
+| -
+| link:https://github.com/bitcoin/bips/blob/master/bip-0141.mediawiki[Bitcoin's hash160 (P2PKH, P2WPKH)]
+| To name the backend in the call, or to hash in pieces with a result that cannot be taken twice; ripemd_160 itself for hash_append and Boost.Hash2's other functions.
 |===
 
 The measured columns are doc/measurements.json's, a reference measured on 2026-11-16 on Apple M5 Max that decides nothing: the native throughput over 1 MiB, or the time of one derivation over `hmac_sha2_256`, of the fastest backend, and the smallest Emscripten program that calls the function; <<hash-measurements>> has every backend on every target.

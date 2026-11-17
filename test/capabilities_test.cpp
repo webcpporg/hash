@@ -5,16 +5,23 @@
 // https://www.boost.org/LICENSE_1_0.txt)
 
 // The capability table is one fact in two places, which must never drift: doc/capabilities.json and
-// backend_has_v agree on every cell, a function over an hmac (or over no hmac) for a backend; the
-// file names exactly the backends, hmacs and functions this test knows. And each refusal text of
-// the headers (spec 3.3) names exactly the backends of its row: those that have the function it
-// refuses, over the hmacs it is about, besides the refusing backend itself.
+// backend_has_v agree on every cell, a function over an hmac (or over no hmac), or a family's tag,
+// for a backend; the file names exactly the backends, hmacs and functions this test knows, and a
+// row for each family tag that a backend has. Each default is default_backend's (null for a tag
+// with none). And each refusal text of the headers (spec 3.3) names exactly the backends of its
+// row: those that have the function it refuses, over the hmacs it is about, besides the refusing
+// backend itself; a family tag's text, read from the tag it names, those of the tag's row. Every
+// family tag has its refusal, and a "no default backend" text exactly when it has no default; where
+// a backend has a tag and the program links it, digest_of, hasher and mac compile and run on it.
 
 #include <webcpp/hash/algorithms.hpp>
+#include <webcpp/hash/argon2.hpp>
 #include <webcpp/hash/blake3.hpp>
+#include <webcpp/hash/digest.hpp>
 #include <webcpp/hash/hmac.hpp>
 #include <webcpp/hash/kdf.hpp>
 #include <webcpp/hash/keccak.hpp>
+#include <webcpp/hash/mac.hpp>
 #include <webcpp/test/exit_status.hpp>
 
 #include "require.hpp"
@@ -24,7 +31,9 @@
 #include <boost/json.hpp>
 
 #include <algorithm>
+#include <array>
 #include <cstddef>
+#include <cstdint>
 #include <cstdlib>
 #include <fstream>
 #include <functional>
@@ -43,6 +52,8 @@ namespace hash = webcpp::hash;
 namespace json = boost::json;
 namespace test = webcpp::test;
 namespace kdfs = webcpp::hash::kdfs;
+namespace digests = webcpp::hash::digests;
+namespace macs = webcpp::hash::macs;
 using names = std::set<std::string, std::less<>>;
 
 // The whole file at path; one that cannot be opened ends the test, by name.
@@ -55,8 +66,9 @@ std::string read_text(std::string const& path) {
     return {std::istreambuf_iterator<char>(in), std::istreambuf_iterator<char>()};
 }
 
-using backend_tags = std::tuple<hash::backends::hash2, hash::backends::sodium,
-                                hash::backends::bearssl, hash::backends::openssl>;
+using backend_tags =
+    std::tuple<hash::backends::hash2, hash::backends::xkcp, hash::backends::blake3,
+               hash::backends::sodium, hash::backends::bearssl, hash::backends::openssl>;
 
 // The functions of increment 1: those over an hmac, and those over none.
 using hmac_functions = test::kdf_operations;
@@ -84,14 +96,23 @@ std::vector<json::object const*> functions_of(json::object const& table) {
     return functions;
 }
 
-json::object const& function_row(json::object const& table, std::string_view name) {
+// The row named `name`, or null when the file has none.
+json::object const* find_row(json::object const& table, std::string_view name) {
     for (auto const* function : functions_of(table)) {
         if (function->at("name").as_string() == name) {
-            return *function;
+            return function;
         }
     }
-    std::cerr << "no row for " << name << " in capabilities.json\n";
-    std::abort();
+    return nullptr;
+}
+
+json::object const& function_row(json::object const& table, std::string_view name) {
+    auto const* const found = find_row(table, name);
+    if (found == nullptr) {
+        std::cerr << "no row for " << name << " in capabilities.json\n";
+        std::abort();
+    }
+    return *found;
 }
 
 // Whether the file's cell holds: the backend has the function over the hmac ("" for none).
@@ -228,13 +249,6 @@ constexpr std::string_view this_target() {
 // every library its target has, so a backend is linked exactly on its targets.
 bool linked_here(std::string_view macro) {
     names linked;
-    linked.emplace("HASH2");
-#ifdef WEBCPP_HASH_HAS_XKCP
-    linked.emplace("XKCP");
-#endif
-#ifdef WEBCPP_HASH_HAS_BLAKE3
-    linked.emplace("BLAKE3");
-#endif
     [&linked]<class... Backend>(std::tuple<Backend...>*) {
         (static_cast<void>(hash::detail::linked_v<Backend> &&
                            linked.emplace(test::name_of_macro<Backend>()).second),
@@ -246,7 +260,7 @@ bool linked_here(std::string_view macro) {
 void check_cell_fields(json::object const& table, names const& tagged);
 
 // The backends' own fields, where the code can tell: a backend's targets hold this
-// target exactly when the program links it here, and every cell is of increment 1 and states its
+// target exactly when the program links it here, and every cell is of an increment and states its
 // constant time, which the documentation renders.
 void check_backend_fields(json::object const& table) {
     names tagged;
@@ -286,11 +300,12 @@ void check_defaults(json::object const& table) {
     }
 }
 
-// Every cell is of increment 1, states its constant time, and, for a function with a
-// Backend parameter, names a backend with a tag.
+// Every cell is of an increment, 1 to 7, states its constant time, says what it refuses when it is
+// partial, and, for a function with a Backend parameter or a family's tag, names a backend with a
+// tag.
 void check_cell_fields(json::object const& table, names const& tagged) {
     for (auto const* function : functions_of(table)) {
-        bool const is_function = function->at("kind").as_string() == "function";
+        bool const is_function = function->at("kind").as_string() != "type";
         for (auto const& backend : function->at("backends").as_object()) {
             auto const& c = backend.value().as_object();
             auto const* const ct = c.if_contains("constant_time");
@@ -301,13 +316,199 @@ void check_cell_fields(json::object const& table, names const& tagged) {
             bool const stated = value != nullptr && value->is_string() &&
                                 (value->as_string() == "yes" || value->as_string() == "no" ||
                                  value->as_string() == "not stated");
-            bool const fine = c.at("since").as_int64() == 1 && stated && source != nullptr &&
-                              source->is_string() && !source->as_string().empty() &&
+            auto const* const partial = c.if_contains("partial");
+            bool const partial_fine =
+                partial == nullptr || (partial->is_string() && !partial->as_string().empty());
+            auto const since = c.at("since").as_int64();
+            bool const fine = since >= 1 && since <= 7 && stated && source != nullptr &&
+                              source->is_string() && !source->as_string().empty() && partial_fine &&
                               (!is_function || tagged.contains(backend.key()));
             if (!BOOST_TEST(fine)) {
                 std::cerr << "  the cell " << function->at("name").as_string() << " / "
                           << backend.key() << '\n';
             }
+        }
+    }
+}
+
+// Every tag of the families (spec 2.15), with its qualified name: a row of the file has it as its
+// name. `macs::hmac` over keccak_256 and sm3 stand for the hmacs no backend has yet.
+using digest_tags =
+    std::tuple<digests::md5, digests::sha1, digests::sha2_224, digests::sha2_256, digests::sha2_384,
+               digests::sha2_512, digests::sha2_512_224, digests::sha2_512_256, digests::sha3_224,
+               digests::sha3_256, digests::sha3_384, digests::sha3_512, digests::shake_128,
+               digests::shake_256, digests::keccak_224, digests::keccak_256, digests::keccak_384,
+               digests::keccak_512, digests::cshake_128, digests::cshake_256, digests::kt128,
+               digests::kt256, digests::turboshake_128, digests::turboshake_256,
+               digests::tuplehash_128, digests::tuplehash_256, digests::parallelhash_128,
+               digests::parallelhash_256, digests::blake2b, digests::blake2s_256, digests::blake3,
+               digests::ripemd_160, digests::md5_sha1, digests::sm3, digests::streebog_256,
+               digests::streebog_512, digests::whirlpool, digests::skein_512>;
+constexpr std::array<std::string_view, 38> digest_names{
+    "digests::md5",
+    "digests::sha1",
+    "digests::sha2_224",
+    "digests::sha2_256",
+    "digests::sha2_384",
+    "digests::sha2_512",
+    "digests::sha2_512_224",
+    "digests::sha2_512_256",
+    "digests::sha3_224",
+    "digests::sha3_256",
+    "digests::sha3_384",
+    "digests::sha3_512",
+    "digests::shake_128",
+    "digests::shake_256",
+    "digests::keccak_224",
+    "digests::keccak_256",
+    "digests::keccak_384",
+    "digests::keccak_512",
+    "digests::cshake_128",
+    "digests::cshake_256",
+    "digests::kt128",
+    "digests::kt256",
+    "digests::turboshake_128",
+    "digests::turboshake_256",
+    "digests::tuplehash_128",
+    "digests::tuplehash_256",
+    "digests::parallelhash_128",
+    "digests::parallelhash_256",
+    "digests::blake2b",
+    "digests::blake2s_256",
+    "digests::blake3",
+    "digests::ripemd_160",
+    "digests::md5_sha1",
+    "digests::sm3",
+    "digests::streebog_256",
+    "digests::streebog_512",
+    "digests::whirlpool",
+    "digests::skein_512",
+};
+using mac_tags = std::tuple<
+    macs::hmac<digests::md5>, macs::hmac<digests::sha1>, macs::hmac<digests::sha2_224>,
+    macs::hmac<digests::sha2_256>, macs::hmac<digests::sha2_384>, macs::hmac<digests::sha2_512>,
+    macs::hmac<digests::sha2_512_224>, macs::hmac<digests::sha2_512_256>,
+    macs::hmac<digests::sha3_224>, macs::hmac<digests::sha3_256>, macs::hmac<digests::sha3_384>,
+    macs::hmac<digests::sha3_512>, macs::hmac<digests::ripemd_160>, macs::hmac<digests::blake2b>,
+    macs::hmac<digests::blake2s_256>, macs::hmac<digests::keccak_256>, macs::hmac<digests::sm3>,
+    macs::kmac_128, macs::kmac_256, macs::siphash_2_4, macs::siphash_2_4x, macs::blake2b_mac,
+    macs::blake2s_mac>;
+constexpr std::array<std::string_view, 23> mac_names{
+    "macs::hmac<digests::md5>",
+    "macs::hmac<digests::sha1>",
+    "macs::hmac<digests::sha2_224>",
+    "macs::hmac<digests::sha2_256>",
+    "macs::hmac<digests::sha2_384>",
+    "macs::hmac<digests::sha2_512>",
+    "macs::hmac<digests::sha2_512_224>",
+    "macs::hmac<digests::sha2_512_256>",
+    "macs::hmac<digests::sha3_224>",
+    "macs::hmac<digests::sha3_256>",
+    "macs::hmac<digests::sha3_384>",
+    "macs::hmac<digests::sha3_512>",
+    "macs::hmac<digests::ripemd_160>",
+    "macs::hmac<digests::blake2b>",
+    "macs::hmac<digests::blake2s_256>",
+    "macs::hmac<digests::keccak_256>",
+    "macs::hmac<digests::sm3>",
+    "macs::kmac_128",
+    "macs::kmac_256",
+    "macs::siphash_2_4",
+    "macs::siphash_2_4x",
+    "macs::blake2b_mac",
+    "macs::blake2s_mac",
+};
+using argon2_tags = std::tuple<kdfs::argon2d, kdfs::argon2i, kdfs::argon2id>;
+constexpr std::array<std::string_view, 3> argon2_names{
+    "kdfs::argon2d",
+    "kdfs::argon2i",
+    "kdfs::argon2id",
+};
+
+// Calls check.template operator()<Tag>(name) for each tag of Tags, with its name.
+template <class Tags, std::size_t Size, class Check>
+void for_each_tag(std::array<std::string_view, Size> const& tag_names, Check check) {
+    static_assert(std::tuple_size_v<Tags> == Size);
+    [&]<std::size_t... Index>(std::index_sequence<Index...>) {
+        (check.template operator()<std::tuple_element_t<Index, Tags>>(tag_names[Index]), ...);
+    }(std::make_index_sequence<Size>{});
+}
+
+// The third argument of backend_has_v for a family's tag: argon2's variants are told from the
+// function argon2id by argon2_parameters.
+template <class Tag>
+using family_key =
+    std::conditional_t<std::is_same_v<Tag, kdfs::argon2d> || std::is_same_v<Tag, kdfs::argon2i> ||
+                           std::is_same_v<Tag, kdfs::argon2id>,
+                       hash::argon2_parameters, void>;
+
+// Whether some backend has the tag: then the file has its row.
+template <class Tag>
+bool some_backend_has() {
+    return [&]<class... Backend>(std::tuple<Backend...>*) {
+        return (hash::backend_has_v<Backend, Tag, family_key<Tag>> || ...);
+    }(static_cast<backend_tags*>(nullptr));
+}
+
+// The names of the family rows the file must hold: every tag some backend has.
+names family_rows() {
+    names rows;
+    auto const each = [&]<class Tag>(std::string_view name) {
+        if (some_backend_has<Tag>()) {
+            rows.emplace(name);
+        }
+    };
+    for_each_tag<digest_tags>(digest_names, each);
+    for_each_tag<mac_tags>(mac_names, each);
+    for_each_tag<argon2_tags>(argon2_names, each);
+    return rows;
+}
+
+// Where Backend has the digest and the program links it, digest_of and hasher compile and run on
+// it, over an output of the digest's size (32 bytes for an extendable output).
+template <class Tag, class Backend>
+void call_digest(std::string_view name) {
+    if constexpr (hash::backend_has_v<Backend, Tag, void> && hash::detail::linked_v<Backend>) {
+        using traits = hash::detail::digest_traits<Tag>;
+        auto const longest = traits::max_output(hash::digest_options<Tag>{});
+        std::vector<std::uint8_t> output(longest == hash::detail::no_limit ? 32 : longest);
+        std::array<std::uint8_t, 3> const input{0x61, 0x62, 0x63};
+        bool const once = hash::digest_of<Tag, Backend>(output, input).has_value();
+        auto hashing = hash::hasher<Tag, Backend>::make();
+        bool const pieces =
+            hashing && hashing->update(input) && hashing->finish(output).has_value();
+        if (!BOOST_TEST(once && pieces)) {
+            std::cerr << "  " << name << " on " << test::name_of<Backend>() << '\n';
+        }
+    }
+}
+
+// Where Backend has the MAC and the program links it, mac compiles and runs on it, with its
+// longest tag (32 bytes when it has no limit) and its shortest key.
+template <class Tag, class Backend>
+void call_mac(std::string_view name) {
+    if constexpr (hash::backend_has_v<Backend, Tag, void> && hash::detail::linked_v<Backend>) {
+        using traits = hash::detail::mac_traits<Tag>;
+        std::vector<std::uint8_t> output(
+            traits::max_output == hash::detail::no_limit ? 32 : traits::max_output);
+        std::vector<std::uint8_t> const key(traits::min_key, 0x0b);
+        std::array<std::uint8_t, 3> const input{0x61, 0x62, 0x63};
+        if (!BOOST_TEST((hash::mac<Tag, Backend>(output, key, input).has_value()))) {
+            std::cerr << "  " << name << " on " << test::name_of<Backend>() << '\n';
+        }
+    }
+}
+
+// The rows of the file the test does not know, and those it misses.
+void report_differences(names const& in_file, names const& known) {
+    for (auto const& name : in_file) {
+        if (!known.contains(name)) {
+            std::cerr << "  a row this test does not know: " << name << '\n';
+        }
+    }
+    for (auto const& name : known) {
+        if (!in_file.contains(name)) {
+            std::cerr << "  no row for " << name << '\n';
         }
     }
 }
@@ -347,7 +548,10 @@ void check_names(json::object const& table) {
     for (auto const& row : type_rows()) {
         known_functions.emplace(row.name);
     }
-    BOOST_TEST((functions == known_functions));
+    known_functions.merge(family_rows());
+    if (!BOOST_TEST((functions == known_functions))) {
+        report_differences(functions, known_functions);
+    }
 }
 
 template <class Backend, class Function, class Hmac>
@@ -492,6 +696,55 @@ std::vector<refusal> const& refusals() {
             .hmacs = {},
         },
         {
+            .header = "detail/engines.hpp",
+            .start = "digest_of and hasher take a tag of webcpp::hash::digests",
+            .backend = "",
+            .functions = {},
+            .hmacs = {},
+        },
+        {
+            .header = "detail/engines.hpp",
+            .start = "mac takes a tag of webcpp::hash::macs",
+            .backend = "",
+            .functions = {},
+            .hmacs = {},
+        },
+        {
+            .header = "detail/engines.hpp",
+            .start = "argon2 takes kdfs::argon2d, kdfs::argon2i or kdfs::argon2id.",
+            .backend = "",
+            .functions = {},
+            .hmacs = {},
+        },
+        {
+            .header = "detail/engines.hpp",
+            .start = "backends::xkcp needs XKCP.",
+            .backend = "xkcp",
+            .functions = {},
+            .hmacs = {},
+        },
+        {
+            .header = "detail/engines.hpp",
+            .start = "backends::blake3 needs BLAKE3's C implementation.",
+            .backend = "blake3",
+            .functions = {},
+            .hmacs = {},
+        },
+        {
+            .header = "detail/engines.hpp",
+            .start = "backends::bearssl needs BearSSL.",
+            .backend = "bearssl",
+            .functions = {},
+            .hmacs = {},
+        },
+        {
+            .header = "detail/engines.hpp",
+            .start = "backends::openssl needs OpenSSL.",
+            .backend = "openssl",
+            .functions = {},
+            .hmacs = {},
+        },
+        {
             .header = "kdf.hpp",
             .start = "the key derivations take a Boost.Hash2 hmac",
             .backend = "",
@@ -598,6 +851,35 @@ std::size_t refusal_of(std::string_view header, std::string_view text) {
     return refusals().size();
 }
 
+// The tag a family's refusal names, its first word after "webcpp::hash: " when that is a qualified
+// tag of digests, macs or kdfs; "" for any other text.
+std::string_view family_tag_of(std::string_view text) {
+    std::string_view const body = text.substr(std::string_view("webcpp::hash: ").size());
+    std::string_view const tag = body.substr(0, body.find(' '));
+    bool const qualified =
+        tag.starts_with("digests::") || tag.starts_with("macs::") || tag.starts_with("kdfs::");
+    return qualified ? tag : std::string_view{};
+}
+
+// A family tag's refusal names exactly the backends of the tag's row, none when it has no row.
+// Returns whether the text is a family tag's.
+bool check_family_refusal(json::object const& table, std::string const& text) {
+    std::string_view const tag = family_tag_of(text);
+    if (tag.empty()) {
+        return false;
+    }
+    names row;
+    if (auto const* const found = find_row(table, tag); found != nullptr) {
+        for (auto const& backend : found->at("backends").as_object()) {
+            row.emplace(backend.key());
+        }
+    }
+    if (!BOOST_TEST((named_in(text) == row))) {
+        std::cerr << "  the backends named by: " << text << '\n';
+    }
+    return true;
+}
+
 void check_refusals(json::object const& table, std::string const& include) {
     names headers;
     for (auto const& r : refusals()) {
@@ -608,6 +890,9 @@ void check_refusals(json::object const& table, std::string const& include) {
         std::string path = include;
         path.append("/webcpp/hash/").append(header);
         for (auto const& text : refusals_in(read_text(path))) {
+            if (check_family_refusal(table, text)) {
+                continue;
+            }
             std::size_t const matched = refusal_of(header, text);
             if (!BOOST_TEST(matched < refusals().size())) {
                 std::cerr << "  a refusal this test does not know, in " << header << ": " << text
@@ -631,6 +916,70 @@ void check_refusals(json::object const& table, std::string const& include) {
     }
 }
 
+// Each family tag: its cells against backend_has_v, its default against default_backend (null for
+// none), its refusal texts in detail/engines.hpp (a "no default backend" one exactly when it has no
+// default), and a call on each backend that has it and is linked here.
+template <class Tag>
+void check_family_tag(json::object const& table, std::vector<std::string> const& texts,
+                      std::string_view name) {
+    auto const* const row = find_row(table, name);
+    [&]<class... Backend>(std::tuple<Backend...>*) {
+        (
+            [&] {
+                bool const in_file = row != nullptr && cell(*row, test::name_of<Backend>(), "");
+                if (!BOOST_TEST_EQ(in_file, (hash::backend_has_v<Backend, Tag, family_key<Tag>>))) {
+                    std::cerr << "  cell " << name << " / " << test::name_of<Backend>() << '\n';
+                }
+            }(),
+            ...);
+    }(static_cast<backend_tags*>(nullptr));
+
+    bool const no_default = std::is_same_v<hash::default_backend<Tag>, hash::detail::no_default>;
+    if (row != nullptr) {
+        auto const& listed = row->at("default");
+        bool const agrees =
+            no_default ? listed.is_null()
+                       : listed.is_string() &&
+                             listed.as_string() == test::name_of<hash::default_backend<Tag>>();
+        if (!BOOST_TEST(agrees)) {
+            std::cerr << "  default of " << name << '\n';
+        }
+    }
+
+    // A tag's own texts; an hmac over a digest without them, the text of every such hmac.
+    auto const refused_as = [&](std::string const& subject) {
+        return std::ranges::any_of(texts, [&](auto const& t) { return t.starts_with(subject); });
+    };
+    std::string own = std::string("webcpp::hash: ") + std::string(name) + " ";
+    if (!refused_as(own) && name.starts_with("macs::hmac<")) {
+        own = "webcpp::hash: macs::hmac over this digest ";
+    }
+    bool const refused = refused_as(own);
+    bool const without = refused_as(own + "has no default backend");
+    if (!BOOST_TEST(refused) || !BOOST_TEST_EQ(without, no_default)) {
+        std::cerr << "  the refusals of " << name << '\n';
+    }
+}
+
+void check_families(json::object const& table, std::string const& include) {
+    auto const texts = refusals_in(read_text(include + "/webcpp/hash/detail/engines.hpp"));
+    for_each_tag<digest_tags>(digest_names, [&]<class Tag>(std::string_view name) {
+        check_family_tag<Tag>(table, texts, name);
+        [&]<class... Backend>(std::tuple<Backend...>*) {
+            (call_digest<Tag, Backend>(name), ...);
+        }(static_cast<backend_tags*>(nullptr));
+    });
+    for_each_tag<mac_tags>(mac_names, [&]<class Tag>(std::string_view name) {
+        check_family_tag<Tag>(table, texts, name);
+        [&]<class... Backend>(std::tuple<Backend...>*) {
+            (call_mac<Tag, Backend>(name), ...);
+        }(static_cast<backend_tags*>(nullptr));
+    });
+    for_each_tag<argon2_tags>(argon2_names, [&]<class Tag>(std::string_view name) {
+        check_family_tag<Tag>(table, texts, name);
+    });
+}
+
 }  // namespace
 
 int main() {
@@ -646,5 +995,6 @@ int main() {
     check_defaults(table);
     check_cells(table);
     check_refusals(table, include);
+    check_families(table, include);
     return webcpp::test::exit_status(boost::report_errors());
 }

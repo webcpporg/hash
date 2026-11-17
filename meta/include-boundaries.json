@@ -39,6 +39,14 @@
         },
         {
             "headers": [
+                "include/webcpp/hash/digest.hpp",
+                "include/webcpp/hash/mac.hpp"
+            ],
+            "must-not-include": ["xkcp", "blake3", "sodium", "bearssl", "openssl/"],
+            "why": "the digest and MAC families include no C library's header: a linked backend's webcpp header comes in under its WEBCPP_HASH_HAS_<NAME>, so that a program that includes only a family's header gets the engines of the backends it links (spec sections 2.12 and 2.15)"
+        },
+        {
+            "headers": [
                 "include/webcpp/hash/detail/xkcp.hpp",
                 "include/webcpp/hash/keccak.hpp"
             ],
@@ -47,10 +55,18 @@
         },
         {
             "headers": [
+                "include/webcpp/hash/backends/xkcp.hpp"
+            ],
+            "must-not-include": ["Keccak", "SnP", "brg_endian", "config.h", "align.h", "xkcp/", "blake3", "sodium", "bearssl", "openssl/"],
+            "why": "backends::xkcp links XKCP alone, through webcpp's adapter (spec sections 2.6 and 2.12)"
+        },
+        {
+            "headers": [
+                "include/webcpp/hash/backends/blake3.hpp",
                 "include/webcpp/hash/blake3.hpp"
             ],
             "must-not-include": ["xkcp", "sodium", "bearssl", "openssl/"],
-            "why": "blake3 links BLAKE3's C implementation alone (spec section 2.7)"
+            "why": "blake3 and backends::blake3 link BLAKE3's C implementation alone (spec sections 2.7 and 2.12)"
         },
         {
             "headers": [

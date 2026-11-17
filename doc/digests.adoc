@@ -250,3 +250,45 @@ broken as a MAC, but it carries a broken name into audits; prefer
 `hmac_sha2_256`.
 
 include::generated/backends-ripemd.adoc[]
+
+[#hash-digest-family]
+=== One call, or pieces with one result: `digest_of` and `hasher`
+
+The types above are Boost.Hash2's form: an object fed with `update` whose
+`result()` can be called again, and which `hash_append` and the rest of
+Boost.Hash2 take. Two functions reach the same algorithms through a tag of
+`webcpp::hash::digests`, as `digests::sha2_256`, and a backend: `digest_of`
+hashes a message in one call, and `hasher` takes it in pieces, as a file read
+in blocks or a stream arrives, and gives exactly one result. The backend is the
+tag's default, the first of `backends::hash2`, `backends::xkcp`,
+`backends::blake3` and `backends::sodium` that has it, or the one the call
+names as its second template argument; the tables of each algorithm list them.
+
+[source]
+----
+include::{examples}/digest_family.cpp[tag=example,indent=0]
+----
+
+[listing]
+----
+include::{examples}/digest_family.expected[]
+----
+
+*Pitfalls.*
+
+* *One result.* A `hasher` gives its result once: a second `finish`, or an
+`update` after it, is `error::invalid_state`, not the hash of what came
+before; start another hasher for another message. A hasher is move-only, and
+wipes its state when it finishes, when it is destroyed and when it is moved
+from.
+* *The output's size is the digest's.* A fixed-size digest takes an output of
+exactly its size (`invalid_output_size` otherwise, the output untouched); an
+extendable-output function, SHAKE or BLAKE3, takes any size from 1 byte.
+* *A backend may have a tag in part.* `backends::hash2` has SHAKE128 and
+SHAKE256 up to one Boost.Hash2 result, 32 and 64 bytes, and answers
+`unsupported_by_backend` past them; a call that names a backend gets what that
+backend has, which its row of the tables says.
+* *A tag without its backend stops the build.* A tag whose backend the
+program does not link, or that no backend has yet, stops with a message that
+names the line to add or the backends that have it (<<hash-jamfile-messages>>).
+

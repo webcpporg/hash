@@ -31,18 +31,24 @@ webcpp.headers-alone hash : ../include :
     hash/detail/limits.hpp
     hash/detail/wipe.hpp
     hash/detail/xkcp.hpp
+    hash/digest.hpp
     hash/error.hpp
     hash/hkdf.hpp
     hash/hmac.hpp
     hash/kdf.hpp
+    hash/mac.hpp
     hash/pbkdf2.hpp
     hash/scrypt.hpp ;
 # keccak.hpp compiles alone only with XKCP, whose target defines
 # WEBCPP_HASH_HAS_XKCP (without it, it stops with its message).
 webcpp.headers-alone hash : ../include : hash/keccak.hpp : <library>/third_party//xkcp ;
+webcpp.headers-alone hash : ../include : hash/backends/xkcp.hpp
+  : <library>/third_party//xkcp ;
 # blake3.hpp compiles alone only with BLAKE3's library, which defines
 # WEBCPP_HASH_HAS_BLAKE3 (without it, it stops with its message).
 webcpp.headers-alone hash : ../include : hash/blake3.hpp
+  : <library>/third_party//blake3 ;
+webcpp.headers-alone hash : ../include : hash/backends/blake3.hpp
   : <library>/third_party//blake3 ;
 # backends/bearssl.hpp compiles alone only with BearSSL, whose target defines
 # WEBCPP_HASH_HAS_BEARSSL (without it, it stops with its message).
@@ -102,6 +108,17 @@ hash-run blake3 : blake3_test.cpp : <library>/third_party//blake3 ;
 hash-run blake3_vectors : blake3_vectors_test.cpp
   : <library>/third_party//blake3 <library>/third_party//blake3_vectors
     <library>/webcpp//boost_json ;
+
+# The families of spec 2.15, digest_of, hasher, mac and argon2: their guards
+# and failures on the mock backend (support/mock_backend.hpp); Boost.Hash2's
+# digests and HMACs on backends::hash2, keccak_256 on backends::xkcp and
+# BLAKE3's extendable output on backends::blake3 against the Hash2-form types;
+# every tag's default backend. hasher's state machine, and its wipes reported
+# through the seam WEBCPP_HASH_DETAIL_TEST_WIPE_RECORD.
+hash-run families : families_test.cpp
+  : <library>/third_party//xkcp <library>/third_party//blake3 ;
+hash-run hasher_state : hasher_state_test.cpp
+  : <define>WEBCPP_HASH_DETAIL_TEST_WIPE_RECORD ;
 
 # HKDF (RFC 5869) on backends::hash2: the RFC's seven cases and three more
 # computed by Python's hmac; the guards at their limits; the wipes, each one
@@ -257,6 +274,8 @@ path-constant HASH_TEST_INCLUDE : ../include ;
     <define>"\"WEBCPP_TEST_HASH_INCLUDE=\\\"$(.hash-include)\\\"\""
     [ webcpp.data $(HASH_TEST_DOC) $(HASH_TEST_INCLUDE) ]
     <dependency>../doc/capabilities.json
+    <dependency>../include/webcpp/hash/detail/engines.hpp
+    <dependency>../include/webcpp/hash/kdf.hpp
     <dependency>../include/webcpp/hash/backends/bearssl.hpp
     <dependency>../include/webcpp/hash/backends/openssl.hpp
     <dependency>../include/webcpp/hash/backends/sodium.hpp ;

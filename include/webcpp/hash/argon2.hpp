@@ -6,7 +6,10 @@
 
 /**
  Argon2id, RFC 9106: `argon2id`, version 0x13 with one lane, no secret and no associated data, on
- `backends::sodium` (libsodium's `crypto_pwhash_argon2id`), with libsodium's three presets.
+ `backends::sodium` (libsodium's `crypto_pwhash_argon2id`), with libsodium's three presets; and the
+ family `argon2` (spec 2.15): Argon2d, Argon2i and Argon2id with every parameter of RFC 9106, on the
+ backends that have each (from increment 2, Argon2i on libsodium with one lane; from increment 4,
+ every parameter on OpenSSL).
 
  Every guard runs before any work, and a guard's refusal leaves the output as it was; a backend's
  failure zeroes it. libsodium allocates the memory the costs name.
@@ -44,7 +47,10 @@
 
 namespace webcpp::hash {
 
-/** The costs of Argon2id with one lane, as libsodium's crypto_pwhash takes them. */
+/**
+ The costs of Argon2id with one lane, as libsodium's crypto_pwhash takes them, for `argon2id`. Its
+ memory is in bytes; @ref argon2_parameters, the family's, counts KiB as RFC 9106 does.
+*/
 struct argon2id_parameters {
     /** The number of passes over the memory, t: 1 to 4,294,967,295. */
     std::uint64_t passes;
@@ -140,6 +146,113 @@ template <class Backend = default_backend<kdfs::argon2id>>
         detail::wipe(output_bytes);
     }
     return derive_result;
+}
+
+/**
+ Every parameter of Argon2, RFC 9106, for the family `argon2`. The memory is in KiB, RFC 9106's m
+ (@ref argon2id_parameters, `argon2id`'s, counts bytes: `argon2id_moderate`'s 268,435,456 bytes are
+ 262,144 KiB).
+
+ A backend that lacks a parameter's value answers `unsupported_by_backend` (libsodium: one lane, no
+ secret, no associated data, at least 3 passes for Argon2i).
+*/
+struct argon2_parameters {
+    /** The number of passes over the memory, t: at least 1. */
+    std::uint32_t passes;
+    /** The memory in KiB, m: at least 8 times the lanes. */
+    std::uint32_t memory_kib;
+    /** The degree of parallelism, p: 1 to 16,777,215. */
+    std::uint32_t lanes = 1;
+    /** The secret, K (a pepper): at most 4,294,967,295 bytes, empty for none. */
+    std::span<std::uint8_t const> secret = {};
+    /** The associated data, X: at most 4,294,967,295 bytes, empty for none. */
+    std::span<std::uint8_t const> associated_data = {};
+};
+
+namespace detail {
+
+/** The most lanes, 2^24 - 1 (RFC 9106, section 3.1). */
+inline constexpr std::uint32_t argon2_max_lanes = 0xffffffU;
+/** The memory per lane at least, 8 KiB: m is at least 8p (RFC 9106, section 3.1). */
+inline constexpr std::uint64_t argon2_min_memory_kib_per_lane = 8;
+/** The shortest tag, 4 bytes (RFC 9106, section 3.1). */
+inline constexpr std::uint64_t argon2_min_output = 4;
+/** The shortest salt, 8 bytes (RFC 9106, section 3.1). */
+inline constexpr std::uint64_t argon2_min_salt = 8;
+
+/**
+ The backend's limits within RFC 9106's: whether `Engine` takes these values.
+
+ @param output_size The tag's size. @param salt_size The salt's size.
+ @param parameters The parameters.
+ @return Whether the engine's `limits` hold them all.
+*/
+template <class Engine>
+bool argon2_engine_takes(std::size_t output_size, std::size_t salt_size,
+                         argon2_parameters const& parameters) noexcept {
+    // Each bound through exceeds: a limit at the type's own bound would be a tautology.
+    constexpr argon2_limits limits = Engine::limits;
+    return !exceeds(limits.min_passes, parameters.passes) &&
+           !exceeds(parameters.memory_kib, limits.max_memory_kib) &&
+           !exceeds(parameters.lanes, limits.max_lanes) &&
+           !exceeds(limits.min_output, output_size) && !exceeds(limits.min_salt, salt_size) &&
+           !exceeds(salt_size, limits.max_salt) && (limits.secret || parameters.secret.empty()) &&
+           (limits.associated_data || parameters.associated_data.empty());
+}
+
+}  // namespace detail
+
+/**
+ Argon2 version 0x13 (RFC 9106) of the variant `Variant` with every parameter: fills `output` from
+ `password` and `salt`.
+
+ Every guard of RFC 9106 runs first, then the backend's own limits (`unsupported_by_backend`), and
+ a refusal leaves `output` as it was; a backend's failure zeroes it.
+
+ @tparam Variant `kdfs::argon2id` (recommended for passwords), `kdfs::argon2i` or `kdfs::argon2d`.
+ @tparam Backend The backend; by default @ref default_backend of `Variant` (spec 4.1):
+ `backends::sodium` for Argon2id and Argon2i, none for Argon2d, which names its backend.
+ @param output The tag, 4 to 4,294,967,295 bytes; it must not overlap the inputs.
+ @param password The password, at most 4,294,967,295 bytes.
+ @param salt The salt, 8 to 4,294,967,295 bytes (16 random bytes are the usual choice).
+ @param parameters The costs, the lanes, the secret and the associated data.
+ @return Success; or the first guard's error (`invalid_output_size`, `invalid_salt_size`,
+ `input_too_long`, `invalid_parameters`, `unsupported_by_backend`), `output` untouched; or
+ `errc::not_enough_memory` or `backend_failure`, `output` zeroed.
+*/
+template <class Variant, class Backend = default_backend<Variant>>
+[[nodiscard]] boost::system::result<void> argon2(std::span<std::uint8_t> output,
+                                                 std::span<std::uint8_t const> password,
+                                                 std::span<std::uint8_t const> salt,
+                                                 argon2_parameters const& parameters) {
+    using engine = detail::argon2_engine<Backend, Variant>;
+    if (detail::exceeds(detail::argon2_min_output, output.size()) ||
+        detail::exceeds(output.size(), detail::argon2id_max_size)) {
+        return error::invalid_output_size;
+    }
+    if (detail::exceeds(detail::argon2_min_salt, salt.size()) ||
+        detail::exceeds(salt.size(), detail::argon2id_max_size)) {
+        return error::invalid_salt_size;
+    }
+    if (detail::exceeds(password.size(), detail::argon2id_max_size) ||
+        detail::exceeds(parameters.secret.size(), detail::argon2id_max_size) ||
+        detail::exceeds(parameters.associated_data.size(), detail::argon2id_max_size)) {
+        return error::input_too_long;
+    }
+    if (parameters.passes < 1 || parameters.lanes < 1 ||
+        parameters.lanes > detail::argon2_max_lanes ||
+        parameters.memory_kib <
+            detail::argon2_min_memory_kib_per_lane * std::uint64_t{parameters.lanes}) {
+        return error::invalid_parameters;
+    }
+    if (!detail::argon2_engine_takes<engine>(output.size(), salt.size(), parameters)) {
+        return error::unsupported_by_backend;
+    }
+    auto derived = engine::derive(output, password, salt, parameters);
+    if (!derived) {
+        detail::wipe(output);
+    }
+    return derived;
 }
 
 }  // namespace webcpp::hash

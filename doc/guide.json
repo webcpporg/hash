@@ -721,6 +721,420 @@
                 {"text": "OWASP: N 2^17, r 8, p 1 when Argon2id is not available", "source": "https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html"}
             ],
             "choose": "When a format demands scrypt; otherwise Argon2id."
+        },
+        "digests::md5": {
+            "standard": "RFC 1321",
+            "summary": "MD5, a 128-bit digest, broken: kept to read existing data and protocols, as the tag of digest_of and hasher: one call, or pieces with one final result, on any backend that has it.",
+            "output": "128 bits",
+            "security": "broken: collisions are found in seconds",
+            "status": "broken",
+            "webcrypto": null,
+            "anchor": "hash-digest-family",
+            "uses": [
+                {"text": "legacy checksums and old protocols; RFC 6151 retires it for signatures", "source": "https://www.rfc-editor.org/rfc/rfc6151"}
+            ],
+            "choose": "To name the backend in the call, or to hash in pieces with a result that cannot be taken twice; md5_128 itself for hash_append and Boost.Hash2's other functions."
+        },
+        "digests::sha1": {
+            "standard": "RFC 3174, FIPS 180-4",
+            "summary": "SHA-1, a 160-bit digest, broken: kept to read existing data and protocols, as the tag of digest_of and hasher: one call, or pieces with one final result, on any backend that has it.",
+            "output": "160 bits",
+            "security": "broken: chosen-prefix collisions are practical",
+            "status": "broken",
+            "webcrypto": "SHA-1",
+            "anchor": "hash-digest-family",
+            "uses": [
+                {"text": "Git's original object ids, with collision detection", "source": "https://git-scm.com/docs/hash-function-transition"},
+                {"text": "the first public collision, SHAttered (2017)", "source": "https://shattered.io/"},
+                {"text": "the first public chosen-prefix collision, SHA-1 is a Shambles (2020)", "source": "https://sha-mbles.github.io/"}
+            ],
+            "choose": "To name the backend in the call, or to hash in pieces with a result that cannot be taken twice; sha1_160 itself for hash_append and Boost.Hash2's other functions."
+        },
+        "digests::sha2_224": {
+            "standard": "FIPS 180-4",
+            "summary": "SHA-224, SHA-256 cut to 224 bits, as the tag of digest_of and hasher: one call, or pieces with one final result, on any backend that has it.",
+            "output": "224 bits",
+            "security": "112-bit collision resistance",
+            "status": "recommended",
+            "webcrypto": null,
+            "anchor": "hash-digest-family",
+            "uses": [
+                {"text": "FIPS 180-4's shorter SHA-2", "source": "https://doi.org/10.6028/NIST.FIPS.180-4"}
+            ],
+            "choose": "To name the backend in the call, or to hash in pieces with a result that cannot be taken twice; sha2_224 itself for hash_append and Boost.Hash2's other functions."
+        },
+        "digests::sha2_256": {
+            "standard": "FIPS 180-4",
+            "summary": "SHA-256, the most widely used 256-bit digest, as the tag of digest_of and hasher: one call, or pieces with one final result, on any backend that has it.",
+            "output": "256 bits",
+            "security": "128-bit collision resistance",
+            "status": "recommended",
+            "webcrypto": "SHA-256",
+            "anchor": "hash-digest-family",
+            "uses": [
+                {"text": "Bitcoin's block and transaction ids (twice)", "source": "https://bitcoin.org/bitcoin.pdf"},
+                {"text": "Nostr's event ids (NIP-01)", "source": "https://github.com/nostr-protocol/nips/blob/master/01.md"},
+                {"text": "Git's SHA-256 object format", "source": "https://git-scm.com/docs/hash-function-transition"},
+                {"text": "TLS 1.3's cipher suites", "source": "https://www.rfc-editor.org/rfc/rfc8446#appendix-B.4"}
+            ],
+            "choose": "To name the backend in the call, or to hash in pieces with a result that cannot be taken twice; sha2_256 itself for hash_append and Boost.Hash2's other functions."
+        },
+        "digests::sha2_384": {
+            "standard": "FIPS 180-4",
+            "summary": "SHA-384, SHA-512 cut to 384 bits, immune to length extension, as the tag of digest_of and hasher: one call, or pieces with one final result, on any backend that has it.",
+            "output": "384 bits",
+            "security": "192-bit collision resistance",
+            "status": "recommended",
+            "webcrypto": "SHA-384",
+            "anchor": "hash-digest-family",
+            "uses": [
+                {"text": "TLS 1.3's AES-256 cipher suite", "source": "https://www.rfc-editor.org/rfc/rfc8446#appendix-B.4"}
+            ],
+            "choose": "To name the backend in the call, or to hash in pieces with a result that cannot be taken twice; sha2_384 itself for hash_append and Boost.Hash2's other functions."
+        },
+        "digests::sha2_512": {
+            "standard": "FIPS 180-4",
+            "summary": "SHA-512, a 512-bit digest, faster than SHA-256 on 64-bit machines without SHA hardware, as the tag of digest_of and hasher: one call, or pieces with one final result, on any backend that has it.",
+            "output": "512 bits",
+            "security": "256-bit collision resistance",
+            "status": "recommended",
+            "webcrypto": "SHA-512",
+            "anchor": "hash-digest-family",
+            "uses": [
+                {"text": "Ed25519's signatures", "source": "https://www.rfc-editor.org/rfc/rfc8032#section-5.1"},
+                {"text": "BIP39's seeds, through PBKDF2-HMAC-SHA-512", "source": "https://github.com/bitcoin/bips/blob/master/bip-0039.mediawiki"}
+            ],
+            "choose": "To name the backend in the call, or to hash in pieces with a result that cannot be taken twice; sha2_512 itself for hash_append and Boost.Hash2's other functions."
+        },
+        "digests::sha2_512_224": {
+            "standard": "FIPS 180-4",
+            "summary": "SHA-512/224, SHA-512 with other initial values cut to 224 bits, as the tag of digest_of and hasher: one call, or pieces with one final result, on any backend that has it.",
+            "output": "224 bits",
+            "security": "112-bit collision resistance",
+            "status": "recommended",
+            "webcrypto": null,
+            "anchor": "hash-digest-family",
+            "uses": [
+                {"text": "FIPS 180-4's truncated SHA-512", "source": "https://doi.org/10.6028/NIST.FIPS.180-4"}
+            ],
+            "choose": "To name the backend in the call, or to hash in pieces with a result that cannot be taken twice; sha2_512_224 itself for hash_append and Boost.Hash2's other functions."
+        },
+        "digests::sha2_512_256": {
+            "standard": "FIPS 180-4",
+            "summary": "SHA-512/256, SHA-512 with other initial values cut to 256 bits, immune to length extension, as the tag of digest_of and hasher: one call, or pieces with one final result, on any backend that has it.",
+            "output": "256 bits",
+            "security": "128-bit collision resistance",
+            "status": "recommended",
+            "webcrypto": null,
+            "anchor": "hash-digest-family",
+            "uses": [
+                {"text": "FIPS 180-4's truncated SHA-512", "source": "https://doi.org/10.6028/NIST.FIPS.180-4"}
+            ],
+            "choose": "To name the backend in the call, or to hash in pieces with a result that cannot be taken twice; sha2_512_256 itself for hash_append and Boost.Hash2's other functions."
+        },
+        "digests::sha3_224": {
+            "summary": "SHA3-224, the SHA-3 standard's 224-bit digest, as the tag of digest_of and hasher: one call, or pieces with one final result, on any backend that has it.",
+            "output": "224 bits",
+            "security": "112-bit collision resistance",
+            "status": "recommended",
+            "webcrypto": null,
+            "anchor": "hash-digest-family",
+            "uses": [
+                {"text": "FIPS 202", "source": "https://doi.org/10.6028/NIST.FIPS.202"}
+            ],
+            "choose": "To name the backend in the call, or to hash in pieces with a result that cannot be taken twice; sha3_224 itself for hash_append and Boost.Hash2's other functions."
+        },
+        "digests::sha3_256": {
+            "summary": "SHA3-256, the SHA-3 standard's 256-bit digest, a design unrelated to SHA-2, as the tag of digest_of and hasher: one call, or pieces with one final result, on any backend that has it.",
+            "output": "256 bits",
+            "security": "128-bit collision resistance",
+            "status": "recommended",
+            "webcrypto": null,
+            "anchor": "hash-digest-family",
+            "uses": [
+                {"text": "ML-KEM, NIST's post-quantum key encapsulation", "source": "https://doi.org/10.6028/NIST.FIPS.203"}
+            ],
+            "choose": "To name the backend in the call, or to hash in pieces with a result that cannot be taken twice; sha3_256 itself for hash_append and Boost.Hash2's other functions."
+        },
+        "digests::sha3_384": {
+            "summary": "SHA3-384, the SHA-3 standard's 384-bit digest, as the tag of digest_of and hasher: one call, or pieces with one final result, on any backend that has it.",
+            "output": "384 bits",
+            "security": "192-bit collision resistance",
+            "status": "recommended",
+            "webcrypto": null,
+            "anchor": "hash-digest-family",
+            "uses": [
+                {"text": "FIPS 202", "source": "https://doi.org/10.6028/NIST.FIPS.202"}
+            ],
+            "choose": "To name the backend in the call, or to hash in pieces with a result that cannot be taken twice; sha3_384 itself for hash_append and Boost.Hash2's other functions."
+        },
+        "digests::sha3_512": {
+            "summary": "SHA3-512, the SHA-3 standard's 512-bit digest, as the tag of digest_of and hasher: one call, or pieces with one final result, on any backend that has it.",
+            "output": "512 bits",
+            "security": "256-bit collision resistance",
+            "status": "recommended",
+            "webcrypto": null,
+            "anchor": "hash-digest-family",
+            "uses": [
+                {"text": "ML-KEM, NIST's post-quantum key encapsulation", "source": "https://doi.org/10.6028/NIST.FIPS.203"}
+            ],
+            "choose": "To name the backend in the call, or to hash in pieces with a result that cannot be taken twice; sha3_512 itself for hash_append and Boost.Hash2's other functions."
+        },
+        "digests::shake_128": {
+            "summary": "SHAKE128, an extendable-output function: as many bytes as the caller takes, 128-bit security at most, as the tag of digest_of and hasher: one call, or pieces with one final result, on any backend that has it.",
+            "output": "any length",
+            "security": "up to 128 bits, and half the output length for collisions",
+            "status": "recommended",
+            "webcrypto": null,
+            "anchor": "hash-digest-family",
+            "uses": [
+                {"text": "ML-KEM's and ML-DSA's matrix expansion", "source": "https://doi.org/10.6028/NIST.FIPS.203"}
+            ],
+            "choose": "To name the backend in the call, or to hash in pieces with a result that cannot be taken twice; shake_128 itself for hash_append and Boost.Hash2's other functions."
+        },
+        "digests::shake_256": {
+            "summary": "SHAKE256, an extendable-output function: as many bytes as the caller takes, 256-bit security at most, as the tag of digest_of and hasher: one call, or pieces with one final result, on any backend that has it.",
+            "output": "any length",
+            "security": "up to 256 bits, and half the output length for collisions",
+            "status": "recommended",
+            "webcrypto": null,
+            "anchor": "hash-digest-family",
+            "uses": [
+                {"text": "Ed448's signatures", "source": "https://www.rfc-editor.org/rfc/rfc8032#section-5.2"}
+            ],
+            "choose": "To name the backend in the call, or to hash in pieces with a result that cannot be taken twice; shake_256 itself for hash_append and Boost.Hash2's other functions."
+        },
+        "digests::keccak_256": {
+            "summary": "Keccak-256 with the original padding, Ethereum's hash; not SHA3-256, as the tag of digest_of and hasher: one call, or pieces with one final result, on any backend that has it.",
+            "output": "256 bits",
+            "security": "128-bit collision resistance",
+            "status": "recommended",
+            "webcrypto": null,
+            "anchor": "hash-digest-family",
+            "uses": [
+                {"text": "Ethereum's addresses, transaction ids and state", "source": "https://ethereum.github.io/yellowpaper/paper.pdf"},
+                {"text": "EIP-55's checksummed addresses", "source": "https://eips.ethereum.org/EIPS/eip-55"}
+            ],
+            "choose": "To name the backend in the call, or to hash in pieces with a result that cannot be taken twice; keccak_256 itself for hash_append and Boost.Hash2's other functions."
+        },
+        "digests::blake2s_256": {
+            "summary": "BLAKE2s, a 256-bit digest for 32-bit and small machines, with a key of up to 32 bytes, as the tag of digest_of and hasher: one call, or pieces with one final result, on any backend that has it.",
+            "output": "256 bits",
+            "security": "128-bit collision resistance",
+            "status": "recommended",
+            "webcrypto": null,
+            "anchor": "hash-digest-family",
+            "uses": [
+                {"text": "WireGuard's hash, MAC and HKDF", "source": "https://www.wireguard.com/protocol/"}
+            ],
+            "choose": "To name the backend in the call, or to hash in pieces with a result that cannot be taken twice; blake2s_256 itself for hash_append and Boost.Hash2's other functions."
+        },
+        "digests::blake3": {
+            "summary": "BLAKE3, a very fast 256-bit digest with keyed hashing, key derivation and extendable output in one design, as the tag of digest_of and hasher: one call, or pieces with one final result, on any backend that has it.",
+            "output": "256 bits, or any length",
+            "security": "128-bit security in every mode",
+            "status": "recommended",
+            "webcrypto": null,
+            "anchor": "hash-digest-family",
+            "uses": [
+                {"text": "the BLAKE3 specification: a Merkle tree, for verified streaming and content addressing", "source": "https://github.com/BLAKE3-team/BLAKE3-specs/blob/master/blake3.pdf"}
+            ],
+            "choose": "To name the backend in the call, or to hash in pieces with a result that cannot be taken twice; blake3 itself for hash_append and Boost.Hash2's other functions."
+        },
+        "digests::ripemd_160": {
+            "standard": "RIPEMD-160 (Dobbertin, Bosselaers, Preneel)",
+            "summary": "RIPEMD-160, a 160-bit legacy digest, kept for Bitcoin's hash160, as the tag of digest_of and hasher: one call, or pieces with one final result, on any backend that has it.",
+            "output": "160 bits",
+            "security": "80-bit collision resistance",
+            "status": "legacy",
+            "webcrypto": null,
+            "anchor": "hash-digest-family",
+            "uses": [
+                {"text": "Bitcoin's hash160 (P2PKH, P2WPKH)", "source": "https://github.com/bitcoin/bips/blob/master/bip-0141.mediawiki"}
+            ],
+            "choose": "To name the backend in the call, or to hash in pieces with a result that cannot be taken twice; ripemd_160 itself for hash_append and Boost.Hash2's other functions."
+        },
+        "macs::hmac<digests::md5>": {
+            "summary": "HMAC over MD5, legacy, as the tag of mac: the tag of a message under a key in one call, cut to 10 bytes or more if needed, on any backend that has it.",
+            "output": "128 bits",
+            "security": "still unforgeable as HMAC, but on a broken hash: legacy",
+            "status": "legacy",
+            "webcrypto": null,
+            "anchor": "hash-mac-family",
+            "uses": [
+                {"text": "RFC 6151 on HMAC-MD5", "source": "https://www.rfc-editor.org/rfc/rfc6151#section-2.3"}
+            ],
+            "choose": "To compute a tag in one call, on a backend named in the call; hmac_md5_128 itself to feed the message in pieces."
+        },
+        "macs::hmac<digests::sha1>": {
+            "summary": "HMAC over SHA-1, legacy, as the tag of mac: the tag of a message under a key in one call, cut to 10 bytes or more if needed, on any backend that has it.",
+            "output": "160 bits",
+            "security": "still unforgeable as HMAC, but on a broken hash: legacy",
+            "status": "legacy",
+            "webcrypto": "HMAC with SHA-1",
+            "anchor": "hash-mac-family",
+            "uses": [
+                {"text": "TOTP and HOTP codes (RFC 6238, RFC 4226)", "source": "https://www.rfc-editor.org/rfc/rfc6238"}
+            ],
+            "choose": "To compute a tag in one call, on a backend named in the call; hmac_sha1_160 itself to feed the message in pieces."
+        },
+        "macs::hmac<digests::sha2_224>": {
+            "summary": "HMAC over SHA-224, as the tag of mac: the tag of a message under a key in one call, cut to 10 bytes or more if needed, on any backend that has it.",
+            "output": "224 bits",
+            "security": "112 bits and more",
+            "status": "recommended",
+            "webcrypto": null,
+            "anchor": "hash-mac-family",
+            "uses": [
+                {"text": "RFC 4231's test cases", "source": "https://www.rfc-editor.org/rfc/rfc4231"}
+            ],
+            "choose": "To compute a tag in one call, on a backend named in the call; hmac_sha2_224 itself to feed the message in pieces."
+        },
+        "macs::hmac<digests::sha2_256>": {
+            "summary": "HMAC over SHA-256, the default MAC, as the tag of mac: the tag of a message under a key in one call, cut to 10 bytes or more if needed, on any backend that has it.",
+            "output": "256 bits",
+            "security": "128 bits and more",
+            "status": "recommended",
+            "webcrypto": "HMAC with SHA-256",
+            "anchor": "hash-mac-family",
+            "uses": [
+                {"text": "JSON Web Tokens signed HS256", "source": "https://www.rfc-editor.org/rfc/rfc7518#section-3.2"},
+                {"text": "TLS 1.3's HKDF", "source": "https://www.rfc-editor.org/rfc/rfc8446#section-7.1"}
+            ],
+            "choose": "To compute a tag in one call, on a backend named in the call; hmac_sha2_256 itself to feed the message in pieces."
+        },
+        "macs::hmac<digests::sha2_384>": {
+            "summary": "HMAC over SHA-384, as the tag of mac: the tag of a message under a key in one call, cut to 10 bytes or more if needed, on any backend that has it.",
+            "output": "384 bits",
+            "security": "192 bits and more",
+            "status": "recommended",
+            "webcrypto": "HMAC with SHA-384",
+            "anchor": "hash-mac-family",
+            "uses": [
+                {"text": "JSON Web Tokens signed HS384", "source": "https://www.rfc-editor.org/rfc/rfc7518#section-3.2"}
+            ],
+            "choose": "To compute a tag in one call, on a backend named in the call; hmac_sha2_384 itself to feed the message in pieces."
+        },
+        "macs::hmac<digests::sha2_512>": {
+            "summary": "HMAC over SHA-512, as the tag of mac: the tag of a message under a key in one call, cut to 10 bytes or more if needed, on any backend that has it.",
+            "output": "512 bits",
+            "security": "256 bits",
+            "status": "recommended",
+            "webcrypto": "HMAC with SHA-512",
+            "anchor": "hash-mac-family",
+            "uses": [
+                {"text": "BIP32's key derivation", "source": "https://github.com/bitcoin/bips/blob/master/bip-0032.mediawiki"},
+                {"text": "JSON Web Tokens signed HS512", "source": "https://www.rfc-editor.org/rfc/rfc7518#section-3.2"}
+            ],
+            "choose": "To compute a tag in one call, on a backend named in the call; hmac_sha2_512 itself to feed the message in pieces."
+        },
+        "macs::hmac<digests::sha2_512_224>": {
+            "summary": "HMAC over SHA-512/224, as the tag of mac: the tag of a message under a key in one call, cut to 10 bytes or more if needed, on any backend that has it.",
+            "output": "224 bits",
+            "security": "112 bits and more",
+            "status": "recommended",
+            "webcrypto": null,
+            "anchor": "hash-mac-family",
+            "uses": [
+                {"text": "FIPS 180-4's truncated SHA-512", "source": "https://doi.org/10.6028/NIST.FIPS.180-4"}
+            ],
+            "choose": "To compute a tag in one call, on a backend named in the call; hmac_sha2_512_224 itself to feed the message in pieces."
+        },
+        "macs::hmac<digests::sha2_512_256>": {
+            "summary": "HMAC over SHA-512/256, as the tag of mac: the tag of a message under a key in one call, cut to 10 bytes or more if needed, on any backend that has it.",
+            "output": "256 bits",
+            "security": "128 bits and more",
+            "status": "recommended",
+            "webcrypto": null,
+            "anchor": "hash-mac-family",
+            "uses": [
+                {"text": "FIPS 180-4's truncated SHA-512; not libsodium's crypto_auth, which truncates HMAC-SHA-512's tag", "source": "https://doi.org/10.6028/NIST.FIPS.180-4"}
+            ],
+            "choose": "To compute a tag in one call, on a backend named in the call; hmac_sha2_512_256 itself to feed the message in pieces."
+        },
+        "macs::hmac<digests::sha3_224>": {
+            "summary": "HMAC over SHA3-224, as the tag of mac: the tag of a message under a key in one call, cut to 10 bytes or more if needed, on any backend that has it.",
+            "output": "224 bits",
+            "security": "112 bits and more",
+            "status": "recommended",
+            "webcrypto": null,
+            "anchor": "hash-mac-family",
+            "uses": [
+                {"text": "FIPS 202", "source": "https://doi.org/10.6028/NIST.FIPS.202"}
+            ],
+            "choose": "To compute a tag in one call, on a backend named in the call; hmac_sha3_224 itself to feed the message in pieces."
+        },
+        "macs::hmac<digests::sha3_256>": {
+            "summary": "HMAC over SHA3-256, as the tag of mac: the tag of a message under a key in one call, cut to 10 bytes or more if needed, on any backend that has it.",
+            "output": "256 bits",
+            "security": "128 bits and more",
+            "status": "recommended",
+            "webcrypto": null,
+            "anchor": "hash-mac-family",
+            "uses": [
+                {"text": "FIPS 202", "source": "https://doi.org/10.6028/NIST.FIPS.202"}
+            ],
+            "choose": "To compute a tag in one call, on a backend named in the call; hmac_sha3_256 itself to feed the message in pieces."
+        },
+        "macs::hmac<digests::sha3_384>": {
+            "summary": "HMAC over SHA3-384, as the tag of mac: the tag of a message under a key in one call, cut to 10 bytes or more if needed, on any backend that has it.",
+            "output": "384 bits",
+            "security": "192 bits and more",
+            "status": "recommended",
+            "webcrypto": null,
+            "anchor": "hash-mac-family",
+            "uses": [
+                {"text": "FIPS 202", "source": "https://doi.org/10.6028/NIST.FIPS.202"}
+            ],
+            "choose": "To compute a tag in one call, on a backend named in the call; hmac_sha3_384 itself to feed the message in pieces."
+        },
+        "macs::hmac<digests::sha3_512>": {
+            "summary": "HMAC over SHA3-512, as the tag of mac: the tag of a message under a key in one call, cut to 10 bytes or more if needed, on any backend that has it.",
+            "output": "512 bits",
+            "security": "256 bits",
+            "status": "recommended",
+            "webcrypto": null,
+            "anchor": "hash-mac-family",
+            "uses": [
+                {"text": "FIPS 202", "source": "https://doi.org/10.6028/NIST.FIPS.202"}
+            ],
+            "choose": "To compute a tag in one call, on a backend named in the call; hmac_sha3_512 itself to feed the message in pieces."
+        },
+        "macs::hmac<digests::ripemd_160>": {
+            "summary": "HMAC over RIPEMD-160, legacy, as the tag of mac: the tag of a message under a key in one call, cut to 10 bytes or more if needed, on any backend that has it.",
+            "output": "160 bits",
+            "security": "legacy",
+            "status": "legacy",
+            "webcrypto": null,
+            "anchor": "hash-mac-family",
+            "uses": [
+                {"text": "RFC 2286's test cases", "source": "https://www.rfc-editor.org/rfc/rfc2286"}
+            ],
+            "choose": "To compute a tag in one call, on a backend named in the call; hmac_ripemd_160 itself to feed the message in pieces."
+        },
+        "macs::hmac<digests::blake2b>": {
+            "summary": "HMAC over BLAKE2b; a keyed BLAKE2b does the same job faster, as the tag of mac: the tag of a message under a key in one call, cut to 10 bytes or more if needed, on any backend that has it.",
+            "output": "512 bits",
+            "security": "256 bits",
+            "status": "recommended",
+            "webcrypto": null,
+            "anchor": "hash-mac-family",
+            "uses": [
+                {"text": "RFC 7693, whose keyed mode makes HMAC unnecessary", "source": "https://www.rfc-editor.org/rfc/rfc7693#section-2.5"}
+            ],
+            "choose": "To compute a tag in one call, on a backend named in the call; hmac_blake2b_512 itself to feed the message in pieces."
+        },
+        "macs::hmac<digests::blake2s_256>": {
+            "summary": "HMAC over BLAKE2s, as the tag of mac: the tag of a message under a key in one call, cut to 10 bytes or more if needed, on any backend that has it.",
+            "output": "256 bits",
+            "security": "128 bits and more",
+            "status": "recommended",
+            "webcrypto": null,
+            "anchor": "hash-mac-family",
+            "uses": [
+                {"text": "WireGuard's HKDF", "source": "https://www.wireguard.com/protocol/"}
+            ],
+            "choose": "To compute a tag in one call, on a backend named in the call; hmac_blake2s_256 itself to feed the message in pieces."
         }
     },
     "use_cases": [

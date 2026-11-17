@@ -30,7 +30,24 @@ and what each cost and allocated when it was measured.
 | `argon2id`, `scrypt`
 | `sodium`
 | the one backend that has them; a program links `/third_party//sodium`
+
+| a tag of `digest_of`, `hasher`, `mac` and `argon2`
+| the first of `hash2`, `xkcp`, `blake3`, `sodium` that has it
+| one stated rule: the backend that has the whole of the tag, else in part;
+none when none of the four has it, and the call names its backend
 |===
+
+The families' defaults follow one rule and never change: the first of
+`backends::hash2`, `backends::xkcp`, `backends::blake3` and
+`backends::sodium` whose capability table, once increments 2 to 7 have
+landed, has the tag whole (every option and output size the family accepts),
+else the first of them that has it in part; `backends::bearssl`,
+`backends::openssl` and the later backends are never a default. SHA-2's
+default is `hash2`, Keccak-256's and SHAKE's `xkcp`, BLAKE3's `blake3`,
+BLAKE2b's `sodium`; a tag none of the four has (SM3, Whirlpool, Argon2d) has
+none, and its call names its backend. A default whose backend comes in a later
+increment is already written: until it lands, a call on it stops the build
+with a message that names the backends that have the tag.
 
 The default is the same on every target, whatever the program links: linking
 libsodium, BearSSL or OpenSSL makes their backends available to a call that

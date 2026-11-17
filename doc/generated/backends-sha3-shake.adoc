@@ -8,7 +8,7 @@
 
 
 [#hash-backends-of-sha3-shake]
-.Who implements `sha3_224` to `shake_256`, 6 names (FIPS 202)
+.Who implements `sha3_224` to `digests::shake_256`, 12 names (FIPS 202)
 [cols="2,1,2,2,3,1",options="header"]
 |===
 | Function | Backend | The program's Jamfile names | Targets | Hmacs | Constant time
@@ -54,10 +54,56 @@
 | native, wasip2, wasip3, emscripten
 | -
 | not stated
+
+| `digests::sha3_224`
+| `hash2`
+| `/webcpp/hash//hash`
+| native, wasip2, wasip3, emscripten
+| -
+| not stated
+
+| `digests::sha3_256`
+| `hash2`
+| `/webcpp/hash//hash`
+| native, wasip2, wasip3, emscripten
+| -
+| not stated
+
+| `digests::sha3_384`
+| `hash2`
+| `/webcpp/hash//hash`
+| native, wasip2, wasip3, emscripten
+| -
+| not stated
+
+| `digests::sha3_512`
+| `hash2`
+| `/webcpp/hash//hash`
+| native, wasip2, wasip3, emscripten
+| -
+| not stated
+
+| `digests::shake_128`
+| `hash2` (partial: an output past 32 bytes, one Boost.Hash2 result)
+| `/webcpp/hash//hash`
+| native, wasip2, wasip3, emscripten
+| -
+| not stated
+
+| `digests::shake_256`
+| `hash2` (partial: an output past 64 bytes, one Boost.Hash2 result)
+| `/webcpp/hash//hash`
+| native, wasip2, wasip3, emscripten
+| -
+| not stated
 |===
 
 What each backend states on constant time, as the capability table read it:
 
 * `hash2`: Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property.
 
-One backend, `hash2`: the types take no backend.
+The default of `digests::shake_128` is `xkcp`, whose cell comes with a later increment: until then a call on the default stops at compile time, and a call names a backend of the table (<<hash-default-backend>>).
+
+The default of `digests::shake_256` is `xkcp`, whose cell comes with a later increment: until then a call on the default stops at compile time, and a call names a backend of the table (<<hash-default-backend>>).
+
+The default of `digests::sha3_224`, `digests::sha3_256`, `digests::sha3_384` and `digests::sha3_512`: `hash2` on every target, whatever the program links (<<hash-default-backend>>).

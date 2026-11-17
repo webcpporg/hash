@@ -8,7 +8,7 @@
 
 
 [#hash-backends-of-hmac]
-.Who implements `hmac` to `hmac_blake2s_256`, 17 names (RFC 2104)
+.Who implements `hmac` to `macs::hmac<digests::blake2s_256>`, 32 names (RFC 2104)
 [cols="2,1,2,2,3,1",options="header"]
 |===
 | Function | Backend | The program's Jamfile names | Targets | Hmacs | Constant time
@@ -131,10 +131,115 @@
 | native, wasip2, wasip3, emscripten
 | -
 | not stated
+
+| `macs::hmac<digests::md5>`
+| `hash2`
+| `/webcpp/hash//hash`
+| native, wasip2, wasip3, emscripten
+| -
+| not stated
+
+| `macs::hmac<digests::sha1>`
+| `hash2`
+| `/webcpp/hash//hash`
+| native, wasip2, wasip3, emscripten
+| -
+| not stated
+
+| `macs::hmac<digests::sha2_224>`
+| `hash2`
+| `/webcpp/hash//hash`
+| native, wasip2, wasip3, emscripten
+| -
+| not stated
+
+| `macs::hmac<digests::sha2_256>`
+| `hash2`
+| `/webcpp/hash//hash`
+| native, wasip2, wasip3, emscripten
+| -
+| not stated
+
+| `macs::hmac<digests::sha2_384>`
+| `hash2`
+| `/webcpp/hash//hash`
+| native, wasip2, wasip3, emscripten
+| -
+| not stated
+
+| `macs::hmac<digests::sha2_512>`
+| `hash2`
+| `/webcpp/hash//hash`
+| native, wasip2, wasip3, emscripten
+| -
+| not stated
+
+| `macs::hmac<digests::sha2_512_224>`
+| `hash2`
+| `/webcpp/hash//hash`
+| native, wasip2, wasip3, emscripten
+| -
+| not stated
+
+| `macs::hmac<digests::sha2_512_256>`
+| `hash2`
+| `/webcpp/hash//hash`
+| native, wasip2, wasip3, emscripten
+| -
+| not stated
+
+| `macs::hmac<digests::sha3_224>`
+| `hash2`
+| `/webcpp/hash//hash`
+| native, wasip2, wasip3, emscripten
+| -
+| not stated
+
+| `macs::hmac<digests::sha3_256>`
+| `hash2`
+| `/webcpp/hash//hash`
+| native, wasip2, wasip3, emscripten
+| -
+| not stated
+
+| `macs::hmac<digests::sha3_384>`
+| `hash2`
+| `/webcpp/hash//hash`
+| native, wasip2, wasip3, emscripten
+| -
+| not stated
+
+| `macs::hmac<digests::sha3_512>`
+| `hash2`
+| `/webcpp/hash//hash`
+| native, wasip2, wasip3, emscripten
+| -
+| not stated
+
+| `macs::hmac<digests::ripemd_160>`
+| `hash2`
+| `/webcpp/hash//hash`
+| native, wasip2, wasip3, emscripten
+| -
+| not stated
+
+| `macs::hmac<digests::blake2b>`
+| `hash2`
+| `/webcpp/hash//hash`
+| native, wasip2, wasip3, emscripten
+| -
+| not stated
+
+| `macs::hmac<digests::blake2s_256>`
+| `hash2`
+| `/webcpp/hash//hash`
+| native, wasip2, wasip3, emscripten
+| -
+| not stated
 |===
 
 What each backend states on constant time, as the capability table read it:
 
 * `hash2`: Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property.
 
-One backend, `hash2`: the types take no backend.
+The default of `macs::hmac<digests::md5>`, `macs::hmac<digests::sha1>`, `macs::hmac<digests::sha2_224>`, `macs::hmac<digests::sha2_256>`, `macs::hmac<digests::sha2_384>`, `macs::hmac<digests::sha2_512>`, `macs::hmac<digests::sha2_512_224>`, `macs::hmac<digests::sha2_512_256>`, `macs::hmac<digests::sha3_224>`, `macs::hmac<digests::sha3_256>`, `macs::hmac<digests::sha3_384>`, `macs::hmac<digests::sha3_512>`, `macs::hmac<digests::ripemd_160>`, `macs::hmac<digests::blake2b>` and `macs::hmac<digests::blake2s_256>`: `hash2` on every target, whatever the program links (<<hash-default-backend>>).

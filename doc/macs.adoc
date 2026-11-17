@@ -109,3 +109,34 @@ protects; a prime number of buckets, or a multiply-and-shift reduction, keeps
 them.
 
 include::generated/backends-siphash.adoc[]
+
+[#hash-mac-family]
+=== A MAC in one call: `mac`
+
+`mac` computes the tag of a message under a key in one call, through a tag of
+`webcpp::hash::macs`, as `macs::hmac<digests::sha2_256>`, HMAC over the digest
+`digests::sha2_256`, and a backend: the tag's default, or the one the call
+names. Its guards are the same on every backend: an HMAC tag is 10 bytes up to
+the digest's size, a shorter one being the digest cut (RFC 2104, section 5);
+a key of a size the MAC does not take is `invalid_key_size`. The Hash2 aliases
+of <<hash-hmac>> stay the way to feed a message in pieces.
+
+[source]
+----
+include::{examples}/mac_family.cpp[tag=example,indent=0]
+----
+
+[listing]
+----
+include::{examples}/mac_family.expected[]
+----
+
+*Pitfalls.*
+
+* *Compare with `webcpp::crypto::equal`.* As for every tag (<<hash-hmac>>).
+* *A cut tag is a weaker tag.* Ten bytes, 80 bits, is the shortest `mac`
+gives; keep the whole digest unless a protocol fixes a shorter tag.
+* *The tag's name is the digest's.* `macs::hmac<digests::sha2_512>` cut to 32
+bytes is not HMAC over SHA-512/256 (`macs::hmac<digests::sha2_512_256>`): the
+two give different tags.
+

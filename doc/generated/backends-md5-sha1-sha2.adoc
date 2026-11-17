@@ -8,7 +8,7 @@
 
 
 [#hash-backends-of-md5-sha1-sha2]
-.Who implements `md5_128` to `sha2_512_256`, 8 names (RFC 1321, RFC 3174, FIPS 180-4)
+.Who implements `md5_128` to `digests::sha2_512_256`, 16 names (RFC 1321, RFC 3174, FIPS 180-4)
 [cols="2,1,2,2,3,1",options="header"]
 |===
 | Function | Backend | The program's Jamfile names | Targets | Hmacs | Constant time
@@ -68,10 +68,66 @@
 | native, wasip2, wasip3, emscripten
 | -
 | not stated
+
+| `digests::md5`
+| `hash2`
+| `/webcpp/hash//hash`
+| native, wasip2, wasip3, emscripten
+| -
+| not stated
+
+| `digests::sha1`
+| `hash2`
+| `/webcpp/hash//hash`
+| native, wasip2, wasip3, emscripten
+| -
+| not stated
+
+| `digests::sha2_224`
+| `hash2`
+| `/webcpp/hash//hash`
+| native, wasip2, wasip3, emscripten
+| -
+| not stated
+
+| `digests::sha2_256`
+| `hash2`
+| `/webcpp/hash//hash`
+| native, wasip2, wasip3, emscripten
+| -
+| not stated
+
+| `digests::sha2_384`
+| `hash2`
+| `/webcpp/hash//hash`
+| native, wasip2, wasip3, emscripten
+| -
+| not stated
+
+| `digests::sha2_512`
+| `hash2`
+| `/webcpp/hash//hash`
+| native, wasip2, wasip3, emscripten
+| -
+| not stated
+
+| `digests::sha2_512_224`
+| `hash2`
+| `/webcpp/hash//hash`
+| native, wasip2, wasip3, emscripten
+| -
+| not stated
+
+| `digests::sha2_512_256`
+| `hash2`
+| `/webcpp/hash//hash`
+| native, wasip2, wasip3, emscripten
+| -
+| not stated
 |===
 
 What each backend states on constant time, as the capability table read it:
 
 * `hash2`: Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property.
 
-One backend, `hash2`: the types take no backend.
+The default of `digests::md5`, `digests::sha1`, `digests::sha2_224`, `digests::sha2_256`, `digests::sha2_384`, `digests::sha2_512`, `digests::sha2_512_224` and `digests::sha2_512_256`: `hash2` on every target, whatever the program links (<<hash-default-backend>>).

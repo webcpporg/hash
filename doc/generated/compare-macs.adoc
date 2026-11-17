@@ -145,6 +145,111 @@
 | RFC 2104
 | recommended
 | no
+
+| <<hash-mac-family,`macs::hmac<digests::md5>`>>
+| 128 bits
+| still unforgeable as HMAC, but on a broken hash: legacy
+| RFC 2104
+| legacy
+| no
+
+| <<hash-mac-family,`macs::hmac<digests::sha1>`>>
+| 160 bits
+| still unforgeable as HMAC, but on a broken hash: legacy
+| RFC 2104
+| legacy
+| HMAC with SHA-1
+
+| <<hash-mac-family,`macs::hmac<digests::sha2_224>`>>
+| 224 bits
+| 112 bits and more
+| RFC 2104
+| recommended
+| no
+
+| <<hash-mac-family,`macs::hmac<digests::sha2_256>`>>
+| 256 bits
+| 128 bits and more
+| RFC 2104
+| recommended
+| HMAC with SHA-256
+
+| <<hash-mac-family,`macs::hmac<digests::sha2_384>`>>
+| 384 bits
+| 192 bits and more
+| RFC 2104
+| recommended
+| HMAC with SHA-384
+
+| <<hash-mac-family,`macs::hmac<digests::sha2_512>`>>
+| 512 bits
+| 256 bits
+| RFC 2104
+| recommended
+| HMAC with SHA-512
+
+| <<hash-mac-family,`macs::hmac<digests::sha2_512_224>`>>
+| 224 bits
+| 112 bits and more
+| RFC 2104
+| recommended
+| no
+
+| <<hash-mac-family,`macs::hmac<digests::sha2_512_256>`>>
+| 256 bits
+| 128 bits and more
+| RFC 2104
+| recommended
+| no
+
+| <<hash-mac-family,`macs::hmac<digests::sha3_224>`>>
+| 224 bits
+| 112 bits and more
+| RFC 2104
+| recommended
+| no
+
+| <<hash-mac-family,`macs::hmac<digests::sha3_256>`>>
+| 256 bits
+| 128 bits and more
+| RFC 2104
+| recommended
+| no
+
+| <<hash-mac-family,`macs::hmac<digests::sha3_384>`>>
+| 384 bits
+| 192 bits and more
+| RFC 2104
+| recommended
+| no
+
+| <<hash-mac-family,`macs::hmac<digests::sha3_512>`>>
+| 512 bits
+| 256 bits
+| RFC 2104
+| recommended
+| no
+
+| <<hash-mac-family,`macs::hmac<digests::ripemd_160>`>>
+| 160 bits
+| legacy
+| RFC 2104
+| legacy
+| no
+
+| <<hash-mac-family,`macs::hmac<digests::blake2b>`>>
+| 512 bits
+| 256 bits
+| RFC 2104
+| recommended
+| no
+
+| <<hash-mac-family,`macs::hmac<digests::blake2s_256>`>>
+| 256 bits
+| 128 bits and more
+| RFC 2104
+| recommended
+| no
 |===
 
 [#hash-macs-choose]
@@ -266,6 +371,96 @@
 | 11,284 bytes (hash2)
 | link:https://www.wireguard.com/protocol/[WireGuard's HKDF]
 | For WireGuard-style protocols.
+
+| <<hash-mac-family,`macs::hmac<digests::md5>`>>
+| -
+| -
+| link:https://www.rfc-editor.org/rfc/rfc6151#section-2.3[RFC 6151 on HMAC-MD5]
+| To compute a tag in one call, on a backend named in the call; hmac_md5_128 itself to feed the message in pieces.
+
+| <<hash-mac-family,`macs::hmac<digests::sha1>`>>
+| -
+| -
+| link:https://www.rfc-editor.org/rfc/rfc6238[TOTP and HOTP codes (RFC 6238, RFC 4226)]
+| To compute a tag in one call, on a backend named in the call; hmac_sha1_160 itself to feed the message in pieces.
+
+| <<hash-mac-family,`macs::hmac<digests::sha2_224>`>>
+| -
+| -
+| link:https://www.rfc-editor.org/rfc/rfc4231[RFC 4231's test cases]
+| To compute a tag in one call, on a backend named in the call; hmac_sha2_224 itself to feed the message in pieces.
+
+| <<hash-mac-family,`macs::hmac<digests::sha2_256>`>>
+| -
+| -
+| link:https://www.rfc-editor.org/rfc/rfc7518#section-3.2[JSON Web Tokens signed HS256]; link:https://www.rfc-editor.org/rfc/rfc8446#section-7.1[TLS 1.3's HKDF]
+| To compute a tag in one call, on a backend named in the call; hmac_sha2_256 itself to feed the message in pieces.
+
+| <<hash-mac-family,`macs::hmac<digests::sha2_384>`>>
+| -
+| -
+| link:https://www.rfc-editor.org/rfc/rfc7518#section-3.2[JSON Web Tokens signed HS384]
+| To compute a tag in one call, on a backend named in the call; hmac_sha2_384 itself to feed the message in pieces.
+
+| <<hash-mac-family,`macs::hmac<digests::sha2_512>`>>
+| -
+| -
+| link:https://github.com/bitcoin/bips/blob/master/bip-0032.mediawiki[BIP32's key derivation]; link:https://www.rfc-editor.org/rfc/rfc7518#section-3.2[JSON Web Tokens signed HS512]
+| To compute a tag in one call, on a backend named in the call; hmac_sha2_512 itself to feed the message in pieces.
+
+| <<hash-mac-family,`macs::hmac<digests::sha2_512_224>`>>
+| -
+| -
+| link:https://doi.org/10.6028/NIST.FIPS.180-4[FIPS 180-4's truncated SHA-512]
+| To compute a tag in one call, on a backend named in the call; hmac_sha2_512_224 itself to feed the message in pieces.
+
+| <<hash-mac-family,`macs::hmac<digests::sha2_512_256>`>>
+| -
+| -
+| link:https://doi.org/10.6028/NIST.FIPS.180-4[FIPS 180-4's truncated SHA-512; not libsodium's crypto_auth, which truncates HMAC-SHA-512's tag]
+| To compute a tag in one call, on a backend named in the call; hmac_sha2_512_256 itself to feed the message in pieces.
+
+| <<hash-mac-family,`macs::hmac<digests::sha3_224>`>>
+| -
+| -
+| link:https://doi.org/10.6028/NIST.FIPS.202[FIPS 202]
+| To compute a tag in one call, on a backend named in the call; hmac_sha3_224 itself to feed the message in pieces.
+
+| <<hash-mac-family,`macs::hmac<digests::sha3_256>`>>
+| -
+| -
+| link:https://doi.org/10.6028/NIST.FIPS.202[FIPS 202]
+| To compute a tag in one call, on a backend named in the call; hmac_sha3_256 itself to feed the message in pieces.
+
+| <<hash-mac-family,`macs::hmac<digests::sha3_384>`>>
+| -
+| -
+| link:https://doi.org/10.6028/NIST.FIPS.202[FIPS 202]
+| To compute a tag in one call, on a backend named in the call; hmac_sha3_384 itself to feed the message in pieces.
+
+| <<hash-mac-family,`macs::hmac<digests::sha3_512>`>>
+| -
+| -
+| link:https://doi.org/10.6028/NIST.FIPS.202[FIPS 202]
+| To compute a tag in one call, on a backend named in the call; hmac_sha3_512 itself to feed the message in pieces.
+
+| <<hash-mac-family,`macs::hmac<digests::ripemd_160>`>>
+| -
+| -
+| link:https://www.rfc-editor.org/rfc/rfc2286[RFC 2286's test cases]
+| To compute a tag in one call, on a backend named in the call; hmac_ripemd_160 itself to feed the message in pieces.
+
+| <<hash-mac-family,`macs::hmac<digests::blake2b>`>>
+| -
+| -
+| link:https://www.rfc-editor.org/rfc/rfc7693#section-2.5[RFC 7693, whose keyed mode makes HMAC unnecessary]
+| To compute a tag in one call, on a backend named in the call; hmac_blake2b_512 itself to feed the message in pieces.
+
+| <<hash-mac-family,`macs::hmac<digests::blake2s_256>`>>
+| -
+| -
+| link:https://www.wireguard.com/protocol/[WireGuard's HKDF]
+| To compute a tag in one call, on a backend named in the call; hmac_blake2s_256 itself to feed the message in pieces.
 |===
 
 The measured columns are doc/measurements.json's, a reference measured on 2026-11-16 on Apple M5 Max that decides nothing: the native throughput over 1 MiB, or the time of one derivation over `hmac_sha2_256`, of the fastest backend, and the smallest Emscripten program that calls the function; <<hash-measurements>> has every backend on every target.

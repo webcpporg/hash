@@ -26,4 +26,6 @@ of every version are on webcpp's index page.
 * Added the capability table doc/capabilities.json, with each function's default backend.
 * Added the measured tables (doc/measurements.*), a reference of 2026-11-16 that decides nothing, and allocation tests: none in hash's code.
 * Added the guide: chapters per family and per use case, an example per section, generated tables and llms.txt, and a Boost.Hash2 proposal of keccak_224 to keccak_512.
+* Added the families digest_of, hasher, mac and argon2 over tags of digests, macs and kdfs: Boost.Hash2's digests and HMACs on backends::hash2, keccak_256 on backends::xkcp, BLAKE3 on backends::blake3, and each tag's default backend.
+* Added error::invalid_state, and reworded invalid_key_size and invalid_parameters for every function that uses them.
 // end::unreleased[]
