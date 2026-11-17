@@ -34,7 +34,7 @@ SHA-3, SHAKE, TurboSHAKE, HMAC and `argon2` on `backends::sodium`
 | `/third_party//sodium`
 | every target
 
-| HKDF on `backends::bearssl`
+| HKDF, a digest or HMAC on `backends::bearssl`
 | `/third_party//bearssl`
 | every target
 

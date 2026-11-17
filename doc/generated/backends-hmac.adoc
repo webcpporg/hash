@@ -139,9 +139,23 @@
 | -
 | not stated
 
+| `macs::hmac<digests::md5>`
+| `bearssl`
+| `/third_party//bearssl`
+| native, wasip2, wasip3, emscripten
+| -
+| not stated
+
 | `macs::hmac<digests::sha1>`
 | `hash2`
 | `/webcpp/hash//hash`
+| native, wasip2, wasip3, emscripten
+| -
+| not stated
+
+| `macs::hmac<digests::sha1>`
+| `bearssl`
+| `/third_party//bearssl`
 | native, wasip2, wasip3, emscripten
 | -
 | not stated
@@ -153,6 +167,13 @@
 | -
 | not stated
 
+| `macs::hmac<digests::sha2_224>`
+| `bearssl`
+| `/third_party//bearssl`
+| native, wasip2, wasip3, emscripten
+| -
+| not stated
+
 | `macs::hmac<digests::sha2_256>`
 | `hash2`
 | `/webcpp/hash//hash`
@@ -163,6 +184,13 @@
 | `macs::hmac<digests::sha2_256>`
 | `sodium`
 | `/third_party//sodium`
+| native, wasip2, wasip3, emscripten
+| -
+| not stated
+
+| `macs::hmac<digests::sha2_256>`
+| `bearssl`
+| `/third_party//bearssl`
 | native, wasip2, wasip3, emscripten
 | -
 | not stated
@@ -174,6 +202,13 @@
 | -
 | not stated
 
+| `macs::hmac<digests::sha2_384>`
+| `bearssl`
+| `/third_party//bearssl`
+| native, wasip2, wasip3, emscripten
+| -
+| not stated
+
 | `macs::hmac<digests::sha2_512>`
 | `hash2`
 | `/webcpp/hash//hash`
@@ -184,6 +219,13 @@
 | `macs::hmac<digests::sha2_512>`
 | `sodium`
 | `/third_party//sodium`
+| native, wasip2, wasip3, emscripten
+| -
+| not stated
+
+| `macs::hmac<digests::sha2_512>`
+| `bearssl`
+| `/third_party//bearssl`
 | native, wasip2, wasip3, emscripten
 | -
 | not stated
@@ -254,7 +296,8 @@
 
 What each backend states on constant time, as the capability table read it:
 
+* `bearssl`: BearSSL at webcpp::crypto's pin: bearssl_hmac.h states constant time for br_hmac_outCT alone; mac calls br_hmac_out.
 * `hash2`: Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property.
 * `sodium`: libsodium 1.0.22: its headers state constant time for comparisons (sodium/utils.h) alone, not for its hashing, MAC, key derivation and password hashing functions (crypto_hash_*, crypto_xof_*, crypto_generichash_*, crypto_shorthash_*, crypto_auth_*, crypto_kdf_*, crypto_pwhash_*).
 
-The default of `macs::hmac<digests::md5>`, `macs::hmac<digests::sha1>`, `macs::hmac<digests::sha2_224>`, `macs::hmac<digests::sha2_256>`, `macs::hmac<digests::sha2_384>`, `macs::hmac<digests::sha2_512>`, `macs::hmac<digests::sha2_512_224>`, `macs::hmac<digests::sha2_512_256>`, `macs::hmac<digests::sha3_224>`, `macs::hmac<digests::sha3_256>`, `macs::hmac<digests::sha3_384>`, `macs::hmac<digests::sha3_512>`, `macs::hmac<digests::ripemd_160>`, `macs::hmac<digests::blake2b>` and `macs::hmac<digests::blake2s_256>`: `hash2` on every target, whatever the program links; `sodium` only where the call names it, as its second template argument (<<hash-default-backend>>).
+The default of `macs::hmac<digests::md5>`, `macs::hmac<digests::sha1>`, `macs::hmac<digests::sha2_224>`, `macs::hmac<digests::sha2_256>`, `macs::hmac<digests::sha2_384>`, `macs::hmac<digests::sha2_512>`, `macs::hmac<digests::sha2_512_224>`, `macs::hmac<digests::sha2_512_256>`, `macs::hmac<digests::sha3_224>`, `macs::hmac<digests::sha3_256>`, `macs::hmac<digests::sha3_384>`, `macs::hmac<digests::sha3_512>`, `macs::hmac<digests::ripemd_160>`, `macs::hmac<digests::blake2b>` and `macs::hmac<digests::blake2s_256>`: `hash2` on every target, whatever the program links; `bearssl`, `sodium` only where the call names it, as its second template argument (<<hash-default-backend>>).

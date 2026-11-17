@@ -146,6 +146,13 @@
 | -
 | not stated
 
+| `digests::shake_128`
+| `bearssl`
+| `/third_party//bearssl`
+| native, wasip2, wasip3, emscripten
+| -
+| not stated
+
 | `digests::shake_256`
 | `hash2`
 | `/webcpp/hash//hash`
@@ -166,12 +173,20 @@
 | native, wasip2, wasip3, emscripten
 | -
 | not stated
+
+| `digests::shake_256`
+| `bearssl`
+| `/third_party//bearssl`
+| native, wasip2, wasip3, emscripten
+| -
+| not stated
 |===
 
 What each backend states on constant time, as the capability table read it:
 
+* `bearssl`: BearSSL at webcpp::crypto's pin: bearssl_kdf.h states no constant-time property for br_shake_*.
 * `hash2`: Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property.
 * `sodium`: libsodium 1.0.22: its headers state constant time for comparisons (sodium/utils.h) alone, not for its hashing, MAC, key derivation and password hashing functions (crypto_hash_*, crypto_xof_*, crypto_generichash_*, crypto_shorthash_*, crypto_auth_*, crypto_kdf_*, crypto_pwhash_*).
 * `xkcp`: XKCP at d20c8fc: README.markdown, lib/low/KeccakP-1600 and lib/high/Keccak (KeccakSponge, FIPS202/KeccakHash) state no constant-time property.
 
-The default of `digests::sha3_224`, `digests::sha3_256`, `digests::sha3_384`, `digests::sha3_512`, `digests::shake_128` and `digests::shake_256`: `hash2` on every target, whatever the program links; `sodium`, `xkcp` only where the call names it, as its second template argument (<<hash-default-backend>>).
+The default of `digests::sha3_224`, `digests::sha3_256`, `digests::sha3_384`, `digests::sha3_512`, `digests::shake_128` and `digests::shake_256`: `hash2` on every target, whatever the program links; `bearssl`, `sodium`, `xkcp` only where the call names it, as its second template argument (<<hash-default-backend>>).

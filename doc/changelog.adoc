@@ -18,10 +18,10 @@ of every version are on webcpp's index page.
 // tag::unreleased[]
 * Added the library, with Boost.Hash2's algorithms and HMAC under webcpp::hash's names, and every function that returns boost::system::result `+[[nodiscard]]+`.
 * Added keccak_256, Ethereum's Keccak-256 over XKCP, and blake3, BLAKE3 with keyed hashing, key derivation and its extendable output.
-* Added HKDF (RFC 5869) and PBKDF2 (RFC 8018) over every Boost.Hash2 hmac, on backends::hash2.
+* Added HKDF (RFC 5869) and PBKDF2 (RFC 8018) over every Boost.Hash2 hmac on backends::hash2, and on backends::openssl, OpenSSL 3.5.9 through /webcpp/hash//openssl (native, wasip2, wasip3), refusing lengths past its int.
 * Added argon2id (RFC 9106, one lane) with libsodium's three presets, scrypt (RFC 7914), and argon2's Argon2i and Argon2id with one lane, on backends::sodium.
 * Added backends::sodium's HKDF over HMAC-SHA-256/512, BLAKE2b with key, salt, personalisation and length, SipHash-2-4, SipHash-2-4x, blake2b_subkey, SHA-256/512, SHA3-256/512, SHAKE, TurboSHAKE with its domain byte, and HMAC-SHA-256/512.
-* Added backends::bearssl's HKDF over MD5, SHA-1 and SHA-2 (hkdf alone), and backends::openssl, OpenSSL 3.5.9's HKDF and PBKDF2 through /webcpp/hash//openssl on native, wasip2 and wasip3, refusing lengths past OpenSSL's int.
+* Added backends::bearssl's HKDF over MD5, SHA-1 and SHA-2 (hkdf alone), and its MD5, SHA-1, SHA-2, MD5-SHA1, SHAKE and HMAC as digests and MACs, named in the call.
 * Added the default backend, hash2 for key derivation and sodium for argon2id, scrypt, blake2b_subkey and argon2, and doc/capabilities.json, the capability table naming each function's default.
 * Added the measured tables (doc/measurements.*) from release builds, a reference of 2026-11-16 that decides nothing, and allocation tests: none in hash's code.
 * Added the guide: chapters per family and per use case, an example per section, generated tables and llms.txt, and a Boost.Hash2 proposal of keccak_224 to keccak_512.

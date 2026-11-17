@@ -113,8 +113,20 @@ states about its constant time. The backends:
 | not stated
 | native, wasip2, wasip3, emscripten
 
+| digests::md5
+| bearssl
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
 | digests::sha1
 | hash2
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| digests::sha1
+| bearssl
 | -
 | not stated
 | native, wasip2, wasip3, emscripten
@@ -125,6 +137,12 @@ states about its constant time. The backends:
 | not stated
 | native, wasip2, wasip3, emscripten
 
+| digests::sha2_224
+| bearssl
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
 | digests::sha2_256
 | hash2
 | -
@@ -133,6 +151,12 @@ states about its constant time. The backends:
 
 | digests::sha2_256
 | sodium
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| digests::sha2_256
+| bearssl
 | -
 | not stated
 | native, wasip2, wasip3, emscripten
@@ -143,6 +167,12 @@ states about its constant time. The backends:
 | not stated
 | native, wasip2, wasip3, emscripten
 
+| digests::sha2_384
+| bearssl
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
 | digests::sha2_512
 | hash2
 | -
@@ -151,6 +181,12 @@ states about its constant time. The backends:
 
 | digests::sha2_512
 | sodium
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| digests::sha2_512
+| bearssl
 | -
 | not stated
 | native, wasip2, wasip3, emscripten
@@ -163,6 +199,12 @@ states about its constant time. The backends:
 
 | digests::sha2_512_256
 | hash2
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| digests::md5_sha1
+| bearssl
 | -
 | not stated
 | native, wasip2, wasip3, emscripten
@@ -281,6 +323,12 @@ states about its constant time. The backends:
 | not stated
 | native, wasip2, wasip3, emscripten
 
+| digests::shake_128
+| bearssl
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
 | digests::shake_256
 | hash2
 | -
@@ -295,6 +343,12 @@ states about its constant time. The backends:
 
 | digests::shake_256
 | sodium
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| digests::shake_256
+| bearssl
 | -
 | not stated
 | native, wasip2, wasip3, emscripten
@@ -624,8 +678,20 @@ states about its constant time. The backends:
 | not stated
 | native, wasip2, wasip3, emscripten
 
+| macs::hmac<digests::md5>
+| bearssl
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
 | macs::hmac<digests::sha1>
 | hash2
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| macs::hmac<digests::sha1>
+| bearssl
 | -
 | not stated
 | native, wasip2, wasip3, emscripten
@@ -636,6 +702,12 @@ states about its constant time. The backends:
 | not stated
 | native, wasip2, wasip3, emscripten
 
+| macs::hmac<digests::sha2_224>
+| bearssl
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
 | macs::hmac<digests::sha2_256>
 | hash2
 | -
@@ -644,6 +716,12 @@ states about its constant time. The backends:
 
 | macs::hmac<digests::sha2_256>
 | sodium
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| macs::hmac<digests::sha2_256>
+| bearssl
 | -
 | not stated
 | native, wasip2, wasip3, emscripten
@@ -654,6 +732,12 @@ states about its constant time. The backends:
 | not stated
 | native, wasip2, wasip3, emscripten
 
+| macs::hmac<digests::sha2_384>
+| bearssl
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
 | macs::hmac<digests::sha2_512>
 | hash2
 | -
@@ -662,6 +746,12 @@ states about its constant time. The backends:
 
 | macs::hmac<digests::sha2_512>
 | sodium
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| macs::hmac<digests::sha2_512>
+| bearssl
 | -
 | not stated
 | native, wasip2, wasip3, emscripten
@@ -924,6 +1014,9 @@ The backend a call that names none uses, on every target, whatever the program l
 | digests::sha2_512_256
 | hash2
 
+| digests::md5_sha1
+| none: the call names its backend
+
 | digests::sha3_224
 | hash2
 
@@ -1094,5 +1187,8 @@ What each backend's upstream states, and where:
 * xkcp: not stated. XKCP at d20c8fc: README.markdown, lib/low/KeccakP-1600 and lib/high/Keccak (KeccakSponge, FIPS202/KeccakHash, SP800-185) state no constant-time property.
 * blake3: not stated. BLAKE3 1.8.7: README.md and c/README.md state no constant-time property.
 * sodium: not stated. libsodium 1.0.22: its headers state constant time for comparisons (sodium/utils.h) alone, not for its hashing, MAC, key derivation and password hashing functions (crypto_hash_*, crypto_xof_*, crypto_generichash_*, crypto_shorthash_*, crypto_auth_*, crypto_kdf_*, crypto_pwhash_*).
+* bearssl: not stated. BearSSL at webcpp::crypto's pin: bearssl_hash.h states constant time for its GHASH implementations alone, not for br_md5_*, br_sha1_*, br_sha224_* to br_sha512_* or br_md5sha1_*.
+* bearssl: not stated. BearSSL at webcpp::crypto's pin: bearssl_kdf.h states no constant-time property for br_shake_*.
+* bearssl: not stated. BearSSL at webcpp::crypto's pin: bearssl_hmac.h states constant time for br_hmac_outCT alone; mac calls br_hmac_out.
 * bearssl: not stated. BearSSL at webcpp::crypto's pin: bearssl_hmac.h states constant time for br_hmac_outCT alone; br_hkdf_* (src/kdf/hkdf.c) calls br_hmac_out.
 * openssl: not stated. OpenSSL 3.5.9: doc/man7/EVP_KDF-HKDF.pod and EVP_KDF-PBKDF2.pod state no constant-time property.

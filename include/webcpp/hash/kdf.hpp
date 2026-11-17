@@ -453,6 +453,65 @@ inline constexpr bool backend_has_v<backends::xkcp, macs::kmac_128, void> = true
 /** backends::xkcp has `macs::kmac_256` (XKCP's SP 800-185 `KMAC256`, both forms). */
 template <>
 inline constexpr bool backend_has_v<backends::xkcp, macs::kmac_256, void> = true;
+/** backends::bearssl has `digests::md5` (`br_md5_*`). */
+template <>
+inline constexpr bool backend_has_v<backends::bearssl, digests::md5, void> = true;
+
+/** backends::bearssl has `digests::sha1` (`br_sha1_*`). */
+template <>
+inline constexpr bool backend_has_v<backends::bearssl, digests::sha1, void> = true;
+
+/** backends::bearssl has `digests::sha2_224` (`br_sha224_*`). */
+template <>
+inline constexpr bool backend_has_v<backends::bearssl, digests::sha2_224, void> = true;
+
+/** backends::bearssl has `digests::sha2_256` (`br_sha256_*`). */
+template <>
+inline constexpr bool backend_has_v<backends::bearssl, digests::sha2_256, void> = true;
+
+/** backends::bearssl has `digests::sha2_384` (`br_sha384_*`). */
+template <>
+inline constexpr bool backend_has_v<backends::bearssl, digests::sha2_384, void> = true;
+
+/** backends::bearssl has `digests::sha2_512` (`br_sha512_*`). */
+template <>
+inline constexpr bool backend_has_v<backends::bearssl, digests::sha2_512, void> = true;
+
+/** backends::bearssl has `digests::md5_sha1` (`br_md5sha1_*`, TLS 1.0's MD5 followed by SHA-1). */
+template <>
+inline constexpr bool backend_has_v<backends::bearssl, digests::md5_sha1, void> = true;
+
+/** backends::bearssl has `digests::shake_128` (`br_shake_*`, any output size). */
+template <>
+inline constexpr bool backend_has_v<backends::bearssl, digests::shake_128, void> = true;
+
+/** backends::bearssl has `digests::shake_256` (`br_shake_*`, any output size). */
+template <>
+inline constexpr bool backend_has_v<backends::bearssl, digests::shake_256, void> = true;
+
+/** backends::bearssl has `macs::hmac<digests::md5>` (`br_hmac_*`). */
+template <>
+inline constexpr bool backend_has_v<backends::bearssl, macs::hmac<digests::md5>, void> = true;
+
+/** backends::bearssl has `macs::hmac<digests::sha1>` (`br_hmac_*`). */
+template <>
+inline constexpr bool backend_has_v<backends::bearssl, macs::hmac<digests::sha1>, void> = true;
+
+/** backends::bearssl has `macs::hmac<digests::sha2_224>` (`br_hmac_*`). */
+template <>
+inline constexpr bool backend_has_v<backends::bearssl, macs::hmac<digests::sha2_224>, void> = true;
+
+/** backends::bearssl has `macs::hmac<digests::sha2_256>` (`br_hmac_*`). */
+template <>
+inline constexpr bool backend_has_v<backends::bearssl, macs::hmac<digests::sha2_256>, void> = true;
+
+/** backends::bearssl has `macs::hmac<digests::sha2_384>` (`br_hmac_*`). */
+template <>
+inline constexpr bool backend_has_v<backends::bearssl, macs::hmac<digests::sha2_384>, void> = true;
+
+/** backends::bearssl has `macs::hmac<digests::sha2_512>` (`br_hmac_*`). */
+template <>
+inline constexpr bool backend_has_v<backends::bearssl, macs::hmac<digests::sha2_512>, void> = true;
 
 namespace detail {
 

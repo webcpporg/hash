@@ -26,6 +26,7 @@ webcpp.example blake2b_options.cpp : <library>/third_party//sodium ;
 webcpp.example turboshake.cpp : <library>/third_party//sodium ;
 webcpp.example blake3.cpp : <library>/third_party//blake3 ;
 webcpp.example ripemd160.cpp ;
+webcpp.example md5_sha1.cpp : <library>/third_party//bearssl ;
 webcpp.example digest_family.cpp ;
 
 # Message authentication: a MAC is compared with webcpp::crypto::equal, and a
