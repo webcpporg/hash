@@ -145,7 +145,7 @@ void check_guard_keeps_hashing() {
         BOOST_TEST(one_byte->finish(std::span(past).first(1)).has_value());
 
         // Two left hashing at the end of the scope, destroyed there.
-        auto left = mock_hasher::make();
+        auto const left = mock_hasher::make();
         test::require(BOOST_TEST(left.has_value()));
         auto refused = mock_hasher::make();
         test::require(BOOST_TEST(refused.has_value()));
