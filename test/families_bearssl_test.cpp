@@ -7,10 +7,12 @@
 // The families on backends::bearssl (spec 2.15): BearSSL's br_md5, br_sha1, br_sha224 to
 // br_sha512, br_md5sha1 (TLS 1.0's 36 bytes, MD5 followed by SHA-1) and br_shake (SHAKE128 and
 // SHAKE256, any output size) through digest_of and hasher, and its HMAC (br_hmac_*) through mac,
-// against Boost.Hash2 on random inputs, fed to the hasher in random pieces; HMAC against RFC 4231
-// (SHA-2) and RFC 2202 (MD5, SHA-1); SHAKE against FIPS 202's empty-input outputs; the wipe of
-// BearSSL's contexts, reported through the seam WEBCPP_HASH_DETAIL_TEST_WIPE_RECORD (spec 6.1);
-// and backends::bearssl never a default (design D33).
+// against Boost.Hash2 on random inputs, fed to the hasher in random pieces; the fixed digests
+// against RFC 1321's and FIPS 180's printed digests of "abc", an oracle that is not Hash2; HMAC
+// against RFC 4231 (SHA-2) and RFC 2202 (MD5, SHA-1); SHAKE against FIPS 202's empty-input
+// outputs; the wipe of BearSSL's contexts after a call, when a hasher finishes and when a hasher
+// is dropped unfinished, reported through the seam WEBCPP_HASH_DETAIL_TEST_WIPE_RECORD (spec 6.1);
+// and backends::bearssl never a default (design D34).
 
 #include <webcpp/hash/backends/bearssl.hpp>
 #include <webcpp/hash/digest.hpp>
@@ -87,7 +89,8 @@ std::vector<std::uint8_t> next_input(test::random_source& rnd, std::size_t index
     return rnd.bytes(rnd.between(0, longest));
 }
 
-// The hasher's run over `input` fed in random pieces (empty ones included), into `output`.
+// The hasher's run over `input` fed in random pieces (empty ones included), into `output`; the
+// record is cleared once the hasher is made, so that it holds the wipes from the first piece on.
 template <class Tag>
 bool hash_in_pieces(test::random_source& rnd, std::span<std::uint8_t const> input,
                     std::span<std::uint8_t> output) {
@@ -95,6 +98,8 @@ bool hash_in_pieces(test::random_source& rnd, std::span<std::uint8_t const> inpu
     if (!made) {
         return false;
     }
+    // From here the record holds the wipes of the hash's own end.
+    wipes = {};
     std::size_t offset = 0;
     while (offset < input.size()) {
         std::size_t const piece = std::min(rnd.between(0, 200), input.size() - offset);
@@ -106,8 +111,26 @@ bool hash_in_pieces(test::random_source& rnd, std::span<std::uint8_t const> inpu
     return made->finish(output).has_value();
 }
 
+// A dropped hasher wipes its state: one hasher of `Tag` made and fed, then destroyed unfinished,
+// wipes BearSSL's context, of `Context`, once.
+template <class Tag, class Context>
+void wipe_on_drop() {
+    {
+        auto made = hash::hasher<Tag, bearssl>::make();
+        if (!BOOST_TEST(made.has_value())) {
+            return;
+        }
+        BOOST_TEST(made->update(test::from_hex("616263")).has_value());
+        wipes = {};
+    }
+    BOOST_TEST_EQ(wipes.count, 1U);
+    BOOST_TEST_EQ(wipes.of_size(sizeof(Context)), 1U);
+    BOOST_TEST_EQ(wipes.not_zero, 0U);
+}
+
 // A fixed-size digest on backends::bearssl, through digest_of and hasher, against `reference`,
-// which gives the expected bytes of an input; and the wipe of BearSSL's context, of `Context`.
+// which gives the expected bytes of an input; and the wipe of BearSSL's context, of `Context`,
+// after digest_of, when the hasher finishes and when one is dropped unfinished.
 template <class Tag, class Context, class Reference>
 void agree_digest(std::string_view name, std::size_t size, Reference reference) {
     test::random_source rnd(test::agreement_seed);
@@ -122,10 +145,29 @@ void agree_digest(std::string_view name, std::size_t size, Reference reference) 
         BOOST_TEST_EQ(wipes.not_zero, 0U);
         std::vector<std::uint8_t> pieces(size);
         BOOST_TEST(hash_in_pieces<Tag>(rnd, input, pieces));
+        BOOST_TEST_EQ(wipes.of_size(sizeof(Context)), 1U);
+        BOOST_TEST_EQ(wipes.not_zero, 0U);
         if (!BOOST_TEST(once == expected) || !BOOST_TEST(pieces == expected)) {
             std::cerr << "  " << name << " of input " << input.size() << " (seed "
                       << test::agreement_seed << ", case " << index << ")\n";
         }
+    }
+    wipe_on_drop<Tag, Context>();
+}
+
+// The digest of "abc" on backends::bearssl, through digest_of and hasher, is `expected`, a
+// standard's printed value.
+template <class Tag>
+void known_answer(std::string_view standard, std::string_view expected) {
+    auto const abc = test::from_hex("616263");
+    std::vector<std::uint8_t> once(expected.size() / 2);
+    BOOST_TEST((hash::digest_of<Tag, bearssl>(once, abc).has_value()));
+    std::vector<std::uint8_t> pieces(expected.size() / 2);
+    test::random_source rnd(test::agreement_seed);
+    BOOST_TEST(hash_in_pieces<Tag>(rnd, abc, pieces));
+    if (!BOOST_TEST_EQ(test::to_hex(once), std::string(expected)) ||
+        !BOOST_TEST_EQ(test::to_hex(pieces), std::string(expected))) {
+        std::cerr << "  " << standard << '\n';
     }
 }
 
@@ -157,6 +199,25 @@ void check_digests() {
             joined.insert(joined.end(), sha1.begin(), sha1.end());
             return joined;
         });
+
+    // "abc": RFC 1321 (A.5), RFC 3174 (7.3, test 1) and FIPS 180-2's examples (SHA-224 from its
+    // change notice); MD5-SHA1's is RFC 1321's followed by RFC 3174's.
+    known_answer<digests::md5>("RFC 1321 MD5", "900150983cd24fb0d6963f7d28e17f72");
+    known_answer<digests::sha1>("RFC 3174 SHA-1", "a9993e364706816aba3e25717850c26c9cd0d89d");
+    known_answer<digests::sha2_224>("FIPS 180-2 SHA-224",
+                                    "23097d223405d8228642a477bda255b32aadbce4bda0b3f7e36c9da7");
+    known_answer<digests::sha2_256>(
+        "FIPS 180-2 SHA-256", "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad");
+    known_answer<digests::sha2_384>("FIPS 180-2 SHA-384",
+                                    "cb00753f45a35e8bb5a03d699ac65007272c32ab0eded163"
+                                    "1a8b605a43ff5bed8086072ba1e7cc2358baeca134c825a7");
+    known_answer<digests::sha2_512>(
+        "FIPS 180-2 SHA-512",
+        "ddaf35a193617abacc417349ae20413112e6fa4e89a97ea20a9eeee64b55d39a"
+        "2192992a274fc1a836ba3c23a3feebbd454d4423643ce80e2a9ac94fa54ca49f");
+    known_answer<digests::md5_sha1>(
+        "RFC 1321 then RFC 3174",
+        "900150983cd24fb0d6963f7d28e17f72a9993e364706816aba3e25717850c26c9cd0d89d");
 }
 
 // Boost.Hash2's SHAKE stream of an input, `size` bytes: each result() of Hash2's shake is the next
@@ -177,7 +238,8 @@ std::vector<std::uint8_t> shake_stream(std::span<std::uint8_t const> input, std:
 }
 
 // SHAKE on backends::bearssl, any output size from 1 byte, through digest_of and hasher, against
-// Boost.Hash2's stream; FIPS 202's output of the empty input; and the guards.
+// Boost.Hash2's stream; FIPS 202's output of the empty input; the guards; and the wipes, as
+// agree_digest's.
 template <class Tag, class Shake>
 void agree_shake(std::string_view name, std::string_view empty_output) {
     test::random_source rnd(test::agreement_seed);
@@ -193,11 +255,14 @@ void agree_shake(std::string_view name, std::string_view empty_output) {
         BOOST_TEST_EQ(wipes.not_zero, 0U);
         std::vector<std::uint8_t> pieces(size);
         BOOST_TEST(hash_in_pieces<Tag>(rnd, input, pieces));
+        BOOST_TEST_EQ(wipes.of_size(sizeof(br_shake_context)), 1U);
+        BOOST_TEST_EQ(wipes.not_zero, 0U);
         if (!BOOST_TEST(once == expected) || !BOOST_TEST(pieces == expected)) {
             std::cerr << "  " << name << " of input " << input.size() << ", output " << size
                       << " (seed " << test::agreement_seed << ", case " << index << ")\n";
         }
     }
+    wipe_on_drop<Tag, br_shake_context>();
 
     std::vector<std::uint8_t> first(empty_output.size() / 2);
     BOOST_TEST((hash::digest_of<Tag, bearssl>(first, {}).has_value()));
@@ -295,8 +360,8 @@ void check_hmac() {
     }
 }
 
-// What backends::bearssl has, and that it is no tag's default (design D33): its tags keep the
-// default of design D34's order: backends::hash2, backends::xkcp or none.
+// What backends::bearssl has, and that it is no tag's default (design D34): its tags keep the
+// default of D34's order, the first of backends::hash2, xkcp, blake3 and sodium, or none.
 template <class Tag>
 constexpr bool on_bearssl_alone_by_name =
     hash::backend_has_v<bearssl, Tag, void> && !std::is_same_v<hash::default_backend<Tag>, bearssl>;
@@ -317,7 +382,6 @@ static_assert(on_bearssl_alone_by_name<macs::hmac<digests::sha2_256>>);
 static_assert(on_bearssl_alone_by_name<macs::hmac<digests::sha2_384>>);
 static_assert(on_bearssl_alone_by_name<macs::hmac<digests::sha2_512>>);
 static_assert(std::is_same_v<hash::default_backend<digests::md5_sha1>, hash::detail::no_default>);
-static_assert(std::is_same_v<hash::default_backend<digests::shake_128>, hash::backends::xkcp>);
 // BearSSL has no SHA-512/224, SHA-512/256 nor SHA-3 fixed digest.
 static_assert(!hash::backend_has_v<bearssl, digests::sha2_512_256, void>);
 static_assert(!hash::backend_has_v<bearssl, digests::sha3_256, void>);

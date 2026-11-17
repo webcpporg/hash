@@ -251,6 +251,45 @@ broken as a MAC, but it carries a broken name into audits; prefer
 
 include::generated/backends-ripemd.adoc[]
 
+[#hash-md5-sha1]
+=== MD5-SHA1: TLS 1.0's digest, on BearSSL by name
+
+MD5-SHA1 is the 36-byte digest that TLS 1.0 and 1.1 sign and check: the MD5
+of the data followed by the SHA-1 of the same data
+(https://www.rfc-editor.org/rfc/rfc2246#section-4.7[RFC 2246, section 4.7]).
+Its designers paired the two so that a break of one would not break the pair;
+https://doi.org/10.1007/978-3-540-28628-8_19[Joux showed in 2004] that a
+collision of such a pair costs little more than a collision of its stronger
+half, and https://www.mitls.org/pages/attacks/SLOTH[SLOTH] (2016) turned the
+weakness into attacks on TLS. https://www.rfc-editor.org/rfc/rfc8996[RFC 8996]
+deprecated TLS 1.0 and 1.1 in 2021. hash
+has it because a program that reads, replays or tests old TLS data needs the
+exact bytes: `digests::md5_sha1` is in BearSSL alone (`br_md5sha1_*`), so the
+call names `backends::bearssl` and the program links `/third_party//bearssl`.
+The same naming reaches BearSSL's MD5, SHA-1, SHA-2, SHAKE and HMAC, which
+are never a default either.
+
+[source]
+----
+include::{examples}/md5_sha1.cpp[tag=example,indent=0]
+----
+
+[listing]
+----
+include::{examples}/md5_sha1.expected[]
+----
+
+*Pitfalls.*
+
+* *Never for anything new.* Its 288 bits suggest a strength it does not
+have: the pair is about as collision resistant as SHA-1, which is broken
+(<<hash-legacy>>). Write SHA-256.
+* *No default.* `digest_of<digests::md5_sha1>` without a backend stops the
+build with a message that names `backends::bearssl`; a program that names it
+without linking BearSSL stops with a message that names the line to add.
+* *The order is fixed.* MD5's 16 bytes come first, then SHA-1's 20: SHA-1
+followed by MD5 is another value, which a TLS 1.0 peer rejects.
+
 [#hash-digest-family]
 === One call, or pieces with one result: `digest_of` and `hasher`
 
@@ -292,10 +331,8 @@ backend has, which its row of the tables says.
 * *Some backends are reached only by name.* `backends::bearssl` is never a
 default: its MD5, SHA-1, SHA-2 and SHAKE (any output size) run only when the
 call names it, as `digest_of<digests::sha2_256, backends::bearssl>`, and the
-program links `/third_party//bearssl`. `digests::md5_sha1`, TLS 1.0's 36 bytes
-(MD5 of the data followed by its SHA-1), is in BearSSL alone and has no
-default: a call that names no backend stops the build. Use it only to read or
-check TLS 1.0 and 1.1 data.
+program links `/third_party//bearssl`. `digests::md5_sha1` is in BearSSL
+alone and has no default (<<hash-md5-sha1>>).
 * *A tag without its backend stops the build.* A tag whose backend the
 program does not link stops with a message that names the line to add; a tag
 that the backend does not have yet stops with a message that names the

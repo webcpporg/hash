@@ -41,6 +41,7 @@
 #include <webcpp/hash/detail/wipe.hpp>
 #include <webcpp/hash/error.hpp>
 #include <webcpp/hash/hmac.hpp>
+#include <webcpp/hash/kdf.hpp>
 
 #include <boost/system/result.hpp>
 
@@ -104,6 +105,247 @@ inline void touch_bearssl_canary() noexcept {
 }
 
 /**
+ BearSSL's functions for a digest of `digests`: its context, `init`, `update` and `out`, which
+ writes the whole output; for a fixed-size digest `br_<h>_init`, `br_<h>_update` and `br_<h>_out`,
+ with the `br_hash_class` HMAC runs over.
+
+ Specialised for each tag BearSSL has; the primary template is never defined.
+
+ @tparam Digest A tag of `digests`.
+*/
+template <class Digest>
+struct bearssl_digest;
+
+/** MD5: `br_md5_*`. */
+template <>
+struct bearssl_digest<digests::md5> {
+    /** BearSSL's context. */
+    using context = br_md5_context;
+
+    /** Starts a hash. @param hashed The context. */
+    static void init(context& hashed) noexcept { br_md5_init(&hashed); }
+
+    /**
+     Absorbs bytes.
+
+     @param hashed The context. @param data The bytes. @param size Their number.
+    */
+    static void update(context& hashed, void const* data, std::size_t size) noexcept {
+        br_md5_update(&hashed, data, size);
+    }
+
+    /** Writes the output. @param hashed The context. @param output The 16 bytes. */
+    static void out(context& hashed, std::span<std::uint8_t> output) noexcept {
+        br_md5_out(&hashed, output.data());
+    }
+
+    /** The hash HMAC runs over. @return `&br_md5_vtable`. */
+    static br_hash_class const* vtable() noexcept { return &br_md5_vtable; }
+};
+
+/** SHA-1: `br_sha1_*`. */
+template <>
+struct bearssl_digest<digests::sha1> {
+    /** BearSSL's context. */
+    using context = br_sha1_context;
+
+    /** Starts a hash. @param hashed The context. */
+    static void init(context& hashed) noexcept { br_sha1_init(&hashed); }
+
+    /**
+     Absorbs bytes.
+
+     @param hashed The context. @param data The bytes. @param size Their number.
+    */
+    static void update(context& hashed, void const* data, std::size_t size) noexcept {
+        br_sha1_update(&hashed, data, size);
+    }
+
+    /** Writes the output. @param hashed The context. @param output The 20 bytes. */
+    static void out(context& hashed, std::span<std::uint8_t> output) noexcept {
+        br_sha1_out(&hashed, output.data());
+    }
+
+    /** The hash HMAC runs over. @return `&br_sha1_vtable`. */
+    static br_hash_class const* vtable() noexcept { return &br_sha1_vtable; }
+};
+
+/** SHA-224: `br_sha224_*`. */
+template <>
+struct bearssl_digest<digests::sha2_224> {
+    /** BearSSL's context. */
+    using context = br_sha224_context;
+
+    /** Starts a hash. @param hashed The context. */
+    static void init(context& hashed) noexcept { br_sha224_init(&hashed); }
+
+    /**
+     Absorbs bytes.
+
+     @param hashed The context. @param data The bytes. @param size Their number.
+    */
+    static void update(context& hashed, void const* data, std::size_t size) noexcept {
+        br_sha224_update(&hashed, data, size);
+    }
+
+    /** Writes the output. @param hashed The context. @param output The 28 bytes. */
+    static void out(context& hashed, std::span<std::uint8_t> output) noexcept {
+        br_sha224_out(&hashed, output.data());
+    }
+
+    /** The hash HMAC runs over. @return `&br_sha224_vtable`. */
+    static br_hash_class const* vtable() noexcept { return &br_sha224_vtable; }
+};
+
+/** SHA-256: `br_sha256_*`. */
+template <>
+struct bearssl_digest<digests::sha2_256> {
+    /** BearSSL's context. */
+    using context = br_sha256_context;
+
+    /** Starts a hash. @param hashed The context. */
+    static void init(context& hashed) noexcept { br_sha256_init(&hashed); }
+
+    /**
+     Absorbs bytes.
+
+     @param hashed The context. @param data The bytes. @param size Their number.
+    */
+    static void update(context& hashed, void const* data, std::size_t size) noexcept {
+        br_sha256_update(&hashed, data, size);
+    }
+
+    /** Writes the output. @param hashed The context. @param output The 32 bytes. */
+    static void out(context& hashed, std::span<std::uint8_t> output) noexcept {
+        br_sha256_out(&hashed, output.data());
+    }
+
+    /** The hash HMAC runs over. @return `&br_sha256_vtable`. */
+    static br_hash_class const* vtable() noexcept { return &br_sha256_vtable; }
+};
+
+/** SHA-384: `br_sha384_*`. */
+template <>
+struct bearssl_digest<digests::sha2_384> {
+    /** BearSSL's context. */
+    using context = br_sha384_context;
+
+    /** Starts a hash. @param hashed The context. */
+    static void init(context& hashed) noexcept { br_sha384_init(&hashed); }
+
+    /**
+     Absorbs bytes.
+
+     @param hashed The context. @param data The bytes. @param size Their number.
+    */
+    static void update(context& hashed, void const* data, std::size_t size) noexcept {
+        br_sha384_update(&hashed, data, size);
+    }
+
+    /** Writes the output. @param hashed The context. @param output The 48 bytes. */
+    static void out(context& hashed, std::span<std::uint8_t> output) noexcept {
+        br_sha384_out(&hashed, output.data());
+    }
+
+    /** The hash HMAC runs over. @return `&br_sha384_vtable`. */
+    static br_hash_class const* vtable() noexcept { return &br_sha384_vtable; }
+};
+
+/** SHA-512: `br_sha512_*`. */
+template <>
+struct bearssl_digest<digests::sha2_512> {
+    /** BearSSL's context. */
+    using context = br_sha512_context;
+
+    /** Starts a hash. @param hashed The context. */
+    static void init(context& hashed) noexcept { br_sha512_init(&hashed); }
+
+    /**
+     Absorbs bytes.
+
+     @param hashed The context. @param data The bytes. @param size Their number.
+    */
+    static void update(context& hashed, void const* data, std::size_t size) noexcept {
+        br_sha512_update(&hashed, data, size);
+    }
+
+    /** Writes the output. @param hashed The context. @param output The 64 bytes. */
+    static void out(context& hashed, std::span<std::uint8_t> output) noexcept {
+        br_sha512_out(&hashed, output.data());
+    }
+
+    /** The hash HMAC runs over. @return `&br_sha512_vtable`. */
+    static br_hash_class const* vtable() noexcept { return &br_sha512_vtable; }
+};
+
+/** TLS 1.0's MD5-SHA1: `br_md5sha1_*`, MD5 followed by SHA-1. */
+template <>
+struct bearssl_digest<digests::md5_sha1> {
+    /** BearSSL's context. */
+    using context = br_md5sha1_context;
+
+    /** Starts a hash. @param hashed The context. */
+    static void init(context& hashed) noexcept { br_md5sha1_init(&hashed); }
+
+    /**
+     Absorbs bytes.
+
+     @param hashed The context. @param data The bytes. @param size Their number.
+    */
+    static void update(context& hashed, void const* data, std::size_t size) noexcept {
+        br_md5sha1_update(&hashed, data, size);
+    }
+
+    /** Writes the output. @param hashed The context. @param output The 36 bytes. */
+    static void out(context& hashed, std::span<std::uint8_t> output) noexcept {
+        br_md5sha1_out(&hashed, output.data());
+    }
+
+    /** The hash HMAC runs over. @return `&br_md5sha1_vtable`. */
+    static br_hash_class const* vtable() noexcept { return &br_md5sha1_vtable; }
+};
+
+/**
+ SHAKE's functions, `br_shake_*` from `bearssl_kdf.h`, any output size from 1 byte:
+ `br_shake_init` at the security level, `br_shake_inject`, then `br_shake_flip` and
+ `br_shake_produce` of the whole output.
+
+ @tparam SecurityLevel 128 or 256, the bits BearSSL takes (its capacity is twice that).
+*/
+template <int SecurityLevel>
+struct bearssl_shake {
+    /** BearSSL's context. */
+    using context = br_shake_context;
+
+    /** Starts a hash. @param hashed The context. */
+    static void init(context& hashed) noexcept { br_shake_init(&hashed, SecurityLevel); }
+
+    /**
+     Absorbs bytes.
+
+     @param hashed The context. @param data The bytes. @param size Their number.
+    */
+    static void update(context& hashed, void const* data, std::size_t size) noexcept {
+        br_shake_inject(&hashed, data, size);
+    }
+
+    /** Writes the output. @param hashed The context. @param output The output, of any size from 1
+     * byte. */
+    static void out(context& hashed, std::span<std::uint8_t> output) noexcept {
+        br_shake_flip(&hashed);
+        br_shake_produce(&hashed, output.data(), output.size());
+    }
+};
+
+/** SHAKE128: `br_shake_*` at level 128. */
+template <>
+struct bearssl_digest<digests::shake_128> : bearssl_shake<128> {};
+
+/** SHAKE256: `br_shake_*` at level 256. */
+template <>
+struct bearssl_digest<digests::shake_256> : bearssl_shake<256> {};
+
+/**
  BearSSL's hash for an hmac, its `br_hash_class`; the primary template is reached by an hmac
  BearSSL has no hash for, and refuses with spec 3.3's text.
 
@@ -125,46 +367,19 @@ struct bearssl_hash_class {
     static br_hash_class const* vtable() noexcept { return nullptr; }
 };
 
-/** MD5, BearSSL's `br_md5_vtable`. */
-template <>
-struct bearssl_hash_class<hmac_md5_128> {
-    /** @return `&br_md5_vtable`. */
-    static br_hash_class const* vtable() noexcept { return &br_md5_vtable; }
-};
+/**
+ The hash of one of the six hmacs BearSSL has HKDF over: the `br_hash_class` of its digest's tag
+ (@ref digest_tag_of), the one HMAC through `mac` runs over.
 
-/** SHA-1, BearSSL's `br_sha1_vtable`. */
-template <>
-struct bearssl_hash_class<hmac_sha1_160> {
-    /** @return `&br_sha1_vtable`. */
-    static br_hash_class const* vtable() noexcept { return &br_sha1_vtable; }
-};
-
-/** SHA-224, BearSSL's `br_sha224_vtable`. */
-template <>
-struct bearssl_hash_class<hmac_sha2_224> {
-    /** @return `&br_sha224_vtable`. */
-    static br_hash_class const* vtable() noexcept { return &br_sha224_vtable; }
-};
-
-/** SHA-256, BearSSL's `br_sha256_vtable`. */
-template <>
-struct bearssl_hash_class<hmac_sha2_256> {
-    /** @return `&br_sha256_vtable`. */
-    static br_hash_class const* vtable() noexcept { return &br_sha256_vtable; }
-};
-
-/** SHA-384, BearSSL's `br_sha384_vtable`. */
-template <>
-struct bearssl_hash_class<hmac_sha2_384> {
-    /** @return `&br_sha384_vtable`. */
-    static br_hash_class const* vtable() noexcept { return &br_sha384_vtable; }
-};
-
-/** SHA-512, BearSSL's `br_sha512_vtable`. */
-template <>
-struct bearssl_hash_class<hmac_sha2_512> {
-    /** @return `&br_sha512_vtable`. */
-    static br_hash_class const* vtable() noexcept { return &br_sha512_vtable; }
+ @tparam Hmac `hmac_md5_128`, `hmac_sha1_160` or `hmac_sha2_224` to `hmac_sha2_512`.
+*/
+template <class Hmac>
+    requires bearssl_hmac_v<Hmac>
+struct bearssl_hash_class<Hmac> {
+    /** The hash of the hmac's digest. @return Its `br_<h>_vtable`. */
+    static br_hash_class const* vtable() noexcept {
+        return bearssl_digest<typename digest_tag_of<Hmac>::type>::vtable();
+    }
 };
 
 /**
@@ -264,176 +479,11 @@ struct pbkdf2_engine<backends::bearssl, Hmac> {
 };
 
 /**
- BearSSL's functions for a fixed-size digest of `digests`: its context and its `br_<h>_init`,
- `br_<h>_update` and `br_<h>_out`, with the `br_hash_class` HMAC runs over. Specialised for each
- tag BearSSL has; the primary template is never defined.
+ A digest of `digests` on backends::bearssl (its interface is @ref digest_engine); the state is
+ BearSSL's context, wiped by `destroy`.
 
- @tparam Digest A tag of `digests`.
-*/
-template <class Digest>
-struct bearssl_digest;
-
-/** MD5: `br_md5_*`. */
-template <>
-struct bearssl_digest<digests::md5> {
-    /** BearSSL's context. */
-    using context = br_md5_context;
-
-    /** @param hashed The context. */
-    static void init(context& hashed) noexcept { br_md5_init(&hashed); }
-
-    /** @param hashed The context. @param data The bytes. @param size Their number. */
-    static void update(context& hashed, void const* data, std::size_t size) noexcept {
-        br_md5_update(&hashed, data, size);
-    }
-
-    /** @param hashed The context. @param output The 16 bytes. */
-    static void out(context const& hashed, void* output) noexcept { br_md5_out(&hashed, output); }
-
-    /** @return `&br_md5_vtable`. */
-    static br_hash_class const* vtable() noexcept { return &br_md5_vtable; }
-};
-
-/** SHA-1: `br_sha1_*`. */
-template <>
-struct bearssl_digest<digests::sha1> {
-    /** BearSSL's context. */
-    using context = br_sha1_context;
-
-    /** @param hashed The context. */
-    static void init(context& hashed) noexcept { br_sha1_init(&hashed); }
-
-    /** @param hashed The context. @param data The bytes. @param size Their number. */
-    static void update(context& hashed, void const* data, std::size_t size) noexcept {
-        br_sha1_update(&hashed, data, size);
-    }
-
-    /** @param hashed The context. @param output The 20 bytes. */
-    static void out(context const& hashed, void* output) noexcept { br_sha1_out(&hashed, output); }
-
-    /** @return `&br_sha1_vtable`. */
-    static br_hash_class const* vtable() noexcept { return &br_sha1_vtable; }
-};
-
-/** SHA-224: `br_sha224_*`. */
-template <>
-struct bearssl_digest<digests::sha2_224> {
-    /** BearSSL's context. */
-    using context = br_sha224_context;
-
-    /** @param hashed The context. */
-    static void init(context& hashed) noexcept { br_sha224_init(&hashed); }
-
-    /** @param hashed The context. @param data The bytes. @param size Their number. */
-    static void update(context& hashed, void const* data, std::size_t size) noexcept {
-        br_sha224_update(&hashed, data, size);
-    }
-
-    /** @param hashed The context. @param output The 28 bytes. */
-    static void out(context const& hashed, void* output) noexcept {
-        br_sha224_out(&hashed, output);
-    }
-
-    /** @return `&br_sha224_vtable`. */
-    static br_hash_class const* vtable() noexcept { return &br_sha224_vtable; }
-};
-
-/** SHA-256: `br_sha256_*`. */
-template <>
-struct bearssl_digest<digests::sha2_256> {
-    /** BearSSL's context. */
-    using context = br_sha256_context;
-
-    /** @param hashed The context. */
-    static void init(context& hashed) noexcept { br_sha256_init(&hashed); }
-
-    /** @param hashed The context. @param data The bytes. @param size Their number. */
-    static void update(context& hashed, void const* data, std::size_t size) noexcept {
-        br_sha256_update(&hashed, data, size);
-    }
-
-    /** @param hashed The context. @param output The 32 bytes. */
-    static void out(context const& hashed, void* output) noexcept {
-        br_sha256_out(&hashed, output);
-    }
-
-    /** @return `&br_sha256_vtable`. */
-    static br_hash_class const* vtable() noexcept { return &br_sha256_vtable; }
-};
-
-/** SHA-384: `br_sha384_*`. */
-template <>
-struct bearssl_digest<digests::sha2_384> {
-    /** BearSSL's context. */
-    using context = br_sha384_context;
-
-    /** @param hashed The context. */
-    static void init(context& hashed) noexcept { br_sha384_init(&hashed); }
-
-    /** @param hashed The context. @param data The bytes. @param size Their number. */
-    static void update(context& hashed, void const* data, std::size_t size) noexcept {
-        br_sha384_update(&hashed, data, size);
-    }
-
-    /** @param hashed The context. @param output The 48 bytes. */
-    static void out(context const& hashed, void* output) noexcept {
-        br_sha384_out(&hashed, output);
-    }
-
-    /** @return `&br_sha384_vtable`. */
-    static br_hash_class const* vtable() noexcept { return &br_sha384_vtable; }
-};
-
-/** SHA-512: `br_sha512_*`. */
-template <>
-struct bearssl_digest<digests::sha2_512> {
-    /** BearSSL's context. */
-    using context = br_sha512_context;
-
-    /** @param hashed The context. */
-    static void init(context& hashed) noexcept { br_sha512_init(&hashed); }
-
-    /** @param hashed The context. @param data The bytes. @param size Their number. */
-    static void update(context& hashed, void const* data, std::size_t size) noexcept {
-        br_sha512_update(&hashed, data, size);
-    }
-
-    /** @param hashed The context. @param output The 64 bytes. */
-    static void out(context const& hashed, void* output) noexcept {
-        br_sha512_out(&hashed, output);
-    }
-
-    /** @return `&br_sha512_vtable`. */
-    static br_hash_class const* vtable() noexcept { return &br_sha512_vtable; }
-};
-
-/** TLS 1.0's MD5-SHA1: `br_md5sha1_*`, MD5 followed by SHA-1. */
-template <>
-struct bearssl_digest<digests::md5_sha1> {
-    /** BearSSL's context. */
-    using context = br_md5sha1_context;
-
-    /** @param hashed The context. */
-    static void init(context& hashed) noexcept { br_md5sha1_init(&hashed); }
-
-    /** @param hashed The context. @param data The bytes. @param size Their number. */
-    static void update(context& hashed, void const* data, std::size_t size) noexcept {
-        br_md5sha1_update(&hashed, data, size);
-    }
-
-    /** @param hashed The context. @param output The 36 bytes. */
-    static void out(context const& hashed, void* output) noexcept {
-        br_md5sha1_out(&hashed, output);
-    }
-
-    /** @return `&br_md5sha1_vtable`. */
-    static br_hash_class const* vtable() noexcept { return &br_md5sha1_vtable; }
-};
-
-/**
- A fixed-size digest of `digests` on backends::bearssl (its interface is @ref digest_engine); the
- state is BearSSL's context, wiped by `destroy`. The family's guards hold the output to the
- digest's size, which `br_<h>_out` writes.
+ The family's guards hold the output to the digest's size, which `br_<h>_out` writes, or, for
+ SHAKE, to any size from 1 byte.
 
  @tparam Digest A tag of @ref bearssl_digest.
 */
@@ -460,7 +510,7 @@ struct bearssl_digest_engine : full_engine {
     /** Writes the digest. @param hashed The state. @param output The digest. @return Success. */
     [[nodiscard]] static boost::system::result<void> finish(
         state& hashed, std::span<std::uint8_t> output) noexcept {
-        bearssl_digest<Digest>::out(hashed, output.data());
+        bearssl_digest<Digest>::out(hashed, output);
         return {};
     }
 
@@ -518,84 +568,23 @@ template <>
 struct digest_engine<backends::bearssl, digests::md5_sha1>
     : bearssl_digest_engine<digests::md5_sha1> {};
 
-/**
- SHAKE on backends::bearssl, `br_shake_*` from `bearssl_kdf.h` (its interface is @ref
- digest_engine), any output size from 1 byte: `br_shake_init` at the security level, `_inject`,
- then `_flip` and `_produce` of the whole output. The state is BearSSL's context, wiped by
- `destroy`.
-
- @tparam Digest `digests::shake_128` or `digests::shake_256`.
- @tparam SecurityLevel 128 or 256, the bits BearSSL takes (its capacity is twice that).
-*/
-template <class Digest, int SecurityLevel>
-struct bearssl_shake_engine : full_engine {
-    /** BearSSL's context, which is all of the state. */
-    using state = br_shake_context;
-
-    /** Starts a hash. @param hashed The state. @return Success. */
-    [[nodiscard]] static boost::system::result<void> init(
-        state& hashed, digest_options<Digest> const& /*options*/) noexcept {
-        touch_bearssl_canary();
-        br_shake_init(&hashed, SecurityLevel);
-        return {};
-    }
-
-    /** Absorbs `input`. @param hashed The state. @param input The bytes. @return Success. */
-    [[nodiscard]] static boost::system::result<void> update(
-        state& hashed, std::span<std::uint8_t const> input) noexcept {
-        br_shake_inject(&hashed, nonnull(input), input.size());
-        return {};
-    }
-
-    /**
-     Writes `output.size()` bytes of the output.
-
-     @param hashed The state. @param output The output, of any size from 1 byte.
-     @return Success.
-    */
-    [[nodiscard]] static boost::system::result<void> finish(
-        state& hashed, std::span<std::uint8_t> output) noexcept {
-        br_shake_flip(&hashed);
-        br_shake_produce(&hashed, output.data(), output.size());
-        return {};
-    }
-
-    /** Wipes the state. @param hashed The state. */
-    static void destroy(state& hashed) noexcept { wipe_object(hashed); }
-
-    /**
-     The output of `input` at once, BearSSL's context wiped.
-
-     @param output The output. @param input The bytes. @param options None.
-     @return Success.
-    */
-    [[nodiscard]] static boost::system::result<void> one_shot(
-        std::span<std::uint8_t> output, std::span<std::uint8_t const> input,
-        digest_options<Digest> const& options) noexcept {
-        state hashed;
-        static_cast<void>(init(hashed, options));
-        static_cast<void>(update(hashed, input));
-        static_cast<void>(finish(hashed, output));
-        destroy(hashed);
-        return {};
-    }
-};
-
 /** `digests::shake_128` on backends::bearssl: `br_shake_*` at level 128, any output size. */
 template <>
 struct digest_engine<backends::bearssl, digests::shake_128>
-    : bearssl_shake_engine<digests::shake_128, 128> {};
+    : bearssl_digest_engine<digests::shake_128> {};
 
 /** `digests::shake_256` on backends::bearssl: `br_shake_*` at level 256, any output size. */
 template <>
 struct digest_engine<backends::bearssl, digests::shake_256>
-    : bearssl_shake_engine<digests::shake_256, 256> {};
+    : bearssl_digest_engine<digests::shake_256> {};
 
 /**
- HMAC over a digest of @ref bearssl_digest on backends::bearssl (its interface is @ref mac_engine):
- `br_hmac_key_init` with the digest's `br_hash_class` and the key, `br_hmac_init` for a tag of
- `output.size()` bytes (BearSSL cuts the digest to it, RFC 2104 section 5), `br_hmac_update`,
- `br_hmac_out`; both contexts wiped.
+ HMAC over a digest of @ref bearssl_digest on backends::bearssl, whose interface is @ref
+ mac_engine.
+
+ It runs `br_hmac_key_init` with the digest's `br_hash_class` and the key,
+ `br_hmac_init` for a tag of `output.size()` bytes (BearSSL cuts the digest to it, RFC 2104
+ section 5), `br_hmac_update` and `br_hmac_out`; both contexts are wiped.
 
  @tparam Digest The digest's tag.
 */

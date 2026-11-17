@@ -839,7 +839,7 @@
             "security": "legacy: a collision of the pair costs little more than one of SHA-1 (Joux's multicollisions), far below its 288 bits; SLOTH (2016) turned it into attacks on TLS",
             "status": "legacy",
             "webcrypto": null,
-            "anchor": "hash-digest-family",
+            "anchor": "hash-md5-sha1",
             "uses": [
                 {"text": "TLS 1.0 and 1.1's RSA signatures and Finished messages", "source": "https://www.rfc-editor.org/rfc/rfc2246#section-4.7"},
                 {"text": "SLOTH's collision attacks on it (2016)", "source": "https://www.mitls.org/pages/attacks/SLOTH"},
