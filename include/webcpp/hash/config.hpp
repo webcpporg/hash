@@ -152,33 +152,52 @@ struct argon2id;
 struct scrypt;
 /**
  Argon2d, RFC 9106, for `argon2`: data-dependent memory access, never for passwords an attacker can
- time. A tag, declared and never defined.
+ time.
+
+ A tag, declared and never defined.
 */
 struct argon2d;
 /**
- Argon2i, RFC 9106, for `argon2`: data-independent memory access. A tag, declared and never defined.
+ Argon2i, RFC 9106, for `argon2`: data-independent memory access.
+
+ A tag, declared and never defined.
 */
 struct argon2i;
 /**
- bcrypt, the password hash of OpenBSD (Provos and Mazieres, 1999). A tag, declared and never
- defined.
+ bcrypt, the password hash of OpenBSD (Provos and Mazieres, 1999).
+
+ A tag, declared and never defined.
 */
 struct bcrypt;
 /**
- bcrypt-pbkdf, OpenBSD's key derivation over bcrypt, as OpenSSH's keys use it. A tag, declared and
- never defined.
+ bcrypt-pbkdf, OpenBSD's key derivation over bcrypt, as OpenSSH's keys use it.
+
+ A tag, declared and never defined.
 */
 struct bcrypt_pbkdf;
 /**
- BLAKE2b subkeys from a master key, as libsodium's `crypto_kdf` derives them. A tag, declared and
- never defined.
+ BLAKE2b subkeys from a master key, as libsodium's `crypto_kdf` derives them.
+
+ A tag, declared and never defined.
 */
 struct blake2b_subkey;
-/** KBKDF over HMAC, NIST SP 800-108. A tag, declared and never defined. */
+/**
+ KBKDF over HMAC, NIST SP 800-108.
+
+ A tag, declared and never defined.
+*/
 struct kbkdf_hmac;
-/** The single-step KDF of NIST SP 800-56C. A tag, declared and never defined. */
+/**
+ The single-step KDF of NIST SP 800-56C.
+
+ A tag, declared and never defined.
+*/
 struct sskdf;
-/** The KDF of ANSI X9.63. A tag, declared and never defined. */
+/**
+ The KDF of ANSI X9.63.
+
+ A tag, declared and never defined.
+*/
 struct x963kdf;
 
 }  // namespace webcpp::hash::kdfs
@@ -195,127 +214,233 @@ namespace webcpp::hash::digests {
 // NOLINTBEGIN(bugprone-forward-declaration-namespace)
 
 /**
- MD5, RFC 1321, a 16-byte digest. Broken: for compatibility only. A tag, declared and never defined.
+ MD5, RFC 1321, a 16-byte digest.
+
+ Broken: for compatibility only. A tag, declared and never defined.
 */
 struct md5;
 /**
- SHA-1, FIPS 180-4, a 20-byte digest. Broken: for compatibility only. A tag, declared and never
- defined.
+ SHA-1, FIPS 180-4, a 20-byte digest.
+
+ Broken: for compatibility only. A tag, declared and never defined.
 */
 struct sha1;
-/** SHA-224, FIPS 180-4, a 28-byte digest. A tag, declared and never defined. */
+/**
+ SHA-224, FIPS 180-4, a 28-byte digest.
+
+ A tag, declared and never defined.
+*/
 struct sha2_224;
-/** SHA-256, FIPS 180-4, a 32-byte digest. A tag, declared and never defined. */
+/**
+ SHA-256, FIPS 180-4, a 32-byte digest.
+
+ A tag, declared and never defined.
+*/
 struct sha2_256;
-/** SHA-384, FIPS 180-4, a 48-byte digest. A tag, declared and never defined. */
+/**
+ SHA-384, FIPS 180-4, a 48-byte digest.
+
+ A tag, declared and never defined.
+*/
 struct sha2_384;
-/** SHA-512, FIPS 180-4, a 64-byte digest. A tag, declared and never defined. */
+/**
+ SHA-512, FIPS 180-4, a 64-byte digest.
+
+ A tag, declared and never defined.
+*/
 struct sha2_512;
-/** SHA-512/224, FIPS 180-4, a 28-byte digest. A tag, declared and never defined. */
+/**
+ SHA-512/224, FIPS 180-4, a 28-byte digest.
+
+ A tag, declared and never defined.
+*/
 struct sha2_512_224;
-/** SHA-512/256, FIPS 180-4, a 32-byte digest. A tag, declared and never defined. */
+/**
+ SHA-512/256, FIPS 180-4, a 32-byte digest.
+
+ A tag, declared and never defined.
+*/
 struct sha2_512_256;
-/** SHA3-224, FIPS 202, a 28-byte digest. A tag, declared and never defined. */
+/**
+ SHA3-224, FIPS 202, a 28-byte digest.
+
+ A tag, declared and never defined.
+*/
 struct sha3_224;
-/** SHA3-256, FIPS 202, a 32-byte digest. A tag, declared and never defined. */
+/**
+ SHA3-256, FIPS 202, a 32-byte digest.
+
+ A tag, declared and never defined.
+*/
 struct sha3_256;
-/** SHA3-384, FIPS 202, a 48-byte digest. A tag, declared and never defined. */
+/**
+ SHA3-384, FIPS 202, a 48-byte digest.
+
+ A tag, declared and never defined.
+*/
 struct sha3_384;
-/** SHA3-512, FIPS 202, a 64-byte digest. A tag, declared and never defined. */
+/**
+ SHA3-512, FIPS 202, a 64-byte digest.
+
+ A tag, declared and never defined.
+*/
 struct sha3_512;
 /**
- SHAKE128, FIPS 202, an extendable-output function: any output size from 1 byte. A tag, declared and
- never defined.
+ SHAKE128, FIPS 202, an extendable-output function: any output size from 1 byte.
+
+ A tag, declared and never defined.
 */
 struct shake_128;
 /**
- SHAKE256, FIPS 202, an extendable-output function: any output size from 1 byte. A tag, declared and
- never defined.
+ SHAKE256, FIPS 202, an extendable-output function: any output size from 1 byte.
+
+ A tag, declared and never defined.
 */
 struct shake_256;
 /**
- Keccak-224 with the original padding (the SHA-3 submission), a 28-byte digest. A tag, declared and
- never defined.
+ Keccak-224 with the original padding (the SHA-3 submission), a 28-byte digest.
+
+ A tag, declared and never defined.
 */
 struct keccak_224;
 /**
- Keccak-256 with the original padding, Ethereum's hash, a 32-byte digest. A tag, declared and never
- defined.
+ Keccak-256 with the original padding, Ethereum's hash, a 32-byte digest.
+
+ A tag, declared and never defined.
 */
 struct keccak_256;
-/** Keccak-384 with the original padding, a 48-byte digest. A tag, declared and never defined. */
+/**
+ Keccak-384 with the original padding, a 48-byte digest.
+
+ A tag, declared and never defined.
+*/
 struct keccak_384;
-/** Keccak-512 with the original padding, a 64-byte digest. A tag, declared and never defined. */
+/**
+ Keccak-512 with the original padding, a 64-byte digest.
+
+ A tag, declared and never defined.
+*/
 struct keccak_512;
 /**
  cSHAKE128, NIST SP 800-185, SHAKE128 with a function name and a customisation: any output size from
- 1 byte. A tag, declared and never defined.
+ 1 byte.
+
+ A tag, declared and never defined.
 */
 struct cshake_128;
-/** cSHAKE256, NIST SP 800-185: any output size from 1 byte. A tag, declared and never defined. */
+/**
+ cSHAKE256, NIST SP 800-185: any output size from 1 byte.
+
+ A tag, declared and never defined.
+*/
 struct cshake_256;
 /**
- KT128 (KangarooTwelve), RFC 9861, with a customisation: any output size from 1 byte. A tag,
- declared and never defined.
+ KT128 (KangarooTwelve), RFC 9861, with a customisation: any output size from 1 byte.
+
+ A tag, declared and never defined.
 */
 struct kt128;
 /**
- KT256, RFC 9861, with a customisation: any output size from 1 byte. A tag, declared and never
- defined.
+ KT256, RFC 9861, with a customisation: any output size from 1 byte.
+
+ A tag, declared and never defined.
 */
 struct kt256;
 /**
- TurboSHAKE128, RFC 9861, with a domain byte: any output size from 1 byte. A tag, declared and never
- defined.
+ TurboSHAKE128, RFC 9861, with a domain byte: any output size from 1 byte.
+
+ A tag, declared and never defined.
 */
 struct turboshake_128;
 /**
- TurboSHAKE256, RFC 9861, with a domain byte: any output size from 1 byte. A tag, declared and never
- defined.
+ TurboSHAKE256, RFC 9861, with a domain byte: any output size from 1 byte.
+
+ A tag, declared and never defined.
 */
 struct turboshake_256;
-/** TupleHash128, NIST SP 800-185: any output size from 1 byte. A tag, declared and never defined.
- */
+/**
+ TupleHash128, NIST SP 800-185: any output size from 1 byte.
+
+ A tag, declared and never defined.
+*/
 struct tuplehash_128;
-/** TupleHash256, NIST SP 800-185: any output size from 1 byte. A tag, declared and never defined.
- */
+/**
+ TupleHash256, NIST SP 800-185: any output size from 1 byte.
+
+ A tag, declared and never defined.
+*/
 struct tuplehash_256;
 /**
- ParallelHash128, NIST SP 800-185: any output size from 1 byte. A tag, declared and never defined.
+ ParallelHash128, NIST SP 800-185: any output size from 1 byte.
+
+ A tag, declared and never defined.
 */
 struct parallelhash_128;
 /**
- ParallelHash256, NIST SP 800-185: any output size from 1 byte. A tag, declared and never defined.
+ ParallelHash256, NIST SP 800-185: any output size from 1 byte.
+
+ A tag, declared and never defined.
 */
 struct parallelhash_256;
 /**
- BLAKE2b, RFC 7693, with its key, salt, personalisation and output size (1 to 64 bytes). A tag,
- declared and never defined.
-*/
-struct blake2b;
-/** BLAKE2s with a 32-byte digest, RFC 7693. A tag, declared and never defined. */
-struct blake2s_256;
-/**
- BLAKE3, an extendable-output function: any output size from 1 byte (32 is its digest). A tag,
- declared and never defined.
-*/
-struct blake3;
-/** RIPEMD-160, ISO/IEC 10118-3, a 20-byte digest. Legacy. A tag, declared and never defined. */
-struct ripemd_160;
-/**
- MD5 then SHA-1 of the same input, 36 bytes: TLS 1.0 and 1.1's hash. Broken: for compatibility only.
+ BLAKE2b, RFC 7693, with its key, salt, personalisation and output size (1 to 64 bytes).
+
  A tag, declared and never defined.
 */
+struct blake2b;
+/**
+ BLAKE2s with a 32-byte digest, RFC 7693.
+
+ A tag, declared and never defined.
+*/
+struct blake2s_256;
+/**
+ BLAKE3, an extendable-output function: any output size from 1 byte (32 is its digest).
+
+ A tag, declared and never defined.
+*/
+struct blake3;
+/**
+ RIPEMD-160, ISO/IEC 10118-3, a 20-byte digest.
+
+ Legacy. A tag, declared and never defined.
+*/
+struct ripemd_160;
+/**
+ MD5 then SHA-1 of the same input, 36 bytes: TLS 1.0 and 1.1's hash.
+
+ Broken: for compatibility only. A tag, declared and never defined.
+*/
 struct md5_sha1;
-/** SM3, GB/T 32905-2016, a 32-byte digest. A tag, declared and never defined. */
+/**
+ SM3, GB/T 32905-2016, a 32-byte digest.
+
+ A tag, declared and never defined.
+*/
 struct sm3;
-/** Streebog-256, GOST R 34.11-2012, a 32-byte digest. A tag, declared and never defined. */
+/**
+ Streebog-256, GOST R 34.11-2012, a 32-byte digest.
+
+ A tag, declared and never defined.
+*/
 struct streebog_256;
-/** Streebog-512, GOST R 34.11-2012, a 64-byte digest. A tag, declared and never defined. */
+/**
+ Streebog-512, GOST R 34.11-2012, a 64-byte digest.
+
+ A tag, declared and never defined.
+*/
 struct streebog_512;
-/** Whirlpool, ISO/IEC 10118-3, a 64-byte digest. A tag, declared and never defined. */
+/**
+ Whirlpool, ISO/IEC 10118-3, a 64-byte digest.
+
+ A tag, declared and never defined.
+*/
 struct whirlpool;
-/** Skein-512 with a 64-byte digest. A tag, declared and never defined. */
+/**
+ Skein-512 with a 64-byte digest.
+
+ A tag, declared and never defined.
+*/
 struct skein_512;
 
 // NOLINTEND(bugprone-forward-declaration-namespace)
@@ -332,33 +457,39 @@ namespace webcpp::hash::macs {
 template <class Digest>
 struct hmac;
 /**
- KMAC128, NIST SP 800-185, with its customisation: any output size from 1 byte. A tag, declared and
- never defined.
+ KMAC128, NIST SP 800-185, with its customisation: any output size from 1 byte.
+
+ A tag, declared and never defined.
 */
 struct kmac_128;
 /**
- KMAC256, NIST SP 800-185, with its customisation: any output size from 1 byte. A tag, declared and
- never defined.
+ KMAC256, NIST SP 800-185, with its customisation: any output size from 1 byte.
+
+ A tag, declared and never defined.
 */
 struct kmac_256;
 /**
- SipHash-2-4, a 16-byte key and an 8-byte tag: for hash tables against flooding. A tag, declared and
- never defined.
+ SipHash-2-4, a 16-byte key and an 8-byte tag: for hash tables against flooding.
+
+ A tag, declared and never defined.
 */
 struct siphash_2_4;
 /**
- SipHash-2-4 with a 16-byte tag (libsodium's `siphashx24`), a 16-byte key. A tag, declared and never
- defined.
+ SipHash-2-4 with a 16-byte tag (libsodium's `siphashx24`), a 16-byte key.
+
+ A tag, declared and never defined.
 */
 struct siphash_2_4x;
 /**
- BLAKE2b keyed, RFC 7693: a key of 1 to 64 bytes, a tag of 1 to 64 bytes. A tag, declared and never
- defined.
+ BLAKE2b keyed, RFC 7693: a key of 1 to 64 bytes, a tag of 1 to 64 bytes.
+
+ A tag, declared and never defined.
 */
 struct blake2b_mac;
 /**
- BLAKE2s keyed, RFC 7693: a key of 1 to 32 bytes, a tag of 1 to 32 bytes. A tag, declared and never
- defined.
+ BLAKE2s keyed, RFC 7693: a key of 1 to 32 bytes, a tag of 1 to 32 bytes.
+
+ A tag, declared and never defined.
 */
 struct blake2s_mac;
 

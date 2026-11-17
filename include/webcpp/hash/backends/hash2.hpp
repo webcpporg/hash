@@ -8,10 +8,10 @@
  `backends::hash2`: HKDF (RFC 5869) and PBKDF2 (RFC 8018) written by webcpp over Boost.Hash2's
  `hmac<H>`, on every target and over every Hash2 hmac whose result is a digest; and the families'
  engines over Boost.Hash2's own algorithms (spec 2.15): the digests MD5, SHA-1, SHA-2, SHA-3,
- RIPEMD-160 and BLAKE2s-256, BLAKE2b with its 64-byte output alone, SHAKE128 and SHAKE256 up to one
- Hash2 result (32 and 64 bytes: Hash2's `result()` permutes again at each call, so it is no
- extendable output past them); HMAC over each of them and over BLAKE2b-512; SipHash-2-4; and keyed
- BLAKE2s with its 32-byte tag alone. It needs no C library.
+ RIPEMD-160 and BLAKE2s-256, BLAKE2b with its 64-byte output alone, SHAKE128 and SHAKE256 with
+ any output size (each Hash2 `result()` permutes and gives the next block of the stream); HMAC
+ over each fixed-size digest and over BLAKE2b-512; SipHash-2-4; and keyed BLAKE2s with its 32-byte
+ tag alone. It needs no C library.
 
  The code follows each RFC's steps, named in its comments, and wipes every intermediate it holds
  (each copy of the keyed hmac, each block) before it returns (spec sections 1.3 and 6.1). What it
@@ -203,9 +203,11 @@ struct pbkdf2_engine<backends::hash2, Hmac> {
 
 /**
  A digest of `digests` on backends::hash2, over the Boost.Hash2 algorithm `Hash` (its interface is
- @ref digest_engine); the state is a `Hash`, wiped by `destroy`. The output is the
- first `output.size()` bytes of one `result()`, the whole of it for a fixed-size digest, which the
- family's guards hold to its size.
+ @ref digest_engine); the state is a `Hash`, wiped by `destroy`. The output is the first
+ `output.size()` bytes of the results of `result()`, called one after the other: one result, the
+ whole of it, for a fixed-size digest, which the family's guards hold to its size; for SHAKE, whose
+ every `result()` permutes and gives the next block of the stream, as many blocks as the output
+ needs.
 
  @tparam Digest The tag. @tparam Hash Its Boost.Hash2 algorithm.
 */
@@ -229,15 +231,19 @@ struct hash2_digest_engine : full_engine {
     }
 
     /**
-     Writes the result's first `output.size()` bytes, the result wiped.
+     Writes the first `output.size()` bytes of the successive results, each result wiped.
 
      @param hashed The state. @param output The digest. @return Success.
     */
     [[nodiscard]] static boost::system::result<void> finish(
         state& hashed, std::span<std::uint8_t> output) noexcept {
-        auto result_bytes = hashed.result();
-        std::memcpy(output.data(), result_bytes.data(), output.size());
-        wipe_object(result_bytes);
+        while (!output.empty()) {
+            auto result_bytes = hashed.result();
+            auto const taken = std::min(output.size(), result_bytes.size());
+            std::memcpy(output.data(), result_bytes.data(), taken);
+            wipe_object(result_bytes);
+            output = output.subspan(taken);
+        }
         return {};
     }
 
@@ -345,26 +351,22 @@ struct digest_engine<backends::hash2, digests::blake2b>
 };
 
 /**
- `digests::shake_128` on backends::hash2, Boost.Hash2's `shake_128`, in part: one `result()`, 32
- bytes, is the longest output (ruling R14); a longer one is `unsupported_by_backend`.
+ `digests::shake_128` on backends::hash2, Boost.Hash2's `shake_128`, whole: each `result()`
+ permutes and gives the next 168 bytes of the stream, so any output size is the stream's first
+ bytes.
 */
 template <>
 struct digest_engine<backends::hash2, digests::shake_128>
-    : hash2_digest_engine<digests::shake_128, boost::hash2::shake_128> {
-    /** One Hash2 result: 32 bytes. */
-    static constexpr std::uint64_t max_output = 32;
-};
+    : hash2_digest_engine<digests::shake_128, boost::hash2::shake_128> {};
 
 /**
- `digests::shake_256` on backends::hash2, Boost.Hash2's `shake_256`, in part: one `result()`, 64
- bytes, is the longest output (ruling R14); a longer one is `unsupported_by_backend`.
+ `digests::shake_256` on backends::hash2, Boost.Hash2's `shake_256`, whole: each `result()`
+ permutes and gives the next 136 bytes of the stream, so any output size is the stream's first
+ bytes.
 */
 template <>
 struct digest_engine<backends::hash2, digests::shake_256>
-    : hash2_digest_engine<digests::shake_256, boost::hash2::shake_256> {
-    /** One Hash2 result: 64 bytes. */
-    static constexpr std::uint64_t max_output = 64;
-};
+    : hash2_digest_engine<digests::shake_256, boost::hash2::shake_256> {};
 
 /**
  HMAC over a digest of `digests` on backends::hash2 (its interface is @ref mac_engine);

@@ -53,7 +53,7 @@ int main() {
     auto const refused = hash::digest_of<hash::digests::sha2_256>(too_short, message);
     std::cout << "20-byte output: " << refused.error().message() << '\n';
 
-    // A backend named in the call: Boost.Hash2's SHAKE128, any size up to one result.
+    // A backend named in the call: Boost.Hash2's SHAKE128, any size, the stream's first bytes.
     std::array<std::uint8_t, 16> shake{};
     if (!hash::digest_of<hash::digests::shake_128, hash::backends::hash2>(shake, message)) {
         return 1;

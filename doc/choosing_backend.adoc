@@ -43,7 +43,7 @@ The families' defaults follow one rule and never change: the first of
 landed, has the tag whole (every option and output size the family accepts),
 else the first of them that has it in part; `backends::bearssl`,
 `backends::openssl` and the later backends are never a default. SHA-2's
-default is `hash2`, Keccak-256's and SHAKE's `xkcp`, BLAKE3's `blake3`,
+and SHAKE's default is `hash2`, Keccak-256's `xkcp`, BLAKE3's `blake3`,
 BLAKE2b's `sodium`; a tag none of the four has (SM3, Whirlpool, Argon2d) has
 none, and its call names its backend. A default whose backend comes in a later
 increment is already written: until it lands, a call on it stops the build.

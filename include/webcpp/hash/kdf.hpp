@@ -25,9 +25,10 @@ namespace webcpp::hash {
 
 /**
  Whether `Backend` has the key derivation `Kdf` over `Hmac`, or the algorithm of a family's tag: a
- property of the library behind it (spec sections 3.2 and 3.5), whether or not the program links
- it. A backend that has a tag only in part (a partial cell of `doc/capabilities.json`, as
- `backends::hash2`'s SHAKE, at most one digest's size) has it.
+ property of the library behind it (spec sections 3.2 and 3.5), whether or not the program links it.
+
+ A backend that has a tag only in part (a partial cell of `doc/capabilities.json`, as
+ `backends::hash2`'s BLAKE2b, its 64-byte output alone) has it.
 
  @tparam Backend A backend of `backends`. @tparam Kdf `kdfs::hkdf`, `kdfs::pbkdf2` or another
  tag of `kdfs`; or a tag of `digests` or `macs`; or, for `argon2`, `kdfs::argon2d`,
@@ -170,13 +171,15 @@ template <>
 inline constexpr bool backend_has_v<backends::hash2, digests::blake2s_256, void> = true;
 
 /**
- backends::hash2 has `digests::shake_128` in part: at most 32 bytes, one Hash2 result (ruling R14).
+ backends::hash2 has `digests::shake_128` whole: Boost.Hash2's `shake_128`, whose every `result()`
+ gives the next block of the stream.
 */
 template <>
 inline constexpr bool backend_has_v<backends::hash2, digests::shake_128, void> = true;
 
 /**
- backends::hash2 has `digests::shake_256` in part: at most 64 bytes, one Hash2 result (ruling R14).
+ backends::hash2 has `digests::shake_256` whole: Boost.Hash2's `shake_256`, whose every `result()`
+ gives the next block of the stream.
 */
 template <>
 inline constexpr bool backend_has_v<backends::hash2, digests::shake_256, void> = true;
@@ -432,7 +435,7 @@ struct digest_tag_of<hmac_blake2s_256> {
  that has every key derivation over every hmac on every target, header-only. Each tag of the
  families has its own below (design D34): the first of `backends::hash2`, `backends::xkcp`,
  `backends::blake3` and `backends::sodium` that has the tag fully in the capability table once
- increments 2 to 7 have landed, else the first of them with a partial cell, else @ref no_default.
+ increments 2 to 7 have landed, else the first of them with a partial cell, else `no_default`.
  A default never changes; until its backend's engine lands, a call on it refuses at compile time.
 
  @tparam Algorithm A tag of `kdfs`, `digests` or `macs`.
@@ -562,20 +565,18 @@ struct default_of<digests::blake2s_256> {
     using type = backends::hash2;
 };
 
-/** `digests::shake_128`: backends::xkcp (increment 3) has it whole; Boost.Hash2 has 32 bytes alone.
- */
+/** `digests::shake_128`: Boost.Hash2 has it whole, the first backend of the order. */
 template <>
 struct default_of<digests::shake_128> {
-    /** backends::xkcp. */
-    using type = backends::xkcp;
+    /** backends::hash2. */
+    using type = backends::hash2;
 };
 
-/** `digests::shake_256`: backends::xkcp (increment 3) has it whole; Boost.Hash2 has 64 bytes alone.
- */
+/** `digests::shake_256`: Boost.Hash2 has it whole, the first backend of the order. */
 template <>
 struct default_of<digests::shake_256> {
-    /** backends::xkcp. */
-    using type = backends::xkcp;
+    /** backends::hash2. */
+    using type = backends::hash2;
 };
 
 /** `macs::hmac<digests::md5>`: Boost.Hash2 has it. */

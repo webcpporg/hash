@@ -557,12 +557,11 @@
                     "name": "digests::shake_128",
                     "kind": "digest",
                     "header": "webcpp/hash/digest.hpp",
-                    "default": "xkcp",
+                    "default": "hash2",
                     "backends": {
                         "hash2": {
                             "since": 2,
                             "hmacs": null,
-                            "partial": "an output past 32 bytes, one Boost.Hash2 result",
                             "constant_time": {
                                 "value": "not stated",
                                 "source": "Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property."
@@ -574,12 +573,11 @@
                     "name": "digests::shake_256",
                     "kind": "digest",
                     "header": "webcpp/hash/digest.hpp",
-                    "default": "xkcp",
+                    "default": "hash2",
                     "backends": {
                         "hash2": {
                             "since": 2,
                             "hmacs": null,
-                            "partial": "an output past 64 bytes, one Boost.Hash2 result",
                             "constant_time": {
                                 "value": "not stated",
                                 "source": "Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property."

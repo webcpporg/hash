@@ -40,7 +40,7 @@ the library's, outside the user's allocator, and hash does not hide them.
 
 The table is generated from `measurements.allocation.json` by
 `bench/allocation_collect.py`, and only from release builds: the counts are those of
-`bench/Jamfile`'s `allocation_release` and `allocation_openssl_release`, the programs of the
+`allocation_release` and `allocation_openssl_release` of `bench/Jamfile`, the programs of the
 two tests built at `variant=release`, and the collector refuses an output of any other
 variant. The tests of the lanes keep the lane's variant. The figures are those of the machine
 the file records.

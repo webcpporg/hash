@@ -119,6 +119,11 @@ hash-run families : families_test.cpp
   : <library>/third_party//xkcp <library>/third_party//blake3 ;
 hash-run hasher_state : hasher_state_test.cpp
   : <define>WEBCPP_HASH_DETAIL_TEST_WIPE_RECORD ;
+# SHAKE128 and SHAKE256 on backends::hash2, a whole extendable output, against
+# the SHAKE cases of OpenSSL's evpmd_sha.txt, read at run time: FIPS 202's
+# examples squeezed past several blocks, and NIST's shorter cases.
+hash-run hash2_shake_vectors : hash2_shake_vectors_test.cpp
+  : <library>/third_party//openssl_evp_data ;
 # SipHash-2-4 and keyed BLAKE2s on backends::hash2 against published vectors
 # read at run time: Wycheproof's siphash_2_4_test.json and the keyed BLAKE2s
 # cases of OpenSSL's evpmac_blake.txt.

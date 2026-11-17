@@ -48,8 +48,9 @@
 namespace webcpp::hash {
 
 /**
- The costs of Argon2id with one lane, as libsodium's crypto_pwhash takes them, for `argon2id`. Its
- memory is in bytes; @ref argon2_parameters, the family's, counts KiB as RFC 9106 does.
+ The costs of Argon2id with one lane, as libsodium's crypto_pwhash takes them, for `argon2id`.
+
+ Its memory is in bytes; @ref argon2_parameters, the family's, counts KiB as RFC 9106 does.
 */
 struct argon2id_parameters {
     /** The number of passes over the memory, t: 1 to 4,294,967,295. */
@@ -149,9 +150,10 @@ template <class Backend = default_backend<kdfs::argon2id>>
 }
 
 /**
- Every parameter of Argon2, RFC 9106, for the family `argon2`. The memory is in KiB, RFC 9106's m
- (@ref argon2id_parameters, `argon2id`'s, counts bytes: `argon2id_moderate`'s 268,435,456 bytes are
- 262,144 KiB).
+ Every parameter of Argon2, RFC 9106, for the family `argon2`.
+
+ The memory is in KiB, RFC 9106's m; @ref argon2id_parameters, the parameters of `argon2id`, count
+ bytes (the 268,435,456 bytes of `argon2id_moderate` are 262,144 KiB).
 
  A backend that lacks a parameter's value answers `unsupported_by_backend` (libsodium: one lane, no
  secret, no associated data, at least 3 passes for Argon2i).

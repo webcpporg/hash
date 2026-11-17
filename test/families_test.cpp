@@ -9,7 +9,7 @@
 // extendable output takes any size from 1; a value the family accepts and the engine does not is
 // unsupported_by_backend; a backend's failure zeroes the output; a refusal leaves it as it was);
 // then the engines this increment wires, against the Hash2-form types they wrap: Boost.Hash2's
-// digests and HMACs on backends::hash2 (SHAKE up to one Hash2 result), keccak_256 on
+// digests and HMACs on backends::hash2 (SHAKE a whole extendable output), keccak_256 on
 // backends::xkcp and BLAKE3's extendable output on backends::blake3; and the default backend of
 // every tag (design D34).
 
@@ -227,6 +227,20 @@ void check_argon2_guards() {
     BOOST_TEST(all_of(output, 0));
 }
 
+// The first `size` bytes of a Hash2 XOF's stream over `input`: its successive results.
+template <class Hash>
+std::vector<std::uint8_t> stream_of(std::span<std::uint8_t const> input, std::size_t size) {
+    Hash hashed;
+    hashed.update(input.data(), input.size());
+    std::vector<std::uint8_t> stream;
+    while (stream.size() < size) {
+        auto const result = hashed.result();
+        stream.insert(stream.end(), result.begin(), result.end());
+    }
+    stream.resize(size);
+    return stream;
+}
+
 // A Hash2 algorithm's result over `input`, cut to `size` bytes.
 template <class Hash>
 std::vector<std::uint8_t> hash2_of(std::span<std::uint8_t const> input, std::size_t size) {
@@ -293,28 +307,32 @@ void check_hash2_digests() {
     BOOST_TEST_EQ(test::to_hex(abc),
                   "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad");
 
-    // SHAKE on backends::hash2 is partial (ruling R14): any size up to one Hash2 result, a prefix
-    // of the stream; past it, unsupported_by_backend.
-    for (std::size_t const size : {1U, 16U, 32U}) {
+    // SHAKE on backends::hash2 is a whole extendable output (ruling R89): any size is the first
+    // bytes of the stream, Hash2's successive results, one block each (168 and 136 bytes), on the
+    // default and on the backend named; across the blocks' edges. FIPS 202's vectors past several
+    // blocks are hash2_shake_vectors_test's.
+    for (std::size_t const size : {1U, 32U, 167U, 168U, 169U, 300U, 1000U}) {
         agree<digests::shake_128, backends::hash2>(
             "shake_128", size,
-            [](auto const& input, std::size_t n) { return hash2_of<h2::shake_128>(input, n); });
+            [](auto const& input, std::size_t n) { return stream_of<h2::shake_128>(input, n); });
+        agree<digests::shake_128, hash::default_backend<digests::shake_128>>(
+            "shake_128", size,
+            [](auto const& input, std::size_t n) { return stream_of<h2::shake_128>(input, n); });
     }
-    for (std::size_t const size : {1U, 32U, 64U}) {
+    for (std::size_t const size : {1U, 64U, 135U, 136U, 137U, 300U, 1000U}) {
         agree<digests::shake_256, backends::hash2>(
             "shake_256", size,
-            [](auto const& input, std::size_t n) { return hash2_of<h2::shake_256>(input, n); });
+            [](auto const& input, std::size_t n) { return stream_of<h2::shake_256>(input, n); });
+        agree<digests::shake_256, hash::default_backend<digests::shake_256>>(
+            "shake_256", size,
+            [](auto const& input, std::size_t n) { return stream_of<h2::shake_256>(input, n); });
     }
-    std::array<std::uint8_t, 33> past_128{};
-    std::array<std::uint8_t, 65> past_256{};
-    BOOST_TEST(failed_with(hash::digest_of<digests::shake_128, backends::hash2>(past_128, message),
-                           hash::error::unsupported_by_backend));
-    BOOST_TEST(failed_with(hash::digest_of<digests::shake_256, backends::hash2>(past_256, message),
-                           hash::error::unsupported_by_backend));
-    auto hashing = hash::hasher<digests::shake_128, backends::hash2>::make();
-    test::require(BOOST_TEST(hashing.has_value()));
-    BOOST_TEST(failed_with(hashing->finish(past_128), hash::error::unsupported_by_backend));
-    BOOST_TEST(hashing->finish(std::span(past_128).first(32)).has_value());
+    // A longer output's first bytes are a shorter one's.
+    std::array<std::uint8_t, 1000> long_shake{};
+    std::array<std::uint8_t, 32> short_shake{};
+    BOOST_TEST(hash::digest_of<digests::shake_128>(long_shake, message).has_value());
+    BOOST_TEST(hash::digest_of<digests::shake_128>(short_shake, message).has_value());
+    BOOST_TEST(std::ranges::equal(short_shake, std::span(long_shake).first(32)));
 
     // BLAKE2b on backends::hash2 is partial (ruling R82): its 64-byte output, Boost.Hash2's
     // blake2b_512; a shorter one, which the family accepts, is unsupported_by_backend, before any
@@ -516,8 +534,8 @@ void check_defaults() {
     expect_default<digests::sha3_512, hash2>("sha3_512");
     expect_default<digests::ripemd_160, hash2>("ripemd_160");
     expect_default<digests::blake2s_256, hash2>("blake2s_256");
-    expect_default<digests::shake_128, xkcp>("shake_128");
-    expect_default<digests::shake_256, xkcp>("shake_256");
+    expect_default<digests::shake_128, hash2>("shake_128");
+    expect_default<digests::shake_256, hash2>("shake_256");
     expect_default<digests::keccak_224, xkcp>("keccak_224");
     expect_default<digests::keccak_256, xkcp>("keccak_256");
     expect_default<digests::keccak_384, xkcp>("keccak_384");
