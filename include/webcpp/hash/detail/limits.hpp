@@ -30,6 +30,10 @@ inline bool exceeds(std::uint64_t checked_value, std::uint64_t size_limit) noexc
     return checked_value > size_limit;
 }
 
+#ifdef WEBCPP_HASH_DETAIL_TEST_SP800_185_MAX_BYTES
+// The test seam's value; the Doc Comment is in the #else branch, the one the reference reads.
+inline constexpr std::uint64_t sp800_185_max_bytes = WEBCPP_HASH_DETAIL_TEST_SP800_185_MAX_BYTES;
+#else
 /**
  The longest string, key or fixed-length output of SP 800-185's functions, in bytes: the most
  whose length in bits a `size_t` holds, `SIZE_MAX / 8` (2^61 - 1 natively, 2^29 - 1, 512 MiB, on
@@ -38,9 +42,6 @@ inline bool exceeds(std::uint64_t checked_value, std::uint64_t size_limit) noexc
  (`input_too_long` for a string, `invalid_key_size` for a KMAC key, `invalid_output_size` for an
  output). The test seam `WEBCPP_HASH_DETAIL_TEST_SP800_185_MAX_BYTES` lowers it.
 */
-#ifdef WEBCPP_HASH_DETAIL_TEST_SP800_185_MAX_BYTES
-inline constexpr std::uint64_t sp800_185_max_bytes = WEBCPP_HASH_DETAIL_TEST_SP800_185_MAX_BYTES;
-#else
 inline constexpr std::uint64_t sp800_185_max_bytes = std::numeric_limits<std::size_t>::max() / 8;
 #endif
 

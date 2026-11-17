@@ -347,7 +347,7 @@ struct digest_traits<digests::blake2b> : fixed_output<64> {
 
  @param string_bytes The string. @return Its refusal, or success.
 */
-inline boost::system::result<void> check_sp800_185_string(
+[[nodiscard]] inline boost::system::result<void> check_sp800_185_string(
     std::span<std::uint8_t const> string_bytes) noexcept {
     if (exceeds(string_bytes.size(), sp800_185_max_bytes)) {
         return error::input_too_long;
@@ -368,7 +368,8 @@ struct cshake_traits : extendable_output {
 
      @param options The options. @return Success, or `input_too_long`.
     */
-    static boost::system::result<void> check(digest_options<Digest> const& options) noexcept {
+    [[nodiscard]] static boost::system::result<void> check(
+        digest_options<Digest> const& options) noexcept {
         auto named = check_sp800_185_string(options.function_name);
         if (!named) {
             return named;
@@ -419,7 +420,8 @@ struct sp800_185_hash_traits {
      @param options The options.
      @return Success, `invalid_parameters` or `input_too_long`.
     */
-    static boost::system::result<void> check(digest_options<Digest> const& options) noexcept {
+    [[nodiscard]] static boost::system::result<void> check(
+        digest_options<Digest> const& options) noexcept {
         if constexpr (requires { options.block_size; }) {
             if (options.block_size == 0) {
                 return error::invalid_parameters;

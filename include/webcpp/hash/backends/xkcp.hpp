@@ -110,7 +110,7 @@ struct digest_engine<backends::xkcp, digests::keccak_256> : full_engine {
 
 /**
  A digest of `digests` on backends::xkcp over FIPS 202's `Keccak_Hash` (its interface is
- @ref digest_engine): Keccak-n, SHA3-n or SHAKE, by the sponge's capacity and padding. The state
+ @ref digest_engine); Keccak-n, SHA3-n or SHAKE, by the sponge's capacity and padding. The state
  is the instance's storage, `xkcp_keccak_hash_storage`, wiped by `destroy`. A fixed-size digest
  is written by `final`; an extendable output is squeezed, `output.size()` bytes from the first.
  A refusal of XKCP's, which the family's guards leave no way to reach, is `backend_failure`.
@@ -340,7 +340,7 @@ struct xkcp_kmac256_functions {
 };
 
 /**
- cSHAKE on backends::xkcp (its interface is @ref digest_engine): XKCP's `cSHAKE_Instance` in
+ cSHAKE on backends::xkcp (its interface is @ref digest_engine); XKCP's `cSHAKE_Instance` in
  `xkcp_cshake_storage`, wiped by `destroy`. It starts in the XOF form, since cSHAKE does not
  encode the output's length, and squeezes `output.size()` bytes. The family's guards hold the
  strings within `sp800_185_max_bytes`, the adapter's only refusal at `initialize`; any other
@@ -461,7 +461,7 @@ template <class Functions, class State>
 }
 
 /**
- TupleHash on backends::xkcp (its interface is @ref digest_engine): `update` adds one element
+ TupleHash on backends::xkcp (its interface is @ref digest_engine); `update` adds one element
  to the tuple, `one_shot` hashes the tuple of one element, its input. XKCP takes an element's
  length in bits in a `size_t`: an element longer than `sp800_185_max_bytes` is
  `input_too_long`, before XKCP sees it, after which a hasher is spent and `digest_of`'s output
@@ -644,7 +644,7 @@ struct xkcp_parallelhash_engine : full_engine {
 };
 
 /**
- KMAC on backends::xkcp (its interface is @ref mac_engine): XKCP's `KMAC_Instance`, on the stack
+ KMAC on backends::xkcp (its interface is @ref mac_engine); XKCP's `KMAC_Instance`, on the stack
  and wiped. The fixed-length form starts with L = `output.size()` and writes the tag at `final`;
  the XOF form starts with 0 and squeezes it. Every key and tag size the family accepts.
 
