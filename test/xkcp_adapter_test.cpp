@@ -419,15 +419,78 @@ void check_parallelhash() {
     BOOST_TEST_EQ(to_hex(output256),
                   "cdf15289b54f6212b4bc270528b49526006dd9b54e2b6add1ef6900dda3963bb"
                   "33a72491f236969ca8afaea29c682d47a393c065b38e29fae651a2091c833110");
-    // XKCP's refusal of B = 0; the adapter's of an output or a customisation too long.
-    std::uint8_t const one = 0;
-    BOOST_TEST_NE(webcpp_hash_xkcp_parallelhash128_initialize(storage.data(), 0, 32, nullptr, 0),
+    // XKCP's refusals of a block size that is not a power of two of at least 8 bytes (the lane's
+    // size): 0, 4 (below 8) and 12 (not a power of two), on both functions; 16 is taken.
+    for (std::size_t const block_size : {std::size_t{0}, std::size_t{4}, std::size_t{12}}) {
+        BOOST_TEST_NE(
+            webcpp_hash_xkcp_parallelhash128_initialize(storage.data(), block_size, 32, nullptr, 0),
+            0);
+        BOOST_TEST_NE(
+            webcpp_hash_xkcp_parallelhash256_initialize(storage.data(), block_size, 64, nullptr, 0),
+            0);
+    }
+    BOOST_TEST_EQ(webcpp_hash_xkcp_parallelhash128_initialize(storage.data(), 16, 32, nullptr, 0),
                   0);
+    // The adapter's refusals of an output or a customisation too long for its bits.
+    std::uint8_t const one = 0;
     BOOST_TEST_NE(
         webcpp_hash_xkcp_parallelhash128_initialize(storage.data(), 8, bit_chunk + 1, nullptr, 0),
         0);
     BOOST_TEST_NE(
         webcpp_hash_xkcp_parallelhash256_initialize(storage.data(), 8, 64, &one, bit_chunk + 1), 0);
+}
+
+// The phases' refusals the Doc Comments state, on the kinds that track their phase: squeezing
+// before final, and final twice. Each starts in the XOF form, where squeeze follows final.
+template <class Storage, class Initialize, class Final, class Squeeze>
+void check_phases(char const* kind, Initialize initialize, Final final_phase, Squeeze squeeze) {
+    int const errors_before = boost::detail::test_errors();
+    Storage storage{};
+    std::array<std::uint8_t, 8> output{};
+    BOOST_TEST_EQ(initialize(storage.data()), 0);
+    BOOST_TEST_NE(squeeze(storage.data(), output.data(), output.size()), 0);
+    BOOST_TEST_EQ(final_phase(storage.data()), 0);
+    BOOST_TEST_NE(final_phase(storage.data()), 0);
+    BOOST_TEST_EQ(squeeze(storage.data(), output.data(), output.size()), 0);
+    if (boost::detail::test_errors() != errors_before) {
+        BOOST_ERROR(kind);
+    }
+}
+
+void check_phase_refusals() {
+    check_phases<detail::xkcp_kangarootwelve_storage>(
+        "kangarootwelve",
+        [](std::uint64_t* s) { return webcpp_hash_xkcp_kangarootwelve_initialize(s, 128, 0); },
+        [](std::uint64_t* s) {
+            return webcpp_hash_xkcp_kangarootwelve_final(s, nullptr, nullptr, 0);
+        },
+        webcpp_hash_xkcp_kangarootwelve_squeeze);
+    check_phases<detail::xkcp_cshake_storage>(
+        "cshake128",
+        [](std::uint64_t* s) {
+            return webcpp_hash_xkcp_cshake128_initialize(s, 0, nullptr, 0, nullptr, 0);
+        },
+        [](std::uint64_t* s) { return webcpp_hash_xkcp_cshake128_final(s, nullptr); },
+        webcpp_hash_xkcp_cshake128_squeeze);
+    check_phases<detail::xkcp_kmac_storage>(
+        "kmac256",
+        [](std::uint64_t* s) {
+            return webcpp_hash_xkcp_kmac256_initialize(s, nullptr, 0, 0, nullptr, 0);
+        },
+        [](std::uint64_t* s) { return webcpp_hash_xkcp_kmac256_final(s, nullptr); },
+        webcpp_hash_xkcp_kmac256_squeeze);
+    check_phases<detail::xkcp_tuplehash_storage>(
+        "tuplehash128",
+        [](std::uint64_t* s) { return webcpp_hash_xkcp_tuplehash128_initialize(s, 0, nullptr, 0); },
+        [](std::uint64_t* s) { return webcpp_hash_xkcp_tuplehash128_final(s, nullptr); },
+        webcpp_hash_xkcp_tuplehash128_squeeze);
+    check_phases<detail::xkcp_parallelhash_storage>(
+        "parallelhash256",
+        [](std::uint64_t* s) {
+            return webcpp_hash_xkcp_parallelhash256_initialize(s, 8, 0, nullptr, 0);
+        },
+        [](std::uint64_t* s) { return webcpp_hash_xkcp_parallelhash256_final(s, nullptr); },
+        webcpp_hash_xkcp_parallelhash256_squeeze);
 }
 
 }  // namespace
@@ -441,5 +504,6 @@ int main() {
     check_kmac();
     check_tuplehash();
     check_parallelhash();
+    check_phase_refusals();
     return webcpp::test::exit_status(boost::report_errors());
 }

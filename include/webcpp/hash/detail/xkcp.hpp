@@ -276,7 +276,7 @@ int webcpp_hash_xkcp_kangarootwelve_final(std::uint64_t* storage, unsigned char*
  @param storage The instance's storage.
  @param output Where the bytes go.
  @param length Their number.
- @return 0, or nonzero before `final`.
+ @return 0, or nonzero before `final` (a length of 0 does nothing and returns 0).
 */
 int webcpp_hash_xkcp_kangarootwelve_squeeze(std::uint64_t* storage, unsigned char* output,
                                             std::size_t length);
@@ -326,7 +326,7 @@ int webcpp_hash_xkcp_cshake128_final(std::uint64_t* storage, unsigned char* outp
  @param storage The instance's storage.
  @param output Where the bytes go.
  @param length Their number.
- @return 0, or nonzero before `final`.
+ @return 0, or nonzero before `final` (a length of 0 does nothing and returns 0).
 */
 int webcpp_hash_xkcp_cshake128_squeeze(std::uint64_t* storage, unsigned char* output,
                                        std::size_t length);
@@ -376,7 +376,7 @@ int webcpp_hash_xkcp_cshake256_final(std::uint64_t* storage, unsigned char* outp
  @param storage The instance's storage.
  @param output Where the bytes go.
  @param length Their number.
- @return 0, or nonzero before `final`.
+ @return 0, or nonzero before `final` (a length of 0 does nothing and returns 0).
 */
 int webcpp_hash_xkcp_cshake256_squeeze(std::uint64_t* storage, unsigned char* output,
                                        std::size_t length);
@@ -424,7 +424,7 @@ int webcpp_hash_xkcp_kmac128_final(std::uint64_t* storage, unsigned char* output
  @param storage The instance's storage.
  @param output Where the bytes go.
  @param length Their number.
- @return 0, or nonzero before `final`.
+ @return 0, or nonzero before `final` (a length of 0 does nothing and returns 0).
 */
 int webcpp_hash_xkcp_kmac128_squeeze(std::uint64_t* storage, unsigned char* output,
                                      std::size_t length);
@@ -472,7 +472,7 @@ int webcpp_hash_xkcp_kmac256_final(std::uint64_t* storage, unsigned char* output
  @param storage The instance's storage.
  @param output Where the bytes go.
  @param length Their number.
- @return 0, or nonzero before `final`.
+ @return 0, or nonzero before `final` (a length of 0 does nothing and returns 0).
 */
 int webcpp_hash_xkcp_kmac256_squeeze(std::uint64_t* storage, unsigned char* output,
                                      std::size_t length);
@@ -517,7 +517,7 @@ int webcpp_hash_xkcp_tuplehash128_final(std::uint64_t* storage, unsigned char* o
  @param storage The instance's storage.
  @param output Where the bytes go.
  @param length Their number.
- @return 0, or nonzero before `final`.
+ @return 0, or nonzero before `final` (a length of 0 does nothing and returns 0).
 */
 int webcpp_hash_xkcp_tuplehash128_squeeze(std::uint64_t* storage, unsigned char* output,
                                           std::size_t length);
@@ -562,7 +562,7 @@ int webcpp_hash_xkcp_tuplehash256_final(std::uint64_t* storage, unsigned char* o
  @param storage The instance's storage.
  @param output Where the bytes go.
  @param length Their number.
- @return 0, or nonzero before `final`.
+ @return 0, or nonzero before `final` (a length of 0 does nothing and returns 0).
 */
 int webcpp_hash_xkcp_tuplehash256_squeeze(std::uint64_t* storage, unsigned char* output,
                                           std::size_t length);
@@ -571,11 +571,12 @@ int webcpp_hash_xkcp_tuplehash256_squeeze(std::uint64_t* storage, unsigned char*
  Starts ParallelHash128 (`ParallelHash128_Initialize`).
 
  @param storage The instance's storage, an `xkcp_parallelhash_storage`.
- @param block_size The block size B in bytes, nonzero.
+ @param block_size The block size B in bytes: XKCP takes a power of two of at least 8 (the
+ lane's size) and refuses any other.
  @param output_length The bytes `final` writes, 0 for ParallelHashXOF128 read by `squeeze`.
  @param customisation The customisation string S.
  @param customisation_length Its length.
- @return 0, or nonzero for a block size of 0 or a length over `SIZE_MAX / 8`.
+ @return 0, or nonzero for a block size XKCP refuses or a length over `SIZE_MAX / 8`.
 */
 int webcpp_hash_xkcp_parallelhash128_initialize(std::uint64_t* storage, std::size_t block_size,
                                                 std::size_t output_length,
@@ -609,7 +610,7 @@ int webcpp_hash_xkcp_parallelhash128_final(std::uint64_t* storage, unsigned char
  @param storage The instance's storage.
  @param output Where the bytes go.
  @param length Their number.
- @return 0, or nonzero before `final`.
+ @return 0, or nonzero before `final` (a length of 0 does nothing and returns 0).
 */
 int webcpp_hash_xkcp_parallelhash128_squeeze(std::uint64_t* storage, unsigned char* output,
                                              std::size_t length);
@@ -618,11 +619,12 @@ int webcpp_hash_xkcp_parallelhash128_squeeze(std::uint64_t* storage, unsigned ch
  Starts ParallelHash256 (`ParallelHash256_Initialize`).
 
  @param storage The instance's storage, an `xkcp_parallelhash_storage`.
- @param block_size The block size B in bytes, nonzero.
+ @param block_size The block size B in bytes: XKCP takes a power of two of at least 8 (the
+ lane's size) and refuses any other.
  @param output_length The bytes `final` writes, 0 for ParallelHashXOF256 read by `squeeze`.
  @param customisation The customisation string S.
  @param customisation_length Its length.
- @return 0, or nonzero for a block size of 0 or a length over `SIZE_MAX / 8`.
+ @return 0, or nonzero for a block size XKCP refuses or a length over `SIZE_MAX / 8`.
 */
 int webcpp_hash_xkcp_parallelhash256_initialize(std::uint64_t* storage, std::size_t block_size,
                                                 std::size_t output_length,
@@ -656,7 +658,7 @@ int webcpp_hash_xkcp_parallelhash256_final(std::uint64_t* storage, unsigned char
  @param storage The instance's storage.
  @param output Where the bytes go.
  @param length Their number.
- @return 0, or nonzero before `final`.
+ @return 0, or nonzero before `final` (a length of 0 does nothing and returns 0).
 */
 int webcpp_hash_xkcp_parallelhash256_squeeze(std::uint64_t* storage, unsigned char* output,
                                              std::size_t length);
