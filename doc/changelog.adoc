@@ -26,4 +26,5 @@ of every version are on webcpp's index page.
 * Added the capability table doc/capabilities.json, with each function's default backend.
 * Added the measured tables (doc/measurements.*), a reference of 2026-11-16 that decides nothing, and allocation tests: none in hash's code.
 * Added the guide: chapters per family and per use case, an example per section, generated tables and llms.txt, and a Boost.Hash2 proposal of keccak_224 to keccak_512.
+* Changed the allocation table (doc/measurements.allocation.json, doc/allocation.adoc) to be built only from release builds of the counting programs: bench/allocation_collect.py refuses an output of any other variant and the data records its build; the counts are unchanged.
 // end::unreleased[]

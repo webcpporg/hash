@@ -18,6 +18,15 @@ case of the data file, shaped like doc/measurements.throughput.json's: operation
 target, implementation and the counts. The page's table, between the `tag::table[]` and
 `end::table[]` lines, is rendered from the data and never typed; --check fails when the page
 differs from what the data renders.
+
+The table is built only from release builds: the counting programs are bench/Jamfile's
+allocation_release and allocation_openssl_release (`b2 libs/hash/bench//allocation_release
+libs/hash/bench//allocation_openssl_release`, at variant=release, one build directory per
+target), and an output whose build directory, b2's bench/<name>.test/<toolset>/<variant>/..., is not
+variant=release, or does not say (the lanes' test/ directories included), is refused before
+anything is written. The data records the build and each target's toolset, and `--render-only` and
+`--check` refuse data whose build is not variant=release. The ordinary allocation tests of the
+lanes keep their variant and are never collected.
 """
 
 import argparse
@@ -28,7 +37,53 @@ import platform
 import sys
 
 TARGETS = ["native", "wasip2", "wasip3", "emscripten"]
+# What the table is built from, and only from: bench/Jamfile's allocation_release and
+# allocation_openssl_release, which fix variant=release themselves.
+BUILD = "variant=release"
+RELEASE_ONLY = (
+    "the table is built only from release builds: bench/Jamfile's allocation_release and "
+    "allocation_openssl_release at " + BUILD
+)
 KEPT = {"argon2id", "scrypt", "sodium_init", "hkdf", "pbkdf2"}
+
+
+def build_of(output):
+    """(toolset, variant) of an output as b2's build directory names them,
+    bench/<name>.test/<toolset>/<variant>/...;
+    None when its path does not say."""
+    parts = output.resolve().parts
+    if "bench" not in parts:
+        return None
+    last = len(parts) - 1 - parts[::-1].index("bench")
+    after = parts[last + 1 :]
+    if after and after[0].endswith(".test"):
+        after = after[1:]  # b2's directory of the run target, bench/<name>.test/
+    return (after[0], after[1]) if len(after) > 2 else None
+
+
+def check_release(outputs):
+    """Exits naming each output not built at variant=release, before anything is written."""
+    others = []
+    for target, output in outputs:
+        build = build_of(output)
+        if build is None:
+            others.append(
+                "%s=%s is not in b2's bench/<name>.test/<toolset>/<variant>/..., so its "
+                "variant cannot be read" % (target, output)
+            )
+        elif build[1] != "release":
+            others.append("%s=%s was built at variant=%s" % (target, output, build[1]))
+    if others:
+        sys.exit("allocation_collect.py: " + ", ".join(others) + ": " + RELEASE_ONLY)
+
+
+def check_data(path, data):
+    """Exits when the data was not built at variant=release."""
+    if data.get("build") != BUILD:
+        sys.exit(
+            "allocation_collect.py: %s was built with %s, not %s: %s"
+            % (path, data.get("build"), BUILD, RELEASE_ONLY)
+        )
 
 
 def parse(path):
@@ -42,35 +97,50 @@ def parse(path):
     return cases
 
 
-def collect(lanes):
+def outputs_of(lanes):
+    """The (target, output) pairs of the lanes' build directories: every program's output file,
+    the exceptions-off twins left out."""
+    return [
+        (target, output)
+        for target, directory in lanes
+        for output in sorted(
+            pathlib.Path(directory).rglob("allocation*.output"),
+            key=lambda path: ("openssl" in path.name, path.name),
+        )
+        if "no_exceptions" not in output.name
+    ]
+
+
+def collect(outputs):
     cases = []
     counted = {}
-    for target, directory in lanes:
-        for output in sorted(pathlib.Path(directory).rglob("allocation*.output")):
-            if "no_exceptions" in output.name:
-                continue
-            for record in parse(output):
-                if record["operation"] == "counter":
-                    counted[target] = record["c_counted"] == "1"
-                elif record["operation"] in KEPT:
-                    case = {
-                        "operation": record["operation"],
-                        "backend": record["backend"],
-                        "target": target,
-                        "implementation": "backends::" + record["backend"],
-                        "operator_new": int(record["new"]),
-                    }
-                    if "hmac" in record:
-                        case["hmac"] = record["hmac"]
-                        case["call"] = int(record["call"])
-                        case["openssl_allocations"] = int(record["openssl"])
-                    else:
-                        case["c_allocator_calls"] = int(record["c"])
-                        case["c_allocator_counted"] = record["counted"] == "1"
-                    cases.append(case)
+    toolsets = {}
+    for target, output in outputs:
+        toolsets[target] = build_of(output)[0]
+        for record in parse(output):
+            if record["operation"] == "counter":
+                counted[target] = record["c_counted"] == "1"
+            elif record["operation"] in KEPT:
+                case = {
+                    "operation": record["operation"],
+                    "backend": record["backend"],
+                    "target": target,
+                    "implementation": "backends::" + record["backend"],
+                    "operator_new": int(record["new"]),
+                }
+                if "hmac" in record:
+                    case["hmac"] = record["hmac"]
+                    case["call"] = int(record["call"])
+                    case["openssl_allocations"] = int(record["openssl"])
+                else:
+                    case["c_allocator_calls"] = int(record["c"])
+                    case["c_allocator_counted"] = record["counted"] == "1"
+                cases.append(case)
     return {
         "measurement": "allocations per call, native with the C allocator counted where it can be",
         "date": datetime.date.today().isoformat(),
+        "build": BUILD,
+        "toolsets": toolsets,
         "machine": {"os": platform.platform(), "cpu": platform.processor()},
         "c_allocator_counted": counted,
         "cases": cases,
@@ -137,8 +207,11 @@ def main():
     page_path = pathlib.Path(args.page)
     if not (args.render_only or args.check):
         lanes = [tuple(lane.split("=", 1)) for lane in args.lane]
-        data_path.write_text(json.dumps(collect(lanes), indent=2) + "\n")
+        outputs = outputs_of(lanes)
+        check_release(outputs)
+        data_path.write_text(json.dumps(collect(outputs), indent=2) + "\n")
     data = json.loads(data_path.read_text())
+    check_data(data_path, data)
     page = page_path.read_text()
     new = splice(page, render(data))
     if args.check:
