@@ -183,6 +183,26 @@ void check_hmac(std::string_view name) {
     }
 }
 
+// Keys at the block's boundary, where HMAC stops padding a key and starts hashing it: one byte
+// under the block, the block, one byte over (64 bytes for SHA-256, 128 for SHA-512).
+template <class Digest, class Hash>
+void check_hmac_block_keys(std::string_view name) {
+    constexpr std::size_t digest_size = typename Hash::result_type{}.size();
+    constexpr std::size_t block = Hash::block_size;
+    test::random_source random(test::agreement_seed);
+    for (std::size_t const key_size : {block - 1, block, block + 1}) {
+        auto const key = random.bytes(key_size);
+        auto const message = random.bytes(100);
+        std::vector<std::uint8_t> tag(digest_size);
+        bool const computed =
+            hash::mac<macs::hmac<Digest>, backends::sodium>(tag, key, message).has_value();
+        if (!BOOST_TEST(computed) ||
+            !BOOST_TEST(tag == hash2_hmac<Hash>(key, message, digest_size))) {
+            std::cerr << "  hmac " << name << ": a key of " << key_size << " bytes\n";
+        }
+    }
+}
+
 // RFC 4231's seven test cases on backends::sodium, and on the default (backends::hash2).
 void check_rfc4231() {
     for (auto const& vector : test::rfc4231) {
@@ -246,6 +266,8 @@ int main() {
     check_abc();
     check_hmac<digests::sha2_256, h2::sha2_256>("sha2_256");
     check_hmac<digests::sha2_512, h2::sha2_512>("sha2_512");
+    check_hmac_block_keys<digests::sha2_256, h2::sha2_256>("sha2_256");
+    check_hmac_block_keys<digests::sha2_512, h2::sha2_512>("sha2_512");
     check_rfc4231();
     check_hmac_sha512_256();
     return webcpp::test::exit_status(boost::report_errors());

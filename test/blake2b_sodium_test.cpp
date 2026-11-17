@@ -182,7 +182,7 @@ void check_generichash3() {
     }
 
     // Lines 65 to 73: a 64-byte output of the whole input. Line 66 is a null key of length 1,
-    // which libsodium reads as no key. The cases of lines 70 to 73 are libsodium's one-shot
+    // which libsodium reads as no key. The cases of lines 69 to 73 are libsodium's one-shot
     // function, the same hash.
     struct line_case {
         std::size_t line;
