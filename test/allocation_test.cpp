@@ -555,16 +555,36 @@ void for_each_tag(Check check) {
 template <class Backend, class Tag, class Key = void>
 constexpr bool runs_v = hash::backend_has_v<Backend, Tag, Key> && hash::detail::linked_v<Backend>;
 
-// digest_of and hasher on Backend (its longest output, 32 bytes for an extendable output), then
-// a refusal (an empty output): two calls.
+// The options of a family call on any backend: ParallelHash's block size, which has no default (8
+// bytes, the least XKCP takes); the defaults for every other tag.
+template <class Tag>
+hash::digest_options<Tag> family_options() {
+    if constexpr (requires(hash::digest_options<Tag> options) { options.block_size; }) {
+        return {.block_size = 8};
+    } else {
+        return {};
+    }
+}
+
+// The output size of a family call: the tag's longest for those options, 32 bytes for an
+// extendable output, at most 64 bytes (TupleHash's fixed-length form has no other bound).
+template <class Tag>
+std::size_t family_output_size() {
+    auto const longest = hash::detail::digest_traits<Tag>::max_output(family_options<Tag>());
+    return longest == hash::detail::no_limit
+               ? 32
+               : static_cast<std::size_t>(std::min(longest, std::uint64_t{64}));
+}
+
+// digest_of and hasher on Backend (family_output_size), then a refusal (an empty output): two
+// calls.
 template <class Tag, class Backend>
 void family_digest_allocates_nothing(char const* name) {
-    using traits = hash::detail::digest_traits<Tag>;
-    auto const longest = traits::max_output(hash::digest_options<Tag>{});
-    std::vector<std::uint8_t> output(longest == hash::detail::no_limit ? 32 : longest);
+    auto const options = family_options<Tag>();
+    std::vector<std::uint8_t> output(family_output_size<Tag>());
     allocates_nothing(name, [&] {
-        BOOST_TEST((hash::digest_of<Tag, Backend>(output, input).has_value()));
-        auto hashing = hash::hasher<Tag, Backend>::make();
+        BOOST_TEST((hash::digest_of<Tag, Backend>(output, input, options).has_value()));
+        auto hashing = hash::hasher<Tag, Backend>::make(options);
         BOOST_TEST(hashing.has_value());
         if (hashing) {
             BOOST_TEST(hashing->update(input.first(7)).has_value());
@@ -573,17 +593,26 @@ void family_digest_allocates_nothing(char const* name) {
         }
     });
     allocates_nothing(name, [&] {
-        BOOST_TEST(!(hash::digest_of<Tag, Backend>(std::span<std::uint8_t>{}, input)));
+        BOOST_TEST(!(hash::digest_of<Tag, Backend>(std::span<std::uint8_t>{}, input, options)));
     });
 }
 
-// mac on Backend (its longest tag, 32 bytes when it has no limit, under its shortest key), then a
-// refusal (an empty tag): two calls.
+// The tag size of a mac call: the tag's longest, 32 bytes when it has no limit, at most 64 bytes
+// (KMAC's fixed-length form has no other bound).
+template <class Tag>
+std::size_t family_tag_size() {
+    using traits = hash::detail::mac_traits<Tag>;
+    return traits::max_output == hash::detail::no_limit
+               ? 32
+               : static_cast<std::size_t>(std::min(traits::max_output, std::uint64_t{64}));
+}
+
+// mac on Backend (family_tag_size, under its shortest key), then a refusal (an empty tag): two
+// calls.
 template <class Tag, class Backend>
 void family_mac_allocates_nothing(char const* name) {
     using traits = hash::detail::mac_traits<Tag>;
-    std::vector<std::uint8_t> output(
-        traits::max_output == hash::detail::no_limit ? 32 : traits::max_output);
+    std::vector<std::uint8_t> output(family_tag_size<Tag>());
     std::vector<std::uint8_t> const key(traits::min_key, 0x0b);
     allocates_nothing(
         name, [&] { BOOST_TEST((hash::mac<Tag, Backend>(output, key, input).has_value())); });
@@ -617,12 +646,11 @@ void families_on_defaults(std::size_t expected_calls) {
     std::size_t const before = calls_made;
     for_each_tag<digest_tags>([&]<class Tag> {
         if constexpr (runs_v<hash::default_backend<Tag>, Tag>) {
-            using traits = hash::detail::digest_traits<Tag>;
-            auto const longest = traits::max_output(hash::digest_options<Tag>{});
-            std::vector<std::uint8_t> output(longest == hash::detail::no_limit ? 32 : longest);
+            auto const options = family_options<Tag>();
+            std::vector<std::uint8_t> output(family_output_size<Tag>());
             allocates_nothing("default digest", [&] {
-                BOOST_TEST((hash::digest_of<Tag>(output, input).has_value()));
-                auto hashing = hash::hasher<Tag>::make();
+                BOOST_TEST((hash::digest_of<Tag>(output, input, options).has_value()));
+                auto hashing = hash::hasher<Tag>::make(options);
                 BOOST_TEST(hashing && hashing->update(input) && hashing->finish(output));
             });
         }
@@ -630,8 +658,7 @@ void families_on_defaults(std::size_t expected_calls) {
     for_each_tag<mac_tags>([&]<class Tag> {
         if constexpr (runs_v<hash::default_backend<Tag>, Tag>) {
             using traits = hash::detail::mac_traits<Tag>;
-            std::vector<std::uint8_t> output(
-                traits::max_output == hash::detail::no_limit ? 32 : traits::max_output);
+            std::vector<std::uint8_t> output(family_tag_size<Tag>());
             std::vector<std::uint8_t> const key(traits::min_key, 0x0b);
             allocates_nothing("default mac", [&] {
                 BOOST_TEST((hash::mac<Tag>(output, key, input).has_value()));
@@ -710,11 +737,11 @@ int main() {
     argon2_family_on_sodium<hash::kdfs::argon2id>("argon2id", 1);
 #endif
     // Two calls per tag a backend has (doc/capabilities.json): hash2 17 digests and 17 MACs,
-    // xkcp and blake3 one digest each, sodium 9 digests and 4 MACs; one call per tag whose
-    // default backend has it, 19 digests and 18 MACs.
+    // xkcp 20 digests and 2 MACs, blake3 one digest, sodium 9 digests and 4 MACs; one call per
+    // tag whose default backend has it, 32 digests and 20 MACs.
     families_on<hash::backends::hash2>("hash2", 68);
 #ifdef WEBCPP_HASH_HAS_XKCP
-    families_on<hash::backends::xkcp>("xkcp", 2);
+    families_on<hash::backends::xkcp>("xkcp", 44);
 #endif
 #ifdef WEBCPP_HASH_HAS_BLAKE3
     families_on<hash::backends::blake3>("blake3", 2);
@@ -724,7 +751,7 @@ int main() {
 #endif
 #if defined(WEBCPP_HASH_HAS_XKCP) && defined(WEBCPP_HASH_HAS_BLAKE3) && \
     defined(WEBCPP_HASH_HAS_SODIUM)
-    families_on_defaults(37);
+    families_on_defaults(52);
 #endif
 #ifdef WEBCPP_HASH_HAS_BEARSSL
     all_hmacs<hash::backends::bearssl, false>("bearssl", 18);
