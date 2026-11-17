@@ -705,8 +705,10 @@ void argon2_family_on_sodium(char const* name, std::uint32_t passes) {
                                            out, input.first(20), salt, cheapest);
         BOOST_TEST(done.has_value());
         BOOST_TEST_EQ(w.news(), 0U);
-        std::printf("argon2 %s on sodium (%s), target %s: new %zu, C %zu\n", name,
-                    by_default ? "default" : "named", webcpp::test::target_name, w.news(), w.cs());
+        std::printf(
+            "record operation=argon2-family variant=%s backend=sodium call=%s target=%s "
+            "new=%zu c=%zu\n",
+            name, by_default ? "default" : "named", webcpp::test::target_name, w.news(), w.cs());
     }
     allocates_nothing(name, [&] {
         BOOST_TEST(!(hash::argon2<Variant>(out, input.first(20), salt,
