@@ -233,6 +233,14 @@ hash-run argon2id : argon2id_test.cpp
 hash-run argon2id_interactive : argon2id_interactive_test.cpp
   : <library>/third_party//sodium <library>/third_party//sodium-test-config ;
 
+# backends::sodium on a second thread after the first has used it, natively
+# and on Emscripten with -pthread, whose worker starts before main blocks in
+# join (PTHREAD_POOL_SIZE): libsodium's JavaScript random source is per thread.
+hash-run sodium_threads : sodium_threads_test.cpp
+  : <library>/third_party//sodium <threading>multi
+    <toolset>emscripten:<linkflags>-sPTHREAD_POOL_SIZE=1
+  : native emscripten ;
+
 # scrypt on backends::sodium: RFC 7914's first three cases and the guards.
 hash-run scrypt : scrypt_test.cpp : <library>/third_party//sodium ;
 # RFC 7914's fourth case (1 GiB), on every target: it passed natively and on
