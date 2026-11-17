@@ -4,20 +4,20 @@
 // accompanying file LICENSE_1_0.txt or copy at
 // https://www.boost.org/LICENSE_1_0.txt)
 
-// webcpp's code allocates nothing (spec section 7.7): the global operator new and, where the
-// target lets a program count it, the C library's allocator (support/counting.hpp) are called
-// zero times by every public function and every backend this program links: Keccak-256, BLAKE3,
-// Boost.Hash2's digests and hmacs, HKDF and PBKDF2 on hash2, libsodium (HKDF) and BearSSL; the
-// families digest_of, hasher, mac and argon2 on every backend that has a tag and on each tag's
-// default, and blake2b_subkey, on every target. A control that allocates once moves the counter, so
-// a zero is not a broken counter. Every call is counted and the totals asserted exactly per
-// backend, so a backend a wrong trait or a dropped define leaves out fails, and the refusals of
-// every guard run under the counter too. Argon2id and scrypt are the one exception, and it is
-// libsodium's: their working memory (Argon2id's matrix, 128 r N bytes of scrypt) comes from
-// libsodium's own mmap, else posix_memalign, else malloc, outside webcpp's code; the test asserts
-// only that operator new is not called, and prints the C allocator calls it saw (mmap is not among
-// the calls the counter sees, so those are libsodium's small bookkeeping blocks, not the memory).
-// Every printed result is one `record key=value ...` line, collected by
+// webcpp's code allocates nothing (spec section 7.7): the global operator new and, where the target
+// lets a program count it, the C library's allocator (support/counting.hpp) are called zero times
+// by every public function and every backend this program links: Keccak-256, the families' tags on
+// XKCP (increment 3), BLAKE3, Boost.Hash2's digests and hmacs, HKDF and PBKDF2 on hash2, libsodium
+// (HKDF) and BearSSL; the families digest_of, hasher, mac and argon2 on every backend that has a
+// tag and on each tag's default, and blake2b_subkey, on every target. A control that allocates once
+// moves the counter, so a zero is not a broken counter. Every call is counted and the totals
+// asserted exactly per backend, so a backend a wrong trait or a dropped define leaves out fails,
+// and the refusals of every guard run under the counter too. Argon2id and scrypt are the one
+// exception, and it is libsodium's: their working memory (Argon2id's matrix, 128 r N bytes of
+// scrypt) comes from libsodium's own mmap, else posix_memalign, else malloc, outside webcpp's code;
+// the test asserts only that operator new is not called, and prints the C allocator calls it saw
+// (mmap is not among the calls the counter sees, so those are libsodium's small bookkeeping blocks,
+// not the memory). Every printed result is one `record key=value ...` line, collected by
 // bench/allocation_collect.py.
 
 #include <webcpp/hash/algorithms.hpp>
@@ -33,7 +33,10 @@
 #include <webcpp/hash/scrypt.hpp>
 
 #ifdef WEBCPP_HASH_HAS_XKCP
+#include <webcpp/hash/backends/xkcp.hpp>
+#include <webcpp/hash/digest.hpp>
 #include <webcpp/hash/keccak.hpp>
+#include <webcpp/hash/mac.hpp>
 #endif
 #ifdef WEBCPP_HASH_HAS_BLAKE3
 #include <webcpp/hash/blake3.hpp>
@@ -51,6 +54,7 @@
 
 #include "support/counting.hpp"
 
+#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -346,6 +350,101 @@ void keccak() {
     });
     BOOST_TEST_EQ(calls_made - before, 1U);
 }
+
+// A tag of digests on backends::xkcp (increment 3), its output `size` bytes: digest_of and a hasher
+// from make to finish.
+template <class Digest>
+void xkcp_digest_hashes(std::size_t size, hash::digest_options<Digest> const& options) {
+    std::array<std::uint8_t, 64> output{};
+    std::span<std::uint8_t> const digest(output.data(), size);
+    BOOST_TEST((hash::digest_of<Digest, hash::backends::xkcp>(digest, input, options).has_value()));
+    auto hashing = hash::hasher<Digest, hash::backends::xkcp>::make(options);
+    BOOST_TEST(hashing.has_value());
+    if (hashing) {
+        BOOST_TEST(hashing->update(input.first(40)).has_value());
+        BOOST_TEST(hashing->update(input.subspan(40)).has_value());
+        BOOST_TEST(hashing->finish(digest).has_value());
+    }
+}
+
+// The same tag's refusals: an empty output, and a second finish.
+template <class Digest>
+void xkcp_digest_refuses(std::size_t size, hash::digest_options<Digest> const& options) {
+    std::array<std::uint8_t, 64> output{};
+    std::span<std::uint8_t> const digest(output.data(), size);
+    BOOST_TEST(
+        !(hash::digest_of<Digest, hash::backends::xkcp>(std::span<std::uint8_t>{}, input, options)
+              .has_value()));
+    auto hashing = hash::hasher<Digest, hash::backends::xkcp>::make(options);
+    BOOST_TEST(hashing.has_value());
+    if (hashing) {
+        BOOST_TEST(hashing->finish(digest).has_value());
+        BOOST_TEST(!hashing->finish(digest).has_value());
+    }
+}
+
+// A tag of digests on backends::xkcp: its hashes (1), then its refusals (1), at its longest output
+// up to 64 bytes.
+template <class Digest>
+void xkcp_digest_allocates_nothing(char const* name,
+                                   hash::digest_options<Digest> const& options = {}) {
+    using traits = hash::detail::digest_traits<Digest>;
+    auto const size =
+        static_cast<std::size_t>(std::min(traits::max_output(options), std::uint64_t{64}));
+    allocates_nothing(name, [&] { xkcp_digest_hashes<Digest>(size, options); });
+    allocates_nothing(name, [&] { xkcp_digest_refuses<Digest>(size, options); });
+}
+
+// A tag of macs on backends::xkcp: a tag (1), and the refusal of a tag shorter than 4 bytes (1).
+template <class Mac>
+void xkcp_mac_allocates_nothing(char const* name) {
+    allocates_nothing(name, [] {
+        std::array<std::uint8_t, 32> tag{};
+        BOOST_TEST((hash::mac<Mac, hash::backends::xkcp>(tag, input.first(16), input).has_value()));
+        BOOST_TEST((hash::mac<Mac, hash::backends::xkcp>(tag, input.first(16), input, {.xof = true})
+                        .has_value()));
+    });
+    allocates_nothing(name, [] {
+        std::array<std::uint8_t, 3> tag{};
+        BOOST_TEST(
+            !(hash::mac<Mac, hash::backends::xkcp>(tag, input.first(16), input).has_value()));
+    });
+}
+
+// Increment 3's entry points, the families' tags on backends::xkcp: 20 digests and 2 MACs, two
+// windows each.
+void xkcp_families() {
+    namespace digests = hash::digests;
+    std::size_t const before = calls_made;
+    std::array<std::uint8_t, 7> const label{'w', 'e', 'b', 'c', 'p', 'p', '!'};
+    xkcp_digest_allocates_nothing<digests::keccak_224>("keccak_224 on xkcp");
+    xkcp_digest_allocates_nothing<digests::keccak_256>("keccak_256 on xkcp");
+    xkcp_digest_allocates_nothing<digests::keccak_384>("keccak_384 on xkcp");
+    xkcp_digest_allocates_nothing<digests::keccak_512>("keccak_512 on xkcp");
+    xkcp_digest_allocates_nothing<digests::sha3_224>("sha3_224 on xkcp");
+    xkcp_digest_allocates_nothing<digests::sha3_256>("sha3_256 on xkcp");
+    xkcp_digest_allocates_nothing<digests::sha3_384>("sha3_384 on xkcp");
+    xkcp_digest_allocates_nothing<digests::sha3_512>("sha3_512 on xkcp");
+    xkcp_digest_allocates_nothing<digests::shake_128>("shake_128 on xkcp");
+    xkcp_digest_allocates_nothing<digests::shake_256>("shake_256 on xkcp");
+    xkcp_digest_allocates_nothing<digests::cshake_128>(
+        "cshake_128", {.function_name = label, .customisation = label});
+    xkcp_digest_allocates_nothing<digests::cshake_256>("cshake_256", {.customisation = label});
+    xkcp_digest_allocates_nothing<digests::tuplehash_128>("tuplehash_128",
+                                                          {.customisation = label});
+    xkcp_digest_allocates_nothing<digests::tuplehash_256>("tuplehash_256", {.xof = true});
+    xkcp_digest_allocates_nothing<digests::parallelhash_128>(
+        "parallelhash_128", {.block_size = 8, .customisation = label});
+    xkcp_digest_allocates_nothing<digests::parallelhash_256>("parallelhash_256",
+                                                             {.block_size = 16, .xof = true});
+    xkcp_digest_allocates_nothing<digests::kt128>("kt128", {.customisation = label});
+    xkcp_digest_allocates_nothing<digests::kt256>("kt256");
+    xkcp_digest_allocates_nothing<digests::turboshake_128>("turboshake_128", {.domain = 0x0B});
+    xkcp_digest_allocates_nothing<digests::turboshake_256>("turboshake_256");
+    xkcp_mac_allocates_nothing<hash::macs::kmac_128>("kmac_128");
+    xkcp_mac_allocates_nothing<hash::macs::kmac_256>("kmac_256");
+    BOOST_TEST_EQ(calls_made - before, 44U);
+}
 #endif
 
 #ifdef WEBCPP_HASH_HAS_BLAKE3
@@ -597,6 +696,7 @@ int main() {
     all_hmacs<hash::backends::hash2>("hash2", 128);
 #ifdef WEBCPP_HASH_HAS_XKCP
     keccak();
+    xkcp_families();
 #endif
 #ifdef WEBCPP_HASH_HAS_BLAKE3
     blake3();

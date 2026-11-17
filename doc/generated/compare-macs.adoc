@@ -41,6 +41,20 @@
 | recommended
 | no
 
+| <<hash-kmac,`macs::kmac_128`>>
+| any length from 4 bytes (32 bits, SP 800-185 section 8.4.2)
+| 128-bit security with a key of at least 16 bytes (SP 800-185, section 8.4)
+| NIST SP 800-185, section 4
+| recommended
+| no
+
+| <<hash-kmac,`macs::kmac_256`>>
+| any length from 4 bytes (32 bits, SP 800-185 section 8.4.2)
+| 256-bit security with a key of at least 32 bytes (SP 800-185, section 8.4)
+| NIST SP 800-185, section 4
+| recommended
+| no
+
 | <<hash-hmac,`hmac`>>
 | the digest of H
 | that of H's digest, with a key as long as it
@@ -295,6 +309,18 @@
 | -
 | link:https://doc.libsodium.org/hashing/short-input_hashing[libsodium's short-input hashing]; link:https://github.com/veorq/SipHash[the SipHash reference implementation's 128-bit output]
 | For a 128-bit SipHash, as a libsodium program computes it: a large table, a filter or an identifier keyed against flooding; siphash_2_4 for 64 bits.
+
+| <<hash-kmac,`macs::kmac_128`>>
+| -
+| -
+| link:https://doi.org/10.6028/NIST.SP.800-56Cr2[A MAC and a KDF of NIST SP 800-56C (KMAC-based key derivation)]
+| Where a standard or a format names KMAC; HMAC-SHA-256 elsewhere, which every platform has.
+
+| <<hash-kmac,`macs::kmac_256`>>
+| -
+| -
+| link:https://doi.org/10.6028/NIST.SP.800-56Cr2[A MAC and a KDF of NIST SP 800-56C (KMAC-based key derivation)]
+| As KMAC128, where a format asks for 256-bit security.
 
 | <<hash-hmac,`hmac`>>
 | 599 MiB/s (hash2)

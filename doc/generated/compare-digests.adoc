@@ -230,10 +230,87 @@
 | recommended
 | no
 
+| <<hash-keccak,`digests::keccak_224`>>
+| 224 bits
+| 112-bit collision resistance
+| Keccak (the SHA-3 submission's padding)
+| legacy
+| no
+
 | <<hash-digest-family,`digests::keccak_256`>>
 | 256 bits
 | 128-bit collision resistance
 | Keccak (the SHA-3 submission's padding), as Ethereum uses it
+| recommended
+| no
+
+| <<hash-keccak,`digests::keccak_384`>>
+| 384 bits
+| 192-bit collision resistance
+| Keccak (the SHA-3 submission's padding)
+| legacy
+| no
+
+| <<hash-keccak,`digests::keccak_512`>>
+| 512 bits
+| 256-bit collision resistance
+| Keccak (the SHA-3 submission's padding)
+| legacy
+| no
+
+| <<hash-sp800-185,`digests::cshake_128`>>
+| any length from 1 byte
+| 128-bit security (SP 800-185, section 8.1)
+| NIST SP 800-185, section 3
+| recommended
+| no
+
+| <<hash-sp800-185,`digests::cshake_256`>>
+| any length from 1 byte
+| 256-bit security (SP 800-185, section 8.1)
+| NIST SP 800-185, section 3
+| recommended
+| no
+
+| <<hash-sp800-185,`digests::tuplehash_128`>>
+| any length from 1 byte; fixed-length or XOF form
+| 128-bit security (SP 800-185, section 8.1)
+| NIST SP 800-185, section 5
+| recommended
+| no
+
+| <<hash-sp800-185,`digests::tuplehash_256`>>
+| any length from 1 byte; fixed-length or XOF form
+| 256-bit security (SP 800-185, section 8.1)
+| NIST SP 800-185, section 5
+| recommended
+| no
+
+| <<hash-sp800-185,`digests::parallelhash_128`>>
+| any length from 1 byte; fixed-length or XOF form
+| 128-bit security (SP 800-185, section 8.1)
+| NIST SP 800-185, section 6
+| recommended
+| no
+
+| <<hash-sp800-185,`digests::parallelhash_256`>>
+| any length from 1 byte; fixed-length or XOF form
+| 256-bit security (SP 800-185, section 8.1)
+| NIST SP 800-185, section 6
+| recommended
+| no
+
+| <<hash-kangarootwelve,`digests::kt128`>>
+| any length
+| up to 128 bits, as SHAKE128, and half the output length for collisions (RFC 9861, section 7)
+| RFC 9861
+| recommended
+| no
+
+| <<hash-kangarootwelve,`digests::kt256`>>
+| any length
+| up to 256 bits, as SHAKE256, and half the output length for collisions (RFC 9861, section 7)
+| RFC 9861
 | recommended
 | no
 
@@ -500,11 +577,77 @@
 | link:https://ethereum.github.io/yellowpaper/paper.pdf[Ethereum's addresses, transaction ids and state]; link:https://eips.ethereum.org/EIPS/eip-55[EIP-55's checksummed addresses]
 | For Ethereum and every format that names Keccak-256; never in place of SHA3-256.
 
+| <<hash-keccak,`digests::keccak_224`>>
+| -
+| -
+| link:https://keccak.team/files/Keccak-reference-3.0.pdf[The Keccak team's final SHA-3 submission, before FIPS 202 changed the padding]
+| Only where a format names Keccak-224, the padding before FIPS 202; SHA3-224 for anything new.
+
 | <<hash-digest-family,`digests::keccak_256`>>
 | -
 | -
 | link:https://ethereum.github.io/yellowpaper/paper.pdf[Ethereum's addresses, transaction ids and state]; link:https://eips.ethereum.org/EIPS/eip-55[EIP-55's checksummed addresses]
 | To name the backend in the call, or to hash in pieces with a result that cannot be taken twice; keccak_256 itself for hash_append and Boost.Hash2's other functions.
+
+| <<hash-keccak,`digests::keccak_384`>>
+| -
+| -
+| link:https://keccak.team/files/Keccak-reference-3.0.pdf[The Keccak team's final SHA-3 submission, before FIPS 202 changed the padding]
+| Only where a format names Keccak-384, the padding before FIPS 202; SHA3-384 for anything new.
+
+| <<hash-keccak,`digests::keccak_512`>>
+| -
+| -
+| link:https://keccak.team/files/Keccak-reference-3.0.pdf[The Keccak team's final SHA-3 submission, before FIPS 202 changed the padding]
+| Only where a format names Keccak-512, the padding before FIPS 202; SHA3-512 for anything new.
+
+| <<hash-sp800-185,`digests::cshake_128`>>
+| -
+| -
+| link:https://doi.org/10.6028/NIST.SP.800-185[The building block of KMAC, TupleHash and ParallelHash in NIST SP 800-185]
+| When two uses of one hash must never give the same output for the same input: each takes its own customisation string.
+
+| <<hash-sp800-185,`digests::cshake_256`>>
+| -
+| -
+| link:https://doi.org/10.6028/NIST.SP.800-185[The building block of KMAC, TupleHash and ParallelHash in NIST SP 800-185]
+| As cSHAKE128, where a format asks for 256-bit security.
+
+| <<hash-sp800-185,`digests::tuplehash_128`>>
+| -
+| -
+| link:https://doi.org/10.6028/NIST.SP.800-185[NIST SP 800-185, the SHA-3 derived functions]
+| To hash several fields together without an encoding of your own: ("ab", "c") and ("a", "bc") never collide, as a plain concatenation does.
+
+| <<hash-sp800-185,`digests::tuplehash_256`>>
+| -
+| -
+| link:https://doi.org/10.6028/NIST.SP.800-185[NIST SP 800-185, the SHA-3 derived functions]
+| As TupleHash128, where a format asks for 256-bit security.
+
+| <<hash-sp800-185,`digests::parallelhash_128`>>
+| -
+| -
+| link:https://doi.org/10.6028/NIST.SP.800-185[NIST SP 800-185, the SHA-3 derived functions]
+| Where a format names ParallelHash and its block size; for a fast hash of large files without such a format, BLAKE3 or KT128.
+
+| <<hash-sp800-185,`digests::parallelhash_256`>>
+| -
+| -
+| link:https://doi.org/10.6028/NIST.SP.800-185[NIST SP 800-185, the SHA-3 derived functions]
+| As ParallelHash128, where a format asks for 256-bit security.
+
+| <<hash-kangarootwelve,`digests::kt128`>>
+| -
+| -
+| link:https://www.rfc-editor.org/rfc/rfc9861#section-6[IANA's COSE algorithms (KT128, -263) and named information hashes (k12-256)]
+| For a fast hash of large files or a hash with an application's customisation string, where no format names SHA-2 or SHA-3; BLAKE3 is the other fast choice.
+
+| <<hash-kangarootwelve,`digests::kt256`>>
+| -
+| -
+| link:https://www.rfc-editor.org/rfc/rfc9861#section-6[IANA's COSE algorithms (KT256, -264) and named information hashes (k12-512)]
+| As KT128, where a format asks for 256-bit security.
 
 | <<hash-blake2,`blake2b_512`>>
 | 1,617 MiB/s (hash2)

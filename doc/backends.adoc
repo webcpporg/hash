@@ -23,7 +23,7 @@ states about its constant time. The backends:
 | native, wasip2, wasip3, emscripten
 
 | xkcp
-| XKCP's Keccak-p[1600] at d20c8fc
+| XKCP at d20c8fc: its Keccak-p[1600], FIPS 202's Keccak_Hash, SP 800-185's functions, KangarooTwelve and TurboSHAKE
 | CC0-1.0
 | `/third_party//xkcp`
 | native, wasip2, wasip3, emscripten
@@ -209,8 +209,20 @@ states about its constant time. The backends:
 | not stated
 | native, wasip2, wasip3, emscripten
 
+| digests::sha3_224
+| xkcp
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
 | digests::sha3_256
 | hash2
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| digests::sha3_256
+| xkcp
 | -
 | not stated
 | native, wasip2, wasip3, emscripten
@@ -227,8 +239,20 @@ states about its constant time. The backends:
 | not stated
 | native, wasip2, wasip3, emscripten
 
+| digests::sha3_384
+| xkcp
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
 | digests::sha3_512
 | hash2
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| digests::sha3_512
+| xkcp
 | -
 | not stated
 | native, wasip2, wasip3, emscripten
@@ -241,6 +265,12 @@ states about its constant time. The backends:
 
 | digests::shake_128
 | hash2
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| digests::shake_128
+| xkcp
 | -
 | not stated
 | native, wasip2, wasip3, emscripten
@@ -253,6 +283,12 @@ states about its constant time. The backends:
 
 | digests::shake_256
 | hash2
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| digests::shake_256
+| xkcp
 | -
 | not stated
 | native, wasip2, wasip3, emscripten
@@ -264,7 +300,19 @@ states about its constant time. The backends:
 | native, wasip2, wasip3, emscripten
 
 | digests::turboshake_128
+| xkcp
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| digests::turboshake_128
 | sodium
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| digests::turboshake_256
+| xkcp
 | -
 | not stated
 | native, wasip2, wasip3, emscripten
@@ -281,7 +329,73 @@ states about its constant time. The backends:
 | not stated
 | native, wasip2, wasip3, emscripten
 
+| digests::keccak_224
+| xkcp
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
 | digests::keccak_256
+| xkcp
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| digests::keccak_384
+| xkcp
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| digests::keccak_512
+| xkcp
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| digests::cshake_128
+| xkcp
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| digests::cshake_256
+| xkcp
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| digests::tuplehash_128
+| xkcp
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| digests::tuplehash_256
+| xkcp
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| digests::parallelhash_128
+| xkcp (partial: a block size that is not a power of two of at least 8 bytes; SP 800-185 takes any from 1)
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| digests::parallelhash_256
+| xkcp (partial: a block size that is not a power of two of at least 8 bytes; SP 800-185 takes any from 1)
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| digests::kt128
+| xkcp
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| digests::kt256
 | xkcp
 | -
 | not stated
@@ -386,6 +500,18 @@ states about its constant time. The backends:
 
 | macs::siphash_2_4x
 | sodium
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| macs::kmac_128
+| xkcp
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| macs::kmac_256
+| xkcp
 | -
 | not stated
 | native, wasip2, wasip3, emscripten
@@ -822,7 +948,40 @@ The backend a call that names none uses, on every target, whatever the program l
 | digests::turboshake_256
 | xkcp
 
+| digests::keccak_224
+| xkcp
+
 | digests::keccak_256
+| xkcp
+
+| digests::keccak_384
+| xkcp
+
+| digests::keccak_512
+| xkcp
+
+| digests::cshake_128
+| xkcp
+
+| digests::cshake_256
+| xkcp
+
+| digests::tuplehash_128
+| xkcp
+
+| digests::tuplehash_256
+| xkcp
+
+| digests::parallelhash_128
+| xkcp
+
+| digests::parallelhash_256
+| xkcp
+
+| digests::kt128
+| xkcp
+
+| digests::kt256
 | xkcp
 
 | digests::blake2b
@@ -845,6 +1004,12 @@ The backend a call that names none uses, on every target, whatever the program l
 
 | macs::siphash_2_4x
 | sodium
+
+| macs::kmac_128
+| xkcp
+
+| macs::kmac_256
+| xkcp
 
 | macs::hmac<digests::md5>
 | hash2
@@ -924,7 +1089,9 @@ The backend a call that names none uses, on every target, whatever the program l
 What each backend's upstream states, and where:
 
 * hash2: not stated. Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property.
-* xkcp: not stated. XKCP at d20c8fc: README.markdown and lib/low/KeccakP-1600 state no constant-time property.
+* xkcp: not stated. XKCP at d20c8fc: README.markdown, lib/low/KeccakP-1600 and lib/high/Keccak (KeccakSponge, FIPS202/KeccakHash) state no constant-time property.
+* xkcp: not stated. XKCP at d20c8fc: README.markdown, lib/low/KeccakP-1600 and lib/high (KangarooTwelve, TurboSHAKE, Keccak/KeccakSponge) state no constant-time property.
+* xkcp: not stated. XKCP at d20c8fc: README.markdown, lib/low/KeccakP-1600 and lib/high/Keccak (KeccakSponge, FIPS202/KeccakHash, SP800-185) state no constant-time property.
 * blake3: not stated. BLAKE3 1.8.7: README.md and c/README.md state no constant-time property.
 * sodium: not stated. libsodium 1.0.22: its headers state constant time for comparisons (sodium/utils.h) alone, not for its hashing, MAC, key derivation and password hashing functions (crypto_hash_*, crypto_xof_*, crypto_generichash_*, crypto_shorthash_*, crypto_auth_*, crypto_kdf_*, crypto_pwhash_*).
 * bearssl: not stated. BearSSL at webcpp::crypto's pin: bearssl_hmac.h states constant time for br_hmac_outCT alone; br_hkdf_* (src/kdf/hkdf.c) calls br_hmac_out.

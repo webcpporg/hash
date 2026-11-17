@@ -110,6 +110,46 @@ them.
 
 include::generated/backends-siphash.adoc[]
 
+[#hash-kmac]
+=== KMAC
+
+KMAC (NIST SP 800-185, section 4) is a MAC built on cSHAKE, the SHA-3
+family's own: where HMAC wraps a hash twice around the key to protect it from
+the hash's structure, KMAC needs no wrapping, since SHA-3's sponge already
+keeps its state hidden. It takes a key, the message and a customisation
+string that separates one application's tags from another's under the same
+key, and gives a tag of any length; NIST's key derivation (SP 800-56C) uses it
+too. Like TupleHash, it has a fixed-length form, which encodes the tag's
+length, and an XOF form, KMACXOF, which does not. `macs::kmac_128` and
+`macs::kmac_256` are tags of `mac` (<<hash-mac-family>>), on
+`backends::xkcp`, their default; a program links `/third_party//xkcp`.
+
+[source]
+----
+include::{examples}/kmac.cpp[tag=example,indent=0]
+----
+
+[listing]
+----
+include::{examples}/kmac.expected[]
+----
+
+*Pitfalls.*
+
+* *Compare with `webcpp::crypto::equal`.* As for every tag (<<hash-hmac>>).
+* *The key sets the strength.* SP 800-185 (section 8.4.1) forbids a key
+shorter than the security the application needs: 16 bytes for KMAC128, 32
+for KMAC256. `mac` takes any key, the empty one included, as the standard
+defines it; choose its size.
+* *At least 4 bytes of tag.* SP 800-185 (section 8.4.2) forbids a tag of
+fewer than 32 bits and asks for a careful analysis below 64; `mac` refuses a
+tag under 4 bytes with `invalid_output_size`. Prefer 16 bytes or more.
+* *The form is part of the tag.* KMAC128 and KMACXOF128 of the same inputs
+differ, and a fixed-length tag of 16 bytes is not the start of one of 32:
+the receiver uses the sender's form and length.
+
+include::generated/backends-kmac.adoc[]
+
 [#hash-mac-family]
 === A MAC in one call: `mac`
 

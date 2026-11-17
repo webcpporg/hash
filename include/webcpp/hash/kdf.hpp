@@ -216,6 +216,87 @@ inline constexpr bool backend_has_v<backends::hash2, digests::blake2b, void> = t
 template <>
 inline constexpr bool backend_has_v<backends::xkcp, digests::keccak_256, void> = true;
 
+/** backends::xkcp has `digests::keccak_224` (XKCP's FIPS 202's `Keccak_Hash` with Keccak's
+ * padding). */
+template <>
+inline constexpr bool backend_has_v<backends::xkcp, digests::keccak_224, void> = true;
+
+/** backends::xkcp has `digests::keccak_384` (XKCP's FIPS 202's `Keccak_Hash` with Keccak's
+ * padding). */
+template <>
+inline constexpr bool backend_has_v<backends::xkcp, digests::keccak_384, void> = true;
+
+/** backends::xkcp has `digests::keccak_512` (XKCP's FIPS 202's `Keccak_Hash` with Keccak's
+ * padding). */
+template <>
+inline constexpr bool backend_has_v<backends::xkcp, digests::keccak_512, void> = true;
+
+/** backends::xkcp has `digests::sha3_224` (XKCP's FIPS 202's `Keccak_Hash`). */
+template <>
+inline constexpr bool backend_has_v<backends::xkcp, digests::sha3_224, void> = true;
+
+/** backends::xkcp has `digests::sha3_256` (XKCP's FIPS 202's `Keccak_Hash`). */
+template <>
+inline constexpr bool backend_has_v<backends::xkcp, digests::sha3_256, void> = true;
+
+/** backends::xkcp has `digests::sha3_384` (XKCP's FIPS 202's `Keccak_Hash`). */
+template <>
+inline constexpr bool backend_has_v<backends::xkcp, digests::sha3_384, void> = true;
+
+/** backends::xkcp has `digests::sha3_512` (XKCP's FIPS 202's `Keccak_Hash`). */
+template <>
+inline constexpr bool backend_has_v<backends::xkcp, digests::sha3_512, void> = true;
+
+/** backends::xkcp has `digests::shake_128` (XKCP's FIPS 202's `Keccak_Hash`, any output size). */
+template <>
+inline constexpr bool backend_has_v<backends::xkcp, digests::shake_128, void> = true;
+
+/** backends::xkcp has `digests::shake_256` (XKCP's FIPS 202's `Keccak_Hash`, any output size). */
+template <>
+inline constexpr bool backend_has_v<backends::xkcp, digests::shake_256, void> = true;
+
+/** backends::xkcp has `digests::cshake_128` (XKCP's SP 800-185 `cSHAKE128`, any output size). */
+template <>
+inline constexpr bool backend_has_v<backends::xkcp, digests::cshake_128, void> = true;
+
+/** backends::xkcp has `digests::cshake_256` (XKCP's SP 800-185 `cSHAKE256`, any output size). */
+template <>
+inline constexpr bool backend_has_v<backends::xkcp, digests::cshake_256, void> = true;
+
+/** backends::xkcp has `digests::tuplehash_128` (XKCP's SP 800-185 `TupleHash128`, both forms). */
+template <>
+inline constexpr bool backend_has_v<backends::xkcp, digests::tuplehash_128, void> = true;
+
+/** backends::xkcp has `digests::tuplehash_256` (XKCP's SP 800-185 `TupleHash256`, both forms). */
+template <>
+inline constexpr bool backend_has_v<backends::xkcp, digests::tuplehash_256, void> = true;
+
+/** backends::xkcp has `digests::parallelhash_128` (XKCP's SP 800-185 `ParallelHash128`, both forms;
+ * a block size that is a power of two of at least 8 bytes). */
+template <>
+inline constexpr bool backend_has_v<backends::xkcp, digests::parallelhash_128, void> = true;
+
+/** backends::xkcp has `digests::parallelhash_256` (XKCP's SP 800-185 `ParallelHash256`, both forms;
+ * a block size that is a power of two of at least 8 bytes). */
+template <>
+inline constexpr bool backend_has_v<backends::xkcp, digests::parallelhash_256, void> = true;
+
+/** backends::xkcp has `digests::kt128` (XKCP's `KangarooTwelve` at 128 bits, any output size). */
+template <>
+inline constexpr bool backend_has_v<backends::xkcp, digests::kt128, void> = true;
+
+/** backends::xkcp has `digests::kt256` (XKCP's `KangarooTwelve` at 256 bits, any output size). */
+template <>
+inline constexpr bool backend_has_v<backends::xkcp, digests::kt256, void> = true;
+
+/** backends::xkcp has `digests::turboshake_128` (XKCP's `TurboSHAKE`, any output size and D). */
+template <>
+inline constexpr bool backend_has_v<backends::xkcp, digests::turboshake_128, void> = true;
+
+/** backends::xkcp has `digests::turboshake_256` (XKCP's `TurboSHAKE`, any output size and D). */
+template <>
+inline constexpr bool backend_has_v<backends::xkcp, digests::turboshake_256, void> = true;
+
 /** backends::blake3 has `digests::blake3` (BLAKE3's C implementation), with its extendable output.
  */
 template <>
@@ -364,6 +445,14 @@ inline constexpr bool backend_has_v<backends::sodium, macs::hmac<digests::sha2_5
 */
 template <>
 inline constexpr bool backend_has_v<backends::hash2, macs::blake2s_mac, void> = true;
+
+/** backends::xkcp has `macs::kmac_128` (XKCP's SP 800-185 `KMAC128`, both forms). */
+template <>
+inline constexpr bool backend_has_v<backends::xkcp, macs::kmac_128, void> = true;
+
+/** backends::xkcp has `macs::kmac_256` (XKCP's SP 800-185 `KMAC256`, both forms). */
+template <>
+inline constexpr bool backend_has_v<backends::xkcp, macs::kmac_256, void> = true;
 
 namespace detail {
 

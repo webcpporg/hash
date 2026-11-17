@@ -119,13 +119,27 @@ them roughly twice as fast with the same claimed security (128 and 256
 bits; RFC 9861, sections 1 and 7). They are extendable-output functions, as
 SHAKE is, and take one parameter more: a domain separation byte D, from 0x01
 to 0x7F (0x1F by default), absorbed after the message, so that each value is
-another function. A program that hashes several kinds of things gives each kind its
-own byte, and a value of one kind never stands for a value of another.
-TurboSHAKE is also the inner function of KangarooTwelve (KT128 and KT256),
-the same RFC's tree hash. `digest_of` and `hasher` take the byte in
-`digest_options<digests::turboshake_128>` (or `_256`); `backends::sodium`,
-libsodium's `crypto_xof_turboshake128` and `crypto_xof_turboshake256`, has
-both today, and a call names it.
+another function. A program that hashes several kinds of things gives each
+kind its own byte, and a value of one kind never stands for a value of
+another. TurboSHAKE is also the inner function of KangarooTwelve
+(<<hash-kangarootwelve>>). `digest_of` and `hasher` take the byte in
+`digest_options<digests::turboshake_128>` (or `_256`), on `backends::xkcp`,
+their default, XKCP's own TurboSHAKE code, for which a program links
+`/third_party//xkcp`; or on `backends::sodium`, libsodium's
+`crypto_xof_turboshake128` and `crypto_xof_turboshake256`, named in the
+call. Both give the same bytes.
+
+[source]
+----
+include::{examples}/kangarootwelve.cpp[tag=turboshake,indent=0]
+----
+
+[listing]
+----
+include::{examples}/kangarootwelve.expected[lines=4..5]
+----
+
+The same function on libsodium, named in the call:
 
 [source]
 ----
@@ -144,19 +158,66 @@ bytes for the same message: a format that names SHAKE128 needs SHAKE128
 (<<hash-sha3>>).
 * *The domain byte is part of the function.* Both sides of a protocol use
 the same byte for the same purpose; a byte outside 0x01 to 0x7F is refused
-(`invalid_parameters`), on every backend, although libsodium itself would
-accept it, since RFC 9861 allows that range alone.
+(`invalid_parameters`) before any backend sees it, on every backend,
+although libsodium would accept it and XKCP would take any byte but 0,
+since RFC 9861 allows that range alone.
 * *The output's length is the caller's security choice,* as for SHAKE: 32
 bytes of TurboSHAKE128 give 128-bit security, 16 bytes give only 64-bit
 collision resistance.
-* *The default backend comes with XKCP.* The default of both tags is
-`backends::xkcp`, the first backend of the order that has them once
-increment 3 lands; until then a call names `backends::sodium`.
 
 include::generated/backends-turboshake.adoc[]
 
+[#hash-kangarootwelve]
+=== KangarooTwelve (KT128 and KT256)
+
+KT128 and KT256 (RFC 9861) are KangarooTwelve, the Keccak team's fast hash
+of large inputs: a tree over TurboSHAKE (<<hash-turboshake>>) that cuts its
+input in chunks of 8,192 bytes, hashes each chunk on its own and hashes the
+results, so that an implementation can hash a large file on several cores
+or vector units, as ParallelHash does (<<hash-sp800-185>>), but faster and
+with no block size to choose (RFC 9861, section 1). An input of up to
+8,192 bytes is one TurboSHAKE call, so a short message costs little more.
+Both are extendable-output functions with the security of SHAKE128 and
+SHAKE256 (RFC 9861, section 7), and take a customisation string C, as
+cSHAKE does: an application gives each of its uses its own string, and the
+outputs are unrelated. They are tags of `digest_of` and `hasher`
+(<<hash-digest-family>>), on `backends::xkcp`, their default: XKCP's own
+KangarooTwelve code, which computes the chunks one after another. A
+program links `/third_party//xkcp`.
+
+[source]
+----
+include::{examples}/kangarootwelve.cpp[tag=example,indent=0]
+----
+
+[listing]
+----
+include::{examples}/kangarootwelve.expected[]
+----
+
+*Pitfalls.*
+
+* *A hasher reads C at `finish`.* KangarooTwelve absorbs the customisation
+string after the message, and `hasher` keeps the span `make` took instead of
+copying it (no allocation): the bytes stay alive and unchanged until
+`finish`, or the digest is another one or the read is a dangling one.
+`digest_of` reads C during the call.
+* *C is part of the function.* KT128 with "app/v1" and KT128 with "app/v2"
+are unrelated; an empty C is the RFC's default, and the 32-byte KT128 of a
+message with no C is what IANA's "k12-256" names.
+* *KT128 is not ParallelHash or BLAKE3.* Each tree hash gives its own
+bytes: a format names one, and a file's KT128 never matches another's
+ParallelHash128.
+* *The output's length is the caller's security choice,* as for SHAKE:
+32 bytes of KT128 give 128-bit security, 64 bytes of KT256 256-bit.
+* *32-bit XKCP counts chunks in a `size_t`.* On wasm32 a message and C past
+a little under 32 TiB together would wrap XKCP's count into a wrong digest;
+they are refused (`input_too_long`) before XKCP sees them.
+
+include::generated/backends-kangarootwelve.adoc[]
+
 [#hash-keccak]
-=== Keccak-256
+=== Keccak
 
 Keccak-256 is Keccak as its authors submitted it to the SHA-3 competition,
 before NIST changed the padding for FIPS 202. Ethereum adopted it before the
@@ -184,10 +245,96 @@ against 0x06, and give unrelated digests. A library that offers "SHA3" for
 Ethereum, or "Keccak" for a FIPS 202 format, computes a value nobody else
 computes, and the mistake shows only as an address or a signature that does
 not match. Use `keccak_256` exactly where a format says Keccak-256.
-* *Keccak-224, Keccak-384 and Keccak-512* are not in this increment; their
-proposal to Boost.Hash2 is in <<hash-upstream>>.
+
+Keccak-224, Keccak-384 and Keccak-512, the submission's other sizes, are tags
+of `digest_of` and `hasher` (<<hash-digest-family>>): `digests::keccak_224`,
+`digests::keccak_384` and `digests::keccak_512`, on `backends::xkcp`, which
+runs XKCP's FIPS 202 code (`Keccak_Hash`) with Keccak's padding. The same
+backend, named in the call, computes SHA3-224 to SHA3-512 and SHAKE128 and
+SHAKE256, any number of bytes of SHAKE's stream; XKCP's own test vectors
+(the ShortMsgKAT files) and Boost.Hash2 give the same values.
+
+[source]
+----
+include::{examples}/keccak_family.cpp[tag=example,indent=0]
+----
+
+[listing]
+----
+include::{examples}/keccak_family.expected[]
+----
+
+*Pitfalls.*
+
+* *The tag names the padding.* `digests::keccak_512` and
+`digests::sha3_512` differ as `keccak_256` and `sha3_256` do: one byte of
+padding, unrelated digests. Keccak-224 to Keccak-512 are found in formats
+written before FIPS 202, rarely since; a new format takes SHA-3.
+* *Keccak-224, Keccak-384 and Keccak-512 have no Hash2-form type* here: their
+proposal to Boost.Hash2 is in <<hash-upstream>>, and until it lands they are
+reached through their tags alone.
 
 include::generated/backends-keccak-256.adoc[]
+
+[#hash-sp800-185]
+=== cSHAKE, TupleHash and ParallelHash (SP 800-185)
+
+NIST SP 800-185 builds three hashes on SHAKE, each for a job a plain digest
+does badly. *cSHAKE* is SHAKE with a customisation string: an application
+that hashes the same data for two purposes, an identifier and a checksum,
+gives each purpose its own string, and the two outputs are unrelated, so that
+a value computed for one can never be passed off as the other. *TupleHash*
+hashes a list of byte strings, a record's fields, so that the bounds between
+them count: a signing app that hashes `name` then `amount` by plain
+concatenation gives ("ab", "c") and ("a", "bc") the same digest, and an
+attacker who controls one field can move bytes across the bound; TupleHash
+encodes each field's length and cannot be fooled that way. *ParallelHash*
+cuts a long input in blocks of B bytes, hashes each block on its own and
+hashes the results, so that a large file can be hashed on several cores
+(`backends::xkcp` computes the blocks one after another); the block size is
+part of the function. All three come in a 128-bit and a 256-bit
+strength (SP 800-185, section 8.1) and give any number of bytes; TupleHash and
+ParallelHash have a fixed-length form, which encodes the output's length so
+that their 32-byte and 64-byte digests are unrelated, and an XOF form, which
+does not. They are tags of `digest_of` and `hasher`
+(<<hash-digest-family>>), on `backends::xkcp`, their default: XKCP's own
+SP 800-185 code. A program links `/third_party//xkcp`.
+
+[source]
+----
+include::{examples}/sp800_185.cpp[tag=example,indent=0]
+----
+
+[listing]
+----
+include::{examples}/sp800_185.expected[]
+----
+
+*Pitfalls.*
+
+* *A TupleHash hasher takes one element per `update`.* Feeding a field in
+two pieces makes two elements and another digest; `digest_of` hashes the
+tuple of one element, its input. The empty tuple (no `update`) and the tuple
+of one empty element differ.
+* *The form is part of the digest.* TupleHash128 and TupleHashXOF128 of the
+same input differ at every length, and so do the two forms of ParallelHash;
+the fixed-length form's 32-byte digest is not the start of its 64-byte one.
+Choose the form the format names, with `.xof`.
+* *ParallelHash's block size has no default.* SP 800-185 leaves B to the
+application, and a digest under another B is another digest: the call states
+it (`.block_size`; 0 is `invalid_parameters`). XKCP takes a power of two of at
+least 8 bytes and answers any other with `unsupported_by_backend`, NIST's
+samples with B = 12 included; 8192 is common for large files.
+* *The function name is NIST's.* cSHAKE's `function_name` is reserved for
+functions NIST defines on it; an application separates its uses with
+`customisation`. With both empty, cSHAKE is SHAKE.
+* *Lengths in bits.* SP 800-185 counts every string in bits, which XKCP holds
+in a `size_t`: on wasm32 a customisation, a TupleHash element, a
+ParallelHash input (all its pieces together) or a fixed-length output past
+512 MiB is refused (`input_too_long`, `invalid_output_size`) before XKCP sees
+it, rather than hashed into a wrong digest.
+
+include::generated/backends-sp800-185.adoc[]
 
 [#hash-blake2]
 === BLAKE2

@@ -56,6 +56,40 @@ namespace webcpp::hash {
 template <class Mac>
 struct mac_options {};
 
+/**
+ KMAC128's parameters (NIST SP 800-185, section 4): the customisation string S, which separates
+ one application's tags from another's under the same key, and the form, fixed-length or
+ extendable-output (KMACXOF128).
+
+ @code
+ std::array<std::uint8_t, 32> tag{};
+ auto done = webcpp::hash::mac<webcpp::hash::macs::kmac_128>(
+     tag, key, message, {.customisation = app_name});
+ @endcode
+
+ The fixed-length form encodes the tag's length L, so that its tags of 16 and 32 bytes are
+ unrelated; the XOF form encodes none, and its shorter tag is the start of its longer. S is at
+ most `SIZE_MAX / 8` bytes (`input_too_long`), and is read during the call and not kept.
+*/
+template <>
+struct mac_options<macs::kmac_128> {
+    /** The customisation string S. */
+    std::span<std::uint8_t const> customisation = {};
+
+    /** The extendable-output form, KMACXOF128, in place of the fixed-length one. */
+    bool xof = false;
+};
+
+/** KMAC256's parameters, as KMAC128's (@ref mac_options<macs::kmac_128>). */
+template <>
+struct mac_options<macs::kmac_256> {
+    /** The customisation string S. */
+    std::span<std::uint8_t const> customisation = {};
+
+    /** The extendable-output form, KMACXOF256, in place of the fixed-length one. */
+    bool xof = false;
+};
+
 namespace detail {
 
 /**
@@ -92,8 +126,8 @@ inline constexpr std::uint64_t hmac_min_output = 10;
 /**
  The family's guards of a tag of `macs`, in one place (spec 2.15): `min_output` and `max_output`
  (`invalid_output_size` outside them), `min_key` and `max_key` (`invalid_key_size`), and
- `check(options)`, the options' own guards. Every tag of `macs` has a specialisation; the increment
- that gives a tag options adds their check to it.
+ `check(options)`, the options' own guards (`input_too_long` for KMAC's customisation). Every tag of
+ `macs` has a specialisation; the increment that gives a tag options adds their check to it.
 
  The primary template, reached only by a type that is not a tag, guards nothing: the engine's
  refusal is then the call's only error.
@@ -121,11 +155,39 @@ template <class Digest>
 struct mac_traits<macs::hmac<Digest>>
     : mac_sizes<hmac_min_output, hmac_max_output<Digest>, 0, no_limit> {};
 
+/** The shortest KMAC tag `mac` gives: 4 bytes, SP 800-185 section 8.4.2's 32 bits. */
+inline constexpr std::uint64_t kmac_min_output = 4;
+
+/**
+ KMAC's guards (SP 800-185, section 4): a tag of at least 4 bytes, since section 8.4.2 forbids a
+ MAC of fewer than 32 bits (as `mac` holds HMAC to RFC 2104's 80), and a key of any size, each at
+ most `sp800_185_max_bytes`, the most whose length in bits a `size_t` holds
+ (`invalid_output_size`, `invalid_key_size`); a customisation of at most as many bytes
+ (`input_too_long`).
+
+ @tparam Mac `macs::kmac_128` or `macs::kmac_256`.
+*/
+template <class Mac>
+struct kmac_traits : mac_sizes<kmac_min_output, sp800_185_max_bytes, 0, sp800_185_max_bytes> {
+    /**
+     Checks the customisation.
+
+     @param options The options. @return Success, or `input_too_long`.
+    */
+    static boost::system::result<void> check(mac_options<Mac> const& options) noexcept {
+        return check_sp800_185_string(options.customisation);
+    }
+};
+
+/** KMAC128 (SP 800-185): any key, a tag from 4 bytes; its customisation checked. */
+template <>
+struct mac_traits<macs::kmac_128> : kmac_traits<macs::kmac_128> {};
+
+/** KMAC256 (SP 800-185): any key, a tag from 4 bytes; its customisation checked. */
+template <>
+struct mac_traits<macs::kmac_256> : kmac_traits<macs::kmac_256> {};
+
 // clang-format off
-/** KMAC128 (SP 800-185): a key of any size, a tag of any size from 1 byte. */
-template <> struct mac_traits<macs::kmac_128> : mac_sizes<1, no_limit, 0, no_limit> {};
-/** KMAC256 (SP 800-185): a key of any size, a tag of any size from 1 byte. */
-template <> struct mac_traits<macs::kmac_256> : mac_sizes<1, no_limit, 0, no_limit> {};
 /** SipHash-2-4: a 16-byte key, an 8-byte tag. */
 template <> struct mac_traits<macs::siphash_2_4> : mac_sizes<8, 8, 16, 16> {};
 /** SipHash-2-4 with a 16-byte tag: a 16-byte key. */

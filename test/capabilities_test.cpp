@@ -468,16 +468,23 @@ names family_rows() {
 }
 
 // Where Backend has the digest and the program links it, digest_of and hasher compile and run on
-// it, over an output of the digest's size (32 bytes for an extendable output).
+// it, over an output of the digest's size, or of 64 bytes (at most the backend's longest) for a
+// function whose output may be longer.
 template <class Tag, class Backend>
 void call_digest(std::string_view name) {
     if constexpr (hash::backend_has_v<Backend, Tag, void> && hash::detail::linked_v<Backend>) {
         using traits = hash::detail::digest_traits<Tag>;
-        auto const longest = traits::max_output(hash::digest_options<Tag>{});
-        std::vector<std::uint8_t> output(longest == hash::detail::no_limit ? 32 : longest);
+        // The default options, but for ParallelHash's block size, which has no default.
+        hash::digest_options<Tag> options{};
+        if constexpr (requires { options.block_size; }) {
+            options.block_size = 8;
+        }
+        auto const longest = traits::max_output(options);
+        std::vector<std::uint8_t> output(std::min(
+            {longest, hash::detail::digest_engine<Backend, Tag>::max_output, std::uint64_t{64}}));
         std::array<std::uint8_t, 3> const input{0x61, 0x62, 0x63};
-        bool const once = hash::digest_of<Tag, Backend>(output, input).has_value();
-        auto hashing = hash::hasher<Tag, Backend>::make();
+        bool const once = hash::digest_of<Tag, Backend>(output, input, options).has_value();
+        auto hashing = hash::hasher<Tag, Backend>::make(options);
         bool const pieces =
             hashing && hashing->update(input) && hashing->finish(output).has_value();
         if (!BOOST_TEST(once && pieces)) {
@@ -487,13 +494,12 @@ void call_digest(std::string_view name) {
 }
 
 // Where Backend has the MAC and the program links it, mac compiles and runs on it, with its
-// longest tag (32 bytes when it has no limit) and its shortest key.
+// longest tag (at most 64 bytes) and its shortest key.
 template <class Tag, class Backend>
 void call_mac(std::string_view name) {
     if constexpr (hash::backend_has_v<Backend, Tag, void> && hash::detail::linked_v<Backend>) {
         using traits = hash::detail::mac_traits<Tag>;
-        std::vector<std::uint8_t> output(
-            traits::max_output == hash::detail::no_limit ? 32 : traits::max_output);
+        std::vector<std::uint8_t> output(std::min(traits::max_output, std::uint64_t{64}));
         std::vector<std::uint8_t> const key(traits::min_key, 0x0b);
         std::array<std::uint8_t, 3> const input{0x61, 0x62, 0x63};
         if (!BOOST_TEST((hash::mac<Tag, Backend>(output, key, input).has_value()))) {

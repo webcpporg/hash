@@ -955,6 +955,147 @@
             ],
             "choose": "To name the backend in the call, or to hash in pieces with a result that cannot be taken twice; keccak_256 itself for hash_append and Boost.Hash2's other functions."
         },
+        "digests::keccak_224": {
+            "standard": "Keccak (the SHA-3 submission's padding)",
+            "summary": "Keccak-224 with the original padding, the SHA-3 submission's 224-bit hash; not SHA3-224, as the tag of digest_of and hasher: one call, or pieces with one final result, on any backend that has it.",
+            "output": "224 bits",
+            "security": "112-bit collision resistance",
+            "status": "legacy",
+            "webcrypto": null,
+            "anchor": "hash-keccak",
+            "uses": [
+                {"text": "The Keccak team's final SHA-3 submission, before FIPS 202 changed the padding", "source": "https://keccak.team/files/Keccak-reference-3.0.pdf"}
+            ],
+            "choose": "Only where a format names Keccak-224, the padding before FIPS 202; SHA3-224 for anything new."
+        },
+        "digests::keccak_384": {
+            "standard": "Keccak (the SHA-3 submission's padding)",
+            "summary": "Keccak-384 with the original padding, the SHA-3 submission's 384-bit hash; not SHA3-384, as the tag of digest_of and hasher: one call, or pieces with one final result, on any backend that has it.",
+            "output": "384 bits",
+            "security": "192-bit collision resistance",
+            "status": "legacy",
+            "webcrypto": null,
+            "anchor": "hash-keccak",
+            "uses": [
+                {"text": "The Keccak team's final SHA-3 submission, before FIPS 202 changed the padding", "source": "https://keccak.team/files/Keccak-reference-3.0.pdf"}
+            ],
+            "choose": "Only where a format names Keccak-384, the padding before FIPS 202; SHA3-384 for anything new."
+        },
+        "digests::keccak_512": {
+            "standard": "Keccak (the SHA-3 submission's padding)",
+            "summary": "Keccak-512 with the original padding, the SHA-3 submission's 512-bit hash; not SHA3-512, as the tag of digest_of and hasher: one call, or pieces with one final result, on any backend that has it.",
+            "output": "512 bits",
+            "security": "256-bit collision resistance",
+            "status": "legacy",
+            "webcrypto": null,
+            "anchor": "hash-keccak",
+            "uses": [
+                {"text": "The Keccak team's final SHA-3 submission, before FIPS 202 changed the padding", "source": "https://keccak.team/files/Keccak-reference-3.0.pdf"}
+            ],
+            "choose": "Only where a format names Keccak-512, the padding before FIPS 202; SHA3-512 for anything new."
+        },
+        "digests::cshake_128": {
+            "standard": "NIST SP 800-185, section 3",
+            "summary": "cSHAKE128, SHAKE128 with a function name and a customisation string that separate its uses, as the tag of digest_of and hasher: one call, or pieces with one final result, on any backend that has it.",
+            "output": "any length from 1 byte",
+            "security": "128-bit security (SP 800-185, section 8.1)",
+            "status": "recommended",
+            "webcrypto": null,
+            "anchor": "hash-sp800-185",
+            "uses": [
+                {"text": "The building block of KMAC, TupleHash and ParallelHash in NIST SP 800-185", "source": "https://doi.org/10.6028/NIST.SP.800-185"}
+            ],
+            "choose": "When two uses of one hash must never give the same output for the same input: each takes its own customisation string."
+        },
+        "digests::cshake_256": {
+            "standard": "NIST SP 800-185, section 3",
+            "summary": "cSHAKE256, SHAKE256 with a function name and a customisation string that separate its uses, as the tag of digest_of and hasher: one call, or pieces with one final result, on any backend that has it.",
+            "output": "any length from 1 byte",
+            "security": "256-bit security (SP 800-185, section 8.1)",
+            "status": "recommended",
+            "webcrypto": null,
+            "anchor": "hash-sp800-185",
+            "uses": [
+                {"text": "The building block of KMAC, TupleHash and ParallelHash in NIST SP 800-185", "source": "https://doi.org/10.6028/NIST.SP.800-185"}
+            ],
+            "choose": "As cSHAKE128, where a format asks for 256-bit security."
+        },
+        "digests::tuplehash_128": {
+            "standard": "NIST SP 800-185, section 5",
+            "summary": "TupleHash128, the hash of a tuple of byte strings in which the bounds between the strings count, as the tag of digest_of (a tuple of one string) and hasher (one update per string).",
+            "output": "any length from 1 byte; fixed-length or XOF form",
+            "security": "128-bit security (SP 800-185, section 8.1)",
+            "status": "recommended",
+            "webcrypto": null,
+            "anchor": "hash-sp800-185",
+            "uses": [
+                {"text": "NIST SP 800-185, the SHA-3 derived functions", "source": "https://doi.org/10.6028/NIST.SP.800-185"}
+            ],
+            "choose": "To hash several fields together without an encoding of your own: (\"ab\", \"c\") and (\"a\", \"bc\") never collide, as a plain concatenation does."
+        },
+        "digests::tuplehash_256": {
+            "standard": "NIST SP 800-185, section 5",
+            "summary": "TupleHash256, the hash of a tuple of byte strings in which the bounds between the strings count, as the tag of digest_of (a tuple of one string) and hasher (one update per string).",
+            "output": "any length from 1 byte; fixed-length or XOF form",
+            "security": "256-bit security (SP 800-185, section 8.1)",
+            "status": "recommended",
+            "webcrypto": null,
+            "anchor": "hash-sp800-185",
+            "uses": [
+                {"text": "NIST SP 800-185, the SHA-3 derived functions", "source": "https://doi.org/10.6028/NIST.SP.800-185"}
+            ],
+            "choose": "As TupleHash128, where a format asks for 256-bit security."
+        },
+        "digests::parallelhash_128": {
+            "standard": "NIST SP 800-185, section 6",
+            "summary": "ParallelHash128, a hash of long inputs cut in blocks of B bytes that are hashed independently, as the tag of digest_of and hasher; the block size is part of the function.",
+            "output": "any length from 1 byte; fixed-length or XOF form",
+            "security": "128-bit security (SP 800-185, section 8.1)",
+            "status": "recommended",
+            "webcrypto": null,
+            "anchor": "hash-sp800-185",
+            "uses": [
+                {"text": "NIST SP 800-185, the SHA-3 derived functions", "source": "https://doi.org/10.6028/NIST.SP.800-185"}
+            ],
+            "choose": "Where a format names ParallelHash and its block size; for a fast hash of large files without such a format, BLAKE3 or KT128."
+        },
+        "digests::parallelhash_256": {
+            "standard": "NIST SP 800-185, section 6",
+            "summary": "ParallelHash256, a hash of long inputs cut in blocks of B bytes that are hashed independently, as the tag of digest_of and hasher; the block size is part of the function.",
+            "output": "any length from 1 byte; fixed-length or XOF form",
+            "security": "256-bit security (SP 800-185, section 8.1)",
+            "status": "recommended",
+            "webcrypto": null,
+            "anchor": "hash-sp800-185",
+            "uses": [
+                {"text": "NIST SP 800-185, the SHA-3 derived functions", "source": "https://doi.org/10.6028/NIST.SP.800-185"}
+            ],
+            "choose": "As ParallelHash128, where a format asks for 256-bit security."
+        },
+        "digests::kt128": {
+            "summary": "KT128 (KangarooTwelve), an extendable-output tree hash over TurboSHAKE128 that cuts long inputs in chunks of 8,192 bytes, with a customisation string, as the tag of digest_of and hasher.",
+            "output": "any length",
+            "security": "up to 128 bits, as SHAKE128, and half the output length for collisions (RFC 9861, section 7)",
+            "status": "recommended",
+            "webcrypto": null,
+            "anchor": "hash-kangarootwelve",
+            "uses": [
+                {"text": "IANA's COSE algorithms (KT128, -263) and named information hashes (k12-256)", "source": "https://www.rfc-editor.org/rfc/rfc9861#section-6"}
+            ],
+            "choose": "For a fast hash of large files or a hash with an application's customisation string, where no format names SHA-2 or SHA-3; BLAKE3 is the other fast choice."
+        },
+        "digests::kt256": {
+            "summary": "KT256 (KangarooTwelve), an extendable-output tree hash over TurboSHAKE256 that cuts long inputs in chunks of 8,192 bytes, with a customisation string, as the tag of digest_of and hasher.",
+            "output": "any length",
+            "security": "up to 256 bits, as SHAKE256, and half the output length for collisions (RFC 9861, section 7)",
+            "status": "recommended",
+            "webcrypto": null,
+            "anchor": "hash-kangarootwelve",
+            "uses": [
+                {"text": "IANA's COSE algorithms (KT256, -264) and named information hashes (k12-512)", "source": "https://www.rfc-editor.org/rfc/rfc9861#section-6"}
+            ],
+            "choose": "As KT128, where a format asks for 256-bit security."
+        },
         "digests::blake2b": {
             "summary": "BLAKE2b (RFC 7693), a digest of 1 to 64 bytes faster than SHA-2 in software, with an optional key, salt and personalisation, as the tag of digest_of and hasher: one call, or pieces with one final result.",
             "output": "1 to 64 bytes, chosen before hashing",
@@ -1214,6 +1355,32 @@
                 {"text": "the SipHash reference implementation's 128-bit output", "source": "https://github.com/veorq/SipHash"}
             ],
             "choose": "For a 128-bit SipHash, as a libsodium program computes it: a large table, a filter or an identifier keyed against flooding; siphash_2_4 for 64 bits."
+        },
+        "macs::kmac_128": {
+            "standard": "NIST SP 800-185, section 4",
+            "summary": "KMAC128, the MAC built on cSHAKE128 with a key and a customisation string, as the tag of mac: the tag of a message under a key in one call, fixed-length or XOF form.",
+            "output": "any length from 4 bytes (32 bits, SP 800-185 section 8.4.2)",
+            "security": "128-bit security with a key of at least 16 bytes (SP 800-185, section 8.4)",
+            "status": "recommended",
+            "webcrypto": null,
+            "anchor": "hash-kmac",
+            "uses": [
+                {"text": "A MAC and a KDF of NIST SP 800-56C (KMAC-based key derivation)", "source": "https://doi.org/10.6028/NIST.SP.800-56Cr2"}
+            ],
+            "choose": "Where a standard or a format names KMAC; HMAC-SHA-256 elsewhere, which every platform has."
+        },
+        "macs::kmac_256": {
+            "standard": "NIST SP 800-185, section 4",
+            "summary": "KMAC256, the MAC built on cSHAKE256 with a key and a customisation string, as the tag of mac: the tag of a message under a key in one call, fixed-length or XOF form.",
+            "output": "any length from 4 bytes (32 bits, SP 800-185 section 8.4.2)",
+            "security": "256-bit security with a key of at least 32 bytes (SP 800-185, section 8.4)",
+            "status": "recommended",
+            "webcrypto": null,
+            "anchor": "hash-kmac",
+            "uses": [
+                {"text": "A MAC and a KDF of NIST SP 800-56C (KMAC-based key derivation)", "source": "https://doi.org/10.6028/NIST.SP.800-56Cr2"}
+            ],
+            "choose": "As KMAC128, where a format asks for 256-bit security."
         },
         "macs::blake2s_mac": {
             "summary": "BLAKE2s keyed with a key of 1 to 32 bytes (RFC 7693), as the tag of mac: the tag of a message under a key in one call, on any backend that has it.",
