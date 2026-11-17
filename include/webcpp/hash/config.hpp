@@ -80,16 +80,21 @@
 #endif
 // clang-format on
 
+// The backends' tags. webcpp::crypto has tags of the same names in webcpp::crypto::backends, and
+// a program that uses both libraries (design D1 of crypto) sees both: clang-tidy's
+// bugprone-forward-declaration-namespace then takes a tag this translation unit does not use,
+// or one whose library is not linked here, for a declaration in the wrong namespace. Each library
+// names its own backends on purpose, so the three tags crypto shares are exempt.
 namespace webcpp::hash::backends {
 
 /** webcpp's own HKDF and PBKDF2 over Boost.Hash2's `hmac<H>`, on every target. */
 struct hash2;
 /** libsodium, built from its sources by `/third_party//sodium`. */
-struct sodium;
+struct sodium;  // NOLINT(bugprone-forward-declaration-namespace)
 /** BearSSL, built from its sources by `/third_party//bearssl`. */
-struct bearssl;
+struct bearssl;  // NOLINT(bugprone-forward-declaration-namespace)
 /** OpenSSL 3.5, built from its pinned sources, named by `/webcpp/hash//openssl`. */
-struct openssl;
+struct openssl;  // NOLINT(bugprone-forward-declaration-namespace)
 
 }  // namespace webcpp::hash::backends
 
