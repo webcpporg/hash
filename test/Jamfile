@@ -26,6 +26,7 @@ webcpp.headers-alone hash : ../include :
     hash/algorithms.hpp
     hash/argon2.hpp
     hash/backends/hash2.hpp
+    hash/blake2b_subkey.hpp
     hash/config.hpp
     hash/detail/engines.hpp
     hash/detail/limits.hpp
@@ -138,6 +139,37 @@ hash-run hkdf_hash2 : hkdf_hash2_test.cpp ;
 hash-run hkdf_guards : hkdf_guards_test.cpp ;
 hash-run wipe : wipe_test.cpp : <define>WEBCPP_HASH_DETAIL_TEST_WIPE_RECORD ;
 
+# digests::blake2b on backends::sodium, libsodium's crypto_generichash_blake2b
+# with key, salt, personalisation and output size: BLAKE2's keyed and unkeyed
+# vectors and libsodium's generichash3.exp, read at run time; the guards.
+hash-run blake2b_sodium : blake2b_sodium_test.cpp
+  : <library>/third_party//sodium <library>/third_party//blake2_vectors
+    <library>/third_party//sodium_vectors <library>/webcpp//boost_json ;
+
+# macs::siphash_2_4 and macs::siphash_2_4x on backends::sodium, libsodium's
+# crypto_shorthash_siphash24 and crypto_shorthash_siphashx24: the SipHash
+# paper's vectors (libsodium's shorthash.exp), which backends::hash2 and
+# siphash_64 also give, and siphashx24.exp, read at run time; the guards.
+hash-run siphash_sodium : siphash_sodium_test.cpp
+  : <library>/third_party//sodium <library>/third_party//sodium_vectors ;
+
+# blake2b_subkey on backends::sodium, libsodium's
+# crypto_kdf_blake2b_derive_from_key: kdf.exp read at run time, the
+# construction through digest_of, ids past 32 bits, the guards.
+hash-run kdf_blake2b_sodium : kdf_blake2b_sodium_test.cpp
+  : <library>/third_party//sodium <library>/third_party//sodium_vectors ;
+
+# SHAKE128/256 and TurboSHAKE128/256 on backends::sodium, libsodium's
+# crypto_xof_*: RFC 9861's TurboSHAKE vectors, FIPS 202's SHAKE examples,
+# Boost.Hash2's SHAKE past one rate block, TurboSHAKE's domain byte.
+hash-run xof_sodium : xof_sodium_test.cpp : <library>/third_party//sodium ;
+
+# SHA-256, SHA-512, SHA3-256, SHA3-512 and HMAC over SHA-256 and SHA-512 on
+# backends::sodium: Boost.Hash2 on random inputs, RFC 4231, and libsodium's
+# HMAC-SHA-512-256 as HMAC-SHA-512 cut to 32 bytes.
+hash-run digests_sodium : digests_sodium_test.cpp
+  : <library>/third_party//sodium ;
+
 # HKDF on backends::sodium, over libsodium's crypto_kdf_hkdf_sha256 and
 # crypto_kdf_hkdf_sha512: RFC 5869's A.1 to A.3, a SHA-512 case that
 # backends::hash2 agrees with, the guards of spec 2.8, the empty inputs, and
@@ -238,6 +270,13 @@ hash-run argon2id : argon2id_test.cpp
 hash-run argon2id_interactive : argon2id_interactive_test.cpp
   : <library>/third_party//sodium <library>/third_party//sodium-test-config ;
 
+# The family argon2 on backends::sodium (Argon2i and Argon2id, one lane):
+# three cases of libsodium's Argon2i table, read from pwhash_argon2i.exp, both
+# variants against argon2_ctx, and the values libsodium does not take.
+hash-run argon2_sodium : argon2_sodium_test.cpp
+  : <library>/third_party//sodium <library>/third_party//sodium-test-config
+    <library>/third_party//sodium_vectors ;
+
 # scrypt on backends::sodium: RFC 7914's first three cases and the guards.
 hash-run scrypt : scrypt_test.cpp : <library>/third_party//sodium ;
 # RFC 7914's fourth case (1 GiB), on every target: it passed natively and on
@@ -304,9 +343,9 @@ hash-run capabilities_emscripten : capabilities_test.cpp
 
 # No allocation in webcpp's code (spec section 7.7): operator new and, where
 # the target counts it, the C library's allocator are called zero times by
-# every public function and backend, on every target (a control moves the
-# counter). Argon2id and scrypt allocate inside libsodium and are asserted
-# free of operator new only. Each library's functions are exercised where it
+# every public function and backend, the families included, on every target
+# (a control moves the counter). Argon2 and scrypt allocate inside libsodium
+# and are asserted free of operator new only. Each library's functions are exercised where it
 # is linked.
 # On WASI the C allocator is counted through the linker's --wrap
 # (support/counting.hpp), for the references of this program and its libraries.

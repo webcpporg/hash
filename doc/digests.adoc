@@ -101,8 +101,59 @@ most 128-bit security however much is taken, and a short output gives less:
 Boost.Hash2 defines it; a program that wants bytes 32 to 63 takes them from
 the first block, not from a second call.
 * *SHA3-256 is not Keccak-256.* The padding differs (<<hash-keccak>>).
+* *libsodium has SHA3-256, SHA3-512 and both SHAKEs too.* `digest_of` and
+`hasher` reach them with `backends::sodium` named in the call (libsodium's
+`crypto_hash_sha3256`, `crypto_hash_sha3512` and `crypto_xof_shake*`, every
+output size), as they reach its SHA-256 and SHA-512 (<<hash-digest-family>>);
+the bytes are the same on every backend.
 
 include::generated/backends-sha3-shake.adoc[]
+
+[#hash-turboshake]
+=== TurboSHAKE
+
+TurboSHAKE128 and TurboSHAKE256 (RFC 9861, 2025, from the Keccak team) are
+SHAKE128 and SHAKE256 with half the rounds: the same sponge over the same
+1,600-bit state, its permutation run 12 rounds instead of 24, which makes
+them roughly twice as fast with the same claimed security (128 and 256
+bits; RFC 9861, sections 1 and 7). They are extendable-output functions, as
+SHAKE is, and take one parameter more: a domain separation byte D, from 0x01
+to 0x7F (0x1F by default), absorbed after the message, so that each value is
+another function. A program that hashes several kinds of things gives each kind its
+own byte, and a value of one kind never stands for a value of another.
+TurboSHAKE is also the inner function of KangarooTwelve (KT128 and KT256),
+the same RFC's tree hash. `digest_of` and `hasher` take the byte in
+`digest_options<digests::turboshake_128>` (or `_256`); `backends::sodium`,
+libsodium's `crypto_xof_turboshake128` and `crypto_xof_turboshake256`, has
+both today, and a call names it.
+
+[source]
+----
+include::{examples}/turboshake.cpp[tag=example,indent=0]
+----
+
+[listing]
+----
+include::{examples}/turboshake.expected[]
+----
+
+*Pitfalls.*
+
+* *TurboSHAKE is not SHAKE.* With 12 rounds instead of 24 it gives other
+bytes for the same message: a format that names SHAKE128 needs SHAKE128
+(<<hash-sha3>>).
+* *The domain byte is part of the function.* Both sides of a protocol use
+the same byte for the same purpose; a byte outside 0x01 to 0x7F is refused
+(`invalid_parameters`), on every backend, although libsodium itself would
+accept it, since RFC 9861 allows that range alone.
+* *The output's length is the caller's security choice,* as for SHAKE: 32
+bytes of TurboSHAKE128 give 128-bit security, 16 bytes give only 64-bit
+collision resistance.
+* *The default backend comes with XKCP.* The default of both tags is
+`backends::xkcp`, the first backend of the order that has them once
+increment 3 lands; until then a call names `backends::sodium`.
+
+include::generated/backends-turboshake.adoc[]
 
 [#hash-keccak]
 === Keccak-256
@@ -169,11 +220,52 @@ most 64 bytes (32 for BLAKE2s).
 parameter block also carries a salt, a personalisation string (16 bytes for
 BLAKE2b, 8 for BLAKE2s) and the digest's length; Boost.Hash2's types fix them,
 so a digest cut to 32 bytes is not BLAKE2b-256, which encodes its length in
-its parameters. libsodium's `crypto_generichash`, which has them all, comes
-to hash in a later increment; until then a format that names BLAKE2b-256 or a
-personalisation cannot be computed with `blake2b_512`.
+its parameters. For BLAKE2b-256, or a salt or a personalisation, use
+`digests::blake2b` (<<hash-blake2b-options>>).
 
 include::generated/backends-blake2.adoc[]
+
+[#hash-blake2b-options]
+=== BLAKE2b with a key, a salt, a personalisation and a length
+
+RFC 7693 defines BLAKE2b with four parameters besides the message, each
+written into the block that starts the hash, so that each choice is a
+different function: the output's length (1 to 64 bytes), a key (up to 64
+bytes, which makes it a MAC), a salt and a personalisation (16 bytes each).
+`digest_of` and `hasher` over the tag `digests::blake2b` take all four in
+`digest_options<digests::blake2b>`; the default backend, `backends::sodium`,
+is libsodium's generic hash, `crypto_generichash`. A chat app that hashes
+message ids, attachment ids and contact keys personalises each kind, so that
+a value of one kind never stands for a value of another; a format such as
+Zcash's transaction ids (https://zips.z.cash/zip-0244[ZIP 244]) names
+BLAKE2b-256 with a personalisation of its own.
+
+[source]
+----
+include::{examples}/blake2b_options.cpp[tag=example,indent=0]
+----
+
+[listing]
+----
+include::{examples}/blake2b_options.expected[]
+----
+
+*Pitfalls.*
+
+* *The length is a parameter, not a cut.* BLAKE2b-256 is not the first 32
+bytes of BLAKE2b-512: the length goes in `output_size`, 64 by default, and
+the output given to `digest_of` or `finish` has exactly that size
+(`invalid_output_size` otherwise). A `hasher` takes it when it starts.
+* *16 bytes or nothing.* A salt or a personalisation is 16 bytes or empty
+(`invalid_salt_size`, `invalid_parameters`); pad a shorter name yourself, the
+same way on every side, since the library does not guess a padding.
+* *A key is a secret, the salt and personalisation are not.* For a MAC, use a
+random key of 16 to 64 bytes from `webcpp::crypto::random_device`, compare
+tags with `webcpp::crypto::equal`, and prefer `mac<macs::blake2b_mac>` once a
+backend serves it; a key of 0 bytes is the unkeyed hash.
+* *`backends::hash2` has BLAKE2b-512 alone.* Named in the call, it answers
+`unsupported_by_backend` to a shorter output, a key, a salt or a
+personalisation, rather than ignore one.
 
 [#hash-blake3]
 === BLAKE3
@@ -283,11 +375,12 @@ wipes its state when it finishes, when it is destroyed and when it is moved
 from.
 * *The output's size is the digest's.* A fixed-size digest takes an output of
 exactly its size (`invalid_output_size` otherwise, the output untouched); an
-extendable-output function, SHAKE or BLAKE3, takes any size from 1 byte.
+extendable-output function, SHAKE or BLAKE3, takes any size from 1 byte;
+BLAKE2b takes the size its options name (<<hash-blake2b-options>>).
 * *A backend may have a tag in part.* `backends::hash2` has BLAKE2b with its
-64-byte output and no options alone, and answers `unsupported_by_backend` to a
-shorter output; a call that names a backend gets what that backend has, which
-its row of the tables says.
+64-byte output and no option alone, and answers `unsupported_by_backend` to a
+shorter output or to an option; a call that names a backend gets what that
+backend has, which its row of the tables says.
 * *A tag without its backend stops the build.* A tag whose backend the
 program does not link stops with a message that names the line to add; a tag
 that the backend does not have yet stops with a message that names the

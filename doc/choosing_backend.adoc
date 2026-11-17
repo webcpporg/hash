@@ -27,7 +27,7 @@ and what each cost and allocated when it was measured.
 | `hash2`
 | the one backend that has every hmac, every operation and every target
 
-| `argon2id`, `scrypt`
+| `argon2id`, `scrypt`, `blake2b_subkey`
 | `sodium`
 | the one backend that has them; a program links `/third_party//sodium`
 

@@ -110,9 +110,30 @@ inline constexpr bool backend_has_v<Backend, kdfs::hkdf_expand, Hmac> =
 template <>
 inline constexpr bool backend_has_v<backends::sodium, kdfs::argon2id, void> = true;
 
+/**
+ backends::sodium has Argon2i for `argon2` (`crypto_pwhash_argon2i`), in part: one lane, no secret,
+ no associated data, a 16-byte salt, a tag of 16 bytes or more and at least 3 passes.
+*/
+template <>
+inline constexpr bool backend_has_v<backends::sodium, kdfs::argon2i, argon2_parameters> = true;
+
+/**
+ backends::sodium has Argon2id for `argon2` (`crypto_pwhash_argon2id`), in part: one lane, no
+ secret, no associated data, a 16-byte salt and a tag of 16 bytes or more.
+*/
+template <>
+inline constexpr bool backend_has_v<backends::sodium, kdfs::argon2id, argon2_parameters> = true;
+
 /** backends::sodium has scrypt (`crypto_pwhash_scryptsalsa208sha256_ll`), which takes no hmac. */
 template <>
 inline constexpr bool backend_has_v<backends::sodium, kdfs::scrypt, void> = true;
+
+/**
+ backends::sodium has BLAKE2b subkeys (`crypto_kdf_blake2b_derive_from_key`), the function
+ `blake2b_subkey`, which takes no hmac.
+*/
+template <>
+inline constexpr bool backend_has_v<backends::sodium, kdfs::blake2b_subkey, void> = true;
 
 /** backends::hash2 has `digests::md5` (Boost.Hash2's type). */
 template <>
@@ -200,6 +221,55 @@ inline constexpr bool backend_has_v<backends::xkcp, digests::keccak_256, void> =
 template <>
 inline constexpr bool backend_has_v<backends::blake3, digests::blake3, void> = true;
 
+/**
+ backends::sodium has `digests::blake2b` (`crypto_generichash_blake2b_*`), with its key, salt,
+ personalisation and every output size.
+*/
+template <>
+inline constexpr bool backend_has_v<backends::sodium, digests::blake2b, void> = true;
+
+/** backends::sodium has `digests::sha2_256` (`crypto_hash_sha256_*`). */
+template <>
+inline constexpr bool backend_has_v<backends::sodium, digests::sha2_256, void> = true;
+
+/** backends::sodium has `digests::sha2_512` (`crypto_hash_sha512_*`). */
+template <>
+inline constexpr bool backend_has_v<backends::sodium, digests::sha2_512, void> = true;
+
+/** backends::sodium has `digests::sha3_256` (`crypto_hash_sha3256_*`). */
+template <>
+inline constexpr bool backend_has_v<backends::sodium, digests::sha3_256, void> = true;
+
+/** backends::sodium has `digests::sha3_512` (`crypto_hash_sha3512_*`). */
+template <>
+inline constexpr bool backend_has_v<backends::sodium, digests::sha3_512, void> = true;
+
+/**
+ backends::sodium has `digests::shake_128` (`crypto_xof_shake128_*`), with its extendable output.
+*/
+template <>
+inline constexpr bool backend_has_v<backends::sodium, digests::shake_128, void> = true;
+
+/**
+ backends::sodium has `digests::shake_256` (`crypto_xof_shake256_*`), with its extendable output.
+*/
+template <>
+inline constexpr bool backend_has_v<backends::sodium, digests::shake_256, void> = true;
+
+/**
+ backends::sodium has `digests::turboshake_128` (`crypto_xof_turboshake128_*`), with its domain
+ byte.
+*/
+template <>
+inline constexpr bool backend_has_v<backends::sodium, digests::turboshake_128, void> = true;
+
+/**
+ backends::sodium has `digests::turboshake_256` (`crypto_xof_turboshake256_*`), with its domain
+ byte.
+*/
+template <>
+inline constexpr bool backend_has_v<backends::sodium, digests::turboshake_256, void> = true;
+
 /** backends::hash2 has `macs::hmac<digests::md5>` (Boost.Hash2's `hmac<H>`). */
 template <>
 inline constexpr bool backend_has_v<backends::hash2, macs::hmac<digests::md5>, void> = true;
@@ -265,6 +335,28 @@ inline constexpr bool backend_has_v<backends::hash2, macs::hmac<digests::blake2s
 /** backends::hash2 has `macs::siphash_2_4` (Boost.Hash2's `siphash_64`). */
 template <>
 inline constexpr bool backend_has_v<backends::hash2, macs::siphash_2_4, void> = true;
+
+/** backends::sodium has `macs::siphash_2_4` (`crypto_shorthash_siphash24`). */
+template <>
+inline constexpr bool backend_has_v<backends::sodium, macs::siphash_2_4, void> = true;
+
+/** backends::sodium has `macs::siphash_2_4x` (`crypto_shorthash_siphashx24`). */
+template <>
+inline constexpr bool backend_has_v<backends::sodium, macs::siphash_2_4x, void> = true;
+
+/**
+ backends::sodium has `macs::hmac<digests::sha2_256>` (`crypto_auth_hmacsha256_*`), with a key of
+ any size.
+*/
+template <>
+inline constexpr bool backend_has_v<backends::sodium, macs::hmac<digests::sha2_256>, void> = true;
+
+/**
+ backends::sodium has `macs::hmac<digests::sha2_512>` (`crypto_auth_hmacsha512_*`), with a key of
+ any size.
+*/
+template <>
+inline constexpr bool backend_has_v<backends::sodium, macs::hmac<digests::sha2_512>, void> = true;
 
 /**
  backends::hash2 has `macs::blake2s_mac` in part: a 32-byte tag, Boost.Hash2's keyed `blake2s_256`
@@ -820,7 +912,7 @@ struct default_of<digests::blake3> {
 
 /**
  `digests::blake2b`: libsodium is the first backend of the order that has it whole (Boost.Hash2 has
- its 64-byte output alone).
+ its 64-byte output with no option alone).
 */
 template <>
 struct default_of<digests::blake2b> {
@@ -950,16 +1042,16 @@ struct default_of<kdfs::x963kdf> {
  The backend a function of `Algorithm` uses when the call names none (spec 4.1).
 
  `backends::hash2` for `hkdf_extract`, `hkdf_expand`, `hkdf` and `pbkdf2`, on every target and
- whatever the program links; `backends::sodium` for `argon2id` and `scrypt`, the one backend that
- has them, which stops the build with the line to add to the Jamfile when the program does not
- link libsodium. A tag of the families defaults to the first of `backends::hash2`,
+ whatever the program links; `backends::sodium` for `argon2id`, `scrypt` and `blake2b_subkey`, the
+ one backend that has them, which stops the build with the line to add to the Jamfile when the
+ program does not link libsodium. A tag of the families defaults to the first of `backends::hash2`,
  `backends::xkcp`, `backends::blake3` and `backends::sodium` that has it (design D34), or to
  `detail::no_default`, which refuses: the call names its backend. `backends::bearssl` and
  `backends::openssl` are never a default. No define changes it: another backend is chosen by
  naming it in the call, as `hkdf<hmac_sha2_256, backends::openssl>`.
 
  @tparam Algorithm A tag of `kdfs` (`hkdf`, `hkdf_extract`, `hkdf_expand`, `pbkdf2`, `argon2id`,
- `scrypt`, ...), `digests` or `macs`.
+ `scrypt`, `blake2b_subkey`, ...), `digests` or `macs`.
  @tparam Hmac The hmac of a key derivation that takes one, else `void`; it does not change the
  answer.
 */

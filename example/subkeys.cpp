@@ -6,22 +6,20 @@
 
 // Key separation: one master key, a different key for each purpose, so that a weakness in one
 // use of a key does not open the others. This is what an application builds from webcpp::hash.
-// Part (a) is HKDF-SHA-256 with a label per purpose. Part (b) is a keyed BLAKE2b-512 over the
-// subkey's id and a context, cut to 32 bytes: it is NOT libsodium's crypto_kdf, which uses
-// BLAKE2b's salt and personalisation parameters (a later increment of webcpp::hash); a program
-// that must interoperate with libsodium waits for it. All four keys agree with Python (hmac for
-// HKDF, hashlib.blake2b(key=...) for the keyed BLAKE2b).
+// Part (a) is HKDF-SHA-256 with a label per purpose. Part (b) is blake2b_subkey, libsodium's
+// crypto_kdf: a subkey per id in an 8-byte context, the bytes a libsodium program derives with
+// crypto_kdf_derive_from_key. All four keys agree with Python (hmac for HKDF;
+// hashlib.blake2b(b"", digest_size=32, key=master, salt=id.to_bytes(8, "little") + bytes(8),
+// person=b"vault v1" + bytes(8)) for the subkeys).
 
 // tag::example[]
 #include "hex.hpp"
 
-#include <webcpp/hash/algorithms.hpp>
+#include <webcpp/hash/blake2b_subkey.hpp>
 #include <webcpp/hash/hkdf.hpp>
 #include <webcpp/hash/hmac.hpp>
 
-#include <algorithm>
 #include <array>
-#include <cstddef>
 #include <cstdint>
 #include <iostream>
 #include <span>
@@ -43,20 +41,14 @@ std::array<std::uint8_t, 32> from_label(std::span<std::uint8_t const> master,
     return key;
 }
 
-// The message is the subkey's id in 8 little-endian bytes, then an 8-byte context.
+// The id numbers the purpose, and the context, 8 bytes, names the application: the same id in
+// another application's context gives an unrelated key.
 std::array<std::uint8_t, 32> from_id(std::span<std::uint8_t const> master, std::uint64_t id) {
-    std::array<std::uint8_t, 16> message{};
-    for (std::size_t i = 0; i < 8; ++i) {
-        message[i] = static_cast<std::uint8_t>(id >> (8 * i));
-    }
-    std::string_view const context = "vault v1";
-    std::ranges::copy(context, message.begin() + 8);
-
-    webcpp::hash::blake2b_512 mac(master.data(), master.size());
-    mac.update(message.data(), message.size());
-    auto const full = mac.result();
     std::array<std::uint8_t, 32> key{};
-    std::copy_n(full.begin(), key.size(), key.begin());
+    auto const done = webcpp::hash::blake2b_subkey(key, master, id, example::bytes("vault v1"));
+    if (!done) {
+        std::cerr << done.error().message() << '\n';
+    }
     return key;
 }
 

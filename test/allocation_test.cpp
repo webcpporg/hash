@@ -7,22 +7,28 @@
 // webcpp's code allocates nothing (spec section 7.7): the global operator new and, where the
 // target lets a program count it, the C library's allocator (support/counting.hpp) are called
 // zero times by every public function and every backend this program links: Keccak-256, BLAKE3,
-// Boost.Hash2's digests and hmacs, HKDF and PBKDF2 on hash2, libsodium (HKDF) and BearSSL, on
-// every target. A control that allocates once moves the counter, so a zero is not a broken
-// counter. Every call is counted and the totals asserted exactly per backend, so a backend a
-// wrong trait or a dropped define leaves out fails, and the refusals of every guard run under the
-// counter too. Argon2id and scrypt are the one exception, and it is libsodium's: their working
-// memory (Argon2id's matrix, 128 r N bytes of scrypt) comes from libsodium's own mmap, else
-// posix_memalign, else malloc, outside webcpp's code; the test asserts only that operator new is
-// not called, and prints the C allocator calls it saw (mmap is not among the calls the counter
-// sees, so those are libsodium's small bookkeeping blocks, not the memory). Every printed result
-// is one `record key=value ...` line, collected by bench/allocation_collect.py.
+// Boost.Hash2's digests and hmacs, HKDF and PBKDF2 on hash2, libsodium (HKDF) and BearSSL; the
+// families digest_of, hasher, mac and argon2 on every backend that has a tag and on each tag's
+// default, and blake2b_subkey, on every target. A control that allocates once moves the counter, so
+// a zero is not a broken counter. Every call is counted and the totals asserted exactly per
+// backend, so a backend a wrong trait or a dropped define leaves out fails, and the refusals of
+// every guard run under the counter too. Argon2id and scrypt are the one exception, and it is
+// libsodium's: their working memory (Argon2id's matrix, 128 r N bytes of scrypt) comes from
+// libsodium's own mmap, else posix_memalign, else malloc, outside webcpp's code; the test asserts
+// only that operator new is not called, and prints the C allocator calls it saw (mmap is not among
+// the calls the counter sees, so those are libsodium's small bookkeeping blocks, not the memory).
+// Every printed result is one `record key=value ...` line, collected by
+// bench/allocation_collect.py.
 
 #include <webcpp/hash/algorithms.hpp>
 #include <webcpp/hash/argon2.hpp>
 #include <webcpp/hash/backends/hash2.hpp>
+#include <webcpp/hash/blake2b_subkey.hpp>
+#include <webcpp/hash/digest.hpp>
 #include <webcpp/hash/hkdf.hpp>
 #include <webcpp/hash/hmac.hpp>
+#include <webcpp/hash/kdf.hpp>
+#include <webcpp/hash/mac.hpp>
 #include <webcpp/hash/pbkdf2.hpp>
 #include <webcpp/hash/scrypt.hpp>
 
@@ -52,6 +58,10 @@
 #include <cstdlib>
 #include <new>
 #include <span>
+#include <tuple>
+#include <type_traits>
+#include <utility>
+#include <vector>
 
 namespace hash = webcpp::hash;
 
@@ -404,6 +414,181 @@ void sodium_memory_hard() {
 }
 #endif
 
+// Every tag of the families (spec 2.15).
+using digest_tags =
+    std::tuple<hash::digests::md5, hash::digests::sha1, hash::digests::sha2_224,
+               hash::digests::sha2_256, hash::digests::sha2_384, hash::digests::sha2_512,
+               hash::digests::sha2_512_224, hash::digests::sha2_512_256, hash::digests::sha3_224,
+               hash::digests::sha3_256, hash::digests::sha3_384, hash::digests::sha3_512,
+               hash::digests::shake_128, hash::digests::shake_256, hash::digests::keccak_224,
+               hash::digests::keccak_256, hash::digests::keccak_384, hash::digests::keccak_512,
+               hash::digests::cshake_128, hash::digests::cshake_256, hash::digests::kt128,
+               hash::digests::kt256, hash::digests::turboshake_128, hash::digests::turboshake_256,
+               hash::digests::tuplehash_128, hash::digests::tuplehash_256,
+               hash::digests::parallelhash_128, hash::digests::parallelhash_256,
+               hash::digests::blake2b, hash::digests::blake2s_256, hash::digests::blake3,
+               hash::digests::ripemd_160, hash::digests::md5_sha1, hash::digests::sm3,
+               hash::digests::streebog_256, hash::digests::streebog_512, hash::digests::whirlpool,
+               hash::digests::skein_512>;
+using mac_tags = std::tuple<
+    hash::macs::hmac<hash::digests::md5>, hash::macs::hmac<hash::digests::sha1>,
+    hash::macs::hmac<hash::digests::sha2_224>, hash::macs::hmac<hash::digests::sha2_256>,
+    hash::macs::hmac<hash::digests::sha2_384>, hash::macs::hmac<hash::digests::sha2_512>,
+    hash::macs::hmac<hash::digests::sha2_512_224>, hash::macs::hmac<hash::digests::sha2_512_256>,
+    hash::macs::hmac<hash::digests::sha3_224>, hash::macs::hmac<hash::digests::sha3_256>,
+    hash::macs::hmac<hash::digests::sha3_384>, hash::macs::hmac<hash::digests::sha3_512>,
+    hash::macs::hmac<hash::digests::ripemd_160>, hash::macs::hmac<hash::digests::blake2b>,
+    hash::macs::hmac<hash::digests::blake2s_256>, hash::macs::hmac<hash::digests::keccak_256>,
+    hash::macs::hmac<hash::digests::sm3>, hash::macs::kmac_128, hash::macs::kmac_256,
+    hash::macs::siphash_2_4, hash::macs::siphash_2_4x, hash::macs::blake2b_mac,
+    hash::macs::blake2s_mac>;
+
+// Calls check.template operator()<Tag>() for each tag of Tags.
+template <class Tags, class Check>
+void for_each_tag(Check check) {
+    [&]<std::size_t... Index>(std::index_sequence<Index...>) {
+        (check.template operator()<std::tuple_element_t<Index, Tags>>(), ...);
+    }(std::make_index_sequence<std::tuple_size_v<Tags>>{});
+}
+
+// Whether a call of the family on Backend compiles and runs here: the backend has the tag and
+// the program links its library.
+template <class Backend, class Tag, class Key = void>
+constexpr bool runs_v = hash::backend_has_v<Backend, Tag, Key> && hash::detail::linked_v<Backend>;
+
+// digest_of and hasher on Backend (its longest output, 32 bytes for an extendable output), then
+// a refusal (an empty output): two calls.
+template <class Tag, class Backend>
+void family_digest_allocates_nothing(char const* name) {
+    using traits = hash::detail::digest_traits<Tag>;
+    auto const longest = traits::max_output(hash::digest_options<Tag>{});
+    std::vector<std::uint8_t> output(longest == hash::detail::no_limit ? 32 : longest);
+    allocates_nothing(name, [&] {
+        BOOST_TEST((hash::digest_of<Tag, Backend>(output, input).has_value()));
+        auto hashing = hash::hasher<Tag, Backend>::make();
+        BOOST_TEST(hashing.has_value());
+        if (hashing) {
+            BOOST_TEST(hashing->update(input.first(7)).has_value());
+            BOOST_TEST(hashing->update(input.subspan(7)).has_value());
+            BOOST_TEST(hashing->finish(output).has_value());
+        }
+    });
+    allocates_nothing(name, [&] {
+        BOOST_TEST(!(hash::digest_of<Tag, Backend>(std::span<std::uint8_t>{}, input)));
+    });
+}
+
+// mac on Backend (its longest tag, 32 bytes when it has no limit, under its shortest key), then a
+// refusal (an empty tag): two calls.
+template <class Tag, class Backend>
+void family_mac_allocates_nothing(char const* name) {
+    using traits = hash::detail::mac_traits<Tag>;
+    std::vector<std::uint8_t> output(
+        traits::max_output == hash::detail::no_limit ? 32 : traits::max_output);
+    std::vector<std::uint8_t> const key(traits::min_key, 0x0b);
+    allocates_nothing(
+        name, [&] { BOOST_TEST((hash::mac<Tag, Backend>(output, key, input).has_value())); });
+    allocates_nothing(name, [&] {
+        BOOST_TEST(!(hash::mac<Tag, Backend>(std::span<std::uint8_t>{}, key, input)));
+    });
+}
+
+// The families on Backend: every digest and MAC tag it has, two calls each; the totals asserted.
+template <class Backend>
+void families_on(char const* name, std::size_t expected_calls) {
+    std::size_t const before = calls_made;
+    for_each_tag<digest_tags>([&]<class Tag> {
+        if constexpr (runs_v<Backend, Tag>) {
+            family_digest_allocates_nothing<Tag, Backend>(name);
+        }
+    });
+    for_each_tag<mac_tags>([&]<class Tag> {
+        if constexpr (runs_v<Backend, Tag>) {
+            family_mac_allocates_nothing<Tag, Backend>(name);
+        }
+    });
+    BOOST_TEST_EQ(calls_made - before, expected_calls);
+    std::printf("record operation=family-calls backend=%s target=%s calls=%zu expected=%zu\n", name,
+                webcpp::test::target_name, calls_made - before, expected_calls);
+}
+
+// The families on each tag's default backend, the call naming none: one call per tag whose
+// default this program links, the totals asserted.
+void families_on_defaults(std::size_t expected_calls) {
+    std::size_t const before = calls_made;
+    for_each_tag<digest_tags>([&]<class Tag> {
+        if constexpr (runs_v<hash::default_backend<Tag>, Tag>) {
+            using traits = hash::detail::digest_traits<Tag>;
+            auto const longest = traits::max_output(hash::digest_options<Tag>{});
+            std::vector<std::uint8_t> output(longest == hash::detail::no_limit ? 32 : longest);
+            allocates_nothing("default digest", [&] {
+                BOOST_TEST((hash::digest_of<Tag>(output, input).has_value()));
+                auto hashing = hash::hasher<Tag>::make();
+                BOOST_TEST(hashing && hashing->update(input) && hashing->finish(output));
+            });
+        }
+    });
+    for_each_tag<mac_tags>([&]<class Tag> {
+        if constexpr (runs_v<hash::default_backend<Tag>, Tag>) {
+            using traits = hash::detail::mac_traits<Tag>;
+            std::vector<std::uint8_t> output(
+                traits::max_output == hash::detail::no_limit ? 32 : traits::max_output);
+            std::vector<std::uint8_t> const key(traits::min_key, 0x0b);
+            allocates_nothing("default mac", [&] {
+                BOOST_TEST((hash::mac<Tag>(output, key, input).has_value()));
+            });
+        }
+    });
+    BOOST_TEST_EQ(calls_made - before, expected_calls);
+    std::printf("record operation=family-calls backend=default target=%s calls=%zu expected=%zu\n",
+                webcpp::test::target_name, calls_made - before, expected_calls);
+}
+
+#ifdef WEBCPP_HASH_HAS_SODIUM
+// blake2b_subkey on libsodium and on its default: a derivation each (2) and a refusal (1).
+void blake2b_subkey_allocates_nothing() {
+    std::size_t const before = calls_made;
+    std::array<std::uint8_t, 32> subkey{};
+    std::array<std::uint8_t, 8> const context{'w', 'e', 'b', 'c', 'p', 'p', 'a', 't'};
+    allocates_nothing("blake2b_subkey", [&] {
+        BOOST_TEST(hash::blake2b_subkey<hash::backends::sodium>(subkey, input.first(32), 1, context)
+                       .has_value());
+    });
+    allocates_nothing("blake2b_subkey", [&] {
+        BOOST_TEST(hash::blake2b_subkey(subkey, input.first(32), 2, context).has_value());
+    });
+    allocates_nothing("blake2b_subkey", [&] {
+        BOOST_TEST(!hash::blake2b_subkey(subkey, input.first(31), 1, context));
+    });
+    BOOST_TEST_EQ(calls_made - before, 3U);
+}
+
+// The family argon2 on libsodium, each variant named and by default: libsodium allocates the
+// memory (the exception above), so operator new alone is asserted, and the counts are stated; a
+// refusal (four lanes) allocates nothing at all.
+template <class Variant>
+void argon2_family_on_sodium(char const* name, std::uint32_t passes) {
+    std::array<std::uint8_t, 32> out{};
+    std::array<std::uint8_t, 16> const salt{};
+    hash::argon2_parameters const cheapest{.passes = passes, .memory_kib = 8};
+    // Each call in its own window; the two counts are libsodium's, printed one after the other.
+    for (bool const by_default : {false, true}) {
+        window const w;
+        auto const done = by_default ? hash::argon2<Variant>(out, input.first(20), salt, cheapest)
+                                     : hash::argon2<Variant, hash::backends::sodium>(
+                                           out, input.first(20), salt, cheapest);
+        BOOST_TEST(done.has_value());
+        BOOST_TEST_EQ(w.news(), 0U);
+        std::printf("argon2 %s on sodium (%s), target %s: new %zu, C %zu\n", name,
+                    by_default ? "default" : "named", webcpp::test::target_name, w.news(), w.cs());
+    }
+    allocates_nothing(name, [&] {
+        BOOST_TEST(!(hash::argon2<Variant>(out, input.first(20), salt,
+                                           {.passes = passes, .memory_kib = 32, .lanes = 4})));
+    });
+}
+#endif
+
 }  // namespace
 
 int main() {
@@ -420,6 +605,26 @@ int main() {
     sodium_first_call();
     all_hmacs<hash::backends::sodium>("sodium", 12);
     sodium_memory_hard();
+    blake2b_subkey_allocates_nothing();
+    argon2_family_on_sodium<hash::kdfs::argon2i>("argon2i", 3);
+    argon2_family_on_sodium<hash::kdfs::argon2id>("argon2id", 1);
+#endif
+    // Two calls per tag a backend has (doc/capabilities.json): hash2 17 digests and 17 MACs,
+    // xkcp and blake3 one digest each, sodium 9 digests and 4 MACs; one call per tag whose
+    // default backend has it, 17 digests and 18 MACs.
+    families_on<hash::backends::hash2>("hash2", 68);
+#ifdef WEBCPP_HASH_HAS_XKCP
+    families_on<hash::backends::xkcp>("xkcp", 2);
+#endif
+#ifdef WEBCPP_HASH_HAS_BLAKE3
+    families_on<hash::backends::blake3>("blake3", 2);
+#endif
+#ifdef WEBCPP_HASH_HAS_SODIUM
+    families_on<hash::backends::sodium>("sodium", 26);
+#endif
+#if defined(WEBCPP_HASH_HAS_XKCP) && defined(WEBCPP_HASH_HAS_BLAKE3) && \
+    defined(WEBCPP_HASH_HAS_SODIUM)
+    families_on_defaults(35);
 #endif
 #ifdef WEBCPP_HASH_HAS_BEARSSL
     all_hmacs<hash::backends::bearssl, false>("bearssl", 18);

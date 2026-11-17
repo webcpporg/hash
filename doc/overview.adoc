@@ -49,8 +49,17 @@ hashes, HMAC
 | Argon2id (RFC 9106, parallelism 1)
 | libsodium's `crypto_pwhash_argon2id`
 
+| Argon2i and Argon2id with the parameters of RFC 9106 (`argon2`)
+| libsodium's `crypto_pwhash_argon2i` and `crypto_pwhash_argon2id`, one lane
+
 | scrypt (RFC 7914)
 | libsodium's `crypto_pwhash_scryptsalsa208sha256_ll`
+
+| BLAKE2b subkeys (libsodium's `crypto_kdf`)
+| libsodium's `crypto_kdf_blake2b_derive_from_key`
+
+| TurboSHAKE128 and TurboSHAKE256 (RFC 9861)
+| libsodium's `crypto_xof_turboshake128` and `crypto_xof_turboshake256`
 |===
 
 Every function is synchronous, reports failure as a value

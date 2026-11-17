@@ -40,6 +40,13 @@
 | RFC 8018
 | where a standard names it
 | PBKDF2
+
+| <<hash-blake2b-subkey,`blake2b_subkey`>>
+| 16 to 64 bytes
+| that of the master key, which must be 32 uniformly random bytes; at most the subkey's length
+| libsodium's crypto_kdf: keyed BLAKE2b (RFC 7693) with the subkey's id as the salt and the context as the personalisation
+| recommended
+| no
 |===
 
 [#hash-kdfs-choose]
@@ -71,6 +78,12 @@
 | 29,235 bytes (hash2)
 | link:https://github.com/bitcoin/bips/blob/master/bip-0039.mediawiki[BIP39's seeds (2,048 iterations of HMAC-SHA-512)]; link:https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html[OWASP: 600,000 iterations of HMAC-SHA-256 for passwords]
 | When a standard or FIPS 140 demands it; otherwise Argon2id for passwords.
+
+| <<hash-blake2b-subkey,`blake2b_subkey`>>
+| -
+| -
+| link:https://doc.libsodium.org/key_derivation[libsodium's key derivation, crypto_kdf_derive_from_key]
+| To derive the keys a libsodium program derives from the same master key, or keys numbered by id from one random master key; hkdf for a secret that is not uniformly random.
 |===
 
 The measured columns are doc/measurements.json's, a reference measured on 2026-11-16 on Apple M5 Max that decides nothing: the native throughput over 1 MiB, or the time of one derivation over `hmac_sha2_256`, of the fastest backend, and the smallest Emscripten program that calls the function; <<hash-measurements>> has every backend on every target.

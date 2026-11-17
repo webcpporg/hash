@@ -39,6 +39,13 @@
         },
         {
             "headers": [
+                "include/webcpp/hash/blake2b_subkey.hpp"
+            ],
+            "must-not-include": ["xkcp", "blake3", "sodium", "bearssl", "openssl/"],
+            "why": "blake2b_subkey includes no C library's header: backends::sodium's webcpp header comes in under WEBCPP_HASH_HAS_SODIUM, so that a program that includes only blake2b_subkey.hpp gets its engine (spec sections 2.12 and 2.15)"
+        },
+        {
+            "headers": [
                 "include/webcpp/hash/digest.hpp",
                 "include/webcpp/hash/mac.hpp"
             ],

@@ -23,6 +23,6 @@
 
 What each backend states on constant time, as the capability table read it:
 
-* `sodium`: libsodium 1.0.22: its headers state constant time for comparisons (sodium/utils.h) alone, not for crypto_kdf_hkdf_* or crypto_pwhash_*.
+* `sodium`: libsodium 1.0.22: its headers state constant time for comparisons (sodium/utils.h) alone, not for its hashing, MAC, key derivation and password hashing functions (crypto_hash_*, crypto_xof_*, crypto_generichash_*, crypto_shorthash_*, crypto_auth_*, crypto_kdf_*, crypto_pwhash_*).
 
 The default of `scrypt`: `sodium` on every target, whatever the program links (<<hash-default-backend>>).

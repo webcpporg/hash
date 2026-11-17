@@ -59,6 +59,67 @@ namespace webcpp::hash {
 template <class Digest>
 struct digest_options {};
 
+/**
+ BLAKE2b's parameters (RFC 7693, section 2.5): a key, a salt, a personalisation and the output's
+ size, each part of the parameter block that starts the hash, so that each gives another function.
+
+ @code
+ std::array<std::uint8_t, 32> id{};
+ auto done = webcpp::hash::digest_of<webcpp::hash::digests::blake2b>(
+     id, message, {.personalisation = app_tag, .output_size = 32});
+ @endcode
+
+ The output's size is an option, not the output span's alone: BLAKE2b-256 is not BLAKE2b-512 cut
+ to 32 bytes, and a `hasher` must know it when it starts. `digest_of` and `hasher::finish` take an
+ output of exactly `output_size` bytes (`invalid_output_size` otherwise).
+
+ The spans are read during the call (`digest_of`, `hasher::make`) and not kept.
+*/
+template <>
+struct digest_options<digests::blake2b> {
+    /**
+     The key, 0 to 64 bytes (`invalid_key_size` past 64); empty, BLAKE2b unkeyed. A keyed BLAKE2b
+     is a MAC (`macs::blake2b_mac` names it as one).
+    */
+    std::span<std::uint8_t const> key = {};
+
+    /** The salt: empty, or 16 bytes (`invalid_salt_size` otherwise). */
+    std::span<std::uint8_t const> salt = {};
+
+    /**
+     The personalisation, a string that separates one application's hashes from another's: empty,
+     or 16 bytes (`invalid_parameters` otherwise); a shorter tag is padded with zeros by the caller.
+    */
+    std::span<std::uint8_t const> personalisation = {};
+
+    /** The output's size, 1 to 64 bytes (`invalid_output_size` otherwise); 64 by default. */
+    std::size_t output_size = 64;
+};
+
+/**
+ TurboSHAKE's parameter (RFC 9861, section 2.1): the domain separation byte D, which the sponge
+ absorbs after the message, so that each value gives another function. The standard value is 0x1F;
+ a protocol that builds several functions over TurboSHAKE gives each its own byte.
+
+ @code
+ std::array<std::uint8_t, 32> output{};
+ auto done = webcpp::hash::digest_of<webcpp::hash::digests::turboshake_128>(
+     output, message, {.domain = 0x0B});
+ @endcode
+*/
+template <>
+struct digest_options<digests::turboshake_128> {
+    /** D, 0x01 to 0x7F (`invalid_parameters` otherwise); 0x1F by default. */
+    std::uint8_t domain = 0x1F;
+};
+
+/** TurboSHAKE256's parameter, as TurboSHAKE128's (RFC 9861, section 2.1). */
+template <>
+struct digest_options<digests::turboshake_256> {
+    /** D, 0x01 to 0x7F (`invalid_parameters` otherwise); 0x1F by default. */
+    std::uint8_t domain = 0x1F;
+};
+
 namespace detail {
 
 /** The output sizes of a digest of `Size` bytes, fixed: the output is exactly that. */
@@ -190,10 +251,6 @@ template <> struct digest_traits<digests::cshake_256> : extendable_output {};
 template <> struct digest_traits<digests::kt128> : extendable_output {};
 /** KT256: any size from 1 byte. */
 template <> struct digest_traits<digests::kt256> : extendable_output {};
-/** TurboSHAKE128: any size from 1 byte. */
-template <> struct digest_traits<digests::turboshake_128> : extendable_output {};
-/** TurboSHAKE256: any size from 1 byte. */
-template <> struct digest_traits<digests::turboshake_256> : extendable_output {};
 /** TupleHash128: any size from 1 byte (its L). */
 template <> struct digest_traits<digests::tuplehash_128> : extendable_output {};
 /** TupleHash256: any size from 1 byte (its L). */
@@ -222,37 +279,124 @@ template <> struct digest_traits<digests::whirlpool> : fixed_output<64> {};
 template <> struct digest_traits<digests::skein_512> : fixed_output<64> {};
 // clang-format on
 
-/** BLAKE2b: 1 to 64 bytes (RFC 7693); its options' guards come with its first backend. */
+/**
+ BLAKE2b's guards (RFC 7693, ruling R21): the output of exactly `output_size` bytes, 1 to 64; a key
+ of at most 64 bytes; a salt and a personalisation each empty or of 16 bytes.
+*/
 template <>
-struct digest_traits<digests::blake2b> : fixed_output<64> {
-    /**
-     The shortest output, 1 byte.
+struct digest_traits<digests::blake2b> {
+    /** BLAKE2b's longest output and key, and its salt's and personalisation's size, in bytes. */
+    static constexpr std::size_t max_size = 64;
+    /** The size of a salt or a personalisation that is not empty. */
+    static constexpr std::size_t block_part_size = 16;
 
-     @return 1.
+    /**
+     The shortest output: the options' size, and at least 1.
+
+     @param options The options. @return The size the output must have.
     */
-    template <class Options>
-    static constexpr std::uint64_t min_output(Options const& /*options*/) noexcept {
-        return 1;
+    static constexpr std::uint64_t min_output(
+        digest_options<digests::blake2b> const& options) noexcept {
+        return options.output_size == 0 ? 1 : options.output_size;
+    }
+
+    /**
+     The longest output: the options' size, and at most 64, so that an output size out of range
+     refuses every output.
+
+     @param options The options. @return The size the output must have.
+    */
+    static constexpr std::uint64_t max_output(
+        digest_options<digests::blake2b> const& options) noexcept {
+        return options.output_size > max_size ? max_size : options.output_size;
+    }
+
+    /**
+     Checks the options, in order: the output size, the key, the salt, the personalisation.
+
+     @param options The options.
+     @return Success; or `invalid_output_size`, `invalid_key_size`, `invalid_salt_size` or
+     `invalid_parameters`.
+    */
+    static constexpr boost::system::result<void> check(
+        digest_options<digests::blake2b> const& options) noexcept {
+        if (options.output_size == 0 || options.output_size > max_size) {
+            return error::invalid_output_size;
+        }
+        if (options.key.size() > max_size) {
+            return error::invalid_key_size;
+        }
+        if (!options.salt.empty() && options.salt.size() != block_part_size) {
+            return error::invalid_salt_size;
+        }
+        if (!options.personalisation.empty() && options.personalisation.size() != block_part_size) {
+            return error::invalid_parameters;
+        }
+        return {};
     }
 };
 
 /**
- The family's guards of `digest_of` and `hasher::finish` on an output of `output_size` bytes: the
- tag's sizes (`invalid_output_size`), then the backend's shortest and longest outputs
- (`unsupported_by_backend`).
+ TurboSHAKE's guards (RFC 9861, ruling R25): any output size from 1 byte, and the domain byte within
+ 0x01 to 0x7F, which the RFC requires and which neither libsodium nor XKCP checks: the family
+ refuses another before any engine, the same way on every backend.
+*/
+struct turboshake_traits : extendable_output {
+    /** The smallest domain byte RFC 9861 allows. */
+    static constexpr std::uint8_t min_domain = 0x01;
+    /** The largest domain byte RFC 9861 allows. */
+    static constexpr std::uint8_t max_domain = 0x7F;
 
- @tparam Digest A tag of `digests`. @tparam Engine Its engine on the chosen backend.
+    /**
+     Checks the domain byte.
+
+     @param options The options. @return Success, or `invalid_parameters`.
+    */
+    template <class Options>
+    static constexpr boost::system::result<void> check(Options const& options) noexcept {
+        if (options.domain < min_domain || options.domain > max_domain) {
+            return error::invalid_parameters;
+        }
+        return {};
+    }
+};
+
+/** TurboSHAKE128: any size from 1 byte, a domain byte of 0x01 to 0x7F. */
+template <>
+struct digest_traits<digests::turboshake_128> : turboshake_traits {};
+
+/** TurboSHAKE256: any size from 1 byte, a domain byte of 0x01 to 0x7F. */
+template <>
+struct digest_traits<digests::turboshake_256> : turboshake_traits {};
+
+/**
+ The family's guard of `digest_of` and `hasher::finish` on an output of `output_size` bytes: the
+ tag's sizes for its options (`invalid_output_size`).
+
  @param output_size The output's size. @param min_size The tag's shortest output for its options.
  @param max_size The tag's longest output for its options.
- @return Success, or the guard's error.
+ @return Success, or `invalid_output_size`.
 */
-template <class Digest, class Engine>
-[[nodiscard]] boost::system::result<void> check_output(std::size_t output_size,
-                                                       std::uint64_t min_size,
-                                                       std::uint64_t max_size) noexcept {
+[[nodiscard]] inline boost::system::result<void> check_output(std::size_t output_size,
+                                                              std::uint64_t min_size,
+                                                              std::uint64_t max_size) noexcept {
     if (output_size < min_size || exceeds(output_size, max_size)) {
         return error::invalid_output_size;
     }
+    return {};
+}
+
+/**
+ The backend's guard of `digest_of` and `hasher::finish` on an output the family accepts: the
+ engine's shortest and longest outputs (`unsupported_by_backend`). It runs after the options'
+ guards, so that an option's error comes before the backend's refusal.
+
+ @tparam Engine The tag's engine on the chosen backend.
+ @param output_size The output's size.
+ @return Success, or `unsupported_by_backend`.
+*/
+template <class Engine>
+[[nodiscard]] boost::system::result<void> check_engine_output(std::size_t output_size) noexcept {
     if (exceeds(Engine::min_output, output_size) || exceeds(output_size, Engine::max_output)) {
         return error::unsupported_by_backend;
     }
@@ -286,14 +430,18 @@ template <class Digest, class Backend = default_backend<Digest>>
                                                     digest_options<Digest> const& options = {}) {
     using engine = detail::digest_engine<Backend, Digest>;
     using traits = detail::digest_traits<Digest>;
-    auto sized = detail::check_output<Digest, engine>(output.size(), traits::min_output(options),
-                                                      traits::max_output(options));
+    auto sized = detail::check_output(output.size(), traits::min_output(options),
+                                      traits::max_output(options));
     if (!sized) {
         return sized;
     }
     auto checked = traits::check(options);
     if (!checked) {
         return checked;
+    }
+    auto served = detail::check_engine_output<engine>(output.size());
+    if (!served) {
+        return served;
     }
     if (!engine::accepts(options)) {
         return error::unsupported_by_backend;
@@ -439,9 +587,13 @@ public:
         if (phase_ != phase::hashing) {
             return error::invalid_state;
         }
-        auto sized = detail::check_output<Digest, engine>(output.size(), min_output_, max_output_);
+        auto sized = detail::check_output(output.size(), min_output_, max_output_);
         if (!sized) {
             return sized;
+        }
+        auto served = detail::check_engine_output<engine>(output.size());
+        if (!served) {
+            return served;
         }
         auto finished = engine::finish(state_, output);
         if (!finished) {

@@ -176,9 +176,11 @@ struct bcrypt;
 */
 struct bcrypt_pbkdf;
 /**
- BLAKE2b subkeys from a master key, as libsodium's `crypto_kdf` derives them.
+ BLAKE2b subkeys from a master key, as libsodium's `crypto_kdf` derives them, the operation
+ `blake2b_subkey` (on `backends::sodium` alone).
 
- A tag, declared and never defined.
+ A tag, declared and never defined, for @ref webcpp::hash::backend_has_v (over no hmac: `void`)
+ and @ref webcpp::hash::default_backend.
 */
 struct blake2b_subkey;
 /**

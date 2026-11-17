@@ -17,6 +17,7 @@
 #include <webcpp/hash/algorithms.hpp>
 #include <webcpp/hash/argon2.hpp>
 #include <webcpp/hash/backends/hash2.hpp>
+#include <webcpp/hash/blake2b_subkey.hpp>
 #include <webcpp/hash/digest.hpp>
 #include <webcpp/hash/error.hpp>
 #include <webcpp/hash/hkdf.hpp>

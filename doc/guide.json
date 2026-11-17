@@ -29,7 +29,7 @@
             "title": "Key derivation",
             "anchor": "hash-kdfs",
             "file": "kdfs.adoc",
-            "summary": "HKDF and PBKDF2: keys from a shared secret or a master key (HKDF), or from a password where a standard demands PBKDF2."
+            "summary": "HKDF, PBKDF2 and BLAKE2b subkeys: keys from a shared secret or a master key (HKDF, libsodium's crypto_kdf), or from a password where a standard demands PBKDF2."
         },
         {
             "chapter": "password_hashing",
@@ -695,6 +695,18 @@
             ],
             "choose": "When a standard or FIPS 140 demands it; otherwise Argon2id for passwords."
         },
+        "blake2b_subkey": {
+            "summary": "BLAKE2b subkeys, libsodium's crypto_kdf: many keys of 16 to 64 bytes from one 32-byte master key, each named by a 64-bit id and an 8-byte context.",
+            "output": "16 to 64 bytes",
+            "security": "that of the master key, which must be 32 uniformly random bytes; at most the subkey's length",
+            "status": "recommended",
+            "webcrypto": null,
+            "anchor": "hash-blake2b-subkey",
+            "uses": [
+                {"text": "libsodium's key derivation, crypto_kdf_derive_from_key", "source": "https://doc.libsodium.org/key_derivation"}
+            ],
+            "choose": "To derive the keys a libsodium program derives from the same master key, or keys numbered by id from one random master key; hkdf for a secret that is not uniformly random."
+        },
         "argon2id": {
             "summary": "Argon2id: the recommended password hash, memory-hard, winner of the Password Hashing Competition.",
             "output": "16 to 2^32 - 1 bytes",
@@ -904,6 +916,32 @@
             ],
             "choose": "To name the backend in the call, or to hash in pieces with a result that cannot be taken twice; shake_256 itself for hash_append and Boost.Hash2's other functions."
         },
+        "digests::turboshake_128": {
+            "summary": "TurboSHAKE128 (RFC 9861), an extendable-output function: SHAKE128's sponge with 12 rounds of the Keccak-p permutation instead of 24, about twice as fast, and a domain byte that makes each use its own function, as the tag of digest_of and hasher: one call, or pieces with one final result.",
+            "output": "any length",
+            "security": "up to 128 bits, and half the output length for collisions",
+            "status": "recommended",
+            "webcrypto": null,
+            "anchor": "hash-turboshake",
+            "uses": [
+                {"text": "KT128's inner function (KangarooTwelve)", "source": "https://www.rfc-editor.org/rfc/rfc9861#section-3"},
+                {"text": "libsodium's extendable-output functions, crypto_xof_turboshake128", "source": "https://github.com/jedisct1/libsodium/blob/master/src/libsodium/include/sodium/crypto_xof_turboshake128.h"}
+            ],
+            "choose": "For an extendable output faster than SHAKE128 with the same security claim, or for several functions from one primitive told apart by the domain byte; shake_128 where a standard names SHAKE."
+        },
+        "digests::turboshake_256": {
+            "summary": "TurboSHAKE256 (RFC 9861), an extendable-output function: SHAKE256's sponge with 12 rounds of the Keccak-p permutation instead of 24, about twice as fast, and a domain byte that makes each use its own function, as the tag of digest_of and hasher: one call, or pieces with one final result.",
+            "output": "any length",
+            "security": "up to 256 bits, and half the output length for collisions",
+            "status": "recommended",
+            "webcrypto": null,
+            "anchor": "hash-turboshake",
+            "uses": [
+                {"text": "KT256's inner function (KangarooTwelve)", "source": "https://www.rfc-editor.org/rfc/rfc9861#section-3"},
+                {"text": "libsodium's extendable-output functions, crypto_xof_turboshake256", "source": "https://github.com/jedisct1/libsodium/blob/master/src/libsodium/include/sodium/crypto_xof_turboshake256.h"}
+            ],
+            "choose": "For an extendable output faster than SHAKE256 with the same security claim, or for several functions from one primitive told apart by the domain byte; shake_256 where a standard names SHAKE."
+        },
         "digests::keccak_256": {
             "summary": "Keccak-256 with the original padding, Ethereum's hash; not SHA3-256, as the tag of digest_of and hasher: one call, or pieces with one final result, on any backend that has it.",
             "output": "256 bits",
@@ -918,16 +956,18 @@
             "choose": "To name the backend in the call, or to hash in pieces with a result that cannot be taken twice; keccak_256 itself for hash_append and Boost.Hash2's other functions."
         },
         "digests::blake2b": {
-            "summary": "BLAKE2b, a digest of 1 to 64 bytes faster than SHA-2 in software, as the tag of digest_of and hasher: one call, or pieces with one final result, on any backend that has it.",
-            "output": "1 to 64 bytes",
-            "security": "256-bit collision resistance at 64 bytes, half the output length in general",
+            "summary": "BLAKE2b (RFC 7693), a digest of 1 to 64 bytes faster than SHA-2 in software, with an optional key, salt and personalisation, as the tag of digest_of and hasher: one call, or pieces with one final result.",
+            "output": "1 to 64 bytes, chosen before hashing",
+            "security": "256-bit collision resistance at 64 bytes, half the output length in general; with a secret key of 16 bytes or more, a MAC",
             "status": "recommended",
             "webcrypto": null,
-            "anchor": "hash-digest-family",
+            "anchor": "hash-blake2b-options",
             "uses": [
-                {"text": "Argon2's internal hash", "source": "https://www.rfc-editor.org/rfc/rfc9106#section-3.2"}
+                {"text": "Argon2's internal hash", "source": "https://www.rfc-editor.org/rfc/rfc9106#section-3.2"},
+                {"text": "libsodium's generic hash, crypto_generichash", "source": "https://doc.libsodium.org/hashing/generic_hashing"},
+                {"text": "Zcash's transaction hashes, each personalised", "source": "https://zips.z.cash/zip-0244"}
             ],
-            "choose": "To name the backend in the call, or to hash in pieces with a result that cannot be taken twice; blake2b_512 itself for hash_append and Boost.Hash2's other functions."
+            "choose": "For BLAKE2b of a length other than 64 bytes, keyed, salted or personalised (a format that names BLAKE2b-256 or a personalisation string), or to hash in pieces with one result; blake2b_512 itself for hash_append."
         },
         "digests::blake2s_256": {
             "summary": "BLAKE2s, a 256-bit digest for 32-bit and small machines, with a key of up to 32 bytes, as the tag of digest_of and hasher: one call, or pieces with one final result, on any backend that has it.",
@@ -1161,6 +1201,20 @@
             ],
             "choose": "To compute it in one call, on a backend named in the call; siphash_64 itself for hash_append and a hash table's hasher."
         },
+        "macs::siphash_2_4x": {
+            "standard": "SipHash-2-4 with a 128-bit output (Aumasson, Bernstein; libsodium's siphashx24)",
+            "summary": "SipHash-2-4 with a 16-byte output and a 16-byte key, libsodium's crypto_shorthash_siphashx24, as the tag of mac: the tag of a message under a key in one call.",
+            "output": "128 bits",
+            "security": "a 128-bit key; fewer collisions than SipHash-2-4's 64 bits, still not a MAC for messages",
+            "status": "recommended",
+            "webcrypto": null,
+            "anchor": "hash-siphash-sodium",
+            "uses": [
+                {"text": "libsodium's short-input hashing", "source": "https://doc.libsodium.org/hashing/short-input_hashing"},
+                {"text": "the SipHash reference implementation's 128-bit output", "source": "https://github.com/veorq/SipHash"}
+            ],
+            "choose": "For a 128-bit SipHash, as a libsodium program computes it: a large table, a filter or an identifier keyed against flooding; siphash_2_4 for 64 bits."
+        },
         "macs::blake2s_mac": {
             "summary": "BLAKE2s keyed with a key of 1 to 32 bytes (RFC 7693), as the tag of mac: the tag of a message under a key in one call, on any backend that has it.",
             "output": "1 to 32 bytes",
@@ -1172,6 +1226,32 @@
                 {"text": "WireGuard's MAC", "source": "https://www.wireguard.com/protocol/"}
             ],
             "choose": "A fast keyed tag on 32-bit and small machines, without HMAC's two passes."
+        },
+        "kdfs::argon2i": {
+            "summary": "Argon2i (RFC 9106), Argon2's variant whose memory access does not depend on the password, as the tag of argon2: the passes, the memory, the lanes, a secret and associated data, on any backend that has them.",
+            "output": "4 to 2^32 - 1 bytes (16 or more on libsodium)",
+            "security": "each guess costs its memory and passes, but with few passes an attacker trades memory for time more cheaply than against Argon2id",
+            "status": "legacy",
+            "webcrypto": null,
+            "anchor": "hash-argon2-family",
+            "uses": [
+                {"text": "libsodium's crypto_pwhash_argon2i, its password hash before Argon2id", "source": "https://github.com/jedisct1/libsodium/blob/master/src/libsodium/include/sodium/crypto_pwhash_argon2i.h"},
+                {"text": "RFC 9106's variant for memory access independent of the secret, which it recommends only through Argon2id", "source": "https://www.rfc-editor.org/rfc/rfc9106#section-4"}
+            ],
+            "choose": "Only to check tags a system already stored with Argon2i; Argon2id for anything new."
+        },
+        "kdfs::argon2id": {
+            "summary": "Argon2id (RFC 9106) as the tag of argon2: the passes, the memory in KiB, the lanes, a secret (a pepper) and associated data, on any backend that has them; on libsodium the same tag as the function argon2id.",
+            "output": "4 to 2^32 - 1 bytes (16 or more on libsodium)",
+            "security": "each guess costs its memory and passes, on a GPU too",
+            "status": "recommended",
+            "webcrypto": null,
+            "anchor": "hash-argon2-family",
+            "uses": [
+                {"text": "RFC 9106's first recommendation for password hashing", "source": "https://www.rfc-editor.org/rfc/rfc9106#section-4"},
+                {"text": "OWASP's first choice for password storage", "source": "https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html"}
+            ],
+            "choose": "Storing passwords and deriving keys from them where a parameter beyond the function argon2id's is needed (lanes, a pepper, associated data); argon2id otherwise."
         }
     },
     "use_cases": [
@@ -1181,7 +1261,7 @@
         {"need": "store users' passwords for a login", "use": "argon2id with argon2id_interactive or stronger, a random 16-byte salt per user", "function": "argon2id", "backend": "link /third_party//sodium", "example": "password_storage.cpp", "anchor": "hash-privacy-passwords"},
         {"need": "turn a password into an encryption key (a password manager, an encrypted backup)", "use": "argon2id with argon2id_moderate or argon2id_sensitive, then hkdf for each purpose", "function": "argon2id", "backend": "link /third_party//sodium", "example": "argon2id.cpp", "anchor": "hash-argon2id"},
         {"need": "turn a shared secret (an ECDH result) into keys", "use": "hkdf over hmac_sha2_256, one info label per key", "function": "hkdf", "backend": "the default; name a backend only to match another program's", "example": "hkdf.cpp", "anchor": "hash-hkdf"},
-        {"need": "derive many keys from one master key, one per purpose", "use": "hkdf_expand (or hkdf) with distinct info labels, or blake3::derive_key with a context string", "function": "hkdf_expand", "backend": "the default", "example": "subkeys.cpp", "anchor": "hash-privacy-subkeys"},
+        {"need": "derive many keys from one master key, one per purpose", "use": "hkdf_expand (or hkdf) with distinct info labels, blake2b_subkey (libsodium's crypto_kdf) by id, or blake3::derive_key with a context string", "function": "hkdf_expand", "backend": "the default", "example": "subkeys.cpp", "anchor": "hash-privacy-subkeys"},
         {"need": "build a hash table, set or Bloom filter whose keys come from the network", "use": "siphash_64 keyed with 16 random bytes per process", "function": "siphash_64", "backend": "none: one backend", "example": "siphash.cpp", "anchor": "hash-siphash"},
         {"need": "build a hash table of my own trusted keys, or a fast checksum", "use": "xxh3_128 or fnv1a_64", "function": "xxh3_128", "backend": "none: one backend", "example": "checksums.cpp", "anchor": "hash-non-cryptographic-functions"},
         {"need": "compute a Bitcoin wallet's BIP39 seed from its words", "use": "pbkdf2 over hmac_sha2_512, 2,048 iterations (a domain library's step)", "function": "pbkdf2", "backend": "the default", "example": "bip39_seed.cpp", "anchor": "hash-crypto-bip39"},

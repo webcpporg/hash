@@ -76,9 +76,10 @@ others.
 *The idea.* Key separation: derive one key per purpose from the master key,
 each bound to a label that names the purpose. HKDF-Expand (<<hash-hkdf>>) with
 an info string per purpose is the standard way; BLAKE3's `derive_key` with a
-context string (<<hash-blake3>>) does it in one call; a keyed BLAKE2b over a
-subkey number and a context does the same with BLAKE2b (<<hash-blake2>>). Each
-derived key reveals nothing of the master key or of the other keys.
+context string (<<hash-blake3>>) does it in one call; `blake2b_subkey`,
+libsodium's `crypto_kdf`, numbers the subkeys within an 8-byte context
+(<<hash-blake2b-subkey>>). Each derived key reveals nothing of the master key or
+of the other keys.
 
 [source]
 ----
@@ -90,11 +91,9 @@ include::{examples}/subkeys.cpp[tag=example,indent=0]
 include::{examples}/subkeys.expected[]
 ----
 
-The keyed BLAKE2b of the example is the application's own construction, not
-libsodium's `crypto_kdf`, which places the subkey number and the context in
-BLAKE2b's salt and personalisation parameters; Boost.Hash2's BLAKE2b has
-neither, and libsodium's comes to hash in a later increment. A program that
-must give libsodium's subkeys waits for it.
+The subkeys of part (b) are the bytes libsodium's `crypto_kdf_derive_from_key`
+gives for the same master key, ids and context: an app whose other half uses
+libsodium, or a libsodium binding, derives the same keys on both sides.
 
 *Mistakes.* Two purposes with the same label get the same key: write each
 label once, as a constant, with the application's name and a version. Never

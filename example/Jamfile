@@ -19,6 +19,8 @@ webcpp.example sha256.cpp ;
 webcpp.example sha3_shake.cpp ;
 webcpp.example keccak_256.cpp : <library>/third_party//xkcp ;
 webcpp.example blake2b.cpp ;
+webcpp.example blake2b_options.cpp : <library>/third_party//sodium ;
+webcpp.example turboshake.cpp : <library>/third_party//sodium ;
 webcpp.example blake3.cpp : <library>/third_party//blake3 ;
 webcpp.example ripemd160.cpp ;
 webcpp.example digest_family.cpp ;
@@ -28,15 +30,20 @@ webcpp.example digest_family.cpp ;
 webcpp.example hmac_sha256.cpp : <library>/webcpp/crypto//crypto ;
 webcpp.example siphash.cpp : <library>/webcpp/crypto//crypto ;
 webcpp.example mac_family.cpp : <library>/webcpp/crypto//crypto ;
+webcpp.example siphash_sodium.cpp : <library>/third_party//sodium ;
+webcpp.example hmac_sodium.cpp : <library>/third_party//sodium
+  <library>/webcpp/crypto//crypto ;
 
 # Key derivation.
 webcpp.example hkdf.cpp ;
 webcpp.example hkdf_backends.cpp : <library>/third_party//sodium
   <library>/third_party//bearssl ;
 webcpp.example pbkdf2.cpp ;
+webcpp.example blake2b_subkey.cpp : <library>/third_party//sodium ;
 
 # Password hashing.
 webcpp.example argon2id.cpp : <library>/third_party//sodium ;
+webcpp.example argon2_family.cpp : <library>/third_party//sodium ;
 webcpp.example scrypt.cpp : <library>/third_party//sodium ;
 
 # Hashes that are not cryptographic.
@@ -53,4 +60,4 @@ webcpp.example bitcoin_hash160.cpp ;
 webcpp.example ethereum_address.cpp : <library>/third_party//xkcp ;
 webcpp.example password_storage.cpp : <library>/third_party//sodium
   <library>/webcpp/crypto//crypto ;
-webcpp.example subkeys.cpp ;
+webcpp.example subkeys.cpp : <library>/third_party//sodium ;
