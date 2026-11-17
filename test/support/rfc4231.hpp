@@ -6,8 +6,8 @@
 
 // RFC 4231's seven HMAC test cases (section 4), the key, the data and the HMAC-SHA-256 and
 // HMAC-SHA-512 tags, each a hex string as the RFC prints it, joined; test case 5's tags are cut to
-// 128 bits, as the RFC prints them. Checked twice: parsed from the RFC's text, and recomputed by
-// Python's hmac (the stream's report records both).
+// 128 bits, as the RFC prints them. Checked twice when written here: parsed from the RFC's
+// text, and recomputed by Python's hmac.
 
 #ifndef WEBCPP_TEST_HASH_SUPPORT_RFC4231_HPP
 #define WEBCPP_TEST_HASH_SUPPORT_RFC4231_HPP

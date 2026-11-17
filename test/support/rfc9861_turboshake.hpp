@@ -7,8 +7,8 @@
 // RFC 9861's TurboSHAKE test vectors (section 5), each as the RFC prints it, its hex joined: the
 // message is ptn(n), the pattern 00 01 .. FA repeated and cut to n bytes, or the bytes written;
 // the output, of `length` bytes, is compared from byte `offset` on (the RFC prints the last 32
-// bytes of its 10,032-byte outputs). Checked twice: parsed from the RFC's text, and recomputed by
-// an independent Python TurboSHAKE over Keccak-p[1600, 12] (the stream's report records both).
+// bytes of its 10,032-byte outputs). Checked twice when written here: parsed from the RFC's
+// text, and recomputed by an independent Python TurboSHAKE over Keccak-p[1600, 12].
 // KangarooTwelve's vectors of the same section are increment 3's.
 
 #ifndef WEBCPP_TEST_HASH_SUPPORT_RFC9861_TURBOSHAKE_HPP

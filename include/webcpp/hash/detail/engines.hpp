@@ -208,10 +208,11 @@ template <class Backend>
 struct argon2id_engine {
     // backends::sodium, the default, reaches this template only when the program does not link
     // libsodium, whose header specialises it: the refusal is then sodium.hpp's own (spec 5.7).
-    static_assert(!std::is_same_v<Backend, backends::sodium>,
-                  "webcpp::hash: backends::sodium, argon2id and scrypt need libsodium. Add "
-                  "/third_party//sodium to the program's Jamfile: exe app : app.cpp "
-                  "/webcpp/hash//hash /third_party//sodium ;");
+    static_assert(
+        !std::is_same_v<Backend, backends::sodium>,
+        "webcpp::hash: backends::sodium, argon2id, scrypt and blake2b_subkey need libsodium. Add "
+        "/third_party//sodium to the program's Jamfile: exe app : app.cpp "
+        "/webcpp/hash//hash /third_party//sodium ;");
     static_assert(std::is_same_v<Backend, backends::sodium>,
                   "webcpp::hash: argon2id is in backends::sodium alone. Name backends::sodium "
                   "and add /third_party//sodium to the program's Jamfile.");
@@ -247,10 +248,11 @@ template <class Backend>
 struct scrypt_engine {
     // backends::sodium, the default, reaches this template only when the program does not link
     // libsodium, whose header specialises it: the refusal is then sodium.hpp's own (spec 5.7).
-    static_assert(!std::is_same_v<Backend, backends::sodium>,
-                  "webcpp::hash: backends::sodium, argon2id and scrypt need libsodium. Add "
-                  "/third_party//sodium to the program's Jamfile: exe app : app.cpp "
-                  "/webcpp/hash//hash /third_party//sodium ;");
+    static_assert(
+        !std::is_same_v<Backend, backends::sodium>,
+        "webcpp::hash: backends::sodium, argon2id, scrypt and blake2b_subkey need libsodium. Add "
+        "/third_party//sodium to the program's Jamfile: exe app : app.cpp "
+        "/webcpp/hash//hash /third_party//sodium ;");
     static_assert(std::is_same_v<Backend, backends::sodium>,
                   "webcpp::hash: scrypt is in backends::sodium alone. Name backends::sodium and "
                   "add /third_party//sodium to the program's Jamfile.");
@@ -295,10 +297,11 @@ struct blake2b_subkey_engine {
     // backends::sodium, the default, reaches this template only when the program does not link
     // libsodium, whose header specialises it: the refusal is then the one of every function on
     // backends::sodium (spec 5.7).
-    static_assert(!std::is_same_v<Backend, backends::sodium>,
-                  "webcpp::hash: backends::sodium, argon2id and scrypt need libsodium. Add "
-                  "/third_party//sodium to the program's Jamfile: exe app : app.cpp "
-                  "/webcpp/hash//hash /third_party//sodium ;");
+    static_assert(
+        !std::is_same_v<Backend, backends::sodium>,
+        "webcpp::hash: backends::sodium, argon2id, scrypt and blake2b_subkey need libsodium. Add "
+        "/third_party//sodium to the program's Jamfile: exe app : app.cpp "
+        "/webcpp/hash//hash /third_party//sodium ;");
     static_assert(std::is_same_v<Backend, backends::sodium>,
                   "webcpp::hash: blake2b_subkey is in backends::sodium alone. Name "
                   "backends::sodium and add /third_party//sodium to the program's Jamfile.");
@@ -409,7 +412,7 @@ struct needs_library {
     static_assert(!(std::is_same_v<Backend, backends::blake3> && missing_library_v<Backend>),
                   "webcpp::hash: backends::blake3 needs BLAKE3's C implementation. Add /third_party//blake3 to the program's Jamfile: exe app : app.cpp /webcpp/hash//hash /third_party//blake3 ;");
     static_assert(!(std::is_same_v<Backend, backends::sodium> && missing_library_v<Backend>),
-                  "webcpp::hash: backends::sodium, argon2id and scrypt need libsodium. Add /third_party//sodium to the program's Jamfile: exe app : app.cpp /webcpp/hash//hash /third_party//sodium ;");
+                  "webcpp::hash: backends::sodium, argon2id, scrypt and blake2b_subkey need libsodium. Add /third_party//sodium to the program's Jamfile: exe app : app.cpp /webcpp/hash//hash /third_party//sodium ;");
     static_assert(!(std::is_same_v<Backend, backends::bearssl> && missing_library_v<Backend>),
                   "webcpp::hash: backends::bearssl needs BearSSL. Add /third_party//bearssl to the program's Jamfile: exe app : app.cpp /webcpp/hash//hash /third_party//bearssl ;");
     static_assert(!(std::is_same_v<Backend, backends::openssl> && missing_library_v<Backend>),

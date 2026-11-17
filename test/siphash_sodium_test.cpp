@@ -21,6 +21,7 @@
 #include <webcpp/test/exit_status.hpp>
 
 #include "require.hpp"
+#include "support/data_file.hpp"
 #include "support/hex.hpp"
 
 #include <boost/core/lightweight_test.hpp>
@@ -30,12 +31,8 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
-#include <cstdlib>
-#include <fstream>
 #include <iostream>
-#include <iterator>
 #include <span>
-#include <sstream>
 #include <string>
 #include <string_view>
 #include <type_traits>
@@ -57,29 +54,6 @@ static_assert(hash::backend_has_v<backends::sodium, macs::siphash_2_4x, void>);
 
 // The number of vectors in each file: the inputs of 0 to 63 bytes.
 constexpr std::size_t vector_count = 64;
-
-// The whole file at path; one that cannot be opened ends the test, by name.
-std::string read_text(std::string const& path) {
-    std::ifstream in(path, std::ios::binary);
-    if (!in) {
-        std::cerr << "cannot open test data: " << path << '\n';
-        std::abort();
-    }
-    return {std::istreambuf_iterator<char>(in), std::istreambuf_iterator<char>()};
-}
-
-// The file's lines, without a trailing carriage return.
-std::vector<std::string> read_lines(std::string const& path) {
-    std::istringstream text(read_text(path));
-    std::vector<std::string> lines;
-    for (std::string line; std::getline(text, line);) {
-        if (!line.empty() && line.back() == '\r') {
-            line.pop_back();
-        }
-        lines.push_back(line);
-    }
-    return lines;
-}
 
 bool failed_with(boost::system::result<void> const& outcome, hash::error expected) {
     return outcome.has_error() && outcome.error() == expected;
@@ -125,7 +99,7 @@ std::array<std::uint8_t, 8> hash2_siphash(std::span<std::uint8_t const> key,
 // SipHash-2-4 against shorthash.exp, the paper's 64 vectors: on backends::sodium, on
 // backends::hash2 (the default) and by Boost.Hash2's siphash_64.
 void check_siphash_2_4() {
-    auto const lines = read_lines(WEBCPP_TEST_SODIUM_VECTORS "/shorthash.exp");
+    auto const lines = test::read_lines(WEBCPP_TEST_SODIUM_VECTORS "/shorthash.exp");
     test::require(BOOST_TEST_EQ(lines.size(), vector_count));
     // The SipHash paper, appendix A, vectors_sip64[0]: the tag of the empty input.
     BOOST_TEST_EQ(lines.front(), "310e0edd47db6f72");
@@ -148,7 +122,7 @@ void check_siphash_2_4() {
 
 // SipHash-2-4x against siphashx24.exp: on backends::sodium named, and on the default.
 void check_siphash_2_4x() {
-    auto const lines = read_lines(WEBCPP_TEST_SODIUM_VECTORS "/siphashx24.exp");
+    auto const lines = test::read_lines(WEBCPP_TEST_SODIUM_VECTORS "/siphashx24.exp");
     test::require(BOOST_TEST_EQ(lines.size(), vector_count));
     auto const key = counting_key();
     auto const input = counting_input();

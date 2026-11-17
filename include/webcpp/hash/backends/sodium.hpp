@@ -38,7 +38,7 @@
 
 #ifndef WEBCPP_HASH_HAS_SODIUM
 #error \
-    "webcpp::hash: backends::sodium, argon2id and scrypt need libsodium. Add /third_party//sodium to the program's Jamfile: exe app : app.cpp /webcpp/hash//hash /third_party//sodium ;"
+    "webcpp::hash: backends::sodium, argon2id, scrypt and blake2b_subkey need libsodium. Add /third_party//sodium to the program's Jamfile: exe app : app.cpp /webcpp/hash//hash /third_party//sodium ;"
 #else
 
 #include <webcpp/hash/detail/canary.h>
@@ -626,8 +626,8 @@ struct digest_engine<backends::sodium, digests::sha3_512>
  interface of @ref digest_engine. It calls `_init_with_domain`, `_update` and `_squeeze`, and
  serves every output size from 1 byte. The domain byte is TurboSHAKE's option (the family's guard
  holds it to 0x01..0x7F, which libsodium does not check), and SHAKE's own, 0x1F, for a tag without
- options. libsodium's
- `_squeeze` does not wipe the state, which may squeeze more: `destroy` wipes it.
+ options. libsodium's `_squeeze` does not wipe the state, which may squeeze more: `destroy` wipes
+ it.
 
  @tparam Digest The tag of `digests`. @tparam State libsodium's state. @tparam StandardDomain
  libsodium's `_DOMAIN_STANDARD`. @tparam Init libsodium's `_init_with_domain`. @tparam Update
@@ -641,15 +641,17 @@ struct sodium_xof_engine
           sodium_xof_engine<Digest, State, StandardDomain, Init, Update, Squeeze>, Digest, State,
           Update> {
     /**
-     The domain byte of `options`: TurboSHAKE's option, or SHAKE's standard byte.
+     The domain byte the sponge pads with: TurboSHAKE's option `domain`, or SHAKE's standard byte,
+     0x1F, for a tag whose options have no domain.
 
-     @param options The tag's options. @return D.
+     @param options The tag's options.
+     @return The domain byte, D of RFC 9861 for TurboSHAKE.
     */
-    static constexpr unsigned char domain_of(digest_options<Digest> const& options) noexcept {
+    static constexpr unsigned char domain_of(
+        [[maybe_unused]] digest_options<Digest> const& options) noexcept {
         if constexpr (requires { options.domain; }) {
             return options.domain;
         } else {
-            static_cast<void>(options);
             return StandardDomain;
         }
     }

@@ -6,8 +6,8 @@
 
 // FIPS 202's SHAKE examples, as NIST's Computer Security Resource Center publishes them with the
 // standard ("Examples with Intermediate Values": SHAKE128 and SHAKE256 of the empty message and of
-// 1,600 bits of 0xA3, each 4,096 bits of output), the hex joined. Recomputed by Python's
-// hashlib.shake_128 and hashlib.shake_256 (the stream's report records it).
+// 1,600 bits of 0xA3, each 4,096 bits of output), the hex joined, each value also recomputed
+// by Python's hashlib.shake_128 and hashlib.shake_256 when it was written here.
 
 #ifndef WEBCPP_TEST_HASH_SUPPORT_FIPS202_SHAKE_HPP
 #define WEBCPP_TEST_HASH_SUPPORT_FIPS202_SHAKE_HPP

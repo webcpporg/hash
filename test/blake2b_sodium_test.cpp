@@ -20,6 +20,7 @@
 #include <webcpp/test/exit_status.hpp>
 
 #include "require.hpp"
+#include "support/data_file.hpp"
 #include "support/hex.hpp"
 
 #include <boost/core/lightweight_test.hpp>
@@ -31,11 +32,8 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstdlib>
-#include <fstream>
 #include <iostream>
-#include <iterator>
 #include <span>
-#include <sstream>
 #include <string>
 #include <string_view>
 #include <type_traits>
@@ -52,29 +50,6 @@ namespace backends = webcpp::hash::backends;
 using options = hash::digest_options<digests::blake2b>;
 
 static_assert(std::is_same_v<hash::default_backend<digests::blake2b>, backends::sodium>);
-
-// The whole file at path; one that cannot be opened ends the test, by name.
-std::string read_text(std::string const& path) {
-    std::ifstream in(path, std::ios::binary);
-    if (!in) {
-        std::cerr << "cannot open test data: " << path << '\n';
-        std::abort();
-    }
-    return {std::istreambuf_iterator<char>(in), std::istreambuf_iterator<char>()};
-}
-
-// The file's lines, without a trailing carriage return.
-std::vector<std::string> read_lines(std::string const& path) {
-    std::istringstream text(read_text(path));
-    std::vector<std::string> lines;
-    for (std::string line; std::getline(text, line);) {
-        if (!line.empty() && line.back() == '\r') {
-            line.pop_back();
-        }
-        lines.push_back(line);
-    }
-    return lines;
-}
 
 bool failed_with(boost::system::result<void> const& outcome, hash::error expected) {
     return outcome.has_error() && outcome.error() == expected;
@@ -120,7 +95,7 @@ std::string kat_value(std::string const& line, std::string_view name) {
 // Every case of blake2b-kat.txt, stanzas of "in:", "key:" and "hash:" lines: the key is 64 bytes,
 // the input 0 to 255 bytes, the output 64 bytes.
 void check_keyed_kat() {
-    auto const lines = read_lines(WEBCPP_TEST_BLAKE2_VECTORS "/blake2b-kat.txt");
+    auto const lines = test::read_lines(WEBCPP_TEST_BLAKE2_VECTORS "/blake2b-kat.txt");
     std::size_t run = 0;
     for (std::size_t index = 0; index + 2 < lines.size(); ++index) {
         if (!lines[index].starts_with("in:")) {
@@ -141,7 +116,7 @@ void check_keyed_kat() {
 // Every unkeyed BLAKE2b case of blake2-kat.json (inputs of 0 to 255 bytes, 64-byte outputs): on
 // backends::sodium, and the same on backends::hash2 and Boost.Hash2's blake2b_512.
 void check_unkeyed_kat() {
-    auto const text = read_text(WEBCPP_TEST_BLAKE2_VECTORS "/blake2-kat.json");
+    auto const text = test::read_text(WEBCPP_TEST_BLAKE2_VECTORS "/blake2-kat.json");
     boost::system::error_code ec;
     auto const doc = json::parse(text, ec);
     test::require(BOOST_TEST(!ec));
@@ -180,7 +155,7 @@ std::vector<std::uint8_t> ascii(std::string_view text) {
 // libsodium's generichash3 test (test/default/generichash3.c at the pin), whose outputs are the
 // lines of generichash3.exp, in its order. Its key is bytes 0 to 63; its input bytes 0 to 63.
 void check_generichash3() {
-    auto const lines = read_lines(WEBCPP_TEST_SODIUM_VECTORS "/generichash3.exp");
+    auto const lines = test::read_lines(WEBCPP_TEST_SODIUM_VECTORS "/generichash3.exp");
     test::require(BOOST_TEST_EQ(lines.size(), 75U));
     auto const salt = ascii("5b6b41ed9b343fe0");
     auto const personal = ascii("5126fb2a37400d2a");

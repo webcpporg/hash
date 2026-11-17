@@ -19,6 +19,7 @@
 #include <webcpp/test/exit_status.hpp>
 
 #include "require.hpp"
+#include "support/data_file.hpp"
 #include "support/hex.hpp"
 
 #include <boost/core/lightweight_test.hpp>
@@ -28,12 +29,8 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
-#include <cstdlib>
-#include <fstream>
 #include <iostream>
-#include <iterator>
 #include <span>
-#include <sstream>
 #include <string>
 #include <string_view>
 #include <type_traits>
@@ -55,29 +52,6 @@ static_assert(!hash::backend_has_v<backends::hash2, kdfs::blake2b_subkey, void>)
 constexpr std::size_t fixed_count = 10;
 constexpr std::size_t length_count = 66;
 constexpr std::size_t line_count = fixed_count + length_count + 1;
-
-// The whole file at path; one that cannot be opened ends the test, by name.
-std::string read_text(std::string const& path) {
-    std::ifstream in(path, std::ios::binary);
-    if (!in) {
-        std::cerr << "cannot open test data: " << path << '\n';
-        std::abort();
-    }
-    return {std::istreambuf_iterator<char>(in), std::istreambuf_iterator<char>()};
-}
-
-// The file's lines, without a trailing carriage return.
-std::vector<std::string> read_lines(std::string const& path) {
-    std::istringstream text(read_text(path));
-    std::vector<std::string> lines;
-    for (std::string line; std::getline(text, line);) {
-        if (!line.empty() && line.back() == '\r') {
-            line.pop_back();
-        }
-        lines.push_back(line);
-    }
-    return lines;
-}
 
 bool failed_with(boost::system::result<void> const& outcome, hash::error expected) {
     return outcome.has_error() && outcome.error() == expected;
@@ -104,7 +78,7 @@ std::vector<std::uint8_t> bytes_of(std::string_view text) {
 
 // Every line of kdf.exp: on the default backend and on backends::sodium named.
 void check_kdf_exp() {
-    auto const lines = read_lines(WEBCPP_TEST_SODIUM_VECTORS "/kdf.exp");
+    auto const lines = test::read_lines(WEBCPP_TEST_SODIUM_VECTORS "/kdf.exp");
     test::require(BOOST_TEST_EQ(lines.size(), line_count));
     BOOST_TEST_EQ(lines.back(), "tv_kdf: ok");
     auto const master = counting_master_key();

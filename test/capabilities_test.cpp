@@ -680,9 +680,9 @@ std::vector<refusal> const& refusals() {
         },
         {
             .header = "detail/engines.hpp",
-            .start = "backends::sodium, argon2id and scrypt need libsodium.",
+            .start = "backends::sodium, argon2id, scrypt and blake2b_subkey need libsodium.",
             .backend = "sodium",
-            .functions = {"argon2id", "scrypt"},
+            .functions = {"argon2id", "scrypt", "blake2b_subkey"},
             .hmacs = {},
         },
         {
