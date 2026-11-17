@@ -18,6 +18,7 @@ webcpp.targets native wasip2 wasip3 emscripten ;
 webcpp.example sha256.cpp ;
 webcpp.example sha3_shake.cpp ;
 webcpp.example keccak_256.cpp : <library>/third_party//xkcp ;
+webcpp.example keccak_family.cpp : <library>/third_party//xkcp ;
 webcpp.example blake2b.cpp ;
 webcpp.example blake3.cpp : <library>/third_party//blake3 ;
 webcpp.example ripemd160.cpp ;

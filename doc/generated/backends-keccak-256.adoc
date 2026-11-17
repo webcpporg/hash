@@ -8,12 +8,19 @@
 
 
 [#hash-backends-of-keccak-256]
-.Who implements `keccak_256`, `digests::keccak_256` (Keccak (the SHA-3 submission's padding), as Ethereum uses it)
+.Who implements `keccak_256` to `digests::keccak_512`, 5 names (Keccak (the SHA-3 submission's padding), as Ethereum uses it)
 [cols="2,1,2,2,3,1",options="header"]
 |===
 | Function | Backend | The program's Jamfile names | Targets | Hmacs | Constant time
 
 | `keccak_256`
+| `xkcp`
+| `/third_party//xkcp`
+| native, wasip2, wasip3, emscripten
+| -
+| not stated
+
+| `digests::keccak_224`
 | `xkcp`
 | `/third_party//xkcp`
 | native, wasip2, wasip3, emscripten
@@ -26,10 +33,24 @@
 | native, wasip2, wasip3, emscripten
 | -
 | not stated
+
+| `digests::keccak_384`
+| `xkcp`
+| `/third_party//xkcp`
+| native, wasip2, wasip3, emscripten
+| -
+| not stated
+
+| `digests::keccak_512`
+| `xkcp`
+| `/third_party//xkcp`
+| native, wasip2, wasip3, emscripten
+| -
+| not stated
 |===
 
 What each backend states on constant time, as the capability table read it:
 
-* `xkcp`: XKCP at d20c8fc: README.markdown and lib/low/KeccakP-1600 state no constant-time property.
+* `xkcp`: XKCP at d20c8fc: README.markdown, lib/low/KeccakP-1600 and lib/high/Keccak (KeccakSponge, FIPS202/KeccakHash) state no constant-time property.
 
-The default of `digests::keccak_256`: `xkcp` on every target, whatever the program links (<<hash-default-backend>>).
+The default of `digests::keccak_224`, `digests::keccak_256`, `digests::keccak_384` and `digests::keccak_512`: `xkcp` on every target, whatever the program links (<<hash-default-backend>>).

@@ -96,6 +96,11 @@ hash-run upstream_keccak : upstream_keccak_test.cpp : <library>/third_party//xkc
 # storage, against FIPS 202's, SP 800-185's and RFC 9861's values
 # (detail/xkcp.hpp).
 hash-run xkcp_adapter : xkcp_adapter_test.cpp : <library>/third_party//xkcp ;
+# Keccak-224 to -512, SHA-3 and SHAKE on backends::xkcp through digest_of and
+# hasher, against XKCP's ShortMsgKAT files, the Keccak team's digests and
+# Boost.Hash2.
+hash-run xkcp_fips202 : xkcp_fips202_test.cpp
+  : <library>/third_party//xkcp <library>/third_party//xkcp_vectors ;
 # hash.hpp's branch for XKCP.
 webcpp.compile hash_keccak : hash_keccak_test.cpp : <library>/third_party//xkcp ;
 # keccak_256's read of the canary survives optimisation: with the library it

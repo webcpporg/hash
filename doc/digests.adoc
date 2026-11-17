@@ -105,7 +105,7 @@ the first block, not from a second call.
 include::generated/backends-sha3-shake.adoc[]
 
 [#hash-keccak]
-=== Keccak-256
+=== Keccak
 
 Keccak-256 is Keccak as its authors submitted it to the SHA-3 competition,
 before NIST changed the padding for FIPS 202. Ethereum adopted it before the
@@ -133,8 +133,34 @@ against 0x06, and give unrelated digests. A library that offers "SHA3" for
 Ethereum, or "Keccak" for a FIPS 202 format, computes a value nobody else
 computes, and the mistake shows only as an address or a signature that does
 not match. Use `keccak_256` exactly where a format says Keccak-256.
-* *Keccak-224, Keccak-384 and Keccak-512* are not in this increment; their
-proposal to Boost.Hash2 is in <<hash-upstream>>.
+
+Keccak-224, Keccak-384 and Keccak-512, the submission's other sizes, are tags
+of `digest_of` and `hasher` (<<hash-digest-family>>): `digests::keccak_224`,
+`digests::keccak_384` and `digests::keccak_512`, on `backends::xkcp`, which
+runs XKCP's FIPS 202 code (`Keccak_Hash`) with Keccak's padding. The same
+backend, named in the call, computes SHA3-224 to SHA3-512 and SHAKE128 and
+SHAKE256, any number of bytes of SHAKE's stream; XKCP's own test vectors
+(the ShortMsgKAT files) and Boost.Hash2 give the same values.
+
+[source]
+----
+include::{examples}/keccak_family.cpp[tag=example,indent=0]
+----
+
+[listing]
+----
+include::{examples}/keccak_family.expected[]
+----
+
+*Pitfalls.*
+
+* *The tag names the padding.* `digests::keccak_512` and
+`digests::sha3_512` differ as `keccak_256` and `sha3_256` do: one byte of
+padding, unrelated digests. Keccak-224 to Keccak-512 are found in formats
+written before FIPS 202, rarely since; a new format takes SHA-3.
+* *Keccak-224, Keccak-384 and Keccak-512 have no Hash2-form type* here: their
+proposal to Boost.Hash2 is in <<hash-upstream>>, and until it lands they are
+reached through their tags alone.
 
 include::generated/backends-keccak-256.adoc[]
 

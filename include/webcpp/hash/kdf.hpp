@@ -192,6 +192,45 @@ inline constexpr bool backend_has_v<backends::hash2, digests::blake2b, void> = t
 template <>
 inline constexpr bool backend_has_v<backends::xkcp, digests::keccak_256, void> = true;
 
+/** backends::xkcp has `digests::keccak_224` (XKCP's FIPS 202's `Keccak_Hash` with Keccak's
+ * padding). */
+template <>
+inline constexpr bool backend_has_v<backends::xkcp, digests::keccak_224, void> = true;
+
+/** backends::xkcp has `digests::keccak_384` (XKCP's FIPS 202's `Keccak_Hash` with Keccak's
+ * padding). */
+template <>
+inline constexpr bool backend_has_v<backends::xkcp, digests::keccak_384, void> = true;
+
+/** backends::xkcp has `digests::keccak_512` (XKCP's FIPS 202's `Keccak_Hash` with Keccak's
+ * padding). */
+template <>
+inline constexpr bool backend_has_v<backends::xkcp, digests::keccak_512, void> = true;
+
+/** backends::xkcp has `digests::sha3_224` (XKCP's FIPS 202's `Keccak_Hash`). */
+template <>
+inline constexpr bool backend_has_v<backends::xkcp, digests::sha3_224, void> = true;
+
+/** backends::xkcp has `digests::sha3_256` (XKCP's FIPS 202's `Keccak_Hash`). */
+template <>
+inline constexpr bool backend_has_v<backends::xkcp, digests::sha3_256, void> = true;
+
+/** backends::xkcp has `digests::sha3_384` (XKCP's FIPS 202's `Keccak_Hash`). */
+template <>
+inline constexpr bool backend_has_v<backends::xkcp, digests::sha3_384, void> = true;
+
+/** backends::xkcp has `digests::sha3_512` (XKCP's FIPS 202's `Keccak_Hash`). */
+template <>
+inline constexpr bool backend_has_v<backends::xkcp, digests::sha3_512, void> = true;
+
+/** backends::xkcp has `digests::shake_128` (XKCP's FIPS 202's `Keccak_Hash`, any output size). */
+template <>
+inline constexpr bool backend_has_v<backends::xkcp, digests::shake_128, void> = true;
+
+/** backends::xkcp has `digests::shake_256` (XKCP's FIPS 202's `Keccak_Hash`, any output size). */
+template <>
+inline constexpr bool backend_has_v<backends::xkcp, digests::shake_256, void> = true;
+
 /** backends::blake3 has `digests::blake3` (BLAKE3's C implementation), with its extendable output.
  */
 template <>

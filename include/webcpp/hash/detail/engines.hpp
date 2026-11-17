@@ -578,7 +578,7 @@ struct digest_engine<Backend, digests::sha3_224> : refused_digest_engine<digests
                                                    needs_library<Backend> {
     static_assert(refused_elsewhere_v<Backend>,
                   "webcpp::hash: digests::sha3_224 is not in this backend. Name one of: "
-                  "backends::hash2.");
+                  "backends::hash2, backends::xkcp.");
 };
 
 /** `digests::sha3_256` on a backend without it (spec 3.3, design D34). */
@@ -587,7 +587,7 @@ struct digest_engine<Backend, digests::sha3_256> : refused_digest_engine<digests
                                                    needs_library<Backend> {
     static_assert(refused_elsewhere_v<Backend>,
                   "webcpp::hash: digests::sha3_256 is not in this backend. Name one of: "
-                  "backends::hash2.");
+                  "backends::hash2, backends::xkcp.");
 };
 
 /** `digests::sha3_384` on a backend without it (spec 3.3, design D34). */
@@ -596,7 +596,7 @@ struct digest_engine<Backend, digests::sha3_384> : refused_digest_engine<digests
                                                    needs_library<Backend> {
     static_assert(refused_elsewhere_v<Backend>,
                   "webcpp::hash: digests::sha3_384 is not in this backend. Name one of: "
-                  "backends::hash2.");
+                  "backends::hash2, backends::xkcp.");
 };
 
 /** `digests::sha3_512` on a backend without it (spec 3.3, design D34). */
@@ -605,7 +605,7 @@ struct digest_engine<Backend, digests::sha3_512> : refused_digest_engine<digests
                                                    needs_library<Backend> {
     static_assert(refused_elsewhere_v<Backend>,
                   "webcpp::hash: digests::sha3_512 is not in this backend. Name one of: "
-                  "backends::hash2.");
+                  "backends::hash2, backends::xkcp.");
 };
 
 /** `digests::shake_128` on a backend without it (spec 3.3, design D34). */
@@ -614,7 +614,7 @@ struct digest_engine<Backend, digests::shake_128> : refused_digest_engine<digest
                                                     needs_library<Backend> {
     static_assert(refused_elsewhere_v<Backend>,
                   "webcpp::hash: digests::shake_128 is not in this backend. Name one of: "
-                  "backends::hash2 (at most 32 bytes).");
+                  "backends::hash2 (at most 32 bytes), backends::xkcp.");
 };
 
 /** `digests::shake_256` on a backend without it (spec 3.3, design D34). */
@@ -623,7 +623,7 @@ struct digest_engine<Backend, digests::shake_256> : refused_digest_engine<digest
                                                     needs_library<Backend> {
     static_assert(refused_elsewhere_v<Backend>,
                   "webcpp::hash: digests::shake_256 is not in this backend. Name one of: "
-                  "backends::hash2 (at most 64 bytes).");
+                  "backends::hash2 (at most 64 bytes), backends::xkcp.");
 };
 
 /** `digests::keccak_224` on a backend without it (spec 3.3, design D34). */
@@ -631,7 +631,8 @@ template <class Backend>
 struct digest_engine<Backend, digests::keccak_224> : refused_digest_engine<digests::keccak_224>,
                                                      needs_library<Backend> {
     static_assert(refused_elsewhere_v<Backend>,
-                  "webcpp::hash: digests::keccak_224 is in no backend yet.");
+                  "webcpp::hash: digests::keccak_224 is not in this backend. Name one of: "
+                  "backends::xkcp.");
 };
 
 /** `digests::keccak_256` on a backend without it (spec 3.3, design D34). */
@@ -648,7 +649,8 @@ template <class Backend>
 struct digest_engine<Backend, digests::keccak_384> : refused_digest_engine<digests::keccak_384>,
                                                      needs_library<Backend> {
     static_assert(refused_elsewhere_v<Backend>,
-                  "webcpp::hash: digests::keccak_384 is in no backend yet.");
+                  "webcpp::hash: digests::keccak_384 is not in this backend. Name one of: "
+                  "backends::xkcp.");
 };
 
 /** `digests::keccak_512` on a backend without it (spec 3.3, design D34). */
@@ -656,7 +658,8 @@ template <class Backend>
 struct digest_engine<Backend, digests::keccak_512> : refused_digest_engine<digests::keccak_512>,
                                                      needs_library<Backend> {
     static_assert(refused_elsewhere_v<Backend>,
-                  "webcpp::hash: digests::keccak_512 is in no backend yet.");
+                  "webcpp::hash: digests::keccak_512 is not in this backend. Name one of: "
+                  "backends::xkcp.");
 };
 
 /** `digests::cshake_128` on a backend without it (spec 3.3, design D34). */
