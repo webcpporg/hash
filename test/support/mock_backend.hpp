@@ -131,6 +131,7 @@ inline std::uint64_t mock_sum(std::span<std::uint8_t const> bytes) {
 template <class Digest, std::uint64_t MaxOutput>
 struct mock_digest_engine {
     using state = mock_state;
+    static constexpr std::uint64_t min_output = 0;
     static constexpr std::uint64_t max_output = MaxOutput;
 
     static bool accepts(hash::digest_options<Digest> const& /*options*/) noexcept {

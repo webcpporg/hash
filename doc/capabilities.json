@@ -670,6 +670,23 @@
                     }
                 },
                 {
+                    "name": "digests::blake2b",
+                    "kind": "digest",
+                    "header": "webcpp/hash/digest.hpp",
+                    "default": "sodium",
+                    "backends": {
+                        "hash2": {
+                            "since": 2,
+                            "hmacs": null,
+                            "partial": "an output under 64 bytes: BLAKE2b's output size is a parameter of the hash, and Boost.Hash2's blake2b_512 has 64 bytes alone",
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property."
+                            }
+                        }
+                    }
+                },
+                {
                     "name": "digests::blake2s_256",
                     "kind": "digest",
                     "header": "webcpp/hash/digest.hpp",
@@ -678,6 +695,23 @@
                         "hash2": {
                             "since": 2,
                             "hmacs": null,
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property."
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "macs::blake2s_mac",
+                    "kind": "mac",
+                    "header": "webcpp/hash/mac.hpp",
+                    "default": "hash2",
+                    "backends": {
+                        "hash2": {
+                            "since": 2,
+                            "hmacs": null,
+                            "partial": "a tag under 32 bytes: BLAKE2s's output size is a parameter of the hash, and Boost.Hash2's keyed blake2s_256 has 32 bytes alone",
                             "constant_time": {
                                 "value": "not stated",
                                 "source": "Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property."
@@ -816,6 +850,22 @@
                     "backends": {
                         "hash2": {
                             "since": 1,
+                            "hmacs": null,
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property."
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "macs::siphash_2_4",
+                    "kind": "mac",
+                    "header": "webcpp/hash/mac.hpp",
+                    "default": "hash2",
+                    "backends": {
+                        "hash2": {
+                            "since": 2,
                             "hmacs": null,
                             "constant_time": {
                                 "value": "not stated",

@@ -1,5 +1,5 @@
 digest_of ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad
 hasher same
 second finish: the hasher was finished or moved from
-20-byte output: the output is empty or longer than the function produces
+20-byte output: the output is not of a size the function produces
 shake_128 5881092dd818bf5cf8a3ddb793fbcba7

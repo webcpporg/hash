@@ -236,7 +236,8 @@ struct digest_traits<digests::blake2b> : fixed_output<64> {
 
 /**
  The family's guards of `digest_of` and `hasher::finish` on an output of `output_size` bytes: the
- tag's sizes (`invalid_output_size`), then the backend's longest output (`unsupported_by_backend`).
+ tag's sizes (`invalid_output_size`), then the backend's shortest and longest outputs
+ (`unsupported_by_backend`).
 
  @tparam Digest A tag of `digests`. @tparam Engine Its engine on the chosen backend.
  @param output_size The output's size. @param min_size The tag's shortest output for its options.
@@ -249,7 +250,7 @@ boost::system::result<void> check_output(std::size_t output_size, std::uint64_t 
     if (output_size < min_size || exceeds(output_size, max_size)) {
         return error::invalid_output_size;
     }
-    if (exceeds(output_size, Engine::max_output)) {
+    if (exceeds(Engine::min_output, output_size) || exceeds(output_size, Engine::max_output)) {
         return error::unsupported_by_backend;
     }
     return {};

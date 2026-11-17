@@ -181,6 +181,13 @@ inline constexpr bool backend_has_v<backends::hash2, digests::shake_128, void> =
 template <>
 inline constexpr bool backend_has_v<backends::hash2, digests::shake_256, void> = true;
 
+/**
+ backends::hash2 has `digests::blake2b` in part: a 64-byte output with no options, Boost.Hash2's
+ `blake2b_512` (ruling R82).
+*/
+template <>
+inline constexpr bool backend_has_v<backends::hash2, digests::blake2b, void> = true;
+
 /** backends::xkcp has `digests::keccak_256` (webcpp's `keccak_256` over XKCP). */
 template <>
 inline constexpr bool backend_has_v<backends::xkcp, digests::keccak_256, void> = true;
@@ -251,6 +258,17 @@ inline constexpr bool backend_has_v<backends::hash2, macs::hmac<digests::blake2b
 /** backends::hash2 has `macs::hmac<digests::blake2s_256>` (Boost.Hash2's `hmac<H>`). */
 template <>
 inline constexpr bool backend_has_v<backends::hash2, macs::hmac<digests::blake2s_256>, void> = true;
+
+/** backends::hash2 has `macs::siphash_2_4` (Boost.Hash2's `siphash_64`). */
+template <>
+inline constexpr bool backend_has_v<backends::hash2, macs::siphash_2_4, void> = true;
+
+/**
+ backends::hash2 has `macs::blake2s_mac` in part: a 32-byte tag, Boost.Hash2's keyed `blake2s_256`
+ (ruling R82).
+*/
+template <>
+inline constexpr bool backend_has_v<backends::hash2, macs::blake2s_mac, void> = true;
 
 namespace detail {
 
@@ -799,7 +817,10 @@ struct default_of<digests::blake3> {
     using type = backends::blake3;
 };
 
-/** `digests::blake2b`: libsodium is the first backend of the order that has it whole. */
+/**
+ `digests::blake2b`: libsodium is the first backend of the order that has it whole (Boost.Hash2 has
+ its 64-byte output alone).
+*/
 template <>
 struct default_of<digests::blake2b> {
     /** backends::sodium. */
@@ -820,7 +841,11 @@ struct default_of<macs::blake2b_mac> {
     using type = backends::sodium;
 };
 
-/** `kdfs::argon2i`: libsodium is the first backend of the order that has it whole. */
+/**
+ `kdfs::argon2i`: libsodium has it in part (one lane, at least 3 passes, a tag of 16 bytes or more;
+ ruling R24), and no backend of the order has it whole, so the first with a cell is the default
+ (ruling R2).
+*/
 template <>
 struct default_of<kdfs::argon2i> {
     /** backends::sodium. */

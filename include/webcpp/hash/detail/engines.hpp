@@ -370,6 +370,9 @@ struct needs_library {
  `error::unsupported_by_backend` (rulings R14, R41).
 */
 struct full_engine {
+    /** The shortest output the engine produces: the family's own limit. */
+    static constexpr std::uint64_t min_output = 0;
+
     /** The longest output the engine produces: the family's own limit. */
     static constexpr std::uint64_t max_output = no_limit;
 
@@ -404,15 +407,18 @@ struct full_engine {
 
  A specialisation has these members, each function `noexcept`, called by the public functions
  only after every guard of the family has passed (the output size within the tag's
- `detail::digest_traits` and within `max_output`, the options checked by the traits and accepted
- by `accepts`); an engine does the work and no check, and wipes every intermediate it makes:
+ `detail::digest_traits` and within `min_output` and `max_output`, the options checked by the traits
+ and accepted by `accepts`); an engine does the work and no check, and wipes every intermediate it
+ makes:
 
  @code
  // The incremental state: default-constructible, nothrow move-constructible and move-assignable.
  // It may own a resource (OpenSSL's EVP_MD_CTX*, a Botan object); a moved-from state owns none.
  using state = ...;
- // The longest output the backend produces, no_limit when it is the family's (a fixed-size
- // digest's guards already hold the output to its size); a longer one is unsupported_by_backend.
+ // The shortest and the longest output the backend produces, 0 and no_limit when they are the
+ // family's (a fixed-size digest's guards already hold the output to its size); an output outside
+ // them is unsupported_by_backend.
+ static constexpr std::uint64_t min_output = ...;
  static constexpr std::uint64_t max_output = ...;
  // Whether the backend takes these options, every one the family accepts or fewer.
  static bool accepts(digest_options<Digest> const& options) noexcept;
@@ -433,8 +439,9 @@ struct full_engine {
                                              digest_options<Digest> const& options) noexcept;
  @endcode
 
- @ref full_engine gives `max_output` and `accepts` to an engine without narrower limits. A failure
- is `error::backend_failure`, or `errc::not_enough_memory` when the library could not allocate;
+ @ref full_engine gives `min_output`, `max_output` and `accepts` to an engine without narrower
+ limits. A failure is `error::backend_failure`, or `errc::not_enough_memory` when the library could
+ not allocate;
  the public function then zeroes the output, and a `hasher` is spent.
 
  @tparam Backend A backend of `backends`. @tparam Digest A tag of `digests`.
@@ -737,7 +744,8 @@ template <class Backend>
 struct digest_engine<Backend, digests::blake2b> : refused_digest_engine<digests::blake2b>,
                                                   needs_library<Backend> {
     static_assert(refused_elsewhere_v<Backend>,
-                  "webcpp::hash: digests::blake2b is in no backend yet.");
+                  "webcpp::hash: digests::blake2b is not in this backend. Name one of: "
+                  "backends::hash2.");
 };
 
 /** `digests::blake2s_256` on a backend without it (spec 3.3, design D34). */
@@ -1056,7 +1064,8 @@ template <class Backend>
 struct mac_engine<Backend, macs::siphash_2_4> : refused_mac_engine<macs::siphash_2_4>,
                                                 needs_library<Backend> {
     static_assert(refused_elsewhere_v<Backend>,
-                  "webcpp::hash: macs::siphash_2_4 is in no backend yet.");
+                  "webcpp::hash: macs::siphash_2_4 is not in this backend. Name one of: "
+                  "backends::hash2.");
 };
 
 /** `macs::siphash_2_4x` on a backend without it (spec 3.3, design D34). */
@@ -1080,7 +1089,8 @@ template <class Backend>
 struct mac_engine<Backend, macs::blake2s_mac> : refused_mac_engine<macs::blake2s_mac>,
                                                 needs_library<Backend> {
     static_assert(refused_elsewhere_v<Backend>,
-                  "webcpp::hash: macs::blake2s_mac is in no backend yet.");
+                  "webcpp::hash: macs::blake2s_mac is not in this backend. Name one of: "
+                  "backends::hash2.");
 };
 
 /**

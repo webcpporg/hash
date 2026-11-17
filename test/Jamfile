@@ -119,6 +119,12 @@ hash-run families : families_test.cpp
   : <library>/third_party//xkcp <library>/third_party//blake3 ;
 hash-run hasher_state : hasher_state_test.cpp
   : <define>WEBCPP_HASH_DETAIL_TEST_WIPE_RECORD ;
+# SipHash-2-4 and keyed BLAKE2s on backends::hash2 against published vectors
+# read at run time: Wycheproof's siphash_2_4_test.json and the keyed BLAKE2s
+# cases of OpenSSL's evpmac_blake.txt.
+hash-run hash2_mac_vectors : hash2_mac_vectors_test.cpp
+  : <library>/third_party//wycheproof <library>/third_party//openssl_evp_data
+    <library>/webcpp//boost_json ;
 
 # HKDF (RFC 5869) on backends::hash2: the RFC's seven cases and three more
 # computed by Python's hmac; the guards at their limits; the wipes, each one

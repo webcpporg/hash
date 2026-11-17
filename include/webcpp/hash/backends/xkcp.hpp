@@ -42,7 +42,7 @@ struct xkcp {};
 namespace webcpp::hash::detail {
 
 /**
- `digests::keccak_256` on backends::xkcp (the engine's interface: @ref digest_engine): the state is
+ `digests::keccak_256` on backends::xkcp (its interface is @ref digest_engine); the state is
  a `keccak_256`, wiped by `destroy`.
 */
 template <>

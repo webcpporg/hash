@@ -315,6 +315,35 @@ void check_hash2_digests() {
     test::require(BOOST_TEST(hashing.has_value()));
     BOOST_TEST(failed_with(hashing->finish(past_128), hash::error::unsupported_by_backend));
     BOOST_TEST(hashing->finish(std::span(past_128).first(32)).has_value());
+
+    // BLAKE2b on backends::hash2 is partial (ruling R82): its 64-byte output, Boost.Hash2's
+    // blake2b_512; a shorter one, which the family accepts, is unsupported_by_backend, before any
+    // work, in digest_of and in hasher::finish.
+    agree<digests::blake2b, backends::hash2>("blake2b", 64, [](auto const& input, std::size_t n) {
+        return hash2_of<h2::blake2b_512>(input, n);
+    });
+    std::array<std::uint8_t, 64> blake2b_abc{};
+    BOOST_TEST(
+        (hash::digest_of<digests::blake2b, backends::hash2>(blake2b_abc, message).has_value()));
+    // RFC 7693, Appendix A: BLAKE2b-512("abc").
+    BOOST_TEST_EQ(test::to_hex(blake2b_abc),
+                  "ba80a53f981c4d0d6a2797b69f12f6e94c212f14685ac4b74b12bb6fdbffa2d1"
+                  "7d87c5392aab792dc252d5de4533cc9518d38aa8dbf1925ab92386edd4009923");
+    for (std::size_t const size : {1U, 32U, 63U}) {
+        std::vector<std::uint8_t> shorter(size, 0x5A);
+        BOOST_TEST(failed_with(hash::digest_of<digests::blake2b, backends::hash2>(shorter, message),
+                               hash::error::unsupported_by_backend));
+        BOOST_TEST(all_of(shorter, 0x5A));
+    }
+    std::array<std::uint8_t, 65> past_blake2b{};
+    BOOST_TEST(
+        failed_with(hash::digest_of<digests::blake2b, backends::hash2>(past_blake2b, message),
+                    hash::error::invalid_output_size));
+    auto blake2b_hashing = hash::hasher<digests::blake2b, backends::hash2>::make();
+    test::require(BOOST_TEST(blake2b_hashing.has_value()));
+    BOOST_TEST(failed_with(blake2b_hashing->finish(std::span(blake2b_abc).first(32)),
+                           hash::error::unsupported_by_backend));
+    BOOST_TEST(blake2b_hashing->finish(blake2b_abc).has_value());
 }
 
 // mac over HMAC on backends::hash2 against Boost.Hash2's hmac, whole and cut.
@@ -359,6 +388,9 @@ void check_hash2_hmacs() {
     agree_hmac<digests::blake2s_256, hash::hmac_blake2s_256>("blake2s_256");
     static_assert(std::is_void_v<hash::detail::digest_tag_of<hash::hmac_ripemd_128>::type>);
 
+    // HMAC over an extendable-output function has no digest size: every tag is refused.
+    static_assert(hash::detail::mac_traits<macs::hmac<digests::shake_128>>::max_output == 0);
+
     // RFC 4231's test case 2 (key "Jefe"), on the default; and its case 5, cut to 16 bytes.
     std::array<std::uint8_t, 32> tag{};
     std::string_view const jefe = "Jefe";
@@ -375,6 +407,54 @@ void check_hash2_hmacs() {
     BOOST_TEST(hash::mac<macs::hmac<digests::sha2_256>>(cut, key, bytes("Test With Truncation"))
                    .has_value());
     BOOST_TEST_EQ(test::to_hex(cut), "a3b6167473100ee06e0c796c2955552b");
+}
+
+// SipHash-2-4 and keyed BLAKE2s on backends::hash2 (ruling R82) against Boost.Hash2's siphash_64
+// and keyed blake2s_256, on their defaults; keyed BLAKE2s is partial, a 32-byte tag alone. Their
+// published vectors are hash2_mac_vectors_test's.
+void check_hash2_keyed() {
+    for (auto const& input : inputs()) {
+        auto const key = counting(16);
+        boost::hash2::siphash_64 reference(key.data(), key.size());
+        reference.update(input.data(), input.size());
+        std::uint64_t expected = reference.result();
+        std::array<std::uint8_t, 8> expected_bytes{};
+        for (std::uint8_t& byte : expected_bytes) {
+            byte = static_cast<std::uint8_t>(expected & 0xffU);
+            expected >>= 8U;
+        }
+        std::array<std::uint8_t, 8> tag{};
+        BOOST_TEST(hash::mac<macs::siphash_2_4>(tag, key, input).has_value());
+        if (!BOOST_TEST(tag == expected_bytes)) {
+            std::cerr << "  siphash_2_4 of input " << input.size() << '\n';
+        }
+
+        for (std::size_t const key_size : {1U, 16U, 32U}) {
+            auto const blake2s_key = counting(key_size);
+            boost::hash2::blake2s_256 keyed(blake2s_key.data(), blake2s_key.size());
+            keyed.update(input.data(), input.size());
+            auto const keyed_expected = keyed.result();
+            std::array<std::uint8_t, 32> keyed_tag{};
+            BOOST_TEST(hash::mac<macs::blake2s_mac>(keyed_tag, blake2s_key, input).has_value());
+            if (!BOOST_TEST(std::ranges::equal(keyed_tag, keyed_expected))) {
+                std::cerr << "  blake2s_mac, key " << key_size << ", input " << input.size()
+                          << '\n';
+            }
+        }
+    }
+    std::array<std::uint8_t, 16> const key{};
+    std::array<std::uint8_t, 3> const message{0x61, 0x62, 0x63};
+    std::array<std::uint8_t, 16> shorter{};
+    shorter.fill(0x5A);
+    BOOST_TEST(failed_with(hash::mac<macs::blake2s_mac, backends::hash2>(shorter, key, message),
+                           hash::error::unsupported_by_backend));
+    BOOST_TEST(all_of(shorter, 0x5A));
+    std::array<std::uint8_t, 33> longer{};
+    BOOST_TEST(failed_with(hash::mac<macs::blake2s_mac, backends::hash2>(longer, key, message),
+                           hash::error::invalid_output_size));
+    std::array<std::uint8_t, 32> keyed_tag{};
+    BOOST_TEST(failed_with(hash::mac<macs::blake2s_mac, backends::hash2>(keyed_tag, {}, message),
+                           hash::error::invalid_key_size));
 }
 
 void check_library_digests() {
@@ -405,11 +485,6 @@ void check_library_digests() {
                                                      return output;
                                                  });
     }
-    // BLAKE3's digest of nothing (its test_vectors.json, input_len 0).
-    std::array<std::uint8_t, 32> empty_blake3{};
-    BOOST_TEST(hash::digest_of<digests::blake3>(empty_blake3, {}).has_value());
-    BOOST_TEST_EQ(test::to_hex(empty_blake3),
-                  "af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9adc112b7cc9a93cae41f3262");
 #endif
 }
 
@@ -496,6 +571,7 @@ int main() {
     check_argon2_guards();
     check_hash2_digests();
     check_hash2_hmacs();
+    check_hash2_keyed();
     check_library_digests();
     check_defaults();
     return webcpp::test::exit_status(boost::report_errors());

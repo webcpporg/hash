@@ -151,14 +151,15 @@ started zeroes the output, so that half a key is never used.
 |===
 |Value |Name |Raised when
 
-|1 |`invalid_output_size` |The output is empty or longer than the function produces (HKDF: 255 times the digest; Argon2id: under 16 bytes).
-|2 |`invalid_key_size` |The pseudorandom key given to `hkdf_expand` is not of the hmac's digest size.
+|1 |`invalid_output_size` |The output is not of a size the function produces: empty, not a fixed-size digest's size, or past the function's limits (HKDF: past 255 times the digest; Argon2id: under 16 bytes; HMAC: under 10 bytes).
+|2 |`invalid_key_size` |The pseudorandom key given to `hkdf_expand` is not of the hmac's digest size, or a MAC's key is not of a size the MAC takes (SipHash: 16 bytes).
 |3 |`invalid_salt_size` |The salt is not of a size the function accepts (Argon2id: 16 bytes).
 |4 |`invalid_iterations` |PBKDF2's iteration count is zero.
 |5 |`invalid_parameters` |A cost is outside the function's limits (Argon2id's passes or memory, scrypt's N, r and p).
 |6 |`input_too_long` |An input is longer than the function or the backend accepts (HKDF's info past 32,768 bytes; OpenSSL's `int` lengths).
 |7 |`backend_failure` |A backend failed where its contract says it does not.
 |8 |`unsupported_by_backend` |A parameter the chosen backend does not take.
+|9 |`invalid_state` |A `hasher` is used after its `finish`, once moved from, or after a backend failure spent it.
 |===
 
 Argon2id and scrypt also return `errc::not_enough_memory` of the generic

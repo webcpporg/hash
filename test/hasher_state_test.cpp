@@ -123,24 +123,35 @@ void check_finish_once() {
 
 void check_guard_keeps_hashing() {
     test::mock_reset();
-    auto hashing = mock_hasher::make();
-    test::require(BOOST_TEST(hashing.has_value()));
-    std::array<std::uint8_t, 31> short_digest{};
-    BOOST_TEST(failed_with(hashing->finish(short_digest), hash::error::invalid_output_size));
-    std::array<std::uint8_t, 32> digest{};
-    BOOST_TEST(hashing->finish(digest).has_value());
+    {
+        auto hashing = mock_hasher::make();
+        test::require(BOOST_TEST(hashing.has_value()));
+        std::array<std::uint8_t, 31> short_digest{};
+        BOOST_TEST(failed_with(hashing->finish(short_digest), hash::error::invalid_output_size));
+        std::array<std::uint8_t, 32> digest{};
+        BOOST_TEST(hashing->finish(digest).has_value());
 
-    // An extendable output: past the engine's 100 bytes is the backend's refusal, not the family's.
-    auto xof = hash::hasher<digests::shake_128, mock>::make();
-    test::require(BOOST_TEST(xof.has_value()));
-    std::array<std::uint8_t, 101> past{};
-    BOOST_TEST(failed_with(xof->finish(past), hash::error::unsupported_by_backend));
-    std::array<std::uint8_t, 0> none{};
-    BOOST_TEST(failed_with(xof->finish(none), hash::error::invalid_output_size));
-    BOOST_TEST(xof->finish(std::span(past).first(100)).has_value());
-    auto one_byte = hash::hasher<digests::shake_128, mock>::make();
-    test::require(BOOST_TEST(one_byte.has_value()));
-    BOOST_TEST(one_byte->finish(std::span(past).first(1)).has_value());
+        // An extendable output: past the engine's 100 bytes is the backend's refusal, not the
+        // family's.
+        auto xof = hash::hasher<digests::shake_128, mock>::make();
+        test::require(BOOST_TEST(xof.has_value()));
+        std::array<std::uint8_t, 101> past{};
+        BOOST_TEST(failed_with(xof->finish(past), hash::error::unsupported_by_backend));
+        std::array<std::uint8_t, 0> none{};
+        BOOST_TEST(failed_with(xof->finish(none), hash::error::invalid_output_size));
+        BOOST_TEST(xof->finish(std::span(past).first(100)).has_value());
+        auto one_byte = hash::hasher<digests::shake_128, mock>::make();
+        test::require(BOOST_TEST(one_byte.has_value()));
+        BOOST_TEST(one_byte->finish(std::span(past).first(1)).has_value());
+
+        // Two left hashing at the end of the scope, destroyed there.
+        auto left = mock_hasher::make();
+        test::require(BOOST_TEST(left.has_value()));
+        auto refused = mock_hasher::make();
+        test::require(BOOST_TEST(refused.has_value()));
+        BOOST_TEST(failed_with(refused->finish(short_digest), hash::error::invalid_output_size));
+    }
+    expect_balanced();
 }
 
 void check_moves() {
@@ -276,6 +287,20 @@ void check_wipes() {
     std::array<std::uint8_t, 32> once{};
     BOOST_TEST(hash::digest_of<digests::sha2_256>(once, piece).has_value());
     BOOST_TEST(digest == once);  // the hash went with the move
+
+    // A move assignment wipes the target's own hash, ended, and the state left in the source.
+    auto assigned = sha256_hasher::make();
+    auto incoming = sha256_hasher::make();
+    test::require(BOOST_TEST(assigned.has_value() && incoming.has_value()));
+    BOOST_TEST(assigned->update(piece).has_value());
+    BOOST_TEST(incoming->update(piece).has_value());
+    wipes.clear();
+    *assigned = std::move(*incoming);
+    BOOST_TEST_EQ(wipes.count, 2U);
+    BOOST_TEST(wiped_inside(&*assigned, sizeof(sha256_hasher)));
+    BOOST_TEST(wiped_inside(&*incoming, sizeof(sha256_hasher)));
+    BOOST_TEST(assigned->finish(digest).has_value());
+    BOOST_TEST(digest == once);
 }
 
 }  // namespace

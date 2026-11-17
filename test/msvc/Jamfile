@@ -44,6 +44,7 @@ build-project digest_not_a_tag ;
 build-project mac_not_a_tag ;
 build-project argon2_not_a_variant ;
 build-project digest_not_in_backend ;
+build-project hasher_not_in_backend ;
 build-project xkcp_default_not_linked ;
 build-project blake3_default_not_linked ;
 build-project sodium_default_not_linked ;

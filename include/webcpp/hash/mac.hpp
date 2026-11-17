@@ -103,13 +103,22 @@ template <class Mac>
 struct mac_traits : mac_sizes<1, no_limit, 0, no_limit> {};
 
 /**
+ The longest HMAC tag over `Digest`: the digest's size; 0 for an extendable-output function, which
+ has no digest size for HMAC to be defined over, so that every tag is `invalid_output_size`.
+*/
+template <class Digest>
+inline constexpr std::uint64_t hmac_max_output =
+    digest_traits<Digest>::max_output(digest_options<Digest>{}) == no_limit
+        ? 0
+        : digest_traits<Digest>::max_output(digest_options<Digest>{});
+
+/**
  HMAC over `Digest` (RFC 2104): a key of any size; a tag of 10 bytes up to the digest's size, the
- digest cut to it (section 5; ruling R23).
+ digest cut to it (section 5; ruling R23); no tag over an extendable-output function.
 */
 template <class Digest>
 struct mac_traits<macs::hmac<Digest>>
-    : mac_sizes<hmac_min_output, digest_traits<Digest>::max_output(digest_options<Digest>{}), 0,
-                no_limit> {};
+    : mac_sizes<hmac_min_output, hmac_max_output<Digest>, 0, no_limit> {};
 
 // clang-format off
 /** KMAC128 (SP 800-185): a key of any size, a tag of any size from 1 byte. */

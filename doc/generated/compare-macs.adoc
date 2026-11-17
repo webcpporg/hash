@@ -27,6 +27,13 @@
 | recommended
 | no
 
+| <<hash-mac-family,`macs::siphash_2_4`>>
+| 64 bits
+| a 128-bit key; for hash tables only, not a MAC
+| SipHash-2-4 (Aumasson, Bernstein)
+| recommended
+| no
+
 | <<hash-hmac,`hmac`>>
 | the digest of H
 | that of H's digest, with a key as long as it
@@ -269,6 +276,12 @@
 | 6,294 bytes (hash2)
 | link:https://peps.python.org/pep-0456/[Python's string hashing (PEP 456)]; link:https://doc.rust-lang.org/std/collections/struct.HashMap.html[Rust's default HashMap hasher]
 | Every hash table, set or Bloom filter whose keys come from the network or another user.
+
+| <<hash-mac-family,`macs::siphash_2_4`>>
+| -
+| -
+| link:https://peps.python.org/pep-0456/[Python's string hashing (PEP 456)]
+| To compute it in one call, on a backend named in the call; siphash_64 itself for hash_append and a hash table's hasher.
 
 | <<hash-hmac,`hmac`>>
 | 599 MiB/s (hash2)

@@ -8,7 +8,7 @@
 
 
 [#hash-backends-of-siphash]
-.Who implements `siphash_32`, `siphash_64` (SipHash-2-4 (siphash_64) and HalfSipHash-2-4 (siphash_32), Aumasson and Bernstein)
+.Who implements `siphash_32`, `siphash_64`, `macs::siphash_2_4` (SipHash-2-4 (siphash_64) and HalfSipHash-2-4 (siphash_32), Aumasson and Bernstein)
 [cols="2,1,2,2,3,1",options="header"]
 |===
 | Function | Backend | The program's Jamfile names | Targets | Hmacs | Constant time
@@ -26,10 +26,17 @@
 | native, wasip2, wasip3, emscripten
 | -
 | not stated
+
+| `macs::siphash_2_4`
+| `hash2`
+| `/webcpp/hash//hash`
+| native, wasip2, wasip3, emscripten
+| -
+| not stated
 |===
 
 What each backend states on constant time, as the capability table read it:
 
 * `hash2`: Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property.
 
-One backend, `hash2`: the types take no backend.
+The default of `macs::siphash_2_4`: `hash2` on every target, whatever the program links (<<hash-default-backend>>).

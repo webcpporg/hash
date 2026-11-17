@@ -41,7 +41,7 @@ struct blake3 {};
 namespace webcpp::hash::detail {
 
 /**
- `digests::blake3` on backends::blake3 (the engine's interface: @ref digest_engine): the state is a
+ `digests::blake3` on backends::blake3 (its interface is @ref digest_engine); the state is a
  `webcpp::hash::blake3`, wiped by `destroy`; the output, of any size, is the extendable output
  from its first byte.
 */

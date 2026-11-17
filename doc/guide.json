@@ -917,6 +917,18 @@
             ],
             "choose": "To name the backend in the call, or to hash in pieces with a result that cannot be taken twice; keccak_256 itself for hash_append and Boost.Hash2's other functions."
         },
+        "digests::blake2b": {
+            "summary": "BLAKE2b, a digest of 1 to 64 bytes faster than SHA-2 in software, as the tag of digest_of and hasher: one call, or pieces with one final result, on any backend that has it.",
+            "output": "1 to 64 bytes",
+            "security": "256-bit collision resistance at 64 bytes, half the output length in general",
+            "status": "recommended",
+            "webcrypto": null,
+            "anchor": "hash-digest-family",
+            "uses": [
+                {"text": "Argon2's internal hash", "source": "https://www.rfc-editor.org/rfc/rfc9106#section-3.2"}
+            ],
+            "choose": "To name the backend in the call, or to hash in pieces with a result that cannot be taken twice; blake2b_512 itself for hash_append and Boost.Hash2's other functions."
+        },
         "digests::blake2s_256": {
             "summary": "BLAKE2s, a 256-bit digest for 32-bit and small machines, with a key of up to 32 bytes, as the tag of digest_of and hasher: one call, or pieces with one final result, on any backend that has it.",
             "output": "256 bits",
@@ -1135,6 +1147,31 @@
                 {"text": "WireGuard's HKDF", "source": "https://www.wireguard.com/protocol/"}
             ],
             "choose": "To compute a tag in one call, on a backend named in the call; hmac_blake2s_256 itself to feed the message in pieces."
+        },
+        "macs::siphash_2_4": {
+            "standard": "SipHash-2-4 (Aumasson, Bernstein)",
+            "summary": "SipHash-2-4, a keyed 64-bit hash with a 16-byte key, as the tag of mac: the tag of a message under a key in one call, on any backend that has it.",
+            "output": "64 bits",
+            "security": "a 128-bit key; for hash tables only, not a MAC",
+            "status": "recommended",
+            "webcrypto": null,
+            "anchor": "hash-mac-family",
+            "uses": [
+                {"text": "Python's string hashing (PEP 456)", "source": "https://peps.python.org/pep-0456/"}
+            ],
+            "choose": "To compute it in one call, on a backend named in the call; siphash_64 itself for hash_append and a hash table's hasher."
+        },
+        "macs::blake2s_mac": {
+            "summary": "BLAKE2s keyed with a key of 1 to 32 bytes (RFC 7693), as the tag of mac: the tag of a message under a key in one call, on any backend that has it.",
+            "output": "1 to 32 bytes",
+            "security": "128 bits and more, up to the tag's size",
+            "status": "recommended",
+            "webcrypto": null,
+            "anchor": "hash-mac-family",
+            "uses": [
+                {"text": "WireGuard's MAC", "source": "https://www.wireguard.com/protocol/"}
+            ],
+            "choose": "A fast keyed tag on 32-bit and small machines, without HMAC's two passes."
         }
     },
     "use_cases": [

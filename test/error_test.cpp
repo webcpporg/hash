@@ -31,7 +31,7 @@ constexpr std::array<expected_message, 9> messages{
         {
             .value = hash::error::invalid_output_size,
             .number = 1,
-            .text = "the output is empty or longer than the function produces",
+            .text = "the output is not of a size the function produces",
         },
         {
             .value = hash::error::invalid_key_size,

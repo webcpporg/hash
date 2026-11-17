@@ -40,6 +40,7 @@
 #include <iostream>
 #include <iterator>
 #include <set>
+#include <span>
 #include <string>
 #include <string_view>
 #include <tuple>
@@ -916,6 +917,28 @@ void check_refusals(json::object const& table, std::string const& include) {
     }
 }
 
+// Design D34's rule, where the table can show it: a family tag's default is null or one of hash2,
+// xkcp, blake3 and sodium (never bearssl, openssl or a later backend), and no backend before it in
+// that order has the tag whole (a cell without "partial"), since that backend would be the default.
+// A default whose cell lands in a later increment is allowed: the rule reads the final table.
+bool follows_order(json::object const& row) {
+    static constexpr std::array<std::string_view, 4> order{"hash2", "xkcp", "blake3", "sodium"};
+    auto const& listed = row.at("default");
+    if (listed.is_null()) {
+        return true;
+    }
+    auto const index = static_cast<std::size_t>(
+        std::ranges::find(order, std::string_view(listed.as_string())) - order.begin());
+    if (index == order.size()) {
+        return false;
+    }
+    auto const& backends = row.at("backends").as_object();
+    return std::ranges::none_of(std::span(order).first(index), [&](std::string_view earlier) {
+        auto const* const found = backends.find(earlier);
+        return found != backends.end() && !found->value().as_object().contains("partial");
+    });
+}
+
 // Each family tag: its cells against backend_has_v, its default against default_backend (null for
 // none), its refusal texts in detail/engines.hpp (a "no default backend" one exactly when it has no
 // default), and a call on each backend that has it and is linked here.
@@ -943,6 +966,9 @@ void check_family_tag(json::object const& table, std::vector<std::string> const&
                              listed.as_string() == test::name_of<hash::default_backend<Tag>>();
         if (!BOOST_TEST(agrees)) {
             std::cerr << "  default of " << name << '\n';
+        }
+        if (!BOOST_TEST(follows_order(*row))) {
+            std::cerr << "  default of " << name << " against design D34's order\n";
         }
     }
 

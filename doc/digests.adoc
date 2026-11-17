@@ -286,9 +286,13 @@ exactly its size (`invalid_output_size` otherwise, the output untouched); an
 extendable-output function, SHAKE or BLAKE3, takes any size from 1 byte.
 * *A backend may have a tag in part.* `backends::hash2` has SHAKE128 and
 SHAKE256 up to one Boost.Hash2 result, 32 and 64 bytes, and answers
-`unsupported_by_backend` past them; a call that names a backend gets what that
+`unsupported_by_backend` past them; it has BLAKE2b with its 64-byte output and
+no options alone; a call that names a backend gets what that
 backend has, which its row of the tables says.
 * *A tag without its backend stops the build.* A tag whose backend the
-program does not link, or that no backend has yet, stops with a message that
-names the line to add or the backends that have it (<<hash-jamfile-messages>>).
+program does not link stops with a message that names the line to add; a tag
+that the backend does not have yet stops with a message that names the
+backends that have it, or says that none has it yet. A default whose engine
+comes in a later increment can give both, one build after the other
+(<<hash-jamfile-messages>>).
 
