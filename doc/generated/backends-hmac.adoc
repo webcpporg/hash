@@ -8,7 +8,7 @@
 
 
 [#hash-backends-of-hmac]
-.Who implements `hmac` to `macs::hmac<digests::sm3>`, 38 names (RFC 2104)
+.Who implements `hmac` to `macs::hmac<digests::sm3>`, 37 names (RFC 2104)
 [cols="2,1,2,2,3,1",options="header"]
 |===
 | Function | Backend | The program's Jamfile names | Targets | Hmacs | Constant time
@@ -370,13 +370,6 @@
 | -
 | not stated
 
-| `macs::hmac<digests::md5_sha1>`
-| `openssl` (partial: a key of more than INT_MAX bytes: OpenSSL takes HMAC's key length as an int (HMAC_Init_ex))
-| `/webcpp/hash//openssl`
-| native, wasip2, wasip3
-| -
-| not stated
-
 | `macs::hmac<digests::sm3>`
 | `openssl` (partial: a key of more than INT_MAX bytes: OpenSSL takes HMAC's key length as an int (HMAC_Init_ex))
 | `/webcpp/hash//openssl`
@@ -397,8 +390,6 @@ What each backend states on constant time, as the capability table read it:
 `macs::hmac<digests::keccak_384>` has no default backend: the call names one of its backends (<<hash-default-backend>>).
 
 `macs::hmac<digests::keccak_512>` has no default backend: the call names one of its backends (<<hash-default-backend>>).
-
-`macs::hmac<digests::md5_sha1>` has no default backend: the call names one of its backends (<<hash-default-backend>>).
 
 `macs::hmac<digests::sm3>` has no default backend: the call names one of its backends (<<hash-default-backend>>).
 

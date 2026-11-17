@@ -186,8 +186,8 @@ libsodium do; `siphash_64`'s `result()` is the number itself.
 `backends::openssl` computes every tag of `webcpp::hash::macs` through
 OpenSSL 3.5.9's `EVP_MAC`, on native, wasip2 and wasip3. It is never a
 default (design D34): a call names it. Its tags are HMAC over every digest of
-a fixed size it has, `macs::hmac<digests::keccak_256>`,
-`macs::hmac<digests::sm3>` and `macs::hmac<digests::md5_sha1>` among them,
+a fixed size it has but MD5-SHA1, over which no standard defines an HMAC,
+`macs::hmac<digests::keccak_256>` and `macs::hmac<digests::sm3>` among them,
 which no other backend has; KMAC128 and KMAC256 (NIST SP 800-185, section 4),
 `macs::kmac_128` and `macs::kmac_256`, in their fixed-length and XOF forms,
 with a customisation string; keyed BLAKE2b and BLAKE2s (RFC 7693),

@@ -385,10 +385,6 @@ template <>
 inline constexpr bool backend_has_v<backends::openssl, macs::hmac<digests::blake2s_256>, void> =
     true;
 
-/** backends::openssl has `macs::hmac<digests::md5_sha1>` (OpenSSL 3.5.9's `EVP_MAC` "HMAC"). */
-template <>
-inline constexpr bool backend_has_v<backends::openssl, macs::hmac<digests::md5_sha1>, void> = true;
-
 /** backends::openssl has `macs::hmac<digests::sm3>` (OpenSSL 3.5.9's `EVP_MAC` "HMAC"). */
 template <>
 inline constexpr bool backend_has_v<backends::openssl, macs::hmac<digests::sm3>, void> = true;

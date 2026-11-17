@@ -307,13 +307,6 @@
 | legacy
 | no
 
-| <<hash-macs-openssl,`macs::hmac<digests::md5_sha1>`>>
-| 288 bits
-| legacy: no standard defines it, and it rests on MD5 and SHA-1
-| RFC 2104
-| legacy
-| no
-
 | <<hash-macs-openssl,`macs::hmac<digests::sm3>`>>
 | 256 bits
 | 128 bits and more
@@ -579,12 +572,6 @@
 | -
 | link:https://keccak.team/files/Keccak-reference-3.0.pdf[The Keccak team's final SHA-3 submission, before FIPS 202 changed the padding]
 | Only where a format names HMAC over Keccak-512; HMAC over SHA3-512 for anything new.
-
-| <<hash-macs-openssl,`macs::hmac<digests::md5_sha1>`>>
-| -
-| -
-| link:https://docs.openssl.org/3.5/man7/EVP_MAC-HMAC/[OpenSSL's HMAC, which takes any digest of its provider]
-| Only to agree with a program that computes it through OpenSSL; HMAC-SHA-256 for anything new.
 
 | <<hash-macs-openssl,`macs::hmac<digests::sm3>`>>
 | -

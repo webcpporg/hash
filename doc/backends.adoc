@@ -822,12 +822,6 @@ states about its constant time. The backends:
 | not stated
 | native, wasip2, wasip3
 
-| macs::hmac<digests::md5_sha1>
-| openssl (partial: a key of more than INT_MAX bytes: OpenSSL takes HMAC's key length as an int (HMAC_Init_ex))
-| -
-| not stated
-| native, wasip2, wasip3
-
 | macs::hmac<digests::sm3>
 | openssl (partial: a key of more than INT_MAX bytes: OpenSSL takes HMAC's key length as an int (HMAC_Init_ex))
 | -
@@ -1147,9 +1141,6 @@ The backend a call that names none uses, on every target, whatever the program l
 | none: the call names its backend
 
 | macs::hmac<digests::keccak_512>
-| none: the call names its backend
-
-| macs::hmac<digests::md5_sha1>
 | none: the call names its backend
 
 | macs::hmac<digests::sm3>

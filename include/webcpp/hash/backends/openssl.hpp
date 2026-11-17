@@ -15,9 +15,9 @@
  Keccak-224 to Keccak-512, BLAKE2s-256, BLAKE2b unkeyed (1 to 64 bytes), RIPEMD-160, MD5-SHA1
  and SM3; the default provider's SHA-256/192 and KMAC hashes have no tag, and Whirlpool, MD4 and
  MDC2 are in the legacy provider, which webcpp does not load (`doc/capabilities.json` says why).
- The MACs are HMAC over each of those digests but SHAKE, KMAC128 and KMAC256 (fixed-length and
- XOF), keyed BLAKE2b and BLAKE2s, and SipHash-2-4 with an 8-byte or a 16-byte tag; its CMAC, GMAC
- and Poly1305 are not exposed.
+ The MACs are HMAC over each of those digests but SHAKE and MD5-SHA1 (no standard defines an
+ HMAC over it), KMAC128 and KMAC256 (fixed-length and XOF), keyed BLAKE2b and BLAKE2s, and
+ SipHash-2-4 with an 8-byte or a 16-byte tag; its CMAC, GMAC and Poly1305 are not exposed.
 
  Each key derivation fetches the KDF, makes a context, sets the parameters, derives and frees
  both (spec section 3.4): OpenSSL allocates them through its own allocator, and webcpp keeps no
@@ -1295,11 +1295,6 @@ struct mac_engine<backends::openssl, macs::hmac<digests::blake2b>>
 template <>
 struct mac_engine<backends::openssl, macs::hmac<digests::blake2s_256>>
     : openssl_hmac_engine<digests::blake2s_256> {};
-
-/** `macs::hmac<digests::md5_sha1>` on backends::openssl: "HMAC" over "MD5-SHA1". */
-template <>
-struct mac_engine<backends::openssl, macs::hmac<digests::md5_sha1>>
-    : openssl_hmac_engine<digests::md5_sha1> {};
 
 /** `macs::hmac<digests::sm3>` on backends::openssl: "HMAC" over "SM3". */
 template <>

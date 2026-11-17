@@ -8,8 +8,9 @@
 // EVP_MAC_fetch, EVP_MAC_init, EVP_MAC_update and EVP_MAC_final, each tag through mac:
 // - HMAC over every digest of a fixed size OpenSSL has: Wycheproof's HMAC files (SHA-1, the SHA-2,
 //   the SHA-3 and SM3), and Boost.Hash2's hmac<H> on random keys, inputs and tag sizes, H being
-//   Hash2's digest, its Keccak (keccak_base with the padding byte 0x01), MD5 then SHA-1 for
-//   MD5-SHA1, and backends::openssl's own SM3 hasher for SM3 (OpenSSL's HMAC against Hash2's);
+//   Hash2's digest, its Keccak (keccak_base with the padding byte 0x01) and backends::openssl's
+//   own SM3 hasher for SM3 (OpenSSL's HMAC against Hash2's); none over MD5-SHA1, which no
+//   standard defines;
 // - KMAC128 and KMAC256, fixed-length and XOF: the NIST samples and NIST ACVP's long
 //   customisation in OpenSSL's evpmac_common.txt, Wycheproof's KMAC files, and a second
 //   implementation of SP 800-185 over Boost.Hash2's Keccak (keccak_base with cSHAKE's padding
@@ -191,37 +192,6 @@ void check_wycheproof(std::string const& file, hash::mac_options<Mac> const& opt
 
 // ---- HMAC ----
 
-// MD5-SHA1 as a hash of Boost.Hash2's form, for hmac<H>: MD5 then SHA-1 of the same input, a
-// 64-byte block (OpenSSL's MD5-SHA1 has MD5's and SHA-1's).
-class md5_sha1_hash {
-public:
-    using result_type = boost::hash2::digest<36>;
-    static constexpr std::size_t block_size = 64;
-
-    void update(void const* data, std::size_t size) {
-        first_.update(data, size);
-        second_.update(data, size);
-    }
-
-    void update(unsigned char const* data, std::size_t size) {
-        first_.update(data, size);
-        second_.update(data, size);
-    }
-
-    result_type result() {
-        auto const md5 = first_.result();
-        auto const sha1 = second_.result();
-        result_type both;
-        std::ranges::copy(md5, both.begin());
-        std::ranges::copy(sha1, both.begin() + md5.size());
-        return both;
-    }
-
-private:
-    boost::hash2::md5_128 first_;
-    boost::hash2::sha1_160 second_;
-};
-
 // SM3 as a hash of Boost.Hash2's form, over backends::openssl's own hasher: so that OpenSSL's
 // HMAC-SM3 is checked against Hash2's HMAC construction (Wycheproof's file checks the values).
 class sm3_hash {
@@ -314,7 +284,6 @@ void check_hmac() {
     agree_hmac<digests::ripemd_160, h2::ripemd_160>("ripemd_160");
     agree_hmac<digests::blake2b, h2::blake2b_512>("blake2b");
     agree_hmac<digests::blake2s_256, h2::blake2s_256>("blake2s_256");
-    agree_hmac<digests::md5_sha1, md5_sha1_hash>("md5_sha1");
     agree_hmac<digests::sm3, sm3_hash>("sm3");
 
     check_wycheproof<macs::hmac<digests::sha1>>("hmac_sha1_test.json");
@@ -879,7 +848,6 @@ static_assert(in_openssl_never_default<macs::hmac<digests::md5>> &&
               in_openssl_never_default<macs::hmac<digests::ripemd_160>> &&
               in_openssl_never_default<macs::hmac<digests::blake2b>> &&
               in_openssl_never_default<macs::hmac<digests::blake2s_256>> &&
-              in_openssl_never_default<macs::hmac<digests::md5_sha1>> &&
               in_openssl_never_default<macs::hmac<digests::sm3>> &&
               in_openssl_never_default<macs::kmac_128> &&
               in_openssl_never_default<macs::kmac_256> &&
@@ -887,9 +855,11 @@ static_assert(in_openssl_never_default<macs::hmac<digests::md5>> &&
               in_openssl_never_default<macs::siphash_2_4x> &&
               in_openssl_never_default<macs::blake2b_mac> &&
               in_openssl_never_default<macs::blake2s_mac>);
-// No HMAC over an extendable-output function, and none over a digest OpenSSL lacks.
+// No HMAC over an extendable-output function, none over a digest OpenSSL lacks, and none over
+// MD5-SHA1, which OpenSSL has as a digest but no standard defines an HMAC over.
 static_assert(!hash::backend_has_v<openssl, macs::hmac<digests::shake_128>, void>);
 static_assert(!hash::backend_has_v<openssl, macs::hmac<digests::whirlpool>, void>);
+static_assert(!hash::backend_has_v<openssl, macs::hmac<digests::md5_sha1>, void>);
 // The HMACs Boost.Hash2 lacks have no default.
 static_assert(std::is_same_v<hash::default_backend<macs::hmac<digests::keccak_256>>,
                              hash::detail::no_default>);

@@ -1985,23 +1985,6 @@
                     }
                 },
                 {
-                    "name": "macs::hmac<digests::md5_sha1>",
-                    "kind": "mac",
-                    "header": "webcpp/hash/mac.hpp",
-                    "default": null,
-                    "backends": {
-                        "openssl": {
-                            "since": 4,
-                            "hmacs": null,
-                            "partial": "a key of more than INT_MAX bytes: OpenSSL takes HMAC's key length as an int (HMAC_Init_ex)",
-                            "constant_time": {
-                                "value": "not stated",
-                                "source": "OpenSSL 3.5.9: doc/man3/EVP_MAC.pod, doc/man7/EVP_MAC-HMAC.pod, EVP_MAC-KMAC.pod, EVP_MAC-BLAKE2.pod, EVP_MAC-Siphash.pod and providers/implementations/macs/ state no constant-time property."
-                            }
-                        }
-                    }
-                },
-                {
                     "name": "macs::hmac<digests::sm3>",
                     "kind": "mac",
                     "header": "webcpp/hash/mac.hpp",

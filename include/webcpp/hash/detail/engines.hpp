@@ -1152,18 +1152,6 @@ struct mac_engine<Backend, macs::hmac<digests::keccak_512>>
                   "of: backends::openssl.");
 };
 
-/** `macs::hmac<digests::md5_sha1>` on a backend without it (spec 3.3, design D34). */
-template <class Backend>
-struct mac_engine<Backend, macs::hmac<digests::md5_sha1>>
-    : refused_mac_engine<macs::hmac<digests::md5_sha1>>, needs_library<Backend> {
-    static_assert(!std::is_same_v<Backend, no_default>,
-                  "webcpp::hash: macs::hmac<digests::md5_sha1> has no default backend. Name one "
-                  "of: backends::openssl.");
-    static_assert(refused_elsewhere_v<Backend>,
-                  "webcpp::hash: macs::hmac<digests::md5_sha1> is not in this backend. Name one "
-                  "of: backends::openssl.");
-};
-
 /** `macs::hmac<digests::sm3>` on a backend without it (spec 3.3, design D34). */
 template <class Backend>
 struct mac_engine<Backend, macs::hmac<digests::sm3>> : refused_mac_engine<macs::hmac<digests::sm3>>,

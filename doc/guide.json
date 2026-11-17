@@ -1277,18 +1277,6 @@
             ],
             "choose": "Only where a format names HMAC over Keccak-512; HMAC over SHA3-512 for anything new."
         },
-        "macs::hmac<digests::md5_sha1>": {
-            "summary": "HMAC over MD5-SHA1, TLS 1.0's 36-byte digest, as the tag of mac: the tag of a message under a key in one call, cut to 10 bytes or more if needed, on a backend the call names (it has no default).",
-            "output": "288 bits",
-            "security": "legacy: no standard defines it, and it rests on MD5 and SHA-1",
-            "status": "legacy",
-            "webcrypto": null,
-            "anchor": "hash-macs-openssl",
-            "uses": [
-                {"text": "OpenSSL's HMAC, which takes any digest of its provider", "source": "https://docs.openssl.org/3.5/man7/EVP_MAC-HMAC/"}
-            ],
-            "choose": "Only to agree with a program that computes it through OpenSSL; HMAC-SHA-256 for anything new."
-        },
         "macs::hmac<digests::sm3>": {
             "summary": "HMAC over SM3, China's national 256-bit digest, as the tag of mac: the tag of a message under a key in one call, cut to 10 bytes or more if needed, on a backend the call names (it has no default).",
             "output": "256 bits",
