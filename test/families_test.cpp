@@ -361,6 +361,17 @@ void check_hash2_blake2b() {
         BOOST_TEST(failed_with(hash::hasher<digests::blake2b, backends::hash2>::make(option),
                                hash::error::unsupported_by_backend));
     }
+    // An option's error comes before unsupported_by_backend, in digest_of as in hasher::make: a
+    // 32-byte output, shorter than hash2's 64 bytes, with an 8-byte salt is invalid_salt_size.
+    std::array<std::uint8_t, 8> const short_salt{};
+    hash::digest_options<digests::blake2b> const bad_salt{.salt = short_salt, .output_size = 32};
+    std::vector<std::uint8_t> cut(32, 0x5A);
+    BOOST_TEST(
+        failed_with(hash::digest_of<digests::blake2b, backends::hash2>(cut, message, bad_salt),
+                    hash::error::invalid_salt_size));
+    BOOST_TEST(all_of(cut, 0x5A));
+    BOOST_TEST(failed_with(hash::hasher<digests::blake2b, backends::hash2>::make(bad_salt),
+                           hash::error::invalid_salt_size));
     // An output of another size than the options' (64 by default) is the family's refusal.
     std::vector<std::uint8_t> shorter(32, 0x5A);
     BOOST_TEST(failed_with(hash::digest_of<digests::blake2b, backends::hash2>(shorter, message),

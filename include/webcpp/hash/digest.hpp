@@ -315,21 +315,32 @@ struct digest_traits<digests::blake2b> {
 };
 
 /**
- The family's guards of `digest_of` and `hasher::finish` on an output of `output_size` bytes: the
- tag's sizes (`invalid_output_size`), then the backend's shortest and longest outputs
- (`unsupported_by_backend`).
+ The family's guard of `digest_of` and `hasher::finish` on an output of `output_size` bytes: the
+ tag's sizes for its options (`invalid_output_size`).
 
- @tparam Digest A tag of `digests`. @tparam Engine Its engine on the chosen backend.
  @param output_size The output's size. @param min_size The tag's shortest output for its options.
  @param max_size The tag's longest output for its options.
- @return Success, or the guard's error.
+ @return Success, or `invalid_output_size`.
 */
-template <class Digest, class Engine>
-boost::system::result<void> check_output(std::size_t output_size, std::uint64_t min_size,
-                                         std::uint64_t max_size) noexcept {
+inline boost::system::result<void> check_output(std::size_t output_size, std::uint64_t min_size,
+                                                std::uint64_t max_size) noexcept {
     if (output_size < min_size || exceeds(output_size, max_size)) {
         return error::invalid_output_size;
     }
+    return {};
+}
+
+/**
+ The backend's guard of `digest_of` and `hasher::finish` on an output the family accepts: the
+ engine's shortest and longest outputs (`unsupported_by_backend`). It runs after the options'
+ guards, so that an option's error comes before the backend's refusal.
+
+ @tparam Engine The tag's engine on the chosen backend.
+ @param output_size The output's size.
+ @return Success, or `unsupported_by_backend`.
+*/
+template <class Engine>
+boost::system::result<void> check_engine_output(std::size_t output_size) noexcept {
     if (exceeds(Engine::min_output, output_size) || exceeds(output_size, Engine::max_output)) {
         return error::unsupported_by_backend;
     }
@@ -363,14 +374,18 @@ template <class Digest, class Backend = default_backend<Digest>>
                                                     digest_options<Digest> const& options = {}) {
     using engine = detail::digest_engine<Backend, Digest>;
     using traits = detail::digest_traits<Digest>;
-    auto sized = detail::check_output<Digest, engine>(output.size(), traits::min_output(options),
-                                                      traits::max_output(options));
+    auto sized = detail::check_output(output.size(), traits::min_output(options),
+                                      traits::max_output(options));
     if (!sized) {
         return sized;
     }
     auto checked = traits::check(options);
     if (!checked) {
         return checked;
+    }
+    auto served = detail::check_engine_output<engine>(output.size());
+    if (!served) {
+        return served;
     }
     if (!engine::accepts(options)) {
         return error::unsupported_by_backend;
@@ -514,9 +529,13 @@ public:
         if (phase_ != phase::hashing) {
             return error::invalid_state;
         }
-        auto sized = detail::check_output<Digest, engine>(output.size(), min_output_, max_output_);
+        auto sized = detail::check_output(output.size(), min_output_, max_output_);
         if (!sized) {
             return sized;
+        }
+        auto served = detail::check_engine_output<engine>(output.size());
+        if (!served) {
+            return served;
         }
         auto finished = engine::finish(state_, output);
         if (!finished) {
