@@ -35,7 +35,7 @@
             "name": "xkcp",
             "tag": "backends::xkcp",
             "macro": "XKCP",
-            "library": "XKCP at d20c8fc: its Keccak-p[1600] and FIPS 202's Keccak_Hash",
+            "library": "XKCP at d20c8fc: its Keccak-p[1600], FIPS 202's Keccak_Hash and SP 800-185's functions",
             "licence": "CC0-1.0",
             "jamfile": "/third_party//xkcp",
             "targets": [
@@ -508,7 +508,7 @@
                             "hmacs": null,
                             "constant_time": {
                                 "value": "not stated",
-                                "source": "XKCP at d20c8fc: README.markdown, lib/low/KeccakP-1600 and lib/high/Keccak (KeccakSponge, FIPS202/KeccakHash) state no constant-time property."
+                                "source": "XKCP at d20c8fc: README.markdown, lib/low/KeccakP-1600 and lib/high/Keccak (KeccakSponge, FIPS202/KeccakHash, SP800-185) state no constant-time property."
                             }
                         }
                     }
@@ -532,7 +532,7 @@
                             "hmacs": null,
                             "constant_time": {
                                 "value": "not stated",
-                                "source": "XKCP at d20c8fc: README.markdown, lib/low/KeccakP-1600 and lib/high/Keccak (KeccakSponge, FIPS202/KeccakHash) state no constant-time property."
+                                "source": "XKCP at d20c8fc: README.markdown, lib/low/KeccakP-1600 and lib/high/Keccak (KeccakSponge, FIPS202/KeccakHash, SP800-185) state no constant-time property."
                             }
                         }
                     }
@@ -556,7 +556,7 @@
                             "hmacs": null,
                             "constant_time": {
                                 "value": "not stated",
-                                "source": "XKCP at d20c8fc: README.markdown, lib/low/KeccakP-1600 and lib/high/Keccak (KeccakSponge, FIPS202/KeccakHash) state no constant-time property."
+                                "source": "XKCP at d20c8fc: README.markdown, lib/low/KeccakP-1600 and lib/high/Keccak (KeccakSponge, FIPS202/KeccakHash, SP800-185) state no constant-time property."
                             }
                         }
                     }
@@ -580,7 +580,7 @@
                             "hmacs": null,
                             "constant_time": {
                                 "value": "not stated",
-                                "source": "XKCP at d20c8fc: README.markdown, lib/low/KeccakP-1600 and lib/high/Keccak (KeccakSponge, FIPS202/KeccakHash) state no constant-time property."
+                                "source": "XKCP at d20c8fc: README.markdown, lib/low/KeccakP-1600 and lib/high/Keccak (KeccakSponge, FIPS202/KeccakHash, SP800-185) state no constant-time property."
                             }
                         }
                     }
@@ -605,7 +605,7 @@
                             "hmacs": null,
                             "constant_time": {
                                 "value": "not stated",
-                                "source": "XKCP at d20c8fc: README.markdown, lib/low/KeccakP-1600 and lib/high/Keccak (KeccakSponge, FIPS202/KeccakHash) state no constant-time property."
+                                "source": "XKCP at d20c8fc: README.markdown, lib/low/KeccakP-1600 and lib/high/Keccak (KeccakSponge, FIPS202/KeccakHash, SP800-185) state no constant-time property."
                             }
                         }
                     }
@@ -630,7 +630,7 @@
                             "hmacs": null,
                             "constant_time": {
                                 "value": "not stated",
-                                "source": "XKCP at d20c8fc: README.markdown, lib/low/KeccakP-1600 and lib/high/Keccak (KeccakSponge, FIPS202/KeccakHash) state no constant-time property."
+                                "source": "XKCP at d20c8fc: README.markdown, lib/low/KeccakP-1600 and lib/high/Keccak (KeccakSponge, FIPS202/KeccakHash, SP800-185) state no constant-time property."
                             }
                         }
                     }
@@ -655,7 +655,7 @@
                             "hmacs": null,
                             "constant_time": {
                                 "value": "not stated",
-                                "source": "XKCP at d20c8fc: README.markdown, lib/low/KeccakP-1600 and lib/high/Keccak (KeccakSponge, FIPS202/KeccakHash) state no constant-time property."
+                                "source": "XKCP at d20c8fc: README.markdown, lib/low/KeccakP-1600 and lib/high/Keccak (KeccakSponge, FIPS202/KeccakHash, SP800-185) state no constant-time property."
                             }
                         }
                     }
@@ -671,7 +671,7 @@
                             "hmacs": null,
                             "constant_time": {
                                 "value": "not stated",
-                                "source": "XKCP at d20c8fc: README.markdown, lib/low/KeccakP-1600 and lib/high/Keccak (KeccakSponge, FIPS202/KeccakHash) state no constant-time property."
+                                "source": "XKCP at d20c8fc: README.markdown, lib/low/KeccakP-1600 and lib/high/Keccak (KeccakSponge, FIPS202/KeccakHash, SP800-185) state no constant-time property."
                             }
                         }
                     }
@@ -687,7 +687,7 @@
                             "hmacs": null,
                             "constant_time": {
                                 "value": "not stated",
-                                "source": "XKCP at d20c8fc: README.markdown, lib/low/KeccakP-1600 and lib/high/Keccak (KeccakSponge, FIPS202/KeccakHash) state no constant-time property."
+                                "source": "XKCP at d20c8fc: README.markdown, lib/low/KeccakP-1600 and lib/high/Keccak (KeccakSponge, FIPS202/KeccakHash, SP800-185) state no constant-time property."
                             }
                         }
                     }
@@ -703,7 +703,7 @@
                             "hmacs": null,
                             "constant_time": {
                                 "value": "not stated",
-                                "source": "XKCP at d20c8fc: README.markdown, lib/low/KeccakP-1600 and lib/high/Keccak (KeccakSponge, FIPS202/KeccakHash) state no constant-time property."
+                                "source": "XKCP at d20c8fc: README.markdown, lib/low/KeccakP-1600 and lib/high/Keccak (KeccakSponge, FIPS202/KeccakHash, SP800-185) state no constant-time property."
                             }
                         }
                     }
@@ -719,7 +719,114 @@
                             "hmacs": null,
                             "constant_time": {
                                 "value": "not stated",
-                                "source": "XKCP at d20c8fc: README.markdown, lib/low/KeccakP-1600 and lib/high/Keccak (KeccakSponge, FIPS202/KeccakHash) state no constant-time property."
+                                "source": "XKCP at d20c8fc: README.markdown, lib/low/KeccakP-1600 and lib/high/Keccak (KeccakSponge, FIPS202/KeccakHash, SP800-185) state no constant-time property."
+                            }
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "sp800_185",
+            "macro": "SP800_185",
+            "tag": null,
+            "chapter": "digests",
+            "standard": "NIST SP 800-185 (cSHAKE, TupleHash, ParallelHash)",
+            "functions": [
+                {
+                    "name": "digests::cshake_128",
+                    "kind": "digest",
+                    "header": "webcpp/hash/digest.hpp",
+                    "default": "xkcp",
+                    "backends": {
+                        "xkcp": {
+                            "since": 3,
+                            "hmacs": null,
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "XKCP at d20c8fc: README.markdown, lib/low/KeccakP-1600 and lib/high/Keccak (KeccakSponge, FIPS202/KeccakHash, SP800-185) state no constant-time property."
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "digests::cshake_256",
+                    "kind": "digest",
+                    "header": "webcpp/hash/digest.hpp",
+                    "default": "xkcp",
+                    "backends": {
+                        "xkcp": {
+                            "since": 3,
+                            "hmacs": null,
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "XKCP at d20c8fc: README.markdown, lib/low/KeccakP-1600 and lib/high/Keccak (KeccakSponge, FIPS202/KeccakHash, SP800-185) state no constant-time property."
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "digests::tuplehash_128",
+                    "kind": "digest",
+                    "header": "webcpp/hash/digest.hpp",
+                    "default": "xkcp",
+                    "backends": {
+                        "xkcp": {
+                            "since": 3,
+                            "hmacs": null,
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "XKCP at d20c8fc: README.markdown, lib/low/KeccakP-1600 and lib/high/Keccak (KeccakSponge, FIPS202/KeccakHash, SP800-185) state no constant-time property."
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "digests::tuplehash_256",
+                    "kind": "digest",
+                    "header": "webcpp/hash/digest.hpp",
+                    "default": "xkcp",
+                    "backends": {
+                        "xkcp": {
+                            "since": 3,
+                            "hmacs": null,
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "XKCP at d20c8fc: README.markdown, lib/low/KeccakP-1600 and lib/high/Keccak (KeccakSponge, FIPS202/KeccakHash, SP800-185) state no constant-time property."
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "digests::parallelhash_128",
+                    "kind": "digest",
+                    "header": "webcpp/hash/digest.hpp",
+                    "default": "xkcp",
+                    "backends": {
+                        "xkcp": {
+                            "since": 3,
+                            "hmacs": null,
+                            "partial": "a block size that is not a power of two of at least 8 bytes; SP 800-185 takes any from 1",
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "XKCP at d20c8fc: README.markdown, lib/low/KeccakP-1600 and lib/high/Keccak (KeccakSponge, FIPS202/KeccakHash, SP800-185) state no constant-time property."
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "digests::parallelhash_256",
+                    "kind": "digest",
+                    "header": "webcpp/hash/digest.hpp",
+                    "default": "xkcp",
+                    "backends": {
+                        "xkcp": {
+                            "since": 3,
+                            "hmacs": null,
+                            "partial": "a block size that is not a power of two of at least 8 bytes; SP 800-185 takes any from 1",
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "XKCP at d20c8fc: README.markdown, lib/low/KeccakP-1600 and lib/high/Keccak (KeccakSponge, FIPS202/KeccakHash, SP800-185) state no constant-time property."
                             }
                         }
                     }
@@ -966,6 +1073,47 @@
                             "constant_time": {
                                 "value": "not stated",
                                 "source": "Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property."
+                            }
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "kmac",
+            "macro": "KMAC",
+            "tag": null,
+            "chapter": "macs",
+            "standard": "NIST SP 800-185 (KMAC, KMACXOF)",
+            "functions": [
+                {
+                    "name": "macs::kmac_128",
+                    "kind": "mac",
+                    "header": "webcpp/hash/mac.hpp",
+                    "default": "xkcp",
+                    "backends": {
+                        "xkcp": {
+                            "since": 3,
+                            "hmacs": null,
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "XKCP at d20c8fc: README.markdown, lib/low/KeccakP-1600 and lib/high/Keccak (KeccakSponge, FIPS202/KeccakHash, SP800-185) state no constant-time property."
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "macs::kmac_256",
+                    "kind": "mac",
+                    "header": "webcpp/hash/mac.hpp",
+                    "default": "xkcp",
+                    "backends": {
+                        "xkcp": {
+                            "since": 3,
+                            "hmacs": null,
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "XKCP at d20c8fc: README.markdown, lib/low/KeccakP-1600 and lib/high/Keccak (KeccakSponge, FIPS202/KeccakHash, SP800-185) state no constant-time property."
                             }
                         }
                     }

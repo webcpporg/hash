@@ -244,6 +244,48 @@
 | legacy
 | no
 
+| <<hash-sp800-185,`digests::cshake_128`>>
+| any length from 1 byte
+| 128-bit security (SP 800-185, section 8.1)
+| NIST SP 800-185, section 3
+| recommended
+| no
+
+| <<hash-sp800-185,`digests::cshake_256`>>
+| any length from 1 byte
+| 256-bit security (SP 800-185, section 8.1)
+| NIST SP 800-185, section 3
+| recommended
+| no
+
+| <<hash-sp800-185,`digests::tuplehash_128`>>
+| any length from 1 byte; fixed-length or XOF form
+| 128-bit security (SP 800-185, section 8.1)
+| NIST SP 800-185, section 5
+| recommended
+| no
+
+| <<hash-sp800-185,`digests::tuplehash_256`>>
+| any length from 1 byte; fixed-length or XOF form
+| 256-bit security (SP 800-185, section 8.1)
+| NIST SP 800-185, section 5
+| recommended
+| no
+
+| <<hash-sp800-185,`digests::parallelhash_128`>>
+| any length from 1 byte; fixed-length or XOF form
+| 128-bit security (SP 800-185, section 8.1)
+| NIST SP 800-185, section 6
+| recommended
+| no
+
+| <<hash-sp800-185,`digests::parallelhash_256`>>
+| any length from 1 byte; fixed-length or XOF form
+| 256-bit security (SP 800-185, section 8.1)
+| NIST SP 800-185, section 6
+| recommended
+| no
+
 | <<hash-blake2,`blake2b_512`>>
 | 512 bits
 | 256-bit collision resistance
@@ -518,6 +560,42 @@
 | -
 | link:https://keccak.team/files/Keccak-reference-3.0.pdf[The Keccak team's final SHA-3 submission, before FIPS 202 changed the padding]
 | Only where a format names Keccak-512, the padding before FIPS 202; SHA3-512 for anything new.
+
+| <<hash-sp800-185,`digests::cshake_128`>>
+| -
+| -
+| link:https://doi.org/10.6028/NIST.SP.800-185[The building block of KMAC, TupleHash and ParallelHash in NIST SP 800-185]
+| When two uses of one hash must never give the same output for the same input: each takes its own customisation string.
+
+| <<hash-sp800-185,`digests::cshake_256`>>
+| -
+| -
+| link:https://doi.org/10.6028/NIST.SP.800-185[The building block of KMAC, TupleHash and ParallelHash in NIST SP 800-185]
+| As cSHAKE128, where a format asks for 256-bit security.
+
+| <<hash-sp800-185,`digests::tuplehash_128`>>
+| -
+| -
+| link:https://doi.org/10.6028/NIST.SP.800-185[NIST SP 800-185, the SHA-3 derived functions]
+| To hash several fields together without an encoding of your own: ("ab", "c") and ("a", "bc") never collide, as a plain concatenation does.
+
+| <<hash-sp800-185,`digests::tuplehash_256`>>
+| -
+| -
+| link:https://doi.org/10.6028/NIST.SP.800-185[NIST SP 800-185, the SHA-3 derived functions]
+| As TupleHash128, where a format asks for 256-bit security.
+
+| <<hash-sp800-185,`digests::parallelhash_128`>>
+| -
+| -
+| link:https://doi.org/10.6028/NIST.SP.800-185[NIST SP 800-185, the SHA-3 derived functions]
+| Where a format names ParallelHash and its block size; for a fast hash of large files without such a format, BLAKE3 or KT128.
+
+| <<hash-sp800-185,`digests::parallelhash_256`>>
+| -
+| -
+| link:https://doi.org/10.6028/NIST.SP.800-185[NIST SP 800-185, the SHA-3 derived functions]
+| As ParallelHash128, where a format asks for 256-bit security.
 
 | <<hash-blake2,`blake2b_512`>>
 | 1,617 MiB/s (hash2)

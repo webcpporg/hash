@@ -290,7 +290,11 @@ int webcpp_hash_xkcp_kangarootwelve_squeeze(uint64_t* storage, unsigned char* ou
     WEBCPP_HASH_XKCP_SP800_185_PHASES(name, xkcp, KMAC_Instance)
 
 /* TupleHash: customisation S; each update is one element of the tuple, so it is not cut in
- * chunks; an output length of 0 is TupleHashXOF. */
+ * chunks; an output length of 0 is TupleHashXOF. SP 800-185 encodes the output length L only
+ * after the last element: final_length gives L there, for a caller that learns it after
+ * initialize (webcpp's hasher), by setting the two members TupleHash_Final reads (the
+ * instance's and its cSHAKE's) before calling it; it refuses once the input has ended, so that
+ * no member of an ended instance changes. The tests check it against NIST's samples. */
 #define WEBCPP_HASH_XKCP_TUPLEHASH(name, xkcp)                                                     \
     int webcpp_hash_xkcp_##name##_initialize(uint64_t* storage, size_t output_length,              \
                                              const unsigned char* customisation,                   \
@@ -318,6 +322,17 @@ int webcpp_hash_xkcp_kangarootwelve_squeeze(uint64_t* storage, unsigned char* ou
         return xkcp##_Final((TupleHash_Instance*)storage, output);                                 \
     }                                                                                              \
                                                                                                    \
+    int webcpp_hash_xkcp_##name##_final_length(uint64_t* storage, unsigned char* output,           \
+                                               size_t output_length) {                             \
+        TupleHash_Instance* const instance = (TupleHash_Instance*)storage;                         \
+        if (output_length > WEBCPP_HASH_XKCP_BIT_CHUNK || instance->csi.phase != ABSORBING) {      \
+            return 1;                                                                              \
+        }                                                                                          \
+        instance->outputBitLen = output_length * 8;                                                \
+        instance->csi.fixedOutputLength = output_length * 8;                                       \
+        return xkcp##_Final(instance, output);                                                     \
+    }                                                                                              \
+                                                                                                   \
     int webcpp_hash_xkcp_##name##_squeeze(uint64_t* storage, unsigned char* output,                \
                                           size_t length) {                                         \
         while (length != 0) {                                                                      \
@@ -333,7 +348,8 @@ int webcpp_hash_xkcp_kangarootwelve_squeeze(uint64_t* storage, unsigned char* ou
     }
 
 /* ParallelHash: block size B in bytes and customisation S; an output length of 0 is
- * ParallelHashXOF. */
+ * ParallelHashXOF. final_length gives L after the input, as TupleHash's does, through the one
+ * member ParallelHash_Final reads. */
 #define WEBCPP_HASH_XKCP_PARALLELHASH(name, xkcp)                                                  \
     int webcpp_hash_xkcp_##name##_initialize(                                                      \
         uint64_t* storage, size_t block_size, size_t output_length,                                \
@@ -344,6 +360,16 @@ int webcpp_hash_xkcp_kangarootwelve_squeeze(uint64_t* storage, unsigned char* ou
         }                                                                                          \
         return xkcp##_Initialize((ParallelHash_Instance*)storage, block_size, output_length * 8,   \
                                  webcpp_hash_xkcp_bytes(customisation), customisation_length * 8); \
+    }                                                                                              \
+                                                                                                   \
+    int webcpp_hash_xkcp_##name##_final_length(uint64_t* storage, unsigned char* output,           \
+                                               size_t output_length) {                             \
+        ParallelHash_Instance* const instance = (ParallelHash_Instance*)storage;                   \
+        if (output_length > WEBCPP_HASH_XKCP_BIT_CHUNK || instance->phase != ABSORBING) {          \
+            return 1;                                                                              \
+        }                                                                                          \
+        instance->fixedOutputLength = output_length * 8;                                           \
+        return xkcp##_Final(instance, output);                                                     \
     }                                                                                              \
     WEBCPP_HASH_XKCP_SP800_185_PHASES(name, xkcp, ParallelHash_Instance)
 

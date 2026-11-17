@@ -164,6 +164,64 @@ reached through their tags alone.
 
 include::generated/backends-keccak-256.adoc[]
 
+[#hash-sp800-185]
+=== cSHAKE, TupleHash and ParallelHash (SP 800-185)
+
+NIST SP 800-185 builds three hashes on SHAKE, each for a job a plain digest
+does badly. *cSHAKE* is SHAKE with a customisation string: an application
+that hashes the same data for two purposes, an identifier and a checksum,
+gives each purpose its own string, and the two outputs are unrelated, so that
+a value computed for one can never be passed off as the other. *TupleHash*
+hashes a list of byte strings, a record's fields, so that the bounds between
+them count: a signing app that hashes `name` then `amount` by plain
+concatenation gives ("ab", "c") and ("a", "bc") the same digest, and an
+attacker who controls one field can move bytes across the bound; TupleHash
+encodes each field's length and cannot be fooled that way. *ParallelHash*
+cuts a long input in blocks of B bytes, hashes each block on its own and
+hashes the results, so that a large file can be hashed on several cores; the
+block size is part of the function. All three come in a 128-bit and a 256-bit
+strength (SP 800-185, section 8.1) and give any number of bytes; TupleHash and
+ParallelHash have a fixed-length form, which encodes the output's length so
+that their 32-byte and 64-byte digests are unrelated, and an XOF form, which
+does not. They are tags of `digest_of` and `hasher`
+(<<hash-digest-family>>), on `backends::xkcp`, their default: XKCP's own
+SP 800-185 code. A program links `/third_party//xkcp`.
+
+[source]
+----
+include::{examples}/sp800_185.cpp[tag=example,indent=0]
+----
+
+[listing]
+----
+include::{examples}/sp800_185.expected[]
+----
+
+*Pitfalls.*
+
+* *A TupleHash hasher takes one element per `update`.* Feeding a field in
+two pieces makes two elements and another digest; `digest_of` hashes the
+tuple of one element, its input. The empty tuple (no `update`) and the tuple
+of one empty element differ.
+* *The form is part of the digest.* TupleHash128 and TupleHashXOF128 of the
+same input differ at every length, and so do the two forms of ParallelHash;
+the fixed-length form's 32-byte digest is not the start of its 64-byte one.
+Choose the form the format names, with `.xof`.
+* *ParallelHash's block size has no default.* SP 800-185 leaves B to the
+application, and a digest under another B is another digest: the call states
+it (`.block_size`; 0 is `invalid_parameters`). XKCP takes a power of two of at
+least 8 bytes and answers any other with `unsupported_by_backend`, NIST's
+samples with B = 12 included; 8192 is common for large files.
+* *The function name is NIST's.* cSHAKE's `function_name` is reserved for
+functions NIST defines on it; an application separates its uses with
+`customisation`. With both empty, cSHAKE is SHAKE.
+* *Lengths in bits.* SP 800-185 counts every string in bits, which XKCP holds
+in a `size_t`: on wasm32 a customisation, a TupleHash element or a
+fixed-length output past 512 MiB is refused (`input_too_long`,
+`invalid_output_size`) before XKCP sees it.
+
+include::generated/backends-sp800-185.adoc[]
+
 [#hash-blake2]
 === BLAKE2
 

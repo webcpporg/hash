@@ -101,6 +101,16 @@ hash-run xkcp_adapter : xkcp_adapter_test.cpp : <library>/third_party//xkcp ;
 # Boost.Hash2.
 hash-run xkcp_fips202 : xkcp_fips202_test.cpp
   : <library>/third_party//xkcp <library>/third_party//xkcp_vectors ;
+# SP 800-185 on backends::xkcp: cSHAKE, TupleHash and ParallelHash through
+# digest_of and hasher, KMAC through mac, against NIST's samples and values
+# of an implementation independent of XKCP; their options and guards. Then
+# the guards of SP 800-185's lengths in bits, the limit lowered to 16 bytes
+# through the seam WEBCPP_HASH_DETAIL_TEST_SP800_185_MAX_BYTES.
+hash-run xkcp_sp800_185 : xkcp_sp800_185_test.cpp
+  : <library>/third_party//xkcp ;
+hash-run xkcp_sp800_185_limits : xkcp_sp800_185_limits_test.cpp
+  : <library>/third_party//xkcp
+    <define>WEBCPP_HASH_DETAIL_TEST_SP800_185_MAX_BYTES=16 ;
 # hash.hpp's branch for XKCP.
 webcpp.compile hash_keccak : hash_keccak_test.cpp : <library>/third_party//xkcp ;
 # keccak_256's read of the canary survives optimisation: with the library it

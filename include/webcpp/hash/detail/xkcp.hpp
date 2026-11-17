@@ -15,7 +15,8 @@
  XKCP's high-level interfaces: the sponge, FIPS 202's `Keccak_Hash` (SHA-3, SHAKE and Keccak),
  TurboSHAKE, KangarooTwelve, and SP 800-185's cSHAKE, KMAC, TupleHash and ParallelHash, each in
  four phases, `initialize`, `update`, `final` and `squeeze`, named
- `webcpp_hash_xkcp_<interface>_<phase>`. An instance lives in the caller's storage, the
+ `webcpp_hash_xkcp_<interface>_<phase>`; TupleHash and ParallelHash also end with
+ `final_length`, which takes the output length at the end. An instance lives in the caller's storage, the
  `xkcp_<kind>_storage` below, opaque to it: its size is the native maximum of XKCP's structure
  (smaller on wasm32, where `size_t` is 4 bytes), which the adapter's static assertions check on
  every target. A storage is used for one instance from its `initialize` on, and wiped by its
@@ -511,6 +512,21 @@ int webcpp_hash_xkcp_tuplehash128_update(std::uint64_t* storage, unsigned char c
 int webcpp_hash_xkcp_tuplehash128_final(std::uint64_t* storage, unsigned char* output);
 
 /**
+ Ends the input with the output length L given now, in place of `initialize`'s
+ `output_length` (`TupleHash128_Final`): SP 800-185 encodes L after the input, so that a caller that
+ learns it last, as `hasher::finish` does, starts with an `output_length` of 0 and states it
+ here.
+
+ @param storage The instance's storage.
+ @param output Where the `output_length` bytes go (none when it is 0).
+ @param output_length L in bytes; 0 for TupleHashXOF128, read by `squeeze`.
+ @return 0, or nonzero once the input has ended (after `final` or `final_length`) or for an
+ `output_length` over `SIZE_MAX / 8`.
+*/
+int webcpp_hash_xkcp_tuplehash128_final_length(std::uint64_t* storage, unsigned char* output,
+                                               std::size_t output_length);
+
+/**
  Squeezes output bytes of the XOF form (`TupleHash128_Squeeze`), after `final` with an
  `output_length` of 0.
 
@@ -554,6 +570,21 @@ int webcpp_hash_xkcp_tuplehash256_update(std::uint64_t* storage, unsigned char c
  @return 0, or nonzero when called twice.
 */
 int webcpp_hash_xkcp_tuplehash256_final(std::uint64_t* storage, unsigned char* output);
+
+/**
+ Ends the input with the output length L given now, in place of `initialize`'s
+ `output_length` (`TupleHash256_Final`): SP 800-185 encodes L after the input, so that a caller that
+ learns it last, as `hasher::finish` does, starts with an `output_length` of 0 and states it
+ here.
+
+ @param storage The instance's storage.
+ @param output Where the `output_length` bytes go (none when it is 0).
+ @param output_length L in bytes; 0 for TupleHashXOF256, read by `squeeze`.
+ @return 0, or nonzero once the input has ended (after `final` or `final_length`) or for an
+ `output_length` over `SIZE_MAX / 8`.
+*/
+int webcpp_hash_xkcp_tuplehash256_final_length(std::uint64_t* storage, unsigned char* output,
+                                               std::size_t output_length);
 
 /**
  Squeezes output bytes of the XOF form (`TupleHash256_Squeeze`), after `final` with an
@@ -604,6 +635,21 @@ int webcpp_hash_xkcp_parallelhash128_update(std::uint64_t* storage, unsigned cha
 int webcpp_hash_xkcp_parallelhash128_final(std::uint64_t* storage, unsigned char* output);
 
 /**
+ Ends the input with the output length L given now, in place of `initialize`'s
+ `output_length` (`ParallelHash128_Final`): SP 800-185 encodes L after the input, so that a caller
+ that learns it last, as `hasher::finish` does, starts with an `output_length` of 0 and states it
+ here.
+
+ @param storage The instance's storage.
+ @param output Where the `output_length` bytes go (none when it is 0).
+ @param output_length L in bytes; 0 for ParallelHashXOF128, read by `squeeze`.
+ @return 0, or nonzero once the input has ended (after `final` or `final_length`) or for an
+ `output_length` over `SIZE_MAX / 8`.
+*/
+int webcpp_hash_xkcp_parallelhash128_final_length(std::uint64_t* storage, unsigned char* output,
+                                                  std::size_t output_length);
+
+/**
  Squeezes output bytes of the XOF form (`ParallelHash128_Squeeze`), after `final` with an
  `output_length` of 0.
 
@@ -650,6 +696,21 @@ int webcpp_hash_xkcp_parallelhash256_update(std::uint64_t* storage, unsigned cha
  @return 0, or nonzero when called twice.
 */
 int webcpp_hash_xkcp_parallelhash256_final(std::uint64_t* storage, unsigned char* output);
+
+/**
+ Ends the input with the output length L given now, in place of `initialize`'s
+ `output_length` (`ParallelHash256_Final`): SP 800-185 encodes L after the input, so that a caller
+ that learns it last, as `hasher::finish` does, starts with an `output_length` of 0 and states it
+ here.
+
+ @param storage The instance's storage.
+ @param output Where the `output_length` bytes go (none when it is 0).
+ @param output_length L in bytes; 0 for ParallelHashXOF256, read by `squeeze`.
+ @return 0, or nonzero once the input has ended (after `final` or `final_length`) or for an
+ `output_length` over `SIZE_MAX / 8`.
+*/
+int webcpp_hash_xkcp_parallelhash256_final_length(std::uint64_t* storage, unsigned char* output,
+                                                  std::size_t output_length);
 
 /**
  Squeezes output bytes of the XOF form (`ParallelHash256_Squeeze`), after `final` with an

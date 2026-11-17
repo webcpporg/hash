@@ -19,6 +19,7 @@ webcpp.example sha256.cpp ;
 webcpp.example sha3_shake.cpp ;
 webcpp.example keccak_256.cpp : <library>/third_party//xkcp ;
 webcpp.example keccak_family.cpp : <library>/third_party//xkcp ;
+webcpp.example sp800_185.cpp : <library>/third_party//xkcp ;
 webcpp.example blake2b.cpp ;
 webcpp.example blake3.cpp : <library>/third_party//blake3 ;
 webcpp.example ripemd160.cpp ;
@@ -29,6 +30,8 @@ webcpp.example digest_family.cpp ;
 webcpp.example hmac_sha256.cpp : <library>/webcpp/crypto//crypto ;
 webcpp.example siphash.cpp : <library>/webcpp/crypto//crypto ;
 webcpp.example mac_family.cpp : <library>/webcpp/crypto//crypto ;
+webcpp.example kmac.cpp : <library>/webcpp/crypto//crypto
+  <library>/third_party//xkcp ;
 
 # Key derivation.
 webcpp.example hkdf.cpp ;

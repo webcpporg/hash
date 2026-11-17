@@ -51,6 +51,6 @@
 
 What each backend states on constant time, as the capability table read it:
 
-* `xkcp`: XKCP at d20c8fc: README.markdown, lib/low/KeccakP-1600 and lib/high/Keccak (KeccakSponge, FIPS202/KeccakHash) state no constant-time property.
+* `xkcp`: XKCP at d20c8fc: README.markdown, lib/low/KeccakP-1600 and lib/high/Keccak (KeccakSponge, FIPS202/KeccakHash, SP800-185) state no constant-time property.
 
 The default of `digests::keccak_224`, `digests::keccak_256`, `digests::keccak_384` and `digests::keccak_512`: `xkcp` on every target, whatever the program links (<<hash-default-backend>>).

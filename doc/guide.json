@@ -956,6 +956,84 @@
             ],
             "choose": "Only where a format names Keccak-512, the padding before FIPS 202; SHA3-512 for anything new."
         },
+        "digests::cshake_128": {
+            "standard": "NIST SP 800-185, section 3",
+            "summary": "cSHAKE128, SHAKE128 with a function name and a customisation string that separate its uses, as the tag of digest_of and hasher: one call, or pieces with one final result, on any backend that has it.",
+            "output": "any length from 1 byte",
+            "security": "128-bit security (SP 800-185, section 8.1)",
+            "status": "recommended",
+            "webcrypto": null,
+            "anchor": "hash-sp800-185",
+            "uses": [
+                {"text": "The building block of KMAC, TupleHash and ParallelHash in NIST SP 800-185", "source": "https://doi.org/10.6028/NIST.SP.800-185"}
+            ],
+            "choose": "When two uses of one hash must never give the same output for the same input: each takes its own customisation string."
+        },
+        "digests::cshake_256": {
+            "standard": "NIST SP 800-185, section 3",
+            "summary": "cSHAKE256, SHAKE256 with a function name and a customisation string that separate its uses, as the tag of digest_of and hasher: one call, or pieces with one final result, on any backend that has it.",
+            "output": "any length from 1 byte",
+            "security": "256-bit security (SP 800-185, section 8.1)",
+            "status": "recommended",
+            "webcrypto": null,
+            "anchor": "hash-sp800-185",
+            "uses": [
+                {"text": "The building block of KMAC, TupleHash and ParallelHash in NIST SP 800-185", "source": "https://doi.org/10.6028/NIST.SP.800-185"}
+            ],
+            "choose": "As cSHAKE128, where a format asks for 256-bit security."
+        },
+        "digests::tuplehash_128": {
+            "standard": "NIST SP 800-185, section 5",
+            "summary": "TupleHash128, the hash of a tuple of byte strings in which the bounds between the strings count, as the tag of digest_of (a tuple of one string) and hasher (one update per string).",
+            "output": "any length from 1 byte; fixed-length or XOF form",
+            "security": "128-bit security (SP 800-185, section 8.1)",
+            "status": "recommended",
+            "webcrypto": null,
+            "anchor": "hash-sp800-185",
+            "uses": [
+                {"text": "NIST SP 800-185, the SHA-3 derived functions", "source": "https://doi.org/10.6028/NIST.SP.800-185"}
+            ],
+            "choose": "To hash several fields together without an encoding of your own: (\"ab\", \"c\") and (\"a\", \"bc\") never collide, as a plain concatenation does."
+        },
+        "digests::tuplehash_256": {
+            "standard": "NIST SP 800-185, section 5",
+            "summary": "TupleHash256, the hash of a tuple of byte strings in which the bounds between the strings count, as the tag of digest_of (a tuple of one string) and hasher (one update per string).",
+            "output": "any length from 1 byte; fixed-length or XOF form",
+            "security": "256-bit security (SP 800-185, section 8.1)",
+            "status": "recommended",
+            "webcrypto": null,
+            "anchor": "hash-sp800-185",
+            "uses": [
+                {"text": "NIST SP 800-185, the SHA-3 derived functions", "source": "https://doi.org/10.6028/NIST.SP.800-185"}
+            ],
+            "choose": "As TupleHash128, where a format asks for 256-bit security."
+        },
+        "digests::parallelhash_128": {
+            "standard": "NIST SP 800-185, section 6",
+            "summary": "ParallelHash128, a hash of long inputs cut in blocks of B bytes that are hashed independently, as the tag of digest_of and hasher; the block size is part of the function.",
+            "output": "any length from 1 byte; fixed-length or XOF form",
+            "security": "128-bit security (SP 800-185, section 8.1)",
+            "status": "recommended",
+            "webcrypto": null,
+            "anchor": "hash-sp800-185",
+            "uses": [
+                {"text": "NIST SP 800-185, the SHA-3 derived functions", "source": "https://doi.org/10.6028/NIST.SP.800-185"}
+            ],
+            "choose": "Where a format names ParallelHash and its block size; for a fast hash of large files without such a format, BLAKE3 or KT128."
+        },
+        "digests::parallelhash_256": {
+            "standard": "NIST SP 800-185, section 6",
+            "summary": "ParallelHash256, a hash of long inputs cut in blocks of B bytes that are hashed independently, as the tag of digest_of and hasher; the block size is part of the function.",
+            "output": "any length from 1 byte; fixed-length or XOF form",
+            "security": "256-bit security (SP 800-185, section 8.1)",
+            "status": "recommended",
+            "webcrypto": null,
+            "anchor": "hash-sp800-185",
+            "uses": [
+                {"text": "NIST SP 800-185, the SHA-3 derived functions", "source": "https://doi.org/10.6028/NIST.SP.800-185"}
+            ],
+            "choose": "As ParallelHash128, where a format asks for 256-bit security."
+        },
         "digests::blake2b": {
             "summary": "BLAKE2b, a digest of 1 to 64 bytes faster than SHA-2 in software, as the tag of digest_of and hasher: one call, or pieces with one final result, on any backend that has it.",
             "output": "1 to 64 bytes",
@@ -1199,6 +1277,32 @@
                 {"text": "Python's string hashing (PEP 456)", "source": "https://peps.python.org/pep-0456/"}
             ],
             "choose": "To compute it in one call, on a backend named in the call; siphash_64 itself for hash_append and a hash table's hasher."
+        },
+        "macs::kmac_128": {
+            "standard": "NIST SP 800-185, section 4",
+            "summary": "KMAC128, the MAC built on cSHAKE128 with a key and a customisation string, as the tag of mac: the tag of a message under a key in one call, fixed-length or XOF form.",
+            "output": "any length from 4 bytes (32 bits, SP 800-185 section 8.4.2)",
+            "security": "128-bit security with a key of at least 16 bytes (SP 800-185, section 8.4)",
+            "status": "recommended",
+            "webcrypto": null,
+            "anchor": "hash-kmac",
+            "uses": [
+                {"text": "A MAC and a KDF of NIST SP 800-56C (KMAC-based key derivation)", "source": "https://doi.org/10.6028/NIST.SP.800-56Cr2"}
+            ],
+            "choose": "Where a standard or a format names KMAC; HMAC-SHA-256 elsewhere, which every platform has."
+        },
+        "macs::kmac_256": {
+            "standard": "NIST SP 800-185, section 4",
+            "summary": "KMAC256, the MAC built on cSHAKE256 with a key and a customisation string, as the tag of mac: the tag of a message under a key in one call, fixed-length or XOF form.",
+            "output": "any length from 4 bytes (32 bits, SP 800-185 section 8.4.2)",
+            "security": "256-bit security with a key of at least 32 bytes (SP 800-185, section 8.4)",
+            "status": "recommended",
+            "webcrypto": null,
+            "anchor": "hash-kmac",
+            "uses": [
+                {"text": "A MAC and a KDF of NIST SP 800-56C (KMAC-based key derivation)", "source": "https://doi.org/10.6028/NIST.SP.800-56Cr2"}
+            ],
+            "choose": "As KMAC128, where a format asks for 256-bit security."
         },
         "macs::blake2s_mac": {
             "summary": "BLAKE2s keyed with a key of 1 to 32 bytes (RFC 7693), as the tag of mac: the tag of a message under a key in one call, on any backend that has it.",

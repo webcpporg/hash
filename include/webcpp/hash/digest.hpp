@@ -59,6 +59,124 @@ namespace webcpp::hash {
 template <class Digest>
 struct digest_options {};
 
+/**
+ cSHAKE128's parameters (NIST SP 800-185, section 3): the function name N, which NIST reserves
+ for functions it defines on cSHAKE, and the customisation string S, which an application
+ chooses to separate its uses of the function from any other's. With both empty, cSHAKE128 is
+ SHAKE128.
+
+ @code
+ std::array<std::uint8_t, 32> id{};
+ auto done = webcpp::hash::digest_of<webcpp::hash::digests::cshake_128>(
+     id, message, {.customisation = app_name});
+ @endcode
+
+ The output is any size from 1 byte, the first bytes of one stream: cSHAKE does not encode its
+ length. Each string is at most `SIZE_MAX / 8` bytes (`input_too_long`), and is read during the
+ call (`digest_of`, `hasher::make`) and not kept.
+*/
+template <>
+struct digest_options<digests::cshake_128> {
+    /** The function name N: empty unless NIST defines the function. */
+    std::span<std::uint8_t const> function_name = {};
+
+    /** The customisation string S. */
+    std::span<std::uint8_t const> customisation = {};
+};
+
+/** cSHAKE256's parameters, as cSHAKE128's (@ref digest_options<digests::cshake_128>). */
+template <>
+struct digest_options<digests::cshake_256> {
+    /** The function name N: empty unless NIST defines the function. */
+    std::span<std::uint8_t const> function_name = {};
+
+    /** The customisation string S. */
+    std::span<std::uint8_t const> customisation = {};
+};
+
+/**
+ TupleHash128's parameters (NIST SP 800-185, section 5): the customisation string S and the
+ form, fixed-length or extendable-output (TupleHashXOF128). TupleHash hashes a tuple of byte
+ strings so that their bounds count: ("ab", "c") and ("a", "bc") give different digests.
+ `hasher::update` takes one element of the tuple per call; `digest_of` hashes the tuple of one
+ element, its input.
+
+ @code
+ auto hashing = webcpp::hash::hasher<webcpp::hash::digests::tuplehash_128>::make();
+ // hashing->update(element) for each element, then hashing->finish(digest), once
+ @endcode
+
+ The fixed-length form encodes the output's length L, so that its digests of 32 and 64 bytes are
+ unrelated; the XOF form encodes none, and its shorter output is the start of its longer. The
+ fixed-length output is at most `SIZE_MAX / 8` bytes (`invalid_output_size`), as is S
+ (`input_too_long`), which is read during the call (`digest_of`, `hasher::make`) and not kept.
+*/
+template <>
+struct digest_options<digests::tuplehash_128> {
+    /** The customisation string S. */
+    std::span<std::uint8_t const> customisation = {};
+
+    /** The extendable-output form, TupleHashXOF128, in place of the fixed-length one. */
+    bool xof = false;
+};
+
+/** TupleHash256's parameters, as TupleHash128's (@ref digest_options<digests::tuplehash_128>). */
+template <>
+struct digest_options<digests::tuplehash_256> {
+    /** The customisation string S. */
+    std::span<std::uint8_t const> customisation = {};
+
+    /** The extendable-output form, TupleHashXOF256, in place of the fixed-length one. */
+    bool xof = false;
+};
+
+/**
+ ParallelHash128's parameters (NIST SP 800-185, section 6): the block size B in bytes, the
+ customisation string S and the form, fixed-length or extendable-output (ParallelHashXOF128).
+ ParallelHash cuts its input in blocks of B bytes, hashes each on its own (in parallel where an
+ implementation can) and hashes the results: B is part of the function, and the same input
+ under another B gives another digest.
+
+ @code
+ std::array<std::uint8_t, 32> digest{};
+ auto done = webcpp::hash::digest_of<webcpp::hash::digests::parallelhash_128>(
+     digest, file_bytes, {.block_size = 8192});
+ @endcode
+
+ SP 800-185 sets no default B: the call states it, and 0 is `invalid_parameters`. A backend may
+ take fewer: XKCP takes a power of two of at least 8 bytes, and answers any other with
+ `unsupported_by_backend`. The fixed-length form encodes the output's length, as TupleHash's
+ does (@ref digest_options<digests::tuplehash_128>), and is at most `SIZE_MAX / 8` bytes
+ (`invalid_output_size`), as is S (`input_too_long`), which is read during the call and not kept.
+*/
+template <>
+struct digest_options<digests::parallelhash_128> {
+    /** The block size B in bytes; no default (0 is `invalid_parameters`). */
+    std::size_t block_size = 0;
+
+    /** The customisation string S. */
+    std::span<std::uint8_t const> customisation = {};
+
+    /** The extendable-output form, ParallelHashXOF128, in place of the fixed-length one. */
+    bool xof = false;
+};
+
+/**
+ ParallelHash256's parameters, as ParallelHash128's
+ (@ref digest_options<digests::parallelhash_128>).
+*/
+template <>
+struct digest_options<digests::parallelhash_256> {
+    /** The block size B in bytes; no default (0 is `invalid_parameters`). */
+    std::size_t block_size = 0;
+
+    /** The customisation string S. */
+    std::span<std::uint8_t const> customisation = {};
+
+    /** The extendable-output form, ParallelHashXOF256, in place of the fixed-length one. */
+    bool xof = false;
+};
+
 namespace detail {
 
 /** The output sizes of a digest of `Size` bytes, fixed: the output is exactly that. */
@@ -131,9 +249,9 @@ struct extendable_output {
 /**
  The family's guards of a tag of `digests`, in one place (spec 2.15): `min_output(options)` and
  `max_output(options)`, the output sizes the tag produces (`invalid_output_size` outside them);
- `check(options)`, the options' own guards (`invalid_parameters`, `invalid_key_size` or
- `invalid_salt_size`), success for a tag without options. Every tag of `digests` has a
- specialisation; the increment that gives a tag options adds their check to it.
+ `check(options)`, the options' own guards (`invalid_parameters`, `invalid_key_size`,
+ `invalid_salt_size` or `input_too_long`), success for a tag without options. Every tag of `digests`
+ has a specialisation; the increment that gives a tag options adds their check to it.
 
  The primary template, reached only by a type that is not a tag, guards nothing: the engine's
  refusal is then the call's only error.
@@ -180,10 +298,6 @@ template <> struct digest_traits<digests::keccak_256> : fixed_output<32> {};
 template <> struct digest_traits<digests::keccak_384> : fixed_output<48> {};
 /** Keccak-512: 64 bytes. */
 template <> struct digest_traits<digests::keccak_512> : fixed_output<64> {};
-/** cSHAKE128: any size from 1 byte. */
-template <> struct digest_traits<digests::cshake_128> : extendable_output {};
-/** cSHAKE256: any size from 1 byte. */
-template <> struct digest_traits<digests::cshake_256> : extendable_output {};
 /** KT128: any size from 1 byte. */
 template <> struct digest_traits<digests::kt128> : extendable_output {};
 /** KT256: any size from 1 byte. */
@@ -192,14 +306,6 @@ template <> struct digest_traits<digests::kt256> : extendable_output {};
 template <> struct digest_traits<digests::turboshake_128> : extendable_output {};
 /** TurboSHAKE256: any size from 1 byte. */
 template <> struct digest_traits<digests::turboshake_256> : extendable_output {};
-/** TupleHash128: any size from 1 byte (its L). */
-template <> struct digest_traits<digests::tuplehash_128> : extendable_output {};
-/** TupleHash256: any size from 1 byte (its L). */
-template <> struct digest_traits<digests::tuplehash_256> : extendable_output {};
-/** ParallelHash128: any size from 1 byte (its L). */
-template <> struct digest_traits<digests::parallelhash_128> : extendable_output {};
-/** ParallelHash256: any size from 1 byte (its L). */
-template <> struct digest_traits<digests::parallelhash_256> : extendable_output {};
 /** BLAKE2s-256: 32 bytes. */
 template <> struct digest_traits<digests::blake2s_256> : fixed_output<32> {};
 /** BLAKE3: any size from 1 byte (its digest is the first 32). */
@@ -232,6 +338,111 @@ struct digest_traits<digests::blake2b> : fixed_output<64> {
     static constexpr std::uint64_t min_output(Options const& /*options*/) noexcept {
         return 1;
     }
+};
+
+/**
+ Whether a string of SP 800-185 is longer than its length in bits can be (`input_too_long`).
+
+ @param string_bytes The string. @return Its refusal, or success.
+*/
+inline boost::system::result<void> check_sp800_185_string(
+    std::span<std::uint8_t const> string_bytes) noexcept {
+    if (exceeds(string_bytes.size(), sp800_185_max_bytes)) {
+        return error::input_too_long;
+    }
+    return {};
+}
+
+/**
+ The guards of cSHAKE (SP 800-185, section 3): any output from 1 byte, a function name and a
+ customisation of at most `sp800_185_max_bytes` each (`input_too_long`).
+
+ @tparam Digest `digests::cshake_128` or `digests::cshake_256`.
+*/
+template <class Digest>
+struct cshake_traits : extendable_output {
+    /**
+     Checks the function name, then the customisation.
+
+     @param options The options. @return Success, or `input_too_long`.
+    */
+    static boost::system::result<void> check(digest_options<Digest> const& options) noexcept {
+        auto named = check_sp800_185_string(options.function_name);
+        if (!named) {
+            return named;
+        }
+        return check_sp800_185_string(options.customisation);
+    }
+};
+
+/** cSHAKE128: any size from 1 byte; its strings checked. */
+template <>
+struct digest_traits<digests::cshake_128> : cshake_traits<digests::cshake_128> {};
+
+/** cSHAKE256: any size from 1 byte; its strings checked. */
+template <>
+struct digest_traits<digests::cshake_256> : cshake_traits<digests::cshake_256> {};
+
+/**
+ The guards of TupleHash and ParallelHash (SP 800-185, sections 5 and 6): an output from 1 byte,
+ at most `sp800_185_max_bytes` in the fixed-length form, whose length is encoded, and of any size
+ in the XOF form; a customisation of at most `sp800_185_max_bytes` (`input_too_long`); for
+ ParallelHash, a block size other than 0 (`invalid_parameters`).
+
+ @tparam Digest A tag of TupleHash or ParallelHash.
+*/
+template <class Digest>
+struct sp800_185_hash_traits {
+    /**
+     The shortest output, 1 byte.
+
+     @return 1.
+    */
+    static constexpr std::uint64_t min_output(digest_options<Digest> const& /*options*/) noexcept {
+        return 1;
+    }
+
+    /**
+     The longest output: `sp800_185_max_bytes` in the fixed-length form, no limit in the XOF form.
+
+     @param options The options. @return The longest output.
+    */
+    static constexpr std::uint64_t max_output(digest_options<Digest> const& options) noexcept {
+        return options.xof ? no_limit : sp800_185_max_bytes;
+    }
+
+    /**
+     Checks ParallelHash's block size, then the customisation.
+
+     @param options The options.
+     @return Success, `invalid_parameters` or `input_too_long`.
+    */
+    static boost::system::result<void> check(digest_options<Digest> const& options) noexcept {
+        if constexpr (requires { options.block_size; }) {
+            if (options.block_size == 0) {
+                return error::invalid_parameters;
+            }
+        }
+        return check_sp800_185_string(options.customisation);
+    }
+};
+
+/** TupleHash128: 1 byte up, the fixed-length form within `sp800_185_max_bytes`. */
+template <>
+struct digest_traits<digests::tuplehash_128> : sp800_185_hash_traits<digests::tuplehash_128> {};
+
+/** TupleHash256: 1 byte up, the fixed-length form within `sp800_185_max_bytes`. */
+template <>
+struct digest_traits<digests::tuplehash_256> : sp800_185_hash_traits<digests::tuplehash_256> {};
+
+/** ParallelHash128: as TupleHash, and a block size other than 0. */
+template <>
+struct digest_traits<digests::parallelhash_128> : sp800_185_hash_traits<digests::parallelhash_128> {
+};
+
+/** ParallelHash256: as TupleHash, and a block size other than 0. */
+template <>
+struct digest_traits<digests::parallelhash_256> : sp800_185_hash_traits<digests::parallelhash_256> {
 };
 
 /**

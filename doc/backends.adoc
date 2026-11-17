@@ -23,7 +23,7 @@ states about its constant time. The backends:
 | native, wasip2, wasip3, emscripten
 
 | xkcp
-| XKCP at d20c8fc: its Keccak-p[1600] and FIPS 202's Keccak_Hash
+| XKCP at d20c8fc: its Keccak-p[1600], FIPS 202's Keccak_Hash and SP 800-185's functions
 | CC0-1.0
 | `/third_party//xkcp`
 | native, wasip2, wasip3, emscripten
@@ -293,6 +293,42 @@ states about its constant time. The backends:
 | not stated
 | native, wasip2, wasip3, emscripten
 
+| digests::cshake_128
+| xkcp
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| digests::cshake_256
+| xkcp
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| digests::tuplehash_128
+| xkcp
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| digests::tuplehash_256
+| xkcp
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| digests::parallelhash_128
+| xkcp (partial: a block size that is not a power of two of at least 8 bytes; SP 800-185 takes any from 1)
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| digests::parallelhash_256
+| xkcp (partial: a block size that is not a power of two of at least 8 bytes; SP 800-185 takes any from 1)
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
 | blake2b_512
 | hash2
 | -
@@ -374,6 +410,18 @@ states about its constant time. The backends:
 
 | macs::siphash_2_4
 | hash2
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| macs::kmac_128
+| xkcp
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| macs::kmac_256
+| xkcp
 | -
 | not stated
 | native, wasip2, wasip3, emscripten
@@ -786,6 +834,24 @@ The backend a call that names none uses, on every target, whatever the program l
 | digests::keccak_512
 | xkcp
 
+| digests::cshake_128
+| xkcp
+
+| digests::cshake_256
+| xkcp
+
+| digests::tuplehash_128
+| xkcp
+
+| digests::tuplehash_256
+| xkcp
+
+| digests::parallelhash_128
+| xkcp
+
+| digests::parallelhash_256
+| xkcp
+
 | digests::blake2b
 | sodium
 
@@ -803,6 +869,12 @@ The backend a call that names none uses, on every target, whatever the program l
 
 | macs::siphash_2_4
 | hash2
+
+| macs::kmac_128
+| xkcp
+
+| macs::kmac_256
+| xkcp
 
 | macs::hmac<digests::md5>
 | hash2
@@ -873,7 +945,7 @@ The backend a call that names none uses, on every target, whatever the program l
 What each backend's upstream states, and where:
 
 * hash2: not stated. Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property.
-* xkcp: not stated. XKCP at d20c8fc: README.markdown, lib/low/KeccakP-1600 and lib/high/Keccak (KeccakSponge, FIPS202/KeccakHash) state no constant-time property.
+* xkcp: not stated. XKCP at d20c8fc: README.markdown, lib/low/KeccakP-1600 and lib/high/Keccak (KeccakSponge, FIPS202/KeccakHash, SP800-185) state no constant-time property.
 * blake3: not stated. BLAKE3 1.8.7: README.md and c/README.md state no constant-time property.
 * sodium: not stated. libsodium 1.0.22: its headers state constant time for comparisons (sodium/utils.h) alone, not for crypto_kdf_hkdf_* or crypto_pwhash_*.
 * openssl: not stated. OpenSSL 3.5.9: doc/man7/EVP_KDF-HKDF.pod and EVP_KDF-PBKDF2.pod state no constant-time property.

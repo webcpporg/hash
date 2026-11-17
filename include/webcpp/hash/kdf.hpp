@@ -231,6 +231,32 @@ inline constexpr bool backend_has_v<backends::xkcp, digests::shake_128, void> = 
 template <>
 inline constexpr bool backend_has_v<backends::xkcp, digests::shake_256, void> = true;
 
+/** backends::xkcp has `digests::cshake_128` (XKCP's SP 800-185 `cSHAKE128`, any output size). */
+template <>
+inline constexpr bool backend_has_v<backends::xkcp, digests::cshake_128, void> = true;
+
+/** backends::xkcp has `digests::cshake_256` (XKCP's SP 800-185 `cSHAKE256`, any output size). */
+template <>
+inline constexpr bool backend_has_v<backends::xkcp, digests::cshake_256, void> = true;
+
+/** backends::xkcp has `digests::tuplehash_128` (XKCP's SP 800-185 `TupleHash128`, both forms). */
+template <>
+inline constexpr bool backend_has_v<backends::xkcp, digests::tuplehash_128, void> = true;
+
+/** backends::xkcp has `digests::tuplehash_256` (XKCP's SP 800-185 `TupleHash256`, both forms). */
+template <>
+inline constexpr bool backend_has_v<backends::xkcp, digests::tuplehash_256, void> = true;
+
+/** backends::xkcp has `digests::parallelhash_128` (XKCP's SP 800-185 `ParallelHash128`, both forms;
+ * a block size that is a power of two of at least 8 bytes). */
+template <>
+inline constexpr bool backend_has_v<backends::xkcp, digests::parallelhash_128, void> = true;
+
+/** backends::xkcp has `digests::parallelhash_256` (XKCP's SP 800-185 `ParallelHash256`, both forms;
+ * a block size that is a power of two of at least 8 bytes). */
+template <>
+inline constexpr bool backend_has_v<backends::xkcp, digests::parallelhash_256, void> = true;
+
 /** backends::blake3 has `digests::blake3` (BLAKE3's C implementation), with its extendable output.
  */
 template <>
@@ -308,6 +334,14 @@ inline constexpr bool backend_has_v<backends::hash2, macs::siphash_2_4, void> = 
 */
 template <>
 inline constexpr bool backend_has_v<backends::hash2, macs::blake2s_mac, void> = true;
+
+/** backends::xkcp has `macs::kmac_128` (XKCP's SP 800-185 `KMAC128`, both forms). */
+template <>
+inline constexpr bool backend_has_v<backends::xkcp, macs::kmac_128, void> = true;
+
+/** backends::xkcp has `macs::kmac_256` (XKCP's SP 800-185 `KMAC256`, both forms). */
+template <>
+inline constexpr bool backend_has_v<backends::xkcp, macs::kmac_256, void> = true;
 
 namespace detail {
 
