@@ -424,7 +424,7 @@ struct needs_library {
  What an engine that serves every value the family's guards accept declares (spec 2.15): no
  narrower limit. A digest or MAC engine inherits it, or declares the same members with its own
  limits, which the public functions read after their own guards and answer with
- `error::unsupported_by_backend` (rulings R14, R41).
+ `error::unsupported_by_backend` (ruling R41).
 */
 struct full_engine {
     /** The shortest output the engine produces: the family's own limit. */
