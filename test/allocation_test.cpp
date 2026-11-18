@@ -982,7 +982,8 @@ void heavy_allocates_nothing(char const* name, webcpp::asio::io_context& context
 }
 
 // The heavy functions (natively, where the build has threads), each on its default backend but
-// async_pbkdf2, on backends::hash2 named: 4 calls, 3 until the family's Argon2id lands.
+// async_pbkdf2, on backends::hash2 named, and async_argon2 with both of libsodium's variants: 5
+// calls.
 void async_heavy() {
     namespace asio = webcpp::asio;
     std::size_t const before = calls_made;
@@ -1000,22 +1001,20 @@ void async_heavy() {
         hash::async_argon2id(work, out, password, salt, {.passes = 1, .memory = 8192},
                              std::move(handler));
     });
-    // The family's Argon2id on its default, backends::sodium, once that engine has landed (stream
-    // sodium-2): until then the call refuses at compile time.
-    constexpr bool family_on_sodium =
-        hash::backend_has_v<hash::backends::sodium, hash::kdfs::argon2id, hash::argon2_parameters>;
-    if constexpr (family_on_sodium) {
-        heavy_allocates_nothing("async_argon2", context, [&](auto handler) {
-            hash::async_argon2<hash::kdfs::argon2id>(
-                work, out, password, salt, {.passes = 1, .memory_kib = 8}, std::move(handler));
-        });
-    }
+    heavy_allocates_nothing("async_argon2_argon2id", context, [&](auto handler) {
+        hash::async_argon2<hash::kdfs::argon2id>(
+            work, out, password, salt, {.passes = 1, .memory_kib = 8}, std::move(handler));
+    });
+    heavy_allocates_nothing("async_argon2_argon2i", context, [&](auto handler) {
+        hash::async_argon2<hash::kdfs::argon2i>(work, out, password, salt,
+                                                {.passes = 3, .memory_kib = 8}, std::move(handler));
+    });
     heavy_allocates_nothing("async_scrypt", context, [&](auto handler) {
         hash::async_scrypt(work, out, password, salt, {.n = 1024, .r = 8, .p = 1},
                            std::move(handler));
     });
     pool.join();
-    BOOST_TEST_EQ(calls_made - before, family_on_sodium ? 4U : 3U);
+    BOOST_TEST_EQ(calls_made - before, 5U);
 }
 #endif
 

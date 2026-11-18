@@ -5,21 +5,21 @@
 // https://www.boost.org/LICENSE_1_0.txt)
 
 // The heavy functions on another thread (spec 11.5, 11.4), in a build with threads (natively, and
-// on Emscripten with -pthread under node): async_argon2id, async_argon2, async_scrypt and
-// async_pbkdf2 on a webcpp::asio::thread_pool of two threads, each completing on the caller's
-// io_context, to which its callback is bound. The work runs on a thread of the pool, never the
-// caller's: a backend of this test, `recording`, whose engines run libsodium's and Hash2's and
-// record the thread they run on, shows it. Each result equals the synchronous function's; a guard's
-// refusal completes through the executor, never inside the call; a handler with no executor of
-// its own completes on the pool; and a 10 ms timer on the caller's io_context fires while an
-// Argon2id of 64 MiB runs. Cancellation (spec 11.5): before the work starts it completes at once,
-// the work never run; after it starts, the work runs to its end and only then the completion is
-// operation_aborted, the output zeroed, while a `total` one is not honoured; a second test backend,
-// `gated`, holds its work until the test lets it go, and shows that the work reads the caller's
-// spans themselves, never a copy, so that they are the caller's until the completion. The
-// handler's associated allocator gets back every block before the handler runs; and co_await in
-// Asio (use_awaitable) completes on the caller's loop, an error read through as_tuple without
-// exceptions (ruling R71).
+// on Emscripten with -pthread under node): async_argon2id, async_argon2 (Argon2id and Argon2i,
+// libsodium's by default), async_scrypt and async_pbkdf2 on a webcpp::asio::thread_pool of two
+// threads, each completing on the caller's io_context, to which its callback is bound. The work
+// runs on a thread of the pool, never the caller's: a backend of this test, `recording`, whose
+// engines run libsodium's and Hash2's and record the thread they run on, shows it. Each result
+// equals the synchronous function's; a guard's refusal completes through the executor, never inside
+// the call; a handler with no executor of its own completes on the pool; and a 10 ms timer on the
+// caller's io_context fires while an Argon2id of 64 MiB runs. Cancellation (spec 11.5): before the
+// work starts it completes at once, the work never run; after it starts, the work runs to its end
+// and only then the completion is operation_aborted, the output zeroed, while a `total` one is not
+// honoured; a second test backend, `gated`, holds its work until the test lets it go, and shows
+// that the work reads the caller's spans themselves, never a copy, so that they are the caller's
+// until the completion. The handler's associated allocator gets back every block before the handler
+// runs; and co_await in Asio (use_awaitable) completes on the caller's loop, an error read through
+// as_tuple without exceptions (ruling R71).
 
 #include <webcpp/hash/argon2.hpp>
 #include <webcpp/hash/async.hpp>
@@ -65,6 +65,7 @@
 #include <span>
 #include <string_view>
 #include <thread>
+#include <type_traits>
 #include <utility>
 #include <vector>
 
@@ -317,6 +318,51 @@ void check_on_pool(asio::io_context& context, asio::thread_pool& pool) {
     BOOST_TEST_EQ(runs_on_caller.load(), 1);
 }
 
+// async_argon2 of `Variant` on its default backend, backends::sodium, and on it named: each
+// result the synchronous family's; then libsodium's own limit (Argon2i takes 3 passes at least,
+// and Argon2id one lane), answered by the guards with unsupported_by_backend, the output untouched.
+template <class Variant>
+void check_family_defaults(asio::io_context& context, asio::thread_pool& pool,
+                           hash::argon2_parameters const& parameters) {
+    static_assert(std::is_same_v<hash::default_backend<Variant>, hash::backends::sodium>);
+    auto work = pool.get_executor();
+    auto const password = bytes_of("password");
+    std::array<std::uint8_t, hash::argon2id_salt_size> const salt{
+        0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28,
+        0x29, 0x2a, 0x2b, 0x2c, 0x2d, 0x2e, 0x2f, 0x30,
+    };
+    std::array<std::uint8_t, 32> expected{};
+    BOOST_TEST((hash::argon2<Variant>(expected, password, salt, parameters).has_value()));
+    std::array<std::uint8_t, 32> by_default{};
+    auto code = complete_on_caller(context, [&](auto handler) {
+        hash::async_argon2<Variant>(work, by_default, password, salt, parameters,
+                                    std::move(handler));
+    });
+    BOOST_TEST(!code);
+    BOOST_TEST(by_default == expected);
+    std::array<std::uint8_t, 32> named{};
+    code = complete_on_caller(context, [&](auto handler) {
+        hash::async_argon2<Variant, hash::backends::sodium>(work, named, password, salt, parameters,
+                                                            std::move(handler));
+    });
+    BOOST_TEST(!code);
+    BOOST_TEST(named == expected);
+
+    hash::argon2_parameters beyond = parameters;
+    if constexpr (std::is_same_v<Variant, hash::kdfs::argon2i>) {
+        beyond.passes = 2;
+    } else {
+        beyond.lanes = 2;
+        beyond.memory_kib = 64;
+    }
+    std::array<std::uint8_t, 32> untouched{0x5a};
+    code = complete_on_caller(context, [&](auto handler) {
+        hash::async_argon2<Variant>(work, untouched, password, salt, beyond, std::move(handler));
+    });
+    BOOST_TEST(code == hash::error::unsupported_by_backend);
+    BOOST_TEST_EQ(untouched[0], 0x5a);
+}
+
 // Each function on its default backend (async_pbkdf2 on backends::hash2 named, as spec 11.4 says),
 // its result the synchronous function's; and a completion on the pool's thread.
 void check_defaults(asio::io_context& context, asio::thread_pool& pool) {
@@ -336,6 +382,9 @@ void check_defaults(asio::io_context& context, asio::thread_pool& pool) {
     });
     BOOST_TEST(!code);
     BOOST_TEST(output == expected);
+
+    check_family_defaults<hash::kdfs::argon2id>(context, pool, {.passes = 1, .memory_kib = 32});
+    check_family_defaults<hash::kdfs::argon2i>(context, pool, {.passes = 3, .memory_kib = 32});
 
     hash::scrypt_parameters const costs{.n = 16, .r = 1, .p = 1};
     std::array<std::uint8_t, 64> scrypt_expected{};
