@@ -313,10 +313,10 @@ template <class Hmac, class Backend = default_backend<kdfs::kbkdf_hmac, Hmac>>
 }
 
 /**
- SP 800-56C's one-step key derivation over the digest `Digest` (NIST SP 800-56C Rev. 2, section
- 4.1, with H a hash function): fills `output` from the shared secret `secret` and `fixed_info`,
- block after block, each `Digest(counter || secret || fixed_info)` with a 32-bit big-endian counter
- from 1.
+ SP 800-56C's one-step key derivation over the digest `Digest` (NIST SP 800-56C revision 2,
+ section 4.1, with H a hash function): fills `output` from the shared secret `secret` and
+ `fixed_info`, block after block, each `Digest(counter || secret || fixed_info)` with a 32-bit
+ big-endian counter from 1.
 
  @code
  std::array<std::uint8_t, 32> derived{};
@@ -374,6 +374,7 @@ template <class Digest, class Backend = default_backend<kdfs::sskdf>>
  ANSI X9.63's key derivation (ANSI X9.63-2011, section 5.6.3; SEC 1 v2, section 3.6.1) over the
  digest `Digest`: fills `output` from the shared secret `secret` and `shared_info`, block after
  block, each `Digest(secret || counter || shared_info)` with a 32-bit big-endian counter from 1.
+
  ECIES and the elliptic-curve key agreements of SEC 1, BSI TR-03111 and smart cards use it.
 
  @code
