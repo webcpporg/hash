@@ -529,34 +529,46 @@ std::size_t family_output_size(hash::digest_options<Tag> const& options) {
                : static_cast<std::size_t>(std::min(longest, std::uint64_t{64}));
 }
 
-// digest_of on Backend (family_output_size) and a hasher from make to finish in the
-// extendable-output form where the tag has one; then the refusals, an empty output and
-// a second finish: two calls.
+// digest_of on Backend (family_output_size, at most 64 bytes, on the stack) and a hasher from make
+// to finish in the extendable-output form where the tag has one.
 template <class Tag, class Backend>
-void family_digest_allocates_nothing(char const* name) {
+void family_digest_hashes() {
     auto const options = family_options<Tag>();
     auto const xof = family_xof<Tag>();
-    std::vector<std::uint8_t> output(family_output_size<Tag>(options));
-    std::vector<std::uint8_t> streamed(family_output_size<Tag>(xof));
-    allocates_nothing(name, [&] {
-        BOOST_TEST((hash::digest_of<Tag, Backend>(output, input, options).has_value()));
-        auto hashing = hash::hasher<Tag, Backend>::make(xof);
-        BOOST_TEST(hashing.has_value());
-        if (hashing) {
-            BOOST_TEST(hashing->update(input.first(7)).has_value());
-            BOOST_TEST(hashing->update(input.subspan(7)).has_value());
-            BOOST_TEST(hashing->finish(streamed).has_value());
-        }
-    });
-    allocates_nothing(name, [&] {
-        BOOST_TEST(!(hash::digest_of<Tag, Backend>(std::span<std::uint8_t>{}, input, options)));
-        auto hashing = hash::hasher<Tag, Backend>::make(options);
-        BOOST_TEST(hashing.has_value());
-        if (hashing) {
-            BOOST_TEST(hashing->finish(output).has_value());
-            BOOST_TEST(!hashing->finish(output).has_value());
-        }
-    });
+    std::array<std::uint8_t, 64> output_bytes{};
+    std::array<std::uint8_t, 64> streamed_bytes{};
+    std::span<std::uint8_t> const output(output_bytes.data(), family_output_size<Tag>(options));
+    std::span<std::uint8_t> const streamed(streamed_bytes.data(), family_output_size<Tag>(xof));
+    BOOST_TEST((hash::digest_of<Tag, Backend>(output, input, options).has_value()));
+    auto hashing = hash::hasher<Tag, Backend>::make(xof);
+    BOOST_TEST(hashing.has_value());
+    if (hashing) {
+        BOOST_TEST(hashing->update(input.first(7)).has_value());
+        BOOST_TEST(hashing->update(input.subspan(7)).has_value());
+        BOOST_TEST(hashing->finish(streamed).has_value());
+    }
+}
+
+// The same tag's refusals: an empty output, and a second finish.
+template <class Tag, class Backend>
+void family_digest_refuses() {
+    auto const options = family_options<Tag>();
+    std::array<std::uint8_t, 64> output_bytes{};
+    std::span<std::uint8_t> const output(output_bytes.data(), family_output_size<Tag>(options));
+    BOOST_TEST(!(hash::digest_of<Tag, Backend>(std::span<std::uint8_t>{}, input, options)));
+    auto hashing = hash::hasher<Tag, Backend>::make(options);
+    BOOST_TEST(hashing.has_value());
+    if (hashing) {
+        BOOST_TEST(hashing->finish(output).has_value());
+        BOOST_TEST(!hashing->finish(output).has_value());
+    }
+}
+
+// A tag of digests on Backend: its hashes, then its refusals, each in a window: two calls.
+template <class Tag, class Backend>
+void family_digest_allocates_nothing(char const* name) {
+    allocates_nothing(name, [] { family_digest_hashes<Tag, Backend>(); });
+    allocates_nothing(name, [] { family_digest_refuses<Tag, Backend>(); });
 }
 
 // The tag size of a mac call: the tag's longest, 32 bytes when it has no limit, at most 64 bytes
