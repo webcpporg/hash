@@ -54,6 +54,6 @@ What each backend states on constant time, as the capability table read it:
 * `openssl`: OpenSSL 3.5.9: doc/man7/EVP_KDF-ARGON2.pod states that Argon2i's memory accesses are independent of the data and Argon2d's depend on it, and states no constant-time property.
 * `sodium`: libsodium 1.0.22: its headers state constant time for comparisons (sodium/utils.h) alone, not for its hashing, MAC, key derivation and password hashing functions (crypto_hash_*, crypto_xof_*, crypto_generichash_*, crypto_shorthash_*, crypto_auth_*, crypto_kdf_*, crypto_pwhash_*).
 
-`kdfs::argon2d` has no default backend: the call names one of its backends (<<hash-default-backend>>).
+`kdfs::argon2d` has no default backend: the call names one of its backends, as its second template argument (<<hash-default-backend>>).
 
 The default of `kdfs::argon2i` and `kdfs::argon2id`: `sodium` on every target, whatever the program links; `openssl` only where the call names it, as its second template argument (<<hash-default-backend>>).

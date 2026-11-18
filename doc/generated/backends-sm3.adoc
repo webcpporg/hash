@@ -25,4 +25,4 @@ What each backend states on constant time, as the capability table read it:
 
 * `openssl`: OpenSSL 3.5.9: doc/man7/EVP_MD-*.pod, doc/man3/EVP_DigestInit.pod and providers/implementations/digests/ state no constant-time property.
 
-`digests::sm3` has no default backend: the call names one of its backends (<<hash-default-backend>>).
+`digests::sm3` has no default backend: the call names one of its backends, as its second template argument (<<hash-default-backend>>).

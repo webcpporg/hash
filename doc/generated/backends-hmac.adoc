@@ -470,15 +470,15 @@ What each backend states on constant time, as the capability table read it:
 * `sodium`: libsodium 1.0.22: its headers state constant time for comparisons (sodium/utils.h) alone, not for its hashing, MAC, key derivation and password hashing functions (crypto_hash_*, crypto_xof_*, crypto_generichash_*, crypto_shorthash_*, crypto_auth_*, crypto_kdf_*, crypto_pwhash_*).
 * `webcrypto`: The Web Cryptography API (W3C Recommendation, 2017) states no constant-time property of digest, sign or deriveBits; each JavaScript runtime's implementation decides, and webcpp reads none.
 
-`macs::hmac<digests::keccak_224>` has no default backend: the call names one of its backends (<<hash-default-backend>>).
+`macs::hmac<digests::keccak_224>` has no default backend: the call names one of its backends, as its second template argument (<<hash-default-backend>>).
 
-`macs::hmac<digests::keccak_256>` has no default backend: the call names one of its backends (<<hash-default-backend>>).
+`macs::hmac<digests::keccak_256>` has no default backend: the call names one of its backends, as its second template argument (<<hash-default-backend>>).
 
-`macs::hmac<digests::keccak_384>` has no default backend: the call names one of its backends (<<hash-default-backend>>).
+`macs::hmac<digests::keccak_384>` has no default backend: the call names one of its backends, as its second template argument (<<hash-default-backend>>).
 
-`macs::hmac<digests::keccak_512>` has no default backend: the call names one of its backends (<<hash-default-backend>>).
+`macs::hmac<digests::keccak_512>` has no default backend: the call names one of its backends, as its second template argument (<<hash-default-backend>>).
 
-`macs::hmac<digests::sm3>` has no default backend: the call names one of its backends (<<hash-default-backend>>).
+`macs::hmac<digests::sm3>` has no default backend: the call names one of its backends, as its second template argument (<<hash-default-backend>>).
 
 The default of `macs::hmac<digests::md5>`, `macs::hmac<digests::sha1>`, `macs::hmac<digests::sha2_224>` and `macs::hmac<digests::sha2_384>`: `hash2` on every target, whatever the program links; `bearssl`, `openssl` only where the call names it, as its second template argument (<<hash-default-backend>>).
 

@@ -25,4 +25,4 @@ What each backend states on constant time, as the capability table read it:
 
 * `openssl`: OpenSSL 3.5.9: doc/man7/EVP_KDF-X963.pod states no constant-time property.
 
-`x963kdf` has no default backend: the call names one of its backends (<<hash-default-backend>>).
+`x963kdf` has no default backend: the call names one of its backends, as its second template argument (<<hash-default-backend>>).
