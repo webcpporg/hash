@@ -74,7 +74,8 @@ TupleHash and ParallelHash; RFC 9861's KangarooTwelve and TurboSHAKE
 SHAKE; HMAC-SHA-256/512; keyed BLAKE2b, SipHash-2-4 and SipHash-2-4x as MACs
 | libsodium, `backends::sodium`
 
-| MD5, SHA-1, SHA-2, MD5-SHA1 and SHAKE as digests, and HMAC over them
+| MD5, SHA-1, SHA-2, MD5-SHA1 and SHAKE as digests; HMAC and HKDF over MD5,
+SHA-1 and SHA-2
 | BearSSL, `backends::bearssl` named in the call
 
 | MD5, SHA-1, SHA-2, SHA-3, SHAKE, Keccak, BLAKE2, RIPEMD-160, MD5-SHA1 and SM3
@@ -116,8 +117,9 @@ called again. The families take a tag and a backend instead: `digest_of`
 hashes a message in one call, `hasher` takes it in pieces and gives exactly
 one result (a second `finish` is `error::invalid_state`), `mac` computes a
 tag in one call, and `argon2` derives a key (<<hash-digest-family>>,
-<<hash-mac-family>>). Every family and every key derivation is a function
-that fills a caller's `std::span` and returns `boost::system::result<void>`.
+<<hash-mac-family>>). `digest_of`, `mac`, `argon2` and every key derivation
+are functions that fill a caller's `std::span` and return
+`boost::system::result<void>`; `hasher` is a type whose `finish` does the same.
 
 The examples share one small header, `example/hex.hpp`, which writes bytes in
 hexadecimal and reads text and hexadecimal as bytes:
