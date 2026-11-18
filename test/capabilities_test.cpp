@@ -1125,7 +1125,7 @@ void check_refusals(json::object const& table, std::string const& include) {
 // Design D34's rule, where the table can show it: a family tag's default is null or one of hash2,
 // xkcp, blake3 and sodium (never bearssl, openssl or a later backend), and no backend before it in
 // that order has the tag whole (a cell without "partial"), since that backend would be the default.
-// A default whose cell lands in a later increment is allowed: the rule reads the final table.
+// Every default has its cell (ruling R84).
 bool follows_order(json::object const& row) {
     static constexpr std::array<std::string_view, 4> order{"hash2", "xkcp", "blake3", "sodium"};
     auto const& listed = row.at("default");
@@ -1134,10 +1134,10 @@ bool follows_order(json::object const& row) {
     }
     auto const index = static_cast<std::size_t>(
         std::ranges::find(order, std::string_view(listed.as_string())) - order.begin());
-    if (index == order.size()) {
+    auto const& backends = row.at("backends").as_object();
+    if (index == order.size() || !backends.contains(listed.as_string())) {
         return false;
     }
-    auto const& backends = row.at("backends").as_object();
     return std::ranges::none_of(std::span(order).first(index), [&](std::string_view earlier) {
         auto const* const found = backends.find(earlier);
         return found != backends.end() && !found->value().as_object().contains("partial");
