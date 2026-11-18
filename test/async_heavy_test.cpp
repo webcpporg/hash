@@ -551,6 +551,58 @@ struct holding_allocator {
     }
 };
 
+// What the handler of one call of check_allocator_released saw.
+struct allocator_call {
+    int held_at_call = -1;
+    int taken = 0;
+    boost::system::error_code code;
+};
+
+// The handler of one call of check_allocator_released: it records into call what counts holds
+// when it runs and what was taken since taken_before. It names its executor, its allocator and
+// its cancellation slot itself: bind_cancellation_slot, bind_executor and bind_allocator nested
+// make MSVC's compiler stop without a diagnostic.
+struct held_handler {
+    using executor_type = asio::io_context::executor_type;
+    using allocator_type = holding_allocator<char>;
+    using cancellation_slot_type = asio::cancellation_slot;
+
+    executor_type executor;
+    allocator_type allocator;
+    cancellation_slot_type slot;
+    allocator_call* call;
+    int taken_before;
+
+    [[nodiscard]] executor_type get_executor() const noexcept { return executor; }
+
+    [[nodiscard]] allocator_type get_allocator() const noexcept { return allocator; }
+
+    [[nodiscard]] cancellation_slot_type get_cancellation_slot() const noexcept { return slot; }
+
+    void operator()(boost::system::error_code done) const {
+        call->held_at_call = allocator.counts->held.load();
+        call->taken = allocator.counts->taken.load() - taken_before;
+        call->code = done;
+    }
+};
+
+// async_argon2id on Backend, on work, its handler on context's executor, with signal's slot and a
+// holding_allocator over counts, recording into call.
+template <class Backend, class Work>
+void start_held(asio::io_context& context, Work& work, holding& counts,
+                std::span<std::uint8_t> output, std::span<std::uint8_t const> password,
+                std::span<std::uint8_t const> salt_bytes, hash::argon2id_parameters const& costs,
+                asio::cancellation_signal& signal, allocator_call& call) {
+    hash::async_argon2id<Backend>(work.get_executor(), output, password, salt_bytes, costs,
+                                  held_handler{
+                                      .executor = context.get_executor(),
+                                      .allocator = holding_allocator<char>(&counts),
+                                      .slot = signal.slot(),
+                                      .call = &call,
+                                      .taken_before = counts.taken.load(),
+                                  });
+}
+
 // The operation's storage is the handler's (spec 11.4): the operation's state and its completion
 // come from the handler's associated allocator, two blocks at least, and, by Asio's rule, the
 // operation gives back every one before it calls the handler, so that the handler can reuse it.
@@ -564,33 +616,9 @@ void check_allocator_released(asio::io_context& context, asio::thread_pool& pool
     std::array<std::uint8_t, 32> output{};
     holding counts;
 
-    struct seen {
-        int held_at_call = -1;
-        int taken = 0;
-        boost::system::error_code code;
-    };
-    auto const start = [&]<class Backend>(Backend*, auto& work,
-                                          std::span<std::uint8_t const> salt_bytes,
-                                          asio::cancellation_signal& signal, seen& call) {
-        int const taken_before = counts.taken.load();
-        hash::async_argon2id<Backend>(
-            work.get_executor(), output, password, salt_bytes, small,
-            asio::bind_cancellation_slot(
-                signal.slot(),
-                asio::bind_executor(
-                    context.get_executor(),
-                    asio::bind_allocator(holding_allocator<char>(&counts),
-                                         [&, taken_before](boost::system::error_code done) {
-                                             call.held_at_call = counts.held.load();
-                                             call.taken = counts.taken.load() - taken_before;
-                                             call.code = done;
-                                         }))));
-    };
-    auto* const on_recording = static_cast<recording*>(nullptr);
-
     asio::cancellation_signal done_signal;
-    seen done;
-    start(on_recording, pool, salt, done_signal, done);
+    allocator_call done;
+    start_held<recording>(context, pool, counts, output, password, salt, small, done_signal, done);
     context.restart();
     context.run_for(std::chrono::seconds(30));  // lint-run: the test's event loop
     BOOST_TEST(!done.code);
@@ -598,8 +626,9 @@ void check_allocator_released(asio::io_context& context, asio::thread_pool& pool
     BOOST_TEST_GE(done.taken, 2);
 
     asio::cancellation_signal refused_signal;
-    seen refused;
-    start(on_recording, pool, std::span(salt).first(8), refused_signal, refused);
+    allocator_call refused;
+    start_held<recording>(context, pool, counts, output, password, std::span(salt).first(8), small,
+                          refused_signal, refused);
     context.restart();
     context.run_for(std::chrono::seconds(5));  // lint-run: the test's event loop
     BOOST_TEST(refused.code == hash::error::invalid_salt_size);
@@ -618,8 +647,9 @@ void check_allocator_released(asio::io_context& context, asio::thread_pool& pool
         std::this_thread::yield();
     }
     asio::cancellation_signal cancel_signal;
-    seen cancelled;
-    start(on_recording, busy, salt, cancel_signal, cancelled);
+    allocator_call cancelled;
+    start_held<recording>(context, busy, counts, output, password, salt, small, cancel_signal,
+                          cancelled);
     cancel_signal.emit(asio::cancellation_type::terminal);
     context.restart();
     context.run_for(std::chrono::seconds(5));  // lint-run: the test's event loop
@@ -633,8 +663,8 @@ void check_allocator_released(asio::io_context& context, asio::thread_pool& pool
     gate_entered = false;
     gate_open = false;
     asio::cancellation_signal running_signal;
-    seen running;
-    start(static_cast<gated*>(nullptr), one, salt, running_signal, running);
+    allocator_call running;
+    start_held<gated>(context, one, counts, output, password, salt, small, running_signal, running);
     while (!gate_entered) {
         std::this_thread::yield();
     }
