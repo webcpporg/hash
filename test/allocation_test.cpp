@@ -34,9 +34,7 @@
 
 #ifdef WEBCPP_HASH_HAS_XKCP
 #include <webcpp/hash/backends/xkcp.hpp>
-#include <webcpp/hash/digest.hpp>
 #include <webcpp/hash/keccak.hpp>
-#include <webcpp/hash/mac.hpp>
 #endif
 #ifdef WEBCPP_HASH_HAS_BLAKE3
 #include <webcpp/hash/blake3.hpp>

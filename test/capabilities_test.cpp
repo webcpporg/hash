@@ -475,10 +475,13 @@ void call_digest(std::string_view name) {
     if constexpr (hash::backend_has_v<Backend, Tag, void> && hash::detail::linked_v<Backend>) {
         using traits = hash::detail::digest_traits<Tag>;
         // The default options, but for ParallelHash's block size, which has no default.
-        hash::digest_options<Tag> options{};
-        if constexpr (requires { options.block_size; }) {
-            options.block_size = 8;
-        }
+        auto const options = [] {
+            hash::digest_options<Tag> chosen{};
+            if constexpr (requires { chosen.block_size; }) {
+                chosen.block_size = 8;
+            }
+            return chosen;
+        }();
         auto const longest = traits::max_output(options);
         std::vector<std::uint8_t> output(std::min(
             {longest, hash::detail::digest_engine<Backend, Tag>::max_output, std::uint64_t{64}}));
@@ -553,8 +556,9 @@ void check_names(json::object const& table) {
             }
         }
     }
-    names known_functions{"hkdf_extract", "hkdf_expand", "hkdf",          "pbkdf2",
-                          "argon2id",     "scrypt",      "blake2b_subkey"};
+    names known_functions{
+        "hkdf_extract", "hkdf_expand", "hkdf", "pbkdf2", "argon2id", "scrypt", "blake2b_subkey",
+    };
     for (auto const& row : type_rows()) {
         known_functions.emplace(row.name);
     }
