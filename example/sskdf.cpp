@@ -42,9 +42,8 @@ int main() {
     append_field(fixed_info, "A128GCM");  // AlgorithmID
     append_field(fixed_info, "Alice");    // PartyUInfo
     append_field(fixed_info, "Bob");      // PartyVInfo
-    for (std::uint8_t const byte : {0x00, 0x00, 0x00, 0x80}) {
-        fixed_info.push_back(byte);  // SuppPubInfo: the key's length, 128 bits
-    }
+    fixed_info.insert(fixed_info.end(),
+                      {0x00, 0x00, 0x00, 0x80});  // SuppPubInfo: the key, 128 bits
 
     std::array<std::uint8_t, 16> content_key{};
     auto const done = hash::sskdf<hash::digests::sha2_256, hash::backends::openssl>(
