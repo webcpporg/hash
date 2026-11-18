@@ -18,8 +18,7 @@
  failure zeroes it.
 
  @code
- // master_key: 32 secret bytes, as from webcpp::crypto::random_device; context: the 8 bytes of
- // "vault v1".
+ // master_key: 32 secret bytes the application keeps; context: the 8 bytes of "vault v1".
  std::array<std::uint8_t, 32> file_key{};
  auto done = webcpp::hash::blake2b_subkey(file_key, master_key, 1, context);
  if (!done) {
