@@ -78,8 +78,9 @@ struct digest_options {};
 template <>
 struct digest_options<digests::blake2b> {
     /**
-     The key, 0 to 64 bytes (`invalid_key_size` past 64); empty, BLAKE2b unkeyed. A keyed BLAKE2b
-     is a MAC (`macs::blake2b_mac` names it as one).
+     The key, 0 to 64 bytes (`invalid_key_size` past 64); empty, BLAKE2b unkeyed.
+
+     A keyed BLAKE2b is a MAC (`macs::blake2b_mac` names it as one).
     */
     std::span<std::uint8_t const> key = {};
 
