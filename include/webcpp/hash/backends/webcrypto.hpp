@@ -460,9 +460,11 @@ struct webcrypto_pbkdf2_request {
 
  Its storage is the bridge's, one wait at a time, taken from the handler's associated allocator
  and given back before the wait's completion is posted, so that nothing of that allocator
- outlives the completion. A `terminal` or `partial` cancellation through the handler's slot
- completes at once with `operation_aborted` (the bridge's wait completes and drops the promise's
- later settlement); `total` is not honoured, since the output is then zeroed.
+ outlives the completion; except that `browser::async_await` itself takes one block from the C
+ library per promise, webcpp::asio's, outside that allocator. A `terminal` or `partial` cancellation
+ through the handler's slot completes at once with `operation_aborted` (the bridge's wait completes
+ and drops the promise's later settlement); `total` is not honoured, since the output is then
+ zeroed.
 
  @tparam Executor The io_context's executor. @tparam Request The call: one of the
  `webcrypto_*_request` types.

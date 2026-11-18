@@ -31,7 +31,12 @@ login.
 
 | MD5, SHA-1, SHA-2, SHA-3, SHAKE, RIPEMD, BLAKE2b/s, the non-cryptographic
 hashes, HMAC
-| Boost.Hash2, re-exported by alias
+| Boost.Hash2, re-exported by alias, and `backends::hash2` for the families
+
+| The families: `digest_of` and `hasher` over a tag of `digests`, `mac` over a
+tag of `macs`, `argon2` over a tag of `kdfs`
+| the tag's default backend, or the backend the call names
+(<<hash-digest-family>>, <<hash-mac-family>>, <<hash-argon2-family>>)
 
 | Keccak-256 with the original padding (Ethereum's)
 | XKCP's Keccak-p[1600] permutation, in Hash2's HashAlgorithm form
@@ -65,28 +70,54 @@ TupleHash and ParallelHash; RFC 9861's KangarooTwelve and TurboSHAKE
 | TurboSHAKE128 and TurboSHAKE256 (RFC 9861)
 | libsodium's `crypto_xof_turboshake128` and `crypto_xof_turboshake256`
 
+| BLAKE2b with key, salt, personalisation and length; SHA-256/512, SHA3-256/512,
+SHAKE; HMAC-SHA-256/512; keyed BLAKE2b, SipHash-2-4 and SipHash-2-4x as MACs
+| libsodium, `backends::sodium`
+
+| MD5, SHA-1, SHA-2, MD5-SHA1 and SHAKE as digests, and HMAC over them
+| BearSSL, `backends::bearssl` named in the call
+
+| MD5, SHA-1, SHA-2, SHA-3, SHAKE, Keccak, BLAKE2, RIPEMD-160, MD5-SHA1 and SM3
+as digests; HMAC, KMAC, SipHash and keyed BLAKE2 as MACs; HKDF, PBKDF2,
+Argon2 and scrypt
+| OpenSSL 3.5's `EVP_MD`, `EVP_MAC` and `EVP_KDF`, `backends::openssl` named in
+the call
+
 | KBKDF (NIST SP 800-108), the one-step KDF (NIST SP 800-56C), the X9.63 KDF
 (ANSI X9.63)
 | OpenSSL's `EVP_KDF` implementations, on `backends::openssl` named in the
 call
+
+| Asynchronous forms: `async_digest`, `async_hmac`, `async_hkdf`,
+`async_pbkdf2`, `async_argon2id`, `async_argon2`, `async_scrypt`
+| `<webcpp/hash/async.hpp>` over webcpp::asio, on the synchronous default
+backend, or on `backends::webcrypto`, the browser's WebCrypto, named in the
+type on Emscripten (<<hash-async>>)
 |===
 
-Every function is synchronous, reports failure as a value
+Every synchronous function reports failure as a value
 (`boost::system::result`), takes its data as `std::span`, and allocates nothing
 in webcpp's own code (<<hash-backend-conditions>> names what the C
-libraries allocate).
+libraries allocate). `<webcpp/hash/async.hpp>` gives the slow ones and the
+ones WebCrypto has an asynchronous form, which completes through an event loop
+with a `boost::system::error_code` (<<hash-async>>).
 
 [#hash-overview-shape]
 === The shape of a hash
 
-Every digest, every MAC and the non-cryptographic hashes have Boost.Hash2's
-shape, the HashAlgorithm: construct it (with a key or a seed where it takes
-one), `update` it with bytes as often as the data arrives, and call `result`
-for the digest, a `digest<N>` of N bytes, or an integer for the
-non-cryptographic hashes and SipHash. The type is Hash2's own, so every part of
-Hash2, `hash_append` and `get_integral_result` among them, takes it unchanged.
-The key derivations are functions that fill a caller's `std::span` and return
-`boost::system::result<void>`.
+A hash comes in two shapes. The types of `algorithms.hpp`, `hmac.hpp`,
+`keccak.hpp` and `blake3.hpp` have Boost.Hash2's shape, the HashAlgorithm:
+construct it (with a key or a seed where it takes one), `update` it with bytes
+as often as the data arrives, and call `result` for the digest, a `digest<N>`
+of N bytes, or an integer for the non-cryptographic hashes and SipHash; the
+type is Hash2's own, so every part of Hash2, `hash_append` and
+`get_integral_result` among them, takes it unchanged, and `result` can be
+called again. The families take a tag and a backend instead: `digest_of`
+hashes a message in one call, `hasher` takes it in pieces and gives exactly
+one result (a second `finish` is `error::invalid_state`), `mac` computes a
+tag in one call, and `argon2` derives a key (<<hash-digest-family>>,
+<<hash-mac-family>>). Every family and every key derivation is a function
+that fills a caller's `std::span` and returns `boost::system::result<void>`.
 
 The examples share one small header, `example/hex.hpp`, which writes bytes in
 hexadecimal and reads text and hexadecimal as bytes:

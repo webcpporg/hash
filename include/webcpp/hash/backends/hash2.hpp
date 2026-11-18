@@ -46,7 +46,10 @@
 
 namespace webcpp::hash::backends {
 
-/** webcpp's own HKDF and PBKDF2 over Boost.Hash2's `hmac<H>`, on every target. */
+/**
+ Boost.Hash2, on every target: webcpp's own HKDF and PBKDF2 over its `hmac<H>`, and the families'
+ engines (`digest_of`, `hasher`, `mac`) over its algorithms.
+*/
 struct hash2 {};
 
 }  // namespace webcpp::hash::backends

@@ -111,7 +111,10 @@
 
 namespace webcpp::hash::backends {
 
-/** webcpp's own HKDF and PBKDF2 over Boost.Hash2's `hmac<H>`, on every target. */
+/**
+ Boost.Hash2, on every target: webcpp's own HKDF and PBKDF2 over its `hmac<H>`, and the families'
+ engines (`digest_of`, `hasher`, `mac`) over its algorithms.
+*/
 struct hash2;
 /** libsodium, built from its sources by `/third_party//sodium`. */
 struct sodium;
@@ -121,7 +124,8 @@ struct bearssl;
 struct openssl;
 /**
  XKCP, the Keccak team's code, built from its sources by `/third_party//xkcp`: the backend of
- `digests::keccak_256` (and, from increment 3, of the other Keccak functions).
+ `digests::keccak_256` and of the other Keccak functions: SHA-3, SHAKE, SP 800-185, KangarooTwelve
+ and TurboSHAKE.
 */
 struct xkcp;
 /**
@@ -173,14 +177,15 @@ struct hkdf_expand;
 */
 struct pbkdf2;
 /**
- Argon2id, RFC 9106, with one lane, the operation `argon2id` (on `backends::sodium` alone).
+ Argon2id, RFC 9106, with one lane, the operation `argon2id` (on `backends::sodium` and
+ `backends::openssl`).
 
  A tag, declared and never defined, for @ref webcpp::hash::backend_has_v (over no hmac: `void`)
  and @ref webcpp::hash::default_backend.
 */
 struct argon2id;
 /**
- scrypt, RFC 7914, the operation `scrypt` (on `backends::sodium` alone).
+ scrypt, RFC 7914, the operation `scrypt` (on `backends::sodium` and `backends::openssl`).
 
  A tag, declared and never defined, for @ref webcpp::hash::backend_has_v (over no hmac: `void`)
  and @ref webcpp::hash::default_backend.
@@ -241,9 +246,8 @@ struct x963kdf;
 }  // namespace webcpp::hash::kdfs
 
 // The families' tags (spec 2.15): each names an algorithm to `digest_of`, `hasher`, `mac`, `argon2`
-// and `default_backend`. Every tag whose default backend increment 2's table names is declared
-// here, whether or not a backend serves it yet: a call refuses at compile time, naming the
-// backends that have it, until one does.
+// and `default_backend`. Every tag is declared here, whichever backends serve it: a call on a
+// backend that lacks it refuses at compile time, naming the backends that have it.
 namespace webcpp::hash::digests {
 
 // The tags are declared and never defined, and share their names with the Hash2-form types
@@ -495,13 +499,15 @@ namespace webcpp::hash::macs {
 template <class Digest>
 struct hmac;
 /**
- KMAC128, NIST SP 800-185, with its customisation: any output size from 1 byte.
+ KMAC128, NIST SP 800-185, with its customisation: a tag of 4 bytes or more (SP 800-185,
+ section 8.4.2).
 
  A tag, declared and never defined.
 */
 struct kmac_128;
 /**
- KMAC256, NIST SP 800-185, with its customisation: any output size from 1 byte.
+ KMAC256, NIST SP 800-185, with its customisation: a tag of 4 bytes or more (SP 800-185,
+ section 8.4.2).
 
  A tag, declared and never defined.
 */

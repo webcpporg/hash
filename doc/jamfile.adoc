@@ -112,8 +112,11 @@ one asked for.
 | The message lists the digests the standard takes (SP 800-56C: SHA-1, SHA-2,
 SHA-3; ANSI X9.63: SHA-1, SHA-224 to SHA-512): name one.
 
-| `argon2id`, `scrypt` or `blake2b_subkey` on another backend than
-`backends::sodium`
+| `argon2id` or `scrypt` on another backend than `backends::sodium` or
+`backends::openssl`
+| Name one of them and add `/third_party//sodium` or `/webcpp/hash//openssl`.
+
+| `blake2b_subkey` on another backend than `backends::sodium`
 | Name `backends::sodium` and add `/third_party//sodium`.
 
 | A key derivation over a type that is not a Boost.Hash2 hmac of a digest

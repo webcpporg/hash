@@ -218,7 +218,9 @@ WebCrypto's own limits, then the executor; a refusal is posted to the
 handler's executor, the output untouched. Then it calls WebCrypto through
 `emscripten::val` (`digest`; or `importKey`, then `sign` or `deriveBits`) and
 awaits each promise with webcpp::asio's `browser::async_await`, which keeps
-the operation alive until the promise settles. The completion copies the
+the operation alive until the promise settles; its bridge to JavaScript takes
+one block from the C library per promise, outside the handler's allocator
+(<<hash-allocation>>). The completion copies the
 browser's bytes into the output; a rejected promise, a result of another
 size, and a JavaScript runtime without WebCrypto are `backend_failure`, the
 output zeroed. Include `<webcpp/hash/backends/webcrypto.hpp>` or

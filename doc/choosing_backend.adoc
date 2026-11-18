@@ -50,11 +50,9 @@ else the first of them that has it in part; `backends::bearssl`,
 `backends::openssl` and the later backends are never a default. SHA-2's
 and SHAKE's default is `hash2`, Keccak-256's `xkcp`, BLAKE3's `blake3`,
 BLAKE2b's `sodium`; a tag none of the four has (SM3, Whirlpool, Argon2d) has
-none, and its call names its backend. A default whose backend comes in a later
-increment is already written: until it lands, a call on it stops the build.
-If the program does not link that backend's library, the first message says
-to add the library; once it is added, the next build stops with a message
-that the tag is in no backend yet, or names the backends that have it.
+none, and its call names its backend. Every default has its engine: a program
+that does not link the default's library gets the message that names the line
+to add.
 
 The default is the same on every target, whatever the program links: linking
 libsodium, BearSSL or OpenSSL makes their backends available to a call that

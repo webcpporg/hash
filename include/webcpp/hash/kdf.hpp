@@ -937,7 +937,7 @@ struct digest_tag_of<hmac_blake2s_256> {
  `backends::blake3` and `backends::sodium` that has the tag fully in the capability table once
  increments 2 to 7 have landed, else the first of them with a partial cell, else
  `detail::no_default`.
- A default never changes; until its backend's engine lands, a call on it refuses at compile time.
+ A default never changes, and every default has its engine.
 
  @tparam Algorithm A tag of `kdfs`, `digests` or `macs`.
 */
@@ -1451,13 +1451,14 @@ struct default_of<kdfs::x963kdf> {
  The backend a function of `Algorithm` uses when the call names none (spec 4.1).
 
  `backends::hash2` for `hkdf_extract`, `hkdf_expand`, `hkdf` and `pbkdf2`, on every target and
- whatever the program links; `backends::sodium` for `argon2id`, `scrypt` and `blake2b_subkey`, the
- one backend that has them, which stops the build with the line to add to the Jamfile when the
- program does not link libsodium. A tag of the families defaults to the first of `backends::hash2`,
- `backends::xkcp`, `backends::blake3` and `backends::sodium` that has it (design D34), or to
- `detail::no_default`, which refuses: the call names its backend. `backends::bearssl` and
- `backends::openssl` are never a default. No define changes it: another backend is chosen by
- naming it in the call, as `hkdf<hmac_sha2_256, backends::openssl>`.
+ whatever the program links; `backends::sodium` for `argon2id`, `scrypt` (which
+ `backends::openssl` also has, named in the call) and `blake2b_subkey`, which stops the build with
+ the line to add to the Jamfile when the program does not link libsodium. A tag of the families
+ defaults to the first of `backends::hash2`, `backends::xkcp`, `backends::blake3` and
+ `backends::sodium` that has it (design D34), or to `detail::no_default`, which refuses: the call
+ names its backend. `backends::bearssl` and `backends::openssl` are never a default. No define
+ changes it: another backend is chosen by naming it in the call, as `hkdf<hmac_sha2_256,
+ backends::openssl>`.
 
  @tparam Algorithm A tag of `kdfs` (`hkdf`, `hkdf_extract`, `hkdf_expand`, `pbkdf2`, `argon2id`,
  `scrypt`, `blake2b_subkey`, ...), `digests` or `macs`.

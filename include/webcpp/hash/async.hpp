@@ -768,9 +768,10 @@ auto async_hkdf(Executor const& executor, std::span<std::uint8_t> output,
  `terminal` or `partial` one lets the work end, then `output` is zeroed and the completion is
  `operation_aborted` (a `total` one is then ignored). "At once" is on the handler's associated
  executor: for a handler without one, that is `executor`, so the completion waits for its
- threads; bind the handler to the event loop's executor. On `backends::webcrypto` a `terminal` or
- `partial` one completes at once with `operation_aborted`, `output` zeroed, while the browser's
- work runs to its end unseen; a `total` one is ignored.
+ threads; bind the handler to the event loop's executor, and emit the signal there too, never
+ from another thread, as Asio's slots require. On `backends::webcrypto` a `terminal` or `partial`
+ one completes at once with `operation_aborted`, `output` zeroed, while the browser's work runs to
+ its end unseen; a `total` one is ignored.
 
  @tparam Hmac The pseudorandom function, as `hmac_sha2_512`.
  @tparam Backend The backend; by default @ref default_async_backend of `kdfs::pbkdf2`, the
@@ -839,7 +840,8 @@ auto async_pbkdf2(Executor const& executor, std::span<std::uint8_t> output,
  `partial` one lets the work end (libsodium cannot be interrupted), then `output` is zeroed and
  the completion is `operation_aborted` (a `total` one is then ignored: zeroing is a side effect).
  "At once" is on the handler's associated executor: for a handler without one, that is `work`, so
- the completion waits for its threads; bind the handler to the event loop's executor.
+ the completion waits for its threads; bind the handler to the event loop's executor, and emit
+ the signal there too, never from another thread, as Asio's slots require.
 
  @tparam Backend The backend; by default @ref default_backend of `kdfs::argon2id`.
  @tparam WorkExecutor An Asio executor whose context runs on other threads.

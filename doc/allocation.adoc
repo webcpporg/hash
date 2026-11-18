@@ -9,7 +9,14 @@
 
 hash's own code allocates nothing: no function of `webcpp::hash` calls the global
 `operator new`, on any target, and none calls the C library's allocator on the targets
-where a program can count it. Test `allocation` proves it for Keccak-256, BLAKE3,
+where a program can count it. One exception is not hash's own: on Emscripten, a call on
+`backends::webcrypto` awaits each of WebCrypto's promises through webcpp::asio's
+`browser::async_await`, whose bridge to JavaScript takes a block from the C library per
+promise awaited (one promise for `async_digest`, two for `async_hmac`, `async_hkdf` and
+`async_pbkdf2`, which import a key first). Test `allocation` counts a bare await's blocks,
+prints them as `record operation=async_await`, and checks that each WebCrypto call makes
+exactly that many per promise and nothing more; the table below leaves it out, since it lists the C libraries of hash's
+backends and that block is webcpp::asio's. Test `allocation` proves it for Keccak-256, BLAKE3,
 Boost.Hash2's digests and hmacs, and HKDF and PBKDF2 on `backends::hash2`,
 `backends::sodium` and `backends::bearssl`, the failing calls (every guard's refusal)
 included. It counts every form of `operator new` and the C library's `malloc`, `calloc`,
