@@ -11,9 +11,10 @@ A digest has one implementation, Boost.Hash2's or a C library's. A key
 derivation has several, its backends: the same function, giving the same
 bytes, in code of different size, speed and pedigree. A tag of the families
 (`digest_of`, `hasher`, `mac`, `argon2`) has a backend per cell of its row,
-and the tests compute each case on every backend that has it, pair by pair,
-on a thousand random inputs per tag. A call that names no
-backend takes the default, which is fixed: no measurement, link or define
+and the tests compute each case on every backend that has it, pair by pair:
+a thousand random inputs per digest and MAC, a hundred per Argon2 variant,
+a partial cell refusing exactly what its row says it lacks. A call that names
+no backend takes the default, which is fixed: no measurement, link or define
 changes it. This chapter says what the default is and why, how a program
 names another backend, what each backend does with secrets and memory, and,
 from the committed data, which backend has which function on which target,
