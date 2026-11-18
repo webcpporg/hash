@@ -8,8 +8,9 @@
 // lets a program count it, the C library's allocator (support/counting.hpp) are called zero times
 // by every public function and every backend this program links: Keccak-256, the families' tags on
 // XKCP (increment 3), BLAKE3, Boost.Hash2's digests and hmacs, HKDF and PBKDF2 on hash2, libsodium
-// (HKDF) and BearSSL; the families digest_of, hasher, mac and argon2 on every backend that has a
-// tag and on each tag's default, blake2b_subkey and the asynchronous family, on every target. A
+// (HKDF) and BearSSL (HKDF, and its digests and HMAC through the families: ruling R94); the
+// families digest_of, hasher, mac and argon2 on every backend that has a tag and on each tag's
+// default, blake2b_subkey and the asynchronous family, on every target. A
 // control that allocates once moves the counter, so a zero is not a broken counter. Every call is
 // counted and the totals asserted exactly per backend, so a backend a wrong trait or a dropped
 // define leaves out fails, and the refusals of every guard run under the counter too. Argon2id and
@@ -1028,6 +1029,9 @@ int main() {
 #endif
 #ifdef WEBCPP_HASH_HAS_BEARSSL
     all_hmacs<hash::backends::bearssl, false>("bearssl", 18);
+    // BearSSL's entry points of increment 5 (ruling R94): two calls per tag it has, 9 digests
+    // (MD5, SHA-1, SHA-2, MD5-SHA1, SHAKE) and 6 MACs (HMAC over MD5, SHA-1 and SHA-2).
+    families_on<hash::backends::bearssl>("bearssl", 30);
 #endif
     std::printf("record operation=counter backend=none target=%s c_counted=%d\n",
                 webcpp::test::target_name, webcpp::test::c_allocations_counted ? 1 : 0);
