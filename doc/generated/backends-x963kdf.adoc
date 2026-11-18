@@ -8,7 +8,7 @@
 
 
 [#hash-backends-of-x963kdf]
-.Who implements `x963kdf` (ANSI X9.63-2011 and SEC 1 v2, over a hash function of FIPS 180-4 (SHA-1, SHA-2))
+.Who implements `x963kdf` (ANSI X9.63-2011 and SEC 1 v2, over SHA-1, SHA-224, SHA-256, SHA-384 or SHA-512 (SEC 1 v2, section 3.5))
 [cols="2,1,2,2,3,1",options="header"]
 |===
 | Function | Backend | The program's Jamfile names | Targets | Hmacs | Constant time

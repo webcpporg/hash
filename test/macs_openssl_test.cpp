@@ -32,6 +32,7 @@
 #include <webcpp/test/exit_status.hpp>
 
 #include "require.hpp"
+#include "support/evp_stanzas.hpp"
 #include "support/hex.hpp"
 #include "support/random_cases.hpp"
 
@@ -51,12 +52,9 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstdlib>
-#include <fstream>
 #include <iostream>
-#include <iterator>
 #include <optional>
 #include <span>
-#include <sstream>
 #include <string>
 #include <string_view>
 #include <type_traits>
@@ -70,31 +68,12 @@ namespace digests = webcpp::hash::digests;
 namespace macs = webcpp::hash::macs;
 namespace json = boost::json;
 namespace test = webcpp::test;
+namespace evp = webcpp::test::evp;
 using hash::backends::openssl;
 using bytes = std::vector<std::uint8_t>;
 
-// The whole file at path; one that cannot be opened ends the test, by name.
-std::string read_text(std::string const& path) {
-    std::ifstream in(path, std::ios::binary);
-    if (!in) {
-        std::cerr << "cannot open test data: " << path << '\n';
-        std::abort();
-    }
-    return {std::istreambuf_iterator<char>(in), std::istreambuf_iterator<char>()};
-}
-
-// The file's lines, without a trailing carriage return.
-std::vector<std::string> read_lines(std::string const& path) {
-    std::istringstream text(read_text(path));
-    std::vector<std::string> lines;
-    for (std::string line; std::getline(text, line);) {
-        if (!line.empty() && line.back() == '\r') {
-            line.pop_back();
-        }
-        lines.push_back(line);
-    }
-    return lines;
-}
+using evp::read_lines;
+using evp::read_text;
 
 bool failed_with(boost::system::result<void> const& outcome, hash::error expected) {
     return outcome.has_error() && outcome.error() == expected;
@@ -105,56 +84,11 @@ bool all_of(std::span<std::uint8_t const> data, std::uint8_t value) {
     return std::ranges::all_of(data, [value](std::uint8_t byte) { return byte == value; });
 }
 
-// One stanza of an OpenSSL test file: its "Name = value" lines in order (a name may repeat, as
-// Ctrl does).
-using stanza = std::vector<std::pair<std::string, std::string>>;
-
-// The stanzas of an OpenSSL test file of test/recipes/30-test_evp_data, each ending at a blank
-// line; comments and lines of another form are left out.
-std::vector<stanza> read_stanzas(std::string const& path) {
-    std::vector<stanza> stanzas(1);
-    for (auto const& line : read_lines(path)) {
-        if (line.empty()) {
-            stanzas.emplace_back();
-            continue;
-        }
-        auto const separator = line.find(" = ");
-        if (line.front() == '#' || separator == std::string::npos) {
-            continue;
-        }
-        stanzas.back().emplace_back(line.substr(0, separator), line.substr(separator + 3));
-    }
-    return stanzas;
-}
-
-// The value of the stanza's first line named `name`, or none.
-std::optional<std::string> value_of(stanza const& lines, std::string_view name) {
-    for (auto const& [key, value] : lines) {
-        if (key == name) {
-            return value;
-        }
-    }
-    return std::nullopt;
-}
-
-// The values of every line named `name`.
-std::vector<std::string> values_of(stanza const& lines, std::string_view name) {
-    std::vector<std::string> values;
-    for (auto const& [key, value] : lines) {
-        if (key == name) {
-            values.push_back(value);
-        }
-    }
-    return values;
-}
-
-// The bytes of an OpenSSL test file's value: hex, or a quoted string's characters.
-bytes value_bytes(std::string const& value) {
-    if (value.size() >= 2 && value.front() == '"' && value.back() == '"') {
-        return {value.begin() + 1, value.end() - 1};
-    }
-    return test::from_hex(value);
-}
+using evp::read_stanzas;
+using evp::stanza;
+using evp::value_bytes;
+using evp::value_of;
+using evp::values_of;
 
 // The groups of a Wycheproof file of testvectors_v1, after checking its number of tests.
 json::value read_wycheproof(std::string const& file) {
@@ -478,10 +412,10 @@ void check_kmac_evp_data() {
         ++run;
     }
     // At OpenSSL 3.5.9's pin.
-    BOOST_TEST_EQ(run, 20U);
-    BOOST_TEST_EQ(short_tags, 2U);
-    BOOST_TEST_EQ(refused, 2U);
-    BOOST_TEST_EQ(fips, 6U);
+    evp::count_is("evpmac_common.txt", "KMAC stanzas computed", run, 20);
+    evp::count_is("evpmac_common.txt", "KMAC stanzas of a short tag", short_tags, 2);
+    evp::count_is("evpmac_common.txt", "KMAC stanzas refused", refused, 2);
+    evp::count_is("evpmac_common.txt", "KMAC stanzas of the FIPS provider", fips, 6);
 }
 
 // KMAC on OpenSSL against the second implementation on random keys of 4 to 512 bytes (OpenSSL's
@@ -666,9 +600,9 @@ void check_blake2_evp_data() {
         ++(*name == "BLAKE2BMAC" ? blake2b_run : blake2s_run);
     }
     // At OpenSSL 3.5.9's pin.
-    BOOST_TEST_EQ(blake2b_run, 14U);
-    BOOST_TEST_EQ(blake2s_run, 13U);
-    BOOST_TEST_EQ(skipped, 14U);
+    evp::count_is("evpmac_blake.txt", "BLAKE2BMAC stanzas computed", blake2b_run, 14);
+    evp::count_is("evpmac_blake.txt", "BLAKE2SMAC stanzas computed", blake2s_run, 13);
+    evp::count_is("evpmac_blake.txt", "stanzas left out", skipped, 14);
 }
 
 // Keyed BLAKE2b on OpenSSL against digests::blake2b keyed on backends::sodium at every tag size
@@ -782,9 +716,9 @@ void check_siphash_evp_data() {
         ++(tag_size == 8 ? run_8 : run_16);
     }
     // At OpenSSL 3.5.9's pin.
-    BOOST_TEST_EQ(run_8, 1U);
-    BOOST_TEST_EQ(run_16, 24U);
-    BOOST_TEST_EQ(skipped, 2U);
+    evp::count_is("evpmac_siphash.txt", "SipHash-2-4 stanzas computed", run_8, 1);
+    evp::count_is("evpmac_siphash.txt", "SipHash-2-4x stanzas computed", run_16, 24);
+    evp::count_is("evpmac_siphash.txt", "stanzas left out", skipped, 2);
 }
 
 // SipHash-2-4 on OpenSSL against backends::hash2 and backends::sodium, SipHash-2-4x against

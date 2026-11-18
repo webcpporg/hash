@@ -302,13 +302,17 @@ inline constexpr bool backend_has_v<backends::openssl, digests::sha3_384, void> 
 template <>
 inline constexpr bool backend_has_v<backends::openssl, digests::sha3_512, void> = true;
 
-/** backends::openssl has `digests::shake_128` (OpenSSL 3.5.9's `EVP_MD`) (`EVP_DigestFinalXOF`, any
- * output size). */
+/**
+ backends::openssl has `digests::shake_128` (OpenSSL 3.5.9's `EVP_MD`, `EVP_DigestFinalXOF`), with
+ any output size.
+*/
 template <>
 inline constexpr bool backend_has_v<backends::openssl, digests::shake_128, void> = true;
 
-/** backends::openssl has `digests::shake_256` (OpenSSL 3.5.9's `EVP_MD`) (`EVP_DigestFinalXOF`, any
- * output size). */
+/**
+ backends::openssl has `digests::shake_256` (OpenSSL 3.5.9's `EVP_MD`, `EVP_DigestFinalXOF`), with
+ any output size.
+*/
 template <>
 inline constexpr bool backend_has_v<backends::openssl, digests::shake_256, void> = true;
 

@@ -10,8 +10,8 @@
 //   raw fixed input in the context, no separator and no L, r of 8 to 32), every hash-form case of
 //   evpkdf_ss.txt and every case of evpkdf_x963.txt, read at run time, each count asserted;
 // - kbkdf over every hmac backends::openssl has, with labels, contexts, the separator, L and each
-//   counter width, sskdf over every digest of SP 800-56C and x963kdf over every digest of FIPS
-//   180-4, against a second implementation over Boost.Hash2 on random cases;
+//   counter width, sskdf over every digest of SP 800-56C and x963kdf over every digest of SEC 1
+//   v2's section 3.5, against a second implementation over Boost.Hash2 on random cases;
 // - the standards' guards, each refusal leaving the output as it was: the counter's width, the
 //   output (empty, past 2^r - 1 blocks, past L's 32 bits), the empty key or secret;
 // - no default (design D34), and backends::openssl's cells.
@@ -87,11 +87,11 @@ using sha3_256 = digest_of_tag<digests::sha3_256, hash::sha3_256>;
 using sha3_384 = digest_of_tag<digests::sha3_384, hash::sha3_384>;
 using sha3_512 = digest_of_tag<digests::sha3_512, hash::sha3_512>;
 
-// The digests of FIPS 180-4, x963kdf's; with SHA-3, sskdf's.
-using fips180_digests =
-    std::tuple<sha1, sha2_224, sha2_256, sha2_384, sha2_512, sha2_512_224, sha2_512_256>;
+// The hash functions of SEC 1 v2, section 3.5, x963kdf's; with SHA-512/t and SHA-3, sskdf's.
+using sec1_digests = std::tuple<sha1, sha2_224, sha2_256, sha2_384, sha2_512>;
 using sp800_56c_digests = decltype(std::tuple_cat(
-    fips180_digests{}, std::tuple<sha3_224, sha3_256, sha3_384, sha3_512>{}));
+    sec1_digests{},
+    std::tuple<sha2_512_224, sha2_512_256, sha3_224, sha3_256, sha3_384, sha3_512>{}));
 
 // Every hmac of hmac.hpp backends::openssl has: every one but hmac_ripemd_128.
 using openssl_hmacs =
@@ -257,9 +257,9 @@ void check_kbkdf_evp() {
         }
         ++counts.run;
     }
-    BOOST_TEST_EQ(counts.run, 82U);
-    BOOST_TEST_EQ(counts.fips_only, 2U);
-    BOOST_TEST_EQ(counts.other, 49U);
+    evp::count_is("evpkdf_kbkdf_counter.txt", "HMAC stanzas computed", counts.run, 82);
+    evp::count_is("evpkdf_kbkdf_counter.txt", "stanzas of the FIPS provider", counts.fips_only, 2);
+    evp::count_is("evpkdf_kbkdf_counter.txt", "CMAC stanzas left out", counts.other, 49);
 }
 
 // Every hash-form stanza of evpkdf_ss.txt available in the default provider: 75 run; 6 for the
@@ -302,10 +302,10 @@ void check_sskdf_evp() {
         }
         ++counts.run;
     }
-    BOOST_TEST_EQ(counts.run, 75U);
-    BOOST_TEST_EQ(counts.fips_only, 6U);
-    BOOST_TEST_EQ(xof, 1U);
-    BOOST_TEST_EQ(counts.other, 90U);
+    evp::count_is("evpkdf_ss.txt", "hash-form stanzas computed", counts.run, 75);
+    evp::count_is("evpkdf_ss.txt", "stanzas of the FIPS provider", counts.fips_only, 6);
+    evp::count_is("evpkdf_ss.txt", "SHAKE-256 stanzas", xof, 1);
+    evp::count_is("evpkdf_ss.txt", "HMAC and KMAC stanzas left out", counts.other, 90);
 }
 
 // Every stanza of evpkdf_x963.txt available in the default provider: 17 run (X963KDF and its
@@ -340,8 +340,8 @@ void check_x963kdf_evp() {
         }
         ++counts.run;
     }
-    BOOST_TEST_EQ(counts.run, 17U);
-    BOOST_TEST_EQ(counts.fips_only, 6U);
+    evp::count_is("evpkdf_x963.txt", "stanzas computed", counts.run, 17);
+    evp::count_is("evpkdf_x963.txt", "stanzas of the FIPS provider", counts.fips_only, 6);
 }
 
 // ---- Agreement with the second implementation ----
@@ -412,7 +412,7 @@ void check_agreement() {
     test::random_source rnd(test::agreement_seed);
     for_each_type<openssl_hmacs>([&]<class Hmac> { agree_kbkdf<Hmac>(rnd); });
     for_each_type<sp800_56c_digests>([&]<class D> { agree_digest_kdf<D, true>(rnd); });
-    for_each_type<fips180_digests>([&]<class D> { agree_digest_kdf<D, false>(rnd); });
+    for_each_type<sec1_digests>([&]<class D> { agree_digest_kdf<D, false>(rnd); });
 }
 
 // ---- The standards' guards ----
@@ -480,9 +480,14 @@ static_assert(std::is_same_v<hash::default_backend<kdfs::kbkdf_hmac, hash::hmac_
                              hash::detail::no_default>);
 static_assert(std::is_same_v<hash::default_backend<kdfs::sskdf>, hash::detail::no_default>);
 static_assert(std::is_same_v<hash::default_backend<kdfs::x963kdf>, hash::detail::no_default>);
-// The standards' digests: SP 800-56C's approved hashes; FIPS 180-4's for X9.63.
+// The standards' digests: SP 800-56C's approved hashes; SEC 1 v2's (section 3.5) for X9.63, which
+// has no SHA-512/t.
 static_assert(hash::detail::standard_kdf_digest<digests::sha3_256>::sskdf);
 static_assert(!hash::detail::standard_kdf_digest<digests::sha3_256>::x963);
+static_assert(hash::detail::standard_kdf_digest<digests::sha2_512_224>::sskdf);
+static_assert(!hash::detail::standard_kdf_digest<digests::sha2_512_224>::x963);
+static_assert(!hash::detail::standard_kdf_digest<digests::sha2_512_256>::x963);
+static_assert(hash::detail::standard_kdf_digest<digests::sha2_512>::x963);
 static_assert(!hash::detail::standard_kdf_digest<digests::md5>::sskdf);
 static_assert(!hash::detail::standard_kdf_digest<digests::shake_256>::sskdf);
 

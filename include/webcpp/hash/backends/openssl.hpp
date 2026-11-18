@@ -48,11 +48,10 @@
  as a `uint32_t` and sizes the memory in a `size_t`: `argon2` refuses m above 4,194,303 KiB on
  wasm32 (`unsupported_by_backend`), and `argon2id` a memory above 4 TiB less 1 KiB natively
  (`invalid_parameters`; on wasm32 no whole number of KiB in a `size_t` is past its limit).
- PBKDF2 keeps
- the output's and the salt's lengths in `int`s, and HMAC, through `HMAC_Init_ex`, its key's
- length, which is PBKDF2's password and HKDF-Extract's salt; HKDF-Expand's key, the PRK, takes
- the same path and is limited alike, though it is always one digest. HKDF's IKM, info and output
- stay in `size_t`.
+ PBKDF2 keeps the output's and the salt's lengths in `int`s, and HMAC, through `HMAC_Init_ex`,
+ its key's length, which is PBKDF2's password and HKDF-Extract's salt; HKDF-Expand's key, the
+ PRK, takes the same path and is limited alike, though it is always one digest. HKDF's IKM, info
+ and output stay in `size_t`.
 
  The thread's error queue is left as the backend found it, through a mark set before the fetch
  and a pop after the frees. The queue is a ring of 16 slots (`ERR_NUM_ERRORS`), which holds 15
@@ -1679,7 +1678,7 @@ struct sskdf_engine<backends::openssl, Digest> : openssl_digest_kdf_engine<Diges
  ANSI X9.63's KDF on backends::openssl: OpenSSL's "X963KDF" (the engine's interface: @ref
  x963kdf_engine).
 
- @tparam Digest A digest of FIPS 180-4.
+ @tparam Digest A hash function of SEC 1 v2, section 3.5.
 */
 template <class Digest>
 struct x963kdf_engine<backends::openssl, Digest> : openssl_digest_kdf_engine<Digest> {

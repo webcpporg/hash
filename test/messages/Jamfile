@@ -42,3 +42,4 @@ build-project kdf_standards_no_default ;
 build-project kdf_standards_on_hash2 ;
 build-project kdf_standards_digest ;
 build-project kbkdf_hmac_on_openssl ;
+build-project openssl_kdf_not_linked ;

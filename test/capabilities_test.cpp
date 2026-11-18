@@ -864,7 +864,7 @@ std::vector<refusal> const& refusals() {
         },
         {
             .header = "kdf_standards.hpp",
-            .start = "x963kdf takes a digest of FIPS 180-4",
+            .start = "x963kdf takes a hash function of SEC 1 v2",
             .backend = "",
             .functions = {},
             .hmacs = {},

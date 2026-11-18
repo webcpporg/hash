@@ -9,7 +9,8 @@
 // - RFC 9106, section 5's three cases (four lanes, a secret and associated data) through
 //   argon2<kdfs::argon2d, kdfs::argon2i, kdfs::argon2id>, the Argon2i and Argon2id ones also
 //   through libsodium's private core argon2_ctx;
-// - every case of OpenSSL's own evpkdf_argon2.txt that computes a tag, read at run time;
+// - every case of OpenSSL's own evpkdf_argon2.txt, read at run time: each that computes a tag,
+//   and each expected failure the family can state refused by the family's guards;
 // - argon2<kdfs::argon2i> and argon2<kdfs::argon2id> against argon2_ctx on random passwords,
 //   salts, secrets, associated data, passes, lanes, memory and tag sizes;
 // - libsodium's crypto_pwhash_argon2id and crypto_pwhash_argon2i at one lane, the first through
@@ -27,6 +28,7 @@
 
 #include "require.hpp"
 #include "support/argon2_reference.hpp"
+#include "support/evp_stanzas.hpp"
 #include "support/hex.hpp"
 #include "support/random_cases.hpp"
 
@@ -40,13 +42,10 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstdlib>
-#include <fstream>
 #include <iostream>
-#include <iterator>
 #include <limits>
 #include <optional>
 #include <span>
-#include <sstream>
 #include <string>
 #include <string_view>
 #include <type_traits>
@@ -58,6 +57,7 @@ namespace {
 namespace hash = webcpp::hash;
 namespace kdfs = webcpp::hash::kdfs;
 namespace test = webcpp::test;
+namespace evp = webcpp::test::evp;
 using hash::backends::openssl;
 using hash::backends::sodium;
 using bytes = std::vector<std::uint8_t>;
@@ -142,64 +142,10 @@ void check_rfc9106() {
 
 // ---- OpenSSL's evpkdf_argon2.txt ----
 
-// The whole file at path; one that cannot be opened ends the test, by name.
-std::string read_text(std::string const& path) {
-    std::ifstream in(path, std::ios::binary);
-    if (!in) {
-        std::cerr << "cannot open test data: " << path << '\n';
-        std::abort();
-    }
-    return {std::istreambuf_iterator<char>(in), std::istreambuf_iterator<char>()};
-}
-
-// One stanza of an OpenSSL test file: its "Name = value" lines in order.
-using stanza = std::vector<std::pair<std::string, std::string>>;
-
-// The stanzas of an OpenSSL test file of test/recipes/30-test_evp_data, each ending at a blank
-// line; comments and lines of another form are left out.
-std::vector<stanza> read_stanzas(std::string const& path) {
-    std::istringstream text(read_text(path));
-    std::vector<stanza> stanzas(1);
-    for (std::string line; std::getline(text, line);) {
-        if (!line.empty() && line.back() == '\r') {
-            line.pop_back();
-        }
-        if (line.empty()) {
-            stanzas.emplace_back();
-            continue;
-        }
-        auto const separator = line.find(" = ");
-        if (line.front() == '#' || separator == std::string::npos) {
-            continue;
-        }
-        stanzas.back().emplace_back(line.substr(0, separator), line.substr(separator + 3));
-    }
-    return stanzas;
-}
-
-// The value of the stanza's first line named `name`, or none.
-std::optional<std::string> value_of(stanza const& lines, std::string_view name) {
-    for (auto const& [key, value] : lines) {
-        if (key == name) {
-            return value;
-        }
-    }
-    return std::nullopt;
-}
-
-// The value after a Ctrl's "name:" prefix: "lanes:4" gives "4".
-std::string ctrl_value(std::string const& value) {
-    return value.substr(value.find(':') + 1);
-}
-
-// A Ctrl's bytes: "hexpass:0101" is hex, "pass:1234" the characters.
-bytes ctrl_bytes(std::string const& value) {
-    std::string const text = ctrl_value(value);
-    if (value.starts_with("hex")) {
-        return test::from_hex(text);
-    }
-    return {text.begin(), text.end()};
-}
+using evp::ctrl_bytes;
+using evp::ctrl_value;
+using evp::stanza;
+using evp::value_of;
 
 // A Ctrl's number, decimal or 0x hex, or `otherwise` when the stanza has no such Ctrl.
 std::uint32_t ctrl_number(stanza const& lines, std::string_view name, std::uint32_t otherwise) {
@@ -239,18 +185,55 @@ std::string evp_tag(stanza const& lines, std::size_t tag_size) {
     return test::to_hex(tag);
 }
 
-// Every stanza of evpkdf_argon2.txt with an Output and no Result (an expected failure, each a
-// value the family's guards refuse): 12 computed, 11 expected failures left out, counted.
+// An expected failure of evpkdf_argon2.txt through the family, when it has the stanza's
+// parameters: the family refuses the value OpenSSL refuses, with the error of its guard, the output
+// untouched. Where the stanza sets no salt, a 16-byte one; no tag size, 32 bytes. A stanza of
+// threads or of a version has no equivalent (argon2 runs one thread of version 0x13): false.
+bool refuses_evp_failure(stanza const& lines) {
+    for (auto const& [key, value] : lines) {
+        if (key.starts_with("Ctrl.") &&
+            (value.starts_with("threads:") || value.starts_with("version:"))) {
+            return false;
+        }
+    }
+    auto const salt_ctrl = value_of(lines, "Ctrl.salt");
+    bytes const salt = salt_ctrl ? ctrl_bytes(*salt_ctrl) : bytes(16, 0x02);
+    std::size_t const tag_size = ctrl_number(lines, "Ctrl.size", 32);
+    // The guard each stanza is for: the tag's size, the salt's, else the costs (t, m, p).
+    hash::error expected = hash::error::invalid_parameters;
+    if (value_of(lines, "Ctrl.size")) {
+        expected = hash::error::invalid_output_size;
+    } else if (salt.size() < 8) {
+        expected = hash::error::invalid_salt_size;
+    }
+    bytes tag(tag_size, untouched);
+    auto const refused = hash::argon2<kdfs::argon2d, openssl>(
+        tag, {}, salt,
+        {
+            .passes = ctrl_number(lines, "Ctrl.iter", 3),
+            .memory_kib = ctrl_number(lines, "Ctrl.memcost", 8),
+            .lanes = ctrl_number(lines, "Ctrl.lanes", 1),
+        });
+    if (!BOOST_TEST(failed_with(refused, expected)) || !BOOST_TEST(all_of(tag, untouched))) {
+        std::cerr << "  evpkdf_argon2.txt, an expected failure the family does not refuse\n";
+    }
+    return true;
+}
+
+// Every stanza of evpkdf_argon2.txt: 12 with an Output and no Result computed; of the 11 expected
+// failures, the 7 the family can state refused by its guards (lanes 0, lanes 2^24, memory under 8
+// or 8p, passes 0, a 3-byte tag, a 2-byte salt) and the 4 of threads or a version counted.
 void check_evp_data() {
     std::size_t run = 0;
-    std::size_t failures = 0;
-    for (auto const& lines : read_stanzas(WEBCPP_TEST_OPENSSL_EVP_DATA "/evpkdf_argon2.txt")) {
+    std::size_t refused = 0;
+    std::size_t no_equivalent = 0;
+    for (auto const& lines : evp::read_stanzas(WEBCPP_TEST_OPENSSL_EVP_DATA "/evpkdf_argon2.txt")) {
         auto const kdf = value_of(lines, "KDF");
         if (!kdf) {
             continue;
         }
         if (value_of(lines, "Result")) {
-            ++failures;
+            ++(refuses_evp_failure(lines) ? refused : no_equivalent);
             continue;
         }
         std::string expected = *value_of(lines, "Output");
@@ -268,12 +251,14 @@ void check_evp_data() {
             computed = evp_tag<kdfs::argon2id>(lines, tag_size);
         }
         if (!BOOST_TEST_EQ(computed, expected)) {
-            std::cerr << "  evpkdf_argon2.txt, stanza " << run + failures << " (" << *kdf << ")\n";
+            std::cerr << "  evpkdf_argon2.txt, case " << run << " (" << *kdf << ")\n";
         }
         ++run;
     }
-    BOOST_TEST_EQ(run, 12U);
-    BOOST_TEST_EQ(failures, 11U);
+    evp::count_is("evpkdf_argon2.txt", "stanzas computed", run, 12);
+    evp::count_is("evpkdf_argon2.txt", "expected failures the family refuses", refused, 7);
+    evp::count_is("evpkdf_argon2.txt", "expected failures of threads or a version", no_equivalent,
+                  4);
 }
 
 // ---- Agreement ----

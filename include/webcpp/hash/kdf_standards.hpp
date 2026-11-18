@@ -83,7 +83,11 @@ struct standard_kdf_digest {
     /** Whether SP 800-56C's one-step KDF takes it (an approved hash function, FIPS 180-4 or 202).
      */
     static constexpr bool sskdf = false;
-    /** Whether ANSI X9.63's KDF takes it (a hash function of FIPS 180-4). */
+    /**
+     Whether ANSI X9.63's KDF takes it: a hash function SEC 1 v2 lists (section 3.5, SHA-1,
+     SHA-224, SHA-256, SHA-384 and SHA-512 of FIPS 180-2), which NIST SP 800-135r1 approves for it
+     (section 5.1: a hash function of FIPS 180-3, which has no SHA-512/t).
+    */
     static constexpr bool x963 = false;
     /** The digest's size, in bytes. */
     static constexpr std::uint64_t size = 1;
@@ -114,13 +118,14 @@ struct sha_64_bit_length {
  reaches.
 
  @tparam Size The digest's size, in bytes.
+ @tparam X963 Whether ANSI X9.63 takes it: SHA-384 and SHA-512, not SHA-512/224 or SHA-512/256.
 */
-template <std::uint64_t Size>
+template <std::uint64_t Size, bool X963>
 struct sha_128_bit_length {
     /** SP 800-56C takes it. */
     static constexpr bool sskdf = true;
-    /** ANSI X9.63 takes it. */
-    static constexpr bool x963 = true;
+    /** Whether ANSI X9.63 takes it. */
+    static constexpr bool x963 = X963;
     /** The digest's size, in bytes. */
     static constexpr std::uint64_t size = Size;
     /** No limit. */
@@ -158,19 +163,19 @@ struct standard_kdf_digest<digests::sha2_256> : sha_64_bit_length<32> {};
 
 /** SHA-384. */
 template <>
-struct standard_kdf_digest<digests::sha2_384> : sha_128_bit_length<48> {};
+struct standard_kdf_digest<digests::sha2_384> : sha_128_bit_length<48, true> {};
 
 /** SHA-512. */
 template <>
-struct standard_kdf_digest<digests::sha2_512> : sha_128_bit_length<64> {};
+struct standard_kdf_digest<digests::sha2_512> : sha_128_bit_length<64, true> {};
 
-/** SHA-512/224. */
+/** SHA-512/224, which ANSI X9.63 does not take. */
 template <>
-struct standard_kdf_digest<digests::sha2_512_224> : sha_128_bit_length<28> {};
+struct standard_kdf_digest<digests::sha2_512_224> : sha_128_bit_length<28, false> {};
 
-/** SHA-512/256. */
+/** SHA-512/256, which ANSI X9.63 does not take. */
 template <>
-struct standard_kdf_digest<digests::sha2_512_256> : sha_128_bit_length<32> {};
+struct standard_kdf_digest<digests::sha2_512_256> : sha_128_bit_length<32, false> {};
 
 /** SHA3-224. */
 template <>
@@ -228,14 +233,13 @@ constexpr bool sskdf_takes() noexcept {
  Whether `x963kdf` takes `Digest`, refused at compile time otherwise.
 
  @tparam Digest Any type.
- @return Whether it is a digest of FIPS 180-4.
+ @return Whether it is a hash function of SEC 1 v2, section 3.5.
 */
 template <class Digest>
 constexpr bool x963kdf_takes() noexcept {
     static_assert(standard_kdf_digest<Digest>::x963,
-                  "webcpp::hash: x963kdf takes a digest of FIPS 180-4: digests::sha1, "
-                  "digests::sha2_224, sha2_256, sha2_384, sha2_512, sha2_512_224 or "
-                  "sha2_512_256.");
+                  "webcpp::hash: x963kdf takes a hash function of SEC 1 v2, section 3.5: "
+                  "digests::sha1, digests::sha2_224, sha2_256, sha2_384 or sha2_512.");
     return standard_kdf_digest<Digest>::x963;
 }
 
@@ -255,7 +259,11 @@ inline constexpr std::uint64_t kbkdf_max_output_with_length = 0xffffffffULL / 8;
      derived, key, {.label = label, .context = context});
  @endcode
 
- @tparam Hmac The PRF, a Boost.Hash2 hmac, as `hmac_sha2_256`.
+ @tparam Hmac The PRF, a Boost.Hash2 hmac, as `hmac_sha2_256`. SP 800-108r1 approves HMAC over
+ an approved hash function (SHA-1, SHA-2, SHA-3); unlike `sskdf` and `x963kdf`, which refuse a
+ digest their standard does not take, `kbkdf` takes every hmac its backend has, MD5's,
+ RIPEMD-160's and BLAKE2's included, for the protocols outside NIST's approval that use them.
+ Where approval matters, take HMAC over SHA-2 or SHA-3.
  @tparam Backend The backend; by default @ref default_backend of `kdfs::kbkdf_hmac`, which has
  none (design D34): the call names `backends::openssl`, which has every hmac of `hmac.hpp` but
  `hmac_ripemd_128`.
@@ -374,8 +382,9 @@ template <class Digest, class Backend = default_backend<kdfs::sskdf>>
                                    webcpp::hash::backends::openssl>(derived, shared_secret, info);
  @endcode
 
- @tparam Digest A hash function of FIPS 180-4: `digests::sha1` or a SHA-2 (`sha2_224` to
- `sha2_512_256`); another refuses at compile time.
+ @tparam Digest A hash function SEC 1 v2 lists (section 3.5) and NIST SP 800-135r1 approves for
+ this KDF (section 5.1): `digests::sha1`, `sha2_224`, `sha2_256`, `sha2_384` or `sha2_512`;
+ another, SHA-512/224 and SHA-512/256 included, refuses at compile time.
  @tparam Backend The backend; by default @ref default_backend of `kdfs::x963kdf`, which has none
  (design D34): the call names `backends::openssl`.
  @param output The derived keying material: 1 byte to 2^32 - 1 digests less 1 byte (the standard

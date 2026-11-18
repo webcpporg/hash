@@ -109,7 +109,7 @@ one asked for.
 
 | `sskdf` or `x963kdf` over a digest its standard does not take
 | The message lists the digests the standard takes (SP 800-56C: SHA-1, SHA-2,
-SHA-3; ANSI X9.63: SHA-1, SHA-2): name one.
+SHA-3; ANSI X9.63: SHA-1, SHA-224 to SHA-512): name one.
 
 | `argon2id`, `scrypt` or `blake2b_subkey` on another backend than
 `backends::sodium`

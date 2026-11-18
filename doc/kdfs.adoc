@@ -258,6 +258,10 @@ default): 16 bytes are not the first half of 32.
 * *The key is a key.* A password goes through Argon2id first
 (<<hash-argon2id>>); `kbkdf` adds no work per guess. An empty key is
 `invalid_key_size`.
+* *Approval is the hash's.* SP 800-108 approves HMAC over SHA-1, SHA-2 or
+SHA-3. `kbkdf` also takes HMAC over MD5, RIPEMD-160 or BLAKE2, for the formats
+that use them, and does not stop the build as `sskdf` and `x963kdf` do: where
+an approved derivation is required, pick SHA-2 or SHA-3.
 * *Its limits:* at most 2^r^ - 1 blocks, and with L at most 536,870,911 bytes
 (L counts bits in 32 of them), `invalid_output_size` otherwise; a counter of
 another width than 8, 16, 24 or 32 bits is `invalid_parameters`; OpenSSL takes
@@ -311,9 +315,10 @@ ECIES and for elliptic-curve key agreement: each block is
 counter after the shared secret, so the two never give the same bytes. An
 ECIES implementation derives the encryption key and the MAC key of a message
 from the ECDH result with it, in one derivation cut in two; smart cards and
-the key agreements of BSI TR-03111 use it too. It takes SHA-1 or a SHA-2
-(`digests::sha1` to `digests::sha2_512_256`), the hash functions of FIPS
-180-4; another digest stops the build.
+the key agreements of BSI TR-03111 use it too. It takes SHA-1, SHA-224,
+SHA-256, SHA-384 or SHA-512, the hash functions SEC 1 lists (section 3.5) and
+NIST SP 800-135 approves for it (FIPS 180-3's); SHA-512/224, SHA-512/256,
+SHA-3 or another digest stops the build.
 
 [source]
 ----
