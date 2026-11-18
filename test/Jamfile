@@ -384,16 +384,17 @@ hash-run async_heavy : async_heavy_test.cpp
   : native emscripten ;
 # co_await in Cobalt (webcpp::cobalt's use_op), on every target: the cheap
 # functions, natively a heavy one on a pool, on Emscripten backends::webcrypto.
-# Boost.Cobalt's promise has no hook for a build without exceptions, which
-# clang warns of natively: that one warning stays visible, not fatal, as
-# libs/cobalt/test/Jamfile keeps it.
+# Boost.Cobalt's promise has no unhandled_exception in a build without
+# exceptions, which clang warns of natively: the warning is Boost.Cobalt's,
+# which hash cannot change, so that one warning is suppressed in that twin
+# alone (libs/cobalt/test/Jamfile only keeps it from being an error).
 rule cobalt-native-no-exceptions ( properties * )
 {
     if [ webcpp-target.target-of $(properties) ] = native
       && <exception-handling>off in $(properties)
       && [ feature.get-values <toolset> : $(properties) ] = clang
     {
-        return <cxxflags>-Wno-error=coroutine-missing-unhandled-exception ;
+        return <cxxflags>-Wno-coroutine-missing-unhandled-exception ;
     }
 }
 hash-run async_cobalt : async_cobalt_test.cpp
