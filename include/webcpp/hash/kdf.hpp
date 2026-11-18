@@ -943,14 +943,14 @@ struct default_of {
     using type = backends::hash2;
 };
 
-/** Argon2id: backends::sodium, the one backend that has it. */
+/** Argon2id: backends::sodium, the first of the order that has it (backends::openssl too). */
 template <>
 struct default_of<kdfs::argon2id> {
     /** backends::sodium. */
     using type = backends::sodium;
 };
 
-/** scrypt: backends::sodium, the one backend that has it. */
+/** scrypt: backends::sodium, the first of the order that has it (backends::openssl too). */
 template <>
 struct default_of<kdfs::scrypt> {
     /** backends::sodium. */

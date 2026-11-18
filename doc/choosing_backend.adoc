@@ -33,7 +33,8 @@ and what each cost and allocated when it was measured.
 
 | `argon2id`, `scrypt`, `blake2b_subkey`
 | `sodium`
-| the one backend that has them; a program links `/third_party//sodium`
+| the first of the order that has them (OpenSSL has `argon2id` and `scrypt`
+too, never a default); a program links `/third_party//sodium`
 
 | a tag of `digest_of`, `hasher`, `mac` and `argon2`
 | the first of `hash2`, `xkcp`, `blake3`, `sodium` that has it
