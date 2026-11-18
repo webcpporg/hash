@@ -458,7 +458,7 @@ struct digest_traits<digests::blake2b> {
      @return Success; or `invalid_output_size`, `invalid_key_size`, `invalid_salt_size` or
      `invalid_parameters`.
     */
-    static constexpr boost::system::result<void> check(
+    [[nodiscard]] static constexpr boost::system::result<void> check(
         digest_options<digests::blake2b> const& options) noexcept {
         if (options.output_size == 0 || options.output_size > max_size) {
             return error::invalid_output_size;

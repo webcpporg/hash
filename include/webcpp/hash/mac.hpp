@@ -174,7 +174,8 @@ struct kmac_traits : mac_sizes<kmac_min_output, sp800_185_max_bytes, 0, sp800_18
 
      @param options The options. @return Success, or `input_too_long`.
     */
-    static boost::system::result<void> check(mac_options<Mac> const& options) noexcept {
+    [[nodiscard]] static boost::system::result<void> check(
+        mac_options<Mac> const& options) noexcept {
         return check_sp800_185_string(options.customisation);
     }
 };
