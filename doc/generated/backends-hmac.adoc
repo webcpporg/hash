@@ -160,6 +160,13 @@
 | -
 | not stated
 
+| `macs::hmac<digests::sha1>`
+| `webcrypto` (asynchronous family only)
+| `/webcpp/asio//asio`
+| emscripten
+| -
+| not stated
+
 | `macs::hmac<digests::sha2_224>`
 | `hash2`
 | `/webcpp/hash//hash`
@@ -195,6 +202,13 @@
 | -
 | not stated
 
+| `macs::hmac<digests::sha2_256>`
+| `webcrypto` (asynchronous family only)
+| `/webcpp/asio//asio`
+| emscripten
+| -
+| not stated
+
 | `macs::hmac<digests::sha2_384>`
 | `hash2`
 | `/webcpp/hash//hash`
@@ -206,6 +220,13 @@
 | `bearssl`
 | `/third_party//bearssl`
 | native, wasip2, wasip3, emscripten
+| -
+| not stated
+
+| `macs::hmac<digests::sha2_384>`
+| `webcrypto` (asynchronous family only)
+| `/webcpp/asio//asio`
+| emscripten
 | -
 | not stated
 
@@ -227,6 +248,13 @@
 | `bearssl`
 | `/third_party//bearssl`
 | native, wasip2, wasip3, emscripten
+| -
+| not stated
+
+| `macs::hmac<digests::sha2_512>`
+| `webcrypto` (asynchronous family only)
+| `/webcpp/asio//asio`
+| emscripten
 | -
 | not stated
 
@@ -299,5 +327,8 @@ What each backend states on constant time, as the capability table read it:
 * `bearssl`: BearSSL at webcpp::crypto's pin: bearssl_hmac.h states constant time for br_hmac_outCT alone; mac calls br_hmac_out.
 * `hash2`: Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property.
 * `sodium`: libsodium 1.0.22: its headers state constant time for comparisons (sodium/utils.h) alone, not for its hashing, MAC, key derivation and password hashing functions (crypto_hash_*, crypto_xof_*, crypto_generichash_*, crypto_shorthash_*, crypto_auth_*, crypto_kdf_*, crypto_pwhash_*).
+* `webcrypto`: The Web Cryptography API (W3C Recommendation, 2017) states no constant-time property of digest, sign or deriveBits; each JavaScript runtime's implementation decides, and webcpp reads none.
 
 The default of `macs::hmac<digests::md5>`, `macs::hmac<digests::sha1>`, `macs::hmac<digests::sha2_224>`, `macs::hmac<digests::sha2_256>`, `macs::hmac<digests::sha2_384>`, `macs::hmac<digests::sha2_512>`, `macs::hmac<digests::sha2_512_224>`, `macs::hmac<digests::sha2_512_256>`, `macs::hmac<digests::sha3_224>`, `macs::hmac<digests::sha3_256>`, `macs::hmac<digests::sha3_384>`, `macs::hmac<digests::sha3_512>`, `macs::hmac<digests::ripemd_160>`, `macs::hmac<digests::blake2b>` and `macs::hmac<digests::blake2s_256>`: `hash2` on every target, whatever the program links; `bearssl`, `sodium` only where the call names it, as its second template argument (<<hash-default-backend>>).
+
+`webcrypto` serves the asynchronous family alone, on Emscripten, where the type of its asynchronous call names it (<<hash-async-webcrypto>>).

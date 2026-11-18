@@ -6,8 +6,10 @@
 
 project : requirements <library>/webcpp/hash//hash ;
 
+import feature ;
 import regex ;
 import webcpp ;
+import webcpp-target ;
 
 webcpp.targets native wasip2 wasip3 emscripten ;
 
@@ -51,6 +53,14 @@ webcpp.headers-alone hash : ../include : hash/blake3.hpp
   : <library>/third_party//blake3 ;
 webcpp.headers-alone hash : ../include : hash/backends/blake3.hpp
   : <library>/third_party//blake3 ;
+# async.hpp compiles alone only with webcpp::asio, which hash.hpp does not
+# bring (spec 11.2).
+webcpp.headers-alone hash : ../include : hash/async.hpp
+  : <library>/webcpp/asio//asio ;
+# backends/webcrypto.hpp, which async.hpp includes, likewise: its engine on
+# Emscripten, its limits on every target.
+webcpp.headers-alone hash : ../include : hash/backends/webcrypto.hpp
+  : <library>/webcpp/asio//asio ;
 # backends/bearssl.hpp compiles alone only with BearSSL, whose target defines
 # WEBCPP_HASH_HAS_BEARSSL (without it, it stops with its message).
 webcpp.headers-alone hash : ../include : hash/backends/bearssl.hpp
@@ -63,13 +73,13 @@ webcpp.headers-alone hash : ../include : hash/backends/sodium.hpp
 
 # backends/openssl.hpp compiles alone only with /webcpp/hash//openssl, which
 # defines WEBCPP_HASH_HAS_OPENSSL, on the targets where webcpp builds OpenSSL.
-# Every other C library is linked too, so that every public header compiles
-# with these options (the lint's aggregate translation unit,
+# Every other C library is linked too, and webcpp::asio, so that every public
+# header compiles with these options (the lint's aggregate translation unit,
 # tools/lint/compile_commands.py).
 webcpp.headers-alone hash : ../include : hash/backends/openssl.hpp
   : <library>/webcpp/hash//openssl <library>/third_party//xkcp
     <library>/third_party//blake3 <library>/third_party//bearssl
-    <library>/third_party//sodium
+    <library>/third_party//sodium <library>/webcpp/asio//asio
   : native wasip2 wasip3 ;
 
 # config.hpp defines WEBCPP_HASH_NO_EXCEPTIONS exactly when webcpp has no
@@ -81,6 +91,21 @@ webcpp.compile config_all_off : config_test.cpp
   : <define>WEBCPP_NO_EXCEPTIONS <define>WEBCPP_TEST_HASH_ALL_OFF ;
 webcpp.compile config_developer_defined : config_test.cpp
   : <define>WEBCPP_HASH_NO_EXCEPTIONS <define>WEBCPP_TEST_HASH_DEVELOPER_DEFINED ;
+
+# config.hpp defines WEBCPP_HASH_HAS_THREADS natively (BOOST_HAS_THREADS, in
+# every native build) and on Emscripten with -pthread, never on WASI, and never
+# with WEBCPP_HASH_NO_THREADS (spec 11.5, ruling R70): as the build asks; with
+# threading=multi natively and on Emscripten (b2 adds -pthread); on wasip3's
+# cooperative sysroot, which takes threading=multi without exceptions alone;
+# and with the developer's WEBCPP_HASH_NO_THREADS.
+webcpp.compile config_single : config_threads_test.cpp ;
+webcpp.compile config_threads : config_threads_test.cpp
+  : <threading>multi <define>WEBCPP_TEST_HASH_MULTI : native emscripten ;
+webcpp.compile config_threads_wasip3 : config_threads_test.cpp
+  : <threading>multi <exception-handling>off <define>WEBCPP_TEST_HASH_MULTI
+  : wasip3 ;
+webcpp.compile config_no_threads : config_threads_test.cpp
+  : <define>WEBCPP_HASH_NO_THREADS ;
 
 hash-run error : error_test.cpp ;
 
@@ -292,6 +317,48 @@ hash-run webcrypto_oracle : webcrypto_oracle_test.cpp
   : <library>/third_party//sodium <library>/third_party//bearssl
     <linkflags>-sJSPI : emscripten ;
 
+# The asynchronous family (spec 11). The cheap functions on a synchronous
+# backend, their default and backends::hash2 named, complete through a post,
+# never inside the call, on every target. The heavy functions run on a
+# thread_pool's thread where the build has threads: natively and on Emscripten
+# with -pthread (threading=multi), whose pools' three workers start before
+# main blocks in run (PTHREAD_POOL_SIZE).
+hash-run async_post : async_post_test.cpp : <library>/webcpp/asio//asio ;
+# backends::webcrypto, node's crypto.subtle through webcpp::asio's promise
+# bridge (Emscripten only, asio's JSPI link): the published cases with three
+# completion tokens, 100 random cases per function against backends::hash2,
+# the guards and WebCrypto's limits, an executor of another context, a
+# cancellation and the handler's allocator.
+hash-run async_webcrypto : async_webcrypto_test.cpp
+  : <library>/webcpp/asio//asio : emscripten ;
+hash-run async_heavy : async_heavy_test.cpp
+  : <library>/webcpp/asio//asio <library>/third_party//sodium <threading>multi
+    <toolset>emscripten:<linkflags>-sPTHREAD_POOL_SIZE=3
+  : native emscripten ;
+# co_await in Cobalt (webcpp::cobalt's use_op), on every target: the cheap
+# functions, natively a heavy one on a pool, on Emscripten backends::webcrypto.
+# Boost.Cobalt's promise has no hook for a build without exceptions, which
+# clang warns of natively: that one warning stays visible, not fatal, as
+# libs/cobalt/test/Jamfile keeps it.
+rule cobalt-native-no-exceptions ( properties * )
+{
+    if [ webcpp-target.target-of $(properties) ] = native
+      && <exception-handling>off in $(properties)
+      && [ feature.get-values <toolset> : $(properties) ] = clang
+    {
+        return <cxxflags>-Wno-error=coroutine-missing-unhandled-exception ;
+    }
+}
+hash-run async_cobalt : async_cobalt_test.cpp
+  : <library>/webcpp/cobalt//core <conditional>@cobalt-native-no-exceptions ;
+# The browser's model on Emscripten with pthreads under node: an Argon2id of
+# 64 MiB on a pool of Web Workers, completing on main_thread_context's
+# executor while the main thread's timer keeps firing.
+hash-run async_main_thread : async_main_thread_test.cpp
+  : <library>/webcpp/asio//asio <library>/third_party//sodium <threading>multi
+    <linkflags>-sPTHREAD_POOL_SIZE=2
+  : emscripten ;
+
 # Argon2id on backends::sodium: RFC 9106's case through libsodium's core
 # argon2_ctx (four lanes, a secret, associated data); three cases of
 # libsodium's own table, argon2id against argon2_ctx on 20 random cases, the
@@ -309,6 +376,14 @@ hash-run argon2id_interactive : argon2id_interactive_test.cpp
 hash-run argon2_sodium : argon2_sodium_test.cpp
   : <library>/third_party//sodium <library>/third_party//sodium-test-config
     <library>/third_party//sodium_vectors ;
+
+# backends::sodium on a second thread after the first has used it, natively
+# and on Emscripten with -pthread, whose worker starts before main blocks in
+# join (PTHREAD_POOL_SIZE): libsodium's JavaScript random source is per thread.
+hash-run sodium_threads : sodium_threads_test.cpp
+  : <library>/third_party//sodium <threading>multi
+    <toolset>emscripten:<linkflags>-sPTHREAD_POOL_SIZE=1
+  : native emscripten ;
 
 # scrypt on backends::sodium: RFC 7914's first three cases and the guards.
 hash-run scrypt : scrypt_test.cpp : <library>/third_party//sodium ;
@@ -344,7 +419,8 @@ hash-default default_backend_former_defines : default_backend_test.cpp
     <define>WEBCPP_HASH_DEFAULT_BACKEND_PBKDF2_BEARSSL ;
 
 # doc/capabilities.json against backend_has_v cell by cell, its defaults
-# against default_backend, and the refusal texts of the headers against its
+# against default_backend and default_async_backend (async.hpp, which needs
+# webcpp::asio), and the refusal texts of the headers against its
 # rows. Read at run time from the directories the defines give, quoted as
 # wycheproof's are, with forward slashes, and preopened on WASI.
 path-constant HASH_TEST_DOC : ../doc ;
@@ -357,33 +433,39 @@ path-constant HASH_TEST_INCLUDE : ../include ;
     <define>"\"WEBCPP_TEST_HASH_INCLUDE=\\\"$(.hash-include)\\\"\""
     [ webcpp.data $(HASH_TEST_DOC) $(HASH_TEST_INCLUDE) ]
     <dependency>../doc/capabilities.json
+    <dependency>../include/webcpp/hash/async.hpp
     <dependency>../include/webcpp/hash/detail/engines.hpp
     <dependency>../include/webcpp/hash/kdf.hpp
     <dependency>../include/webcpp/hash/backends/bearssl.hpp
     <dependency>../include/webcpp/hash/backends/openssl.hpp
-    <dependency>../include/webcpp/hash/backends/sodium.hpp ;
+    <dependency>../include/webcpp/hash/backends/sodium.hpp
+    <dependency>../include/webcpp/hash/backends/webcrypto.hpp ;
 # capabilities links every library its target has, so that a backend's targets
 # in the table can be checked against what links here.
 hash-run capabilities : capabilities_test.cpp
-  : $(.hash-tables) <library>/third_party//xkcp <library>/third_party//blake3
+  : $(.hash-tables) <library>/webcpp/asio//asio
+    <library>/third_party//xkcp <library>/third_party//blake3
     <library>/third_party//sodium <library>/third_party//bearssl
     <library>/webcpp/hash//openssl
   : native wasip2 wasip3 ;
 hash-run capabilities_emscripten : capabilities_test.cpp
-  : $(.hash-tables) <library>/third_party//xkcp <library>/third_party//blake3
+  : $(.hash-tables) <library>/webcpp/asio//asio
+    <library>/third_party//xkcp <library>/third_party//blake3
     <library>/third_party//sodium <library>/third_party//bearssl
   : emscripten ;
 
 # No allocation in webcpp's code (spec section 7.7): operator new and, where
 # the target counts it, the C library's allocator are called zero times by
-# every public function and backend, the families included, on every target
-# (a control moves the counter). Argon2 and scrypt allocate inside libsodium
-# and are asserted free of operator new only. Each library's functions are
-# exercised where it is linked.
+# every public function and backend, the families and the asynchronous family
+# included, on every target (a control moves the counter). Argon2 and scrypt
+# allocate inside libsodium and are asserted free of operator new only. Each
+# library's functions are exercised where it is linked; the asynchronous
+# family's storage is the handler's allocator's.
 # On WASI the C allocator is counted through the linker's --wrap
 # (support/counting.hpp), for the references of this program and its libraries.
 hash-run allocation : allocation_test.cpp
-  : <library>/third_party//xkcp <library>/third_party//blake3
+  : <library>/webcpp/asio//asio
+    <library>/third_party//xkcp <library>/third_party//blake3
     <library>/third_party//sodium <library>/third_party//bearssl
     <target-os>wasi:<linkflags>-Wl,--wrap=malloc,--wrap=calloc,--wrap=realloc,--wrap=aligned_alloc,--wrap=posix_memalign ;
 # OpenSSL's own allocations per call, measured through

@@ -97,6 +97,13 @@
 | -
 | not stated
 
+| `digests::sha1`
+| `webcrypto` (asynchronous family only)
+| `/webcpp/asio//asio`
+| emscripten
+| -
+| not stated
+
 | `digests::sha2_224`
 | `hash2`
 | `/webcpp/hash//hash`
@@ -132,6 +139,13 @@
 | -
 | not stated
 
+| `digests::sha2_256`
+| `webcrypto` (asynchronous family only)
+| `/webcpp/asio//asio`
+| emscripten
+| -
+| not stated
+
 | `digests::sha2_384`
 | `hash2`
 | `/webcpp/hash//hash`
@@ -143,6 +157,13 @@
 | `bearssl`
 | `/third_party//bearssl`
 | native, wasip2, wasip3, emscripten
+| -
+| not stated
+
+| `digests::sha2_384`
+| `webcrypto` (asynchronous family only)
+| `/webcpp/asio//asio`
+| emscripten
 | -
 | not stated
 
@@ -164,6 +185,13 @@
 | `bearssl`
 | `/third_party//bearssl`
 | native, wasip2, wasip3, emscripten
+| -
+| not stated
+
+| `digests::sha2_512`
+| `webcrypto` (asynchronous family only)
+| `/webcpp/asio//asio`
+| emscripten
 | -
 | not stated
 
@@ -194,7 +222,10 @@ What each backend states on constant time, as the capability table read it:
 * `bearssl`: BearSSL at webcpp::crypto's pin: bearssl_hash.h states constant time for its GHASH implementations alone, not for br_md5_*, br_sha1_*, br_sha224_* to br_sha512_* or br_md5sha1_*.
 * `hash2`: Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property.
 * `sodium`: libsodium 1.0.22: its headers state constant time for comparisons (sodium/utils.h) alone, not for its hashing, MAC, key derivation and password hashing functions (crypto_hash_*, crypto_xof_*, crypto_generichash_*, crypto_shorthash_*, crypto_auth_*, crypto_kdf_*, crypto_pwhash_*).
+* `webcrypto`: The Web Cryptography API (W3C Recommendation, 2017) states no constant-time property of digest, sign or deriveBits; each JavaScript runtime's implementation decides, and webcpp reads none.
 
 `digests::md5_sha1` has no default backend: the call names one of its backends (<<hash-default-backend>>).
 
 The default of `digests::md5`, `digests::sha1`, `digests::sha2_224`, `digests::sha2_256`, `digests::sha2_384`, `digests::sha2_512`, `digests::sha2_512_224` and `digests::sha2_512_256`: `hash2` on every target, whatever the program links; `bearssl`, `sodium` only where the call names it, as its second template argument (<<hash-default-backend>>).
+
+`webcrypto` serves the asynchronous family alone, on Emscripten, where the type of its asynchronous call names it (<<hash-async-webcrypto>>).

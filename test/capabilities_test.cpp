@@ -8,14 +8,18 @@
 // backend_has_v agree on every cell, a function over an hmac (or over no hmac), or a family's tag,
 // for a backend; the file names exactly the backends, hmacs and functions this test knows, and a
 // row for each family tag that a backend has. Each default is default_backend's (null for a tag
-// with none). And each refusal text of the headers (spec 3.3) names exactly the backends of its
-// row: those that have the function it refuses, over the hmacs it is about, besides the refusing
-// backend itself; a family tag's text, read from the tag it names, those of the tag's row. Every
-// family tag has its refusal, and a "no default backend" text exactly when it has no default; where
-// a backend has a tag and the program links it, digest_of, hasher and mac compile and run on it.
+// with none), and default_async_backend's. And each refusal text of the headers (spec 3.3) names
+// exactly the backends of its row: those that have the function it refuses, over the hmacs it is
+// about, besides the refusing backend itself; a family tag's text, read from the tag it names,
+// those of the tag's row. Every family tag has its refusal, and a "no default backend" text exactly
+// when it has no default; where a backend has a tag and the program links it, digest_of, hasher and
+// mac compile and run on it. backends::webcrypto, a backend of the asynchronous family alone
+// ("asynchronous_only"), has the cells of async.hpp's WebCrypto traits, never one of backend_has_v,
+// builds on Emscripten alone, and is left out of the rows the synchronous refusals name.
 
 #include <webcpp/hash/algorithms.hpp>
 #include <webcpp/hash/argon2.hpp>
+#include <webcpp/hash/async.hpp>
 #include <webcpp/hash/blake3.hpp>
 #include <webcpp/hash/digest.hpp>
 #include <webcpp/hash/hmac.hpp>
@@ -248,6 +252,24 @@ constexpr std::string_view this_target() {
 #endif
 }
 
+// Whether a backend of the file serves the asynchronous family alone (backends::webcrypto): its
+// "asynchronous_only" field, absent or false for every other.
+bool is_asynchronous_only(json::object const& backend) {
+    auto const* const field = backend.if_contains("asynchronous_only");
+    return field != nullptr && field->is_bool() && field->as_bool();
+}
+
+// The names of the file's asynchronous-only backends.
+names asynchronous_backends(json::object const& table) {
+    names found;
+    for (auto const& b : table.at("backends").as_array()) {
+        if (is_asynchronous_only(b.as_object())) {
+            found.emplace(b.at("name").as_string());
+        }
+    }
+    return found;
+}
+
 // Whether this program links a library of the table, by its macro word: the program is built with
 // every library its target has, so a backend is linked exactly on its targets.
 bool linked_here(std::string_view macro) {
@@ -272,7 +294,12 @@ void check_backend_fields(json::object const& table) {
         bool const on_this_target =
             std::ranges::any_of(b.at("targets").as_array(),
                                 [](auto const& t) { return t.as_string() == this_target(); });
-        if (!BOOST_TEST_EQ(on_this_target, linked_here(b.at("macro").as_string()))) {
+        // An asynchronous backend links no library of its own (no macro): its engine exists on
+        // Emscripten alone (backends/webcrypto.hpp's WEBCPP_TARGET_EMSCRIPTEN).
+        bool const here = is_asynchronous_only(b.as_object())
+                              ? b.at("macro").is_null() && this_target() == "emscripten"
+                              : linked_here(b.at("macro").as_string());
+        if (!BOOST_TEST_EQ(on_this_target, here)) {
             std::cerr << "  the targets of " << name << " on " << this_target() << '\n';
         }
         if (!b.at("tag").is_null()) {
@@ -283,6 +310,8 @@ void check_backend_fields(json::object const& table) {
 }
 
 // Each function's default, the backend default_backend names for its tag; a type row has none.
+// The asynchronous family's default is the same (ruling R76, the owner's decision O2): the table
+// has no column of its own for it.
 template <class Function>
 void check_default(json::object const& table) {
     auto const& listed = function_row(table, function_name<Function>()).at("default");
@@ -290,6 +319,8 @@ void check_default(json::object const& table) {
     if (!BOOST_TEST(listed.is_string() && listed.as_string() == chosen)) {
         std::cerr << "  default of " << function_name<Function>() << '\n';
     }
+    BOOST_TEST(
+        (std::is_same_v<hash::default_async_backend<Function>, hash::default_backend<Function>>));
 }
 
 void check_defaults(json::object const& table) {
@@ -532,7 +563,7 @@ void check_names(json::object const& table) {
         backends.emplace_back(backend.at("name").as_string());
     }
     BOOST_TEST((backends == std::vector<std::string>{"hash2", "xkcp", "blake3", "sodium", "bearssl",
-                                                     "openssl"}));
+                                                     "openssl", "webcrypto"}));
 
     std::vector<std::string> hmacs;
     for (auto const& hmac : table.at("hmacs").as_array()) {
@@ -766,6 +797,83 @@ std::vector<refusal> const& refusals() {
             .hmacs = {},
         },
         {
+            .header = "detail/engines.hpp",
+            .start = "backends::webcrypto is asynchronous: call async_hkdf",
+            .backend = "webcrypto",
+            .functions = {},
+            .hmacs = {},
+        },
+        {
+            .header = "async.hpp",
+            .start = "backends::webcrypto exists only on Emscripten",
+            .backend = "webcrypto",
+            .functions = {},
+            .hmacs = {},
+        },
+        {
+            .header = "async.hpp",
+            .start = "async_digest takes digests::sha1, digests::sha2_256",
+            .backend = "",
+            .functions = {},
+            .hmacs = {},
+        },
+        {
+            .header = "async.hpp",
+            .start = "async_hmac takes hmac_sha1_160, hmac_sha2_256",
+            .backend = "",
+            .functions = {},
+            .hmacs = {},
+        },
+        {
+            .header = "async.hpp",
+            .start = "async_hkdf takes hmac_sha1_160, hmac_sha2_256",
+            .backend = "",
+            .functions = {},
+            .hmacs = {},
+        },
+        {
+            .header = "async.hpp",
+            .start = "async_pbkdf2 runs on another thread",
+            .backend = "",
+            .functions = {},
+            .hmacs = {},
+        },
+        {
+            .header = "async.hpp",
+            .start = "async_argon2id runs on another thread",
+            .backend = "",
+            .functions = {},
+            .hmacs = {},
+        },
+        {
+            .header = "async.hpp",
+            .start = "async_argon2 runs on another thread",
+            .backend = "",
+            .functions = {},
+            .hmacs = {},
+        },
+        {
+            .header = "async.hpp",
+            .start = "async_scrypt runs on another thread",
+            .backend = "",
+            .functions = {},
+            .hmacs = {},
+        },
+        {
+            .header = "backends/webcrypto.hpp",
+            .start = "backends::webcrypto completes through an io_context run on",
+            .backend = "webcrypto",
+            .functions = {},
+            .hmacs = {},
+        },
+        {
+            .header = "backends/webcrypto.hpp",
+            .start = "backends::webcrypto has PBKDF2 over hmac_sha1_160, hmac_sha2_256",
+            .backend = "webcrypto",
+            .functions = {},
+            .hmacs = {},
+        },
+        {
             .header = "kdf.hpp",
             .start = "the key derivations take a Boost.Hash2 hmac",
             .backend = "",
@@ -826,9 +934,10 @@ std::vector<refusal> const& refusals() {
 }
 
 // The backends of a refusal's row: those that have one of its functions over one of its hmacs,
-// the refusing backend left out.
+// the refusing backend and the asynchronous-only ones left out.
 names row_of(json::object const& table, refusal const& r) {
     names row;
+    names const asynchronous = asynchronous_backends(table);
     std::vector<std::string> all_hmacs;
     for (auto const& hmac : table.at("hmacs").as_array()) {
         all_hmacs.emplace_back(hmac.as_string());
@@ -851,7 +960,8 @@ names row_of(json::object const& table, refusal const& r) {
         }
         for (auto const& backend : line.at("backends").as_object()) {
             for (auto const& hmac : hmacs) {
-                if (backend.key() != r.backend && cell(line, backend.key(), hmac)) {
+                if (backend.key() != r.backend && !asynchronous.contains(backend.key()) &&
+                    cell(line, backend.key(), hmac)) {
                     row.emplace(backend.key());
                 }
             }
@@ -892,7 +1002,9 @@ bool check_family_refusal(json::object const& table, std::string const& text) {
     names row;
     if (auto const* const found = find_row(table, tag); found != nullptr) {
         for (auto const& backend : found->at("backends").as_object()) {
-            row.emplace(backend.key());
+            if (!asynchronous_backends(table).contains(backend.key())) {
+                row.emplace(backend.key());
+            }
         }
     }
     if (!BOOST_TEST((named_in(text) == row))) {
@@ -978,6 +1090,7 @@ void check_family_tag(json::object const& table, std::vector<std::string> const&
     }(static_cast<backend_tags*>(nullptr));
 
     bool const no_default = std::is_same_v<hash::default_backend<Tag>, hash::detail::no_default>;
+    BOOST_TEST((std::is_same_v<hash::default_async_backend<Tag>, hash::default_backend<Tag>>));
     if (row != nullptr) {
         auto const& listed = row->at("default");
         bool const agrees =
@@ -1026,6 +1139,58 @@ void check_families(json::object const& table, std::string const& include) {
     });
 }
 
+// The digest of a tag `macs::hmac<D>`: D; void for any other tag.
+template <class Tag>
+struct hmac_digest {
+    using type = void;
+};
+
+template <class Digest>
+struct hmac_digest<macs::hmac<Digest>> {
+    using type = Digest;
+};
+
+// backends::webcrypto's cells (ruling R90): the digests and HMACs of async.hpp's
+// webcrypto_digest_v, HKDF and PBKDF2 over the hmacs of webcrypto_hmac_v, nothing else; and no
+// synchronous function takes it (backend_has_v is false for each of its cells).
+void check_webcrypto_cells(json::object const& table) {
+    using hash::backends::webcrypto;
+    auto const agrees = [&](std::string_view name, std::string_view hmac, bool expected) {
+        auto const* const row = find_row(table, name);
+        bool const in_file = row != nullptr && cell(*row, "webcrypto", hmac);
+        if (!BOOST_TEST_EQ(in_file, expected)) {
+            std::cerr << "  cell " << name << " / webcrypto / " << (hmac.empty() ? "-" : hmac)
+                      << '\n';
+        }
+    };
+    for_each_tag<digest_tags>(digest_names, [&]<class Tag>(std::string_view name) {
+        agrees(name, "", hash::detail::webcrypto_digest_v<Tag>);
+        BOOST_TEST((!hash::backend_has_v<webcrypto, Tag, void>));
+    });
+    for_each_tag<mac_tags>(mac_names, [&]<class Tag>(std::string_view name) {
+        agrees(name, "", hash::detail::webcrypto_digest_v<typename hmac_digest<Tag>::type>);
+        BOOST_TEST((!hash::backend_has_v<webcrypto, Tag, void>));
+    });
+    for_each_tag<argon2_tags>(argon2_names,
+                              [&]<class Tag>(std::string_view name) { agrees(name, "", false); });
+    [&]<class... Hmac>(std::tuple<Hmac...>*) {
+        (
+            [&] {
+                std::string_view const hmac = test::name_of_hmac<Hmac>();
+                bool const has = hash::detail::webcrypto_hmac_v<Hmac>;
+                agrees("hkdf", hmac, has);
+                agrees("pbkdf2", hmac, has);
+                agrees("hkdf_extract", hmac, false);
+                agrees("hkdf_expand", hmac, false);
+                BOOST_TEST((!hash::backend_has_v<webcrypto, kdfs::hkdf, Hmac>));
+                BOOST_TEST((!hash::backend_has_v<webcrypto, kdfs::pbkdf2, Hmac>));
+            }(),
+            ...);
+    }(static_cast<test::kdf_hmacs*>(nullptr));
+    agrees("argon2id", "", false);
+    agrees("scrypt", "", false);
+}
+
 }  // namespace
 
 int main() {
@@ -1040,6 +1205,7 @@ int main() {
     check_backend_fields(table);
     check_defaults(table);
     check_cells(table);
+    check_webcrypto_cells(table);
     check_refusals(table, include);
     check_families(table, include);
     return webcpp::test::exit_status(boost::report_errors());

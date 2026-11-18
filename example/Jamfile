@@ -52,6 +52,18 @@ webcpp.example argon2id.cpp : <library>/third_party//sodium ;
 webcpp.example argon2_family.cpp : <library>/third_party//sodium ;
 webcpp.example scrypt.cpp : <library>/third_party//sodium ;
 
+# Asynchronous calls, over webcpp::asio's event loop: a cheap function on every
+# target; a heavy one on a thread pool where the program has threads,
+# natively and on Emscripten with -pthread, whose worker starts before main
+# blocks in the loop (PTHREAD_POOL_SIZE).
+webcpp.example async_hkdf.cpp : <library>/webcpp/asio//asio ;
+webcpp.example async_argon2id.cpp : <library>/webcpp/asio//asio
+  <library>/third_party//sodium <threading>multi
+  <toolset>emscripten:<linkflags>-sPTHREAD_POOL_SIZE=1
+  : native emscripten ;
+# backends::webcrypto, the browser's WebCrypto, on Emscripten alone.
+webcpp.example async_webcrypto.cpp : <library>/webcpp/asio//asio : emscripten ;
+
 # Hashes that are not cryptographic.
 webcpp.example checksums.cpp ;
 

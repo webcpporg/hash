@@ -12,10 +12,12 @@ import webcpp ;
 webcpp.doc hash : hash.adoc ;
 # The reference reads every header, the backends' and the C libraries'
 # included: each library's target gives its define WEBCPP_HASH_HAS_<NAME>
-# and its headers' directory, as a program that links it has them.
+# and its headers' directory, as a program that links it has them; and
+# webcpp::asio's, for async.hpp.
 webcpp.reference hash : <library>/third_party//xkcp
   <library>/third_party//blake3 <library>/third_party//sodium
-  <library>/third_party//bearssl <library>/webcpp/hash//openssl ;
+  <library>/third_party//bearssl <library>/webcpp/hash//openssl
+  <library>/webcpp/asio//asio ;
 
 # The guide's generated tables and llms.txt (doc/generated/, doc/llms.txt)
 # against their data, capabilities.json, guide.json and measurements.json:

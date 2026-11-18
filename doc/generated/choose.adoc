@@ -44,7 +44,7 @@
 
 | turn a shared secret (an ECDH result) into keys
 | <<hash-hkdf,hkdf over hmac_sha2_256, one info label per key>>
-| `hash2`: `/webcpp/hash//hash`, `sodium`: `/third_party//sodium`, `bearssl`: `/third_party//bearssl`, `openssl`: `/webcpp/hash//openssl`
+| `hash2`: `/webcpp/hash//hash`, `sodium`: `/third_party//sodium`, `bearssl`: `/third_party//bearssl`, `openssl`: `/webcpp/hash//openssl`, `webcrypto` (asynchronous family only): `/webcpp/asio//asio`
 | the default; name a backend only to match another program's
 | `example/hkdf.cpp`
 
@@ -68,7 +68,7 @@
 
 | compute a Bitcoin wallet's BIP39 seed from its words
 | <<hash-crypto-bip39,pbkdf2 over hmac_sha2_512, 2,048 iterations (a domain library's step)>>
-| `hash2`: `/webcpp/hash//hash`, `openssl`: `/webcpp/hash//openssl`
+| `hash2`: `/webcpp/hash//hash`, `openssl`: `/webcpp/hash//openssl`, `webcrypto` (asynchronous family only): `/webcpp/asio//asio`
 | the default
 | `example/bip39_seed.cpp`
 
@@ -104,13 +104,13 @@
 
 | build the smallest WebAssembly program
 | <<hash-default-backend,the default backend, backends::hash2, header-only, and link only the libraries the program uses>>
-| `hash2`: `/webcpp/hash//hash`, `sodium`: `/third_party//sodium`, `bearssl`: `/third_party//bearssl`, `openssl`: `/webcpp/hash//openssl`
+| `hash2`: `/webcpp/hash//hash`, `sodium`: `/third_party//sodium`, `bearssl`: `/third_party//bearssl`, `openssl`: `/webcpp/hash//openssl`, `webcrypto` (asynchronous family only): `/webcpp/asio//asio`
 | the default
 | `example/hkdf_backends.cpp`
 
 | run the same code, with the same results, on every target
 | <<hash-default-backend,the default backend, backends::hash2, the same code on every target>>
-| `hash2`: `/webcpp/hash//hash`, `sodium`: `/third_party//sodium`, `bearssl`: `/third_party//bearssl`, `openssl`: `/webcpp/hash//openssl`
+| `hash2`: `/webcpp/hash//hash`, `sodium`: `/third_party//sodium`, `bearssl`: `/third_party//bearssl`, `openssl`: `/webcpp/hash//openssl`, `webcrypto` (asynchronous family only): `/webcpp/asio//asio`
 | the default
 | `example/hkdf_backends.cpp`
 |===

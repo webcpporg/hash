@@ -675,7 +675,8 @@ struct digest_tag_of<hmac_blake2s_256> {
  that has every key derivation over every hmac on every target, header-only. Each tag of the
  families has its own below (design D34): the first of `backends::hash2`, `backends::xkcp`,
  `backends::blake3` and `backends::sodium` that has the tag fully in the capability table once
- increments 2 to 7 have landed, else the first of them with a partial cell, else `no_default`.
+ increments 2 to 7 have landed, else the first of them with a partial cell, else
+ `detail::no_default`.
  A default never changes; until its backend's engine lands, a call on it refuses at compile time.
 
  @tparam Algorithm A tag of `kdfs`, `digests` or `macs`.

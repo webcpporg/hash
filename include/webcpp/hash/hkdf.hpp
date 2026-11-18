@@ -57,6 +57,42 @@ namespace webcpp::hash {
 /** The longest info every backend accepts, 32,768 bytes (OpenSSL 3.5's limit). */
 inline constexpr std::size_t hkdf_max_info_size = 32768;
 
+namespace detail {
+
+/**
+ The guards of `hkdf` (spec 2.8), then `Backend`'s own limits, without the work: what `async_hkdf`
+ checks on a backend that completes by itself before it starts the work.
+
+ @tparam Hmac A Boost.Hash2 hmac over a digest. @tparam Backend The backend.
+ @param output_size The output's size. @param salt_size The salt's size.
+ @param ikm_size The input keying material's size. @param info_size The info's size.
+ @return Success, or the error of the first guard that fails, as `hkdf` returns it.
+*/
+template <class Hmac, class Backend>
+[[nodiscard]] boost::system::result<void> hkdf_guards(std::size_t output_size,
+                                                      std::size_t salt_size, std::size_t ikm_size,
+                                                      std::size_t info_size) noexcept {
+    // Hash2 1.92 declares no std::tuple_size for digest<N>; its size() is constexpr.
+    constexpr std::size_t digest_length = typename Hmac::result_type().size();
+    if (output_size == 0 || output_size > 255 * digest_length) {
+        return error::invalid_output_size;
+    }
+    if (info_size > hkdf_max_info_size) {
+        return error::input_too_long;
+    }
+    using limits = backend_limits<Backend>;
+    if (exceeds(output_size, limits::hkdf_output)) {
+        return error::invalid_output_size;
+    }
+    if (exceeds(salt_size, limits::hkdf_salt) || exceeds(ikm_size, limits::hkdf_ikm) ||
+        exceeds(info_size, limits::hkdf_info)) {
+        return error::input_too_long;
+    }
+    return {};
+}
+
+}  // namespace detail
+
 /**
  HKDF-Extract (RFC 5869, section 2.2): the pseudorandom key of `ikm_bytes` under `salt_bytes`.
 
@@ -153,21 +189,10 @@ template <class Hmac, class Backend = default_kdf_backend<Hmac>>
     if constexpr (!detail::takes_hmac<Hmac>()) {
         return error::backend_failure;  // unreachable: takes_hmac has stopped the build
     } else {
-        constexpr std::size_t digest_length = typename Hmac::result_type().size();
-        if (output_bytes.empty() || output_bytes.size() > 255 * digest_length) {
-            return error::invalid_output_size;
-        }
-        if (info_bytes.size() > hkdf_max_info_size) {
-            return error::input_too_long;
-        }
-        using limits = detail::backend_limits<Backend>;
-        if (detail::exceeds(output_bytes.size(), limits::hkdf_output)) {
-            return error::invalid_output_size;
-        }
-        if (detail::exceeds(salt_bytes.size(), limits::hkdf_salt) ||
-            detail::exceeds(ikm_bytes.size(), limits::hkdf_ikm) ||
-            detail::exceeds(info_bytes.size(), limits::hkdf_info)) {
-            return error::input_too_long;
+        auto guarded = detail::hkdf_guards<Hmac, Backend>(output_bytes.size(), salt_bytes.size(),
+                                                          ikm_bytes.size(), info_bytes.size());
+        if (!guarded) {
+            return guarded;
         }
         auto derive_result = detail::hkdf_engine<Backend, Hmac>::extract_and_expand(
             output_bytes, salt_bytes, ikm_bytes, info_bytes);

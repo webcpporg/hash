@@ -87,6 +87,52 @@ inline constexpr std::size_t argon2id_min_memory = 8192;
 /** The memory's unit, a block of 1 KiB. */
 inline constexpr std::size_t argon2id_memory_unit = 1024;
 
+/**
+ The guards of `argon2id` (spec 2.10), then `Backend`'s own limits, without the work: what
+ `async_argon2id` checks before it posts the work to another thread.
+
+ @tparam Backend The backend.
+ @param output_size The tag's size. @param password_size The password's size.
+ @param salt_size The salt's size. @param cost_parameters The costs.
+ @return Success, or the error of the first guard that fails, as `argon2id` returns it.
+*/
+template <class Backend>
+[[nodiscard]] boost::system::result<void> argon2id_guards(
+    std::size_t output_size, std::size_t password_size, std::size_t salt_size,
+    argon2id_parameters const& cost_parameters) noexcept {
+    using engine = argon2id_engine<Backend>;
+    using limits = backend_limits<Backend>;
+    if (output_size < argon2id_min_output_size || exceeds(output_size, argon2id_max_size)) {
+        return error::invalid_output_size;
+    }
+    if (salt_size != argon2id_salt_size) {
+        return error::invalid_salt_size;
+    }
+    if (exceeds(password_size, argon2id_max_size)) {
+        return error::input_too_long;
+    }
+    if (cost_parameters.passes < argon2id_min_passes ||
+        cost_parameters.passes > argon2id_max_passes) {
+        return error::invalid_parameters;
+    }
+    // A memory that is not a whole number of blocks is refused: libsodium would round it down.
+    if (cost_parameters.memory < argon2id_min_memory ||
+        cost_parameters.memory % argon2id_memory_unit != 0 ||
+        exceeds(cost_parameters.memory, engine::limits.memory)) {
+        return error::invalid_parameters;
+    }
+    // The backend's own limits, where its C interface holds a length in a narrower type, after
+    // the spec's.
+    if (exceeds(output_size, limits::argon2id_output)) {
+        return error::invalid_output_size;
+    }
+    if (exceeds(password_size, limits::argon2id_password) ||
+        exceeds(salt_size, limits::argon2id_salt)) {
+        return error::input_too_long;
+    }
+    return {};
+}
+
 }  // namespace detail
 
 /**
@@ -110,39 +156,13 @@ template <class Backend = default_backend<kdfs::argon2id>>
                                                    std::span<std::uint8_t const> password_bytes,
                                                    std::span<std::uint8_t const> salt_bytes,
                                                    argon2id_parameters const& cost_parameters) {
-    using engine = detail::argon2id_engine<Backend>;
-    using limits = detail::backend_limits<Backend>;
-    if (output_bytes.size() < detail::argon2id_min_output_size ||
-        detail::exceeds(output_bytes.size(), detail::argon2id_max_size)) {
-        return error::invalid_output_size;
+    auto guarded = detail::argon2id_guards<Backend>(output_bytes.size(), password_bytes.size(),
+                                                    salt_bytes.size(), cost_parameters);
+    if (!guarded) {
+        return guarded;
     }
-    if (salt_bytes.size() != argon2id_salt_size) {
-        return error::invalid_salt_size;
-    }
-    if (detail::exceeds(password_bytes.size(), detail::argon2id_max_size)) {
-        return error::input_too_long;
-    }
-    if (cost_parameters.passes < detail::argon2id_min_passes ||
-        cost_parameters.passes > detail::argon2id_max_passes) {
-        return error::invalid_parameters;
-    }
-    // A memory that is not a whole number of blocks is refused: libsodium would round it down.
-    if (cost_parameters.memory < detail::argon2id_min_memory ||
-        cost_parameters.memory % detail::argon2id_memory_unit != 0 ||
-        detail::exceeds(cost_parameters.memory, engine::limits.memory)) {
-        return error::invalid_parameters;
-    }
-    // The backend's own limits, where its C interface holds a length in a narrower type, after
-    // the spec's.
-    if (detail::exceeds(output_bytes.size(), limits::argon2id_output)) {
-        return error::invalid_output_size;
-    }
-    if (detail::exceeds(password_bytes.size(), limits::argon2id_password) ||
-        detail::exceeds(salt_bytes.size(), limits::argon2id_salt)) {
-        return error::input_too_long;
-    }
-    auto derive_result = engine::derive(output_bytes, password_bytes, salt_bytes,
-                                        cost_parameters.passes, cost_parameters.memory);
+    auto derive_result = detail::argon2id_engine<Backend>::derive(
+        output_bytes, password_bytes, salt_bytes, cost_parameters.passes, cost_parameters.memory);
     if (!derive_result) {
         detail::wipe(output_bytes);
     }
@@ -202,6 +222,41 @@ bool argon2_engine_takes(std::size_t output_size, std::size_t salt_size,
            (limits.associated_data || parameters.associated_data.empty());
 }
 
+/**
+ The guards of `argon2` (RFC 9106), then `Backend`'s own limits (`unsupported_by_backend`),
+ without the work: what `async_argon2` checks before it posts the work to another thread.
+
+ @tparam Variant The variant. @tparam Backend The backend.
+ @param output_size The tag's size. @param password_size The password's size.
+ @param salt_size The salt's size. @param parameters The parameters.
+ @return Success, or the error of the first guard that fails, as `argon2` returns it.
+*/
+template <class Variant, class Backend>
+[[nodiscard]] boost::system::result<void> argon2_guards(
+    std::size_t output_size, std::size_t password_size, std::size_t salt_size,
+    argon2_parameters const& parameters) noexcept {
+    using engine = argon2_engine<Backend, Variant>;
+    if (exceeds(argon2_min_output, output_size) || exceeds(output_size, argon2id_max_size)) {
+        return error::invalid_output_size;
+    }
+    if (exceeds(argon2_min_salt, salt_size) || exceeds(salt_size, argon2id_max_size)) {
+        return error::invalid_salt_size;
+    }
+    if (exceeds(password_size, argon2id_max_size) ||
+        exceeds(parameters.secret.size(), argon2id_max_size) ||
+        exceeds(parameters.associated_data.size(), argon2id_max_size)) {
+        return error::input_too_long;
+    }
+    if (parameters.passes < 1 || parameters.lanes < 1 || parameters.lanes > argon2_max_lanes ||
+        parameters.memory_kib < argon2_min_memory_kib_per_lane * std::uint64_t{parameters.lanes}) {
+        return error::invalid_parameters;
+    }
+    if (!argon2_engine_takes<engine>(output_size, salt_size, parameters)) {
+        return error::unsupported_by_backend;
+    }
+    return {};
+}
+
 }  // namespace detail
 
 /**
@@ -227,30 +282,13 @@ template <class Variant, class Backend = default_backend<Variant>>
                                                  std::span<std::uint8_t const> password,
                                                  std::span<std::uint8_t const> salt,
                                                  argon2_parameters const& parameters) {
-    using engine = detail::argon2_engine<Backend, Variant>;
-    if (detail::exceeds(detail::argon2_min_output, output.size()) ||
-        detail::exceeds(output.size(), detail::argon2id_max_size)) {
-        return error::invalid_output_size;
+    auto guarded = detail::argon2_guards<Variant, Backend>(output.size(), password.size(),
+                                                           salt.size(), parameters);
+    if (!guarded) {
+        return guarded;
     }
-    if (detail::exceeds(detail::argon2_min_salt, salt.size()) ||
-        detail::exceeds(salt.size(), detail::argon2id_max_size)) {
-        return error::invalid_salt_size;
-    }
-    if (detail::exceeds(password.size(), detail::argon2id_max_size) ||
-        detail::exceeds(parameters.secret.size(), detail::argon2id_max_size) ||
-        detail::exceeds(parameters.associated_data.size(), detail::argon2id_max_size)) {
-        return error::input_too_long;
-    }
-    if (parameters.passes < 1 || parameters.lanes < 1 ||
-        parameters.lanes > detail::argon2_max_lanes ||
-        parameters.memory_kib <
-            detail::argon2_min_memory_kib_per_lane * std::uint64_t{parameters.lanes}) {
-        return error::invalid_parameters;
-    }
-    if (!detail::argon2_engine_takes<engine>(output.size(), salt.size(), parameters)) {
-        return error::unsupported_by_backend;
-    }
-    auto derived = engine::derive(output, password, salt, parameters);
+    auto derived =
+        detail::argon2_engine<Backend, Variant>::derive(output, password, salt, parameters);
     if (!derived) {
         detail::wipe(output);
     }

@@ -79,6 +79,7 @@
 #include <sodium/crypto_xof_shake256.h>                 // the same
 #include <sodium/crypto_xof_turboshake128.h>            // the same
 #include <sodium/crypto_xof_turboshake256.h>            // the same
+#include <sodium/randombytes.h>                         // the same
 
 #include <algorithm>
 #include <array>
@@ -138,13 +139,22 @@ inline void touch_sodium_canary() noexcept {
 
 /**
  Initialises libsodium, as every engine function does first: `sodium_init` returns 0 the first
- time and 1 after, both success, and -1 when it cannot initialise.
+ time and 1 after, both success, and -1 when it cannot initialise. On Emscripten with threads,
+ libsodium's random source is a JavaScript function of the thread that set it, a Web Worker's own:
+ `randombytes_stir` sets it on the calling thread when it has none, since libsodium's Argon2 draws
+ random bytes (it fills the output first) on whichever thread runs it.
 
  @return Whether libsodium is ready.
 */
 inline bool sodium_ready() noexcept {
     touch_sodium_canary();
-    return sodium_init() >= 0;
+    bool const ready = sodium_init() >= 0;
+#if defined(WEBCPP_TARGET_EMSCRIPTEN) && defined(__EMSCRIPTEN_PTHREADS__)
+    if (ready) {
+        randombytes_stir();
+    }
+#endif
+    return ready;
 }
 
 /**
