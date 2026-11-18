@@ -79,7 +79,7 @@
 #include <new>
 #include <optional>
 #include <span>
-#include <thread>
+#include <thread>  // lint-world: std::this_thread::yield, the state's spin lock
 #include <type_traits>
 #include <utility>
 
@@ -433,7 +433,7 @@ private:
 
     void lock() noexcept {
         while (lock_.test_and_set(std::memory_order_acquire)) {
-            std::this_thread::yield();
+            std::this_thread::yield();  // lint-world: to the thread holding the lock, no clock
         }
     }
 
