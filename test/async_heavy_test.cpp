@@ -641,6 +641,157 @@ void check_cancellation_races(asio::io_context& context) {
     BOOST_TEST_GE(aborted, 1);
 }
 
+// The handler of a call that never completes: its executor, or the pool, destroyed with the
+// operation's completion queued. Asio destroys a queued operation unrun, and with it the handler,
+// whose storage goes back to its allocator: the handler is destroyed, never called, and the
+// operation holds nothing of the handler's allocator. A sentinel the handler owns tells that it was
+// destroyed.
+struct unrun_handler {
+    holding* counts;
+    std::shared_ptr<int> sentinel;
+    bool* called;
+
+    void operator()(boost::system::error_code /*code*/) const { *called = true; }
+};
+
+// A pool of one thread blocked by the test, stopped and destroyed with the operation's job still
+// queued; `bind` binds the handler (to an executor, or not). Returns once the pool is gone.
+template <class Bind>
+void destroy_pool_with_job_queued(holding& counts, std::weak_ptr<int>& alive, bool& called,
+                                  Bind bind) {
+    std::array<std::uint8_t, 32> output{};
+    auto sentinel = std::make_shared<int>(1);
+    alive = sentinel;
+    asio::thread_pool pool(1);
+    std::promise<void> release;
+    auto const released = release.get_future();
+    std::atomic<bool> blocking{false};
+    asio::post(pool, [&] {
+        blocking = true;
+        released.wait();
+    });
+    while (!blocking) {
+        std::this_thread::yield();
+    }
+    hash::async_pbkdf2<hash::hmac_sha2_256, hash::backends::hash2>(
+        pool.get_executor(), output, bytes_of("password"), bytes_of("salt"), 1,
+        bind(asio::bind_allocator(
+            holding_allocator<char>(&counts),
+            unrun_handler{.counts = &counts, .sentinel = std::move(sentinel), .called = &called})));
+    pool.stop();
+    release.set_value();
+    pool.join();
+}
+
+// Operations that never complete (spec 11.5, Asio's rule): the handler destroyed, never called, and
+// nothing of its allocator held, when
+// - the pool is destroyed with the job queued and the handler has no executor of its own (its
+//   executor is the pool's);
+// - the pool is destroyed with the job queued and the handler's io_context runs on (the operation
+//   is discarded there), or is destroyed without running again;
+// - a cancellation before the work starts posts the completion to an io_context destroyed without
+//   running again;
+// and, with exceptions, a use_future's future then reports a broken promise.
+void check_never_completed(asio::io_context& context) {
+    holding counts;
+    std::weak_ptr<int> alive;
+    bool called = false;
+
+    destroy_pool_with_job_queued(counts, alive, called, [](auto handler) { return handler; });
+    BOOST_TEST(alive.expired());
+    BOOST_TEST(!called);
+    BOOST_TEST_EQ(counts.held.load(), 0);
+
+    destroy_pool_with_job_queued(counts, alive, called, [&](auto handler) {
+        return asio::bind_executor(context.get_executor(), std::move(handler));
+    });
+    context.restart();
+    context.run_for(std::chrono::seconds(5));  // lint-run: the discarded operation's turn
+    BOOST_TEST(alive.expired());
+    BOOST_TEST(!called);
+    BOOST_TEST_EQ(counts.held.load(), 0);
+
+    {
+        asio::io_context elsewhere;
+        destroy_pool_with_job_queued(counts, alive, called, [&](auto handler) {
+            return asio::bind_executor(elsewhere.get_executor(), std::move(handler));
+        });
+    }
+    BOOST_TEST(alive.expired());
+    BOOST_TEST(!called);
+    BOOST_TEST_EQ(counts.held.load(), 0);
+
+    {
+        asio::thread_pool busy(1);
+        std::promise<void> release;
+        auto released = release.get_future();
+        std::atomic<bool> blocking{false};
+        asio::post(busy, [&] {
+            blocking = true;
+            released.wait();
+        });
+        while (!blocking) {
+            std::this_thread::yield();
+        }
+        std::array<std::uint8_t, 32> output{};
+        // The signal outlives the context, as a slot must outlive what it is connected to.
+        asio::cancellation_signal signal;
+        {
+            asio::io_context elsewhere;
+            auto sentinel = std::make_shared<int>(1);
+            alive = sentinel;
+            hash::async_pbkdf2<hash::hmac_sha2_256, hash::backends::hash2>(
+                busy.get_executor(), output, bytes_of("password"), bytes_of("salt"), 1,
+                asio::bind_cancellation_slot(
+                    signal.slot(),
+                    asio::bind_executor(elsewhere.get_executor(),
+                                        asio::bind_allocator(holding_allocator<char>(&counts),
+                                                             unrun_handler{
+                                                                 .counts = &counts,
+                                                                 .sentinel = std::move(sentinel),
+                                                                 .called = &called,
+                                                             }))));
+            signal.emit(asio::cancellation_type::terminal);
+        }
+        BOOST_TEST(alive.expired());
+        BOOST_TEST(!called);
+        BOOST_TEST_EQ(counts.held.load(), 0);
+        release.set_value();
+        busy.join();
+    }
+
+#ifndef WEBCPP_HASH_NO_EXCEPTIONS
+    std::array<std::uint8_t, 32> output{};
+    std::future<void> done;
+    {
+        asio::thread_pool pool(1);
+        std::promise<void> release;
+        auto released = release.get_future();
+        std::atomic<bool> blocking{false};
+        asio::post(pool, [&] {
+            blocking = true;
+            released.wait();
+        });
+        while (!blocking) {
+            std::this_thread::yield();
+        }
+        done = hash::async_pbkdf2<hash::hmac_sha2_256, hash::backends::hash2>(
+            pool.get_executor(), output, bytes_of("password"), bytes_of("salt"), 1,
+            asio::use_future);
+        pool.stop();
+        release.set_value();
+        pool.join();
+    }
+    bool broken = false;
+    try {
+        done.get();
+    } catch (std::future_error const& failure) {
+        broken = failure.code() == std::future_errc::broken_promise;
+    }
+    BOOST_TEST(broken);
+#endif
+}
+
 // The caller's event loop stays responsive: a 10 ms timer on its io_context fires while an Argon2id
 // of 64 MiB (libsodium's interactive costs) runs on the pool.
 void check_responsive(asio::io_context& context, asio::thread_pool& pool) {
@@ -815,6 +966,7 @@ int main() {
     check_allocator_released(context, pool);
     check_cancelled_running(context);
     check_cancellation_races(context);
+    check_never_completed(context);
     check_awaitable(context, pool);
     pool.join();
     return webcpp::test::exit_status(boost::report_errors());

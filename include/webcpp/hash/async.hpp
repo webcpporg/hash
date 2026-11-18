@@ -320,7 +320,7 @@ public:
             return;
         }
         auto const executor = handler_work_.get_executor();
-        webcpp::asio::post(executor, discard{this});
+        webcpp::asio::post(executor, bound_completion({}, false));
     }
 
     /** A cancellation of type `type`, on the handler's executor, where the signal is emitted. */
@@ -364,29 +364,45 @@ private:
         heavy_state* state_;
     };
 
-    // The completion, on the handler's executor, its storage the handler's allocator's.
+    // The completion, on the handler's executor, its storage the handler's allocator's. It owns
+    // the state: run, it frees the state and calls the handler (`invoke`), or, for a job destroyed
+    // unrun, only frees it, the handler with it; destroyed without running (its executor shut down
+    // or destroyed with it queued, as Asio destroys a queued operation), it frees the state and
+    // the handler too, never calling it, so that nothing of the handler's allocator is left and a
+    // handler that owns a promise breaks it.
     class completion {
     public:
-        completion(heavy_state* state, boost::system::error_code code) noexcept
-            : state_(state), code_(code) {}
+        completion(heavy_state* state, boost::system::error_code code, bool invoke) noexcept
+            : state_(state), code_(code), invoke_(invoke) {}
 
-        void operator()() { state_->complete(code_); }
+        completion(completion&& other) noexcept
+            : state_(std::exchange(other.state_, nullptr)),
+              code_(other.code_),
+              invoke_(other.invoke_) {}
+
+        completion(completion const&) = delete;
+        completion& operator=(completion const&) = delete;
+        completion& operator=(completion&&) = delete;
+
+        ~completion() {
+            if (state_ != nullptr) {
+                state_->destroy();
+            }
+        }
+
+        void operator()() {
+            auto* const state = std::exchange(state_, nullptr);
+            if (invoke_) {
+                state->complete(code_);
+            } else {
+                state->destroy();
+            }
+        }
 
     private:
         heavy_state* state_;
         boost::system::error_code code_;
-    };
-
-    // The end of an operation whose job was destroyed unrun: the state destroyed, the handler with
-    // it, on the handler's executor, where the slot can be cleared.
-    class discard {
-    public:
-        explicit discard(heavy_state* state) noexcept : state_(state) {}
-
-        void operator()() { state_->destroy(); }
-
-    private:
-        heavy_state* state_;
+        bool invoke_;
     };
 
     heavy_state(Handler handler, WorkExecutor const& work, Work run, std::span<std::uint8_t> output)
@@ -423,11 +439,11 @@ private:
 
     void unlock() noexcept { lock_.clear(std::memory_order_release); }
 
-    // The completion bound to the handler's associated allocator.
-    auto bound_completion(boost::system::error_code code) {
+    // The completion bound to the handler's associated allocator; `invoke` false only discards.
+    auto bound_completion(boost::system::error_code code, bool invoke = true) {
         // NOLINTNEXTLINE(bugprone-unchecked-optional-access): engaged until the completion
         return webcpp::asio::bind_allocator(webcpp::asio::get_associated_allocator(*handler_),
-                                            completion(this, code));
+                                            completion(this, code, invoke));
     }
 
     // Dispatches the completion to the handler's executor; the caller touches the state no more.

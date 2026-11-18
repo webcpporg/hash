@@ -121,7 +121,15 @@ completes on the pool, and so waits for one of its threads); after it starts,
 a `terminal` or `partial` cancellation lets the work run to its end (libsodium
 cannot be interrupted), then the output is zeroed and the completion is
 `operation_aborted`; a `total` one is then ignored, since zeroing the output
-is a side effect.
+is a side effect. The completion runs on the handler's associated executor,
+and the signal is emitted there too, as Asio's slots require: bind the loop's
+executor with `bind_executor` and emit from the loop, never from another
+thread.
+* *A call that never completes destroys its handler.* A pool destroyed with
+the work still queued, or an event loop destroyed with the completion queued,
+destroys the handler without calling it and gives its storage back, as Asio
+does for any operation: a `use_future` future then reports a broken
+promise.
 * *A pool sized for the costs.* Each Argon2id holds its memory on its thread
 until it ends: a pool of n threads can hold n times the memory at once. Size
 the pool to the memory the program may spend, not to the number of logins.
