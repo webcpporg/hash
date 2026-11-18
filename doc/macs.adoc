@@ -306,7 +306,9 @@ for BLAKE2s); unkeyed BLAKE2 is a digest (<<hash-blake2b-options>>).
 made and freed in the call (`EVP_MAC_CTX_new`), as for every function of this
 backend (<<hash-allocation>>); OpenSSL documents that it frees them, not that
 it clears them. Its HMAC, KMAC and BLAKE2 MACs clear their copy of the key
-when freed; its SipHash frees its keyed state without clearing it.
+when freed (the BLAKE2 MACs' first block, which holds the key too, only once
+the tag is computed, not when a call fails before); its SipHash frees its
+keyed state without clearing it.
 * *An HMAC key is at most `INT_MAX` bytes on OpenSSL,* which takes its length
 as an `int`; a longer one is `unsupported_by_backend`.
 

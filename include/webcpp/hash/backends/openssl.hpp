@@ -33,8 +33,9 @@
  context is freed; the salt is freed without being cleared (OpenSSL clears it only when built
  with `OPENSSL_PEDANTIC_ZEROIZATION`). OpenSSL documents `EVP_MD_CTX_free` as cleaning up and
  freeing a digest's context and `EVP_MAC_CTX_free` as freeing a MAC's, not as clearing them; as
- read at 3.5.9, its HMAC, KMAC and BLAKE2 MACs clear their copy of the key when freed, and its
- SipHash frees its keyed state without clearing it. Its default initialisation, on the first
+ read at 3.5.9, its HMAC, KMAC and BLAKE2 MACs clear their copy of the key when freed (the BLAKE2
+ MACs' first block, which holds the key too, only once the tag is computed, not when a call fails
+ before), and its SipHash frees its keyed state without clearing it. Its default initialisation, on the first
  call, reads the configuration file of the directory it was configured with, as any program of
  OpenSSL does.
 

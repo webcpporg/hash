@@ -111,7 +111,9 @@ the digest's own context: `digest_of` frees both before it returns, a
 from. A MAC allocates an `EVP_MAC_CTX` and the MAC's context, which `mac`
 frees before it returns. OpenSSL documents that it cleans up and frees these
 contexts, not that it clears them; its HMAC, KMAC and BLAKE2 MACs clear their
-copy of the key, and its SipHash frees its keyed state without clearing it.
+copy of the key (the BLAKE2 MACs' first block, which holds it too, only once
+the tag is computed), and its SipHash frees its keyed state without clearing
+it.
 Its Argon2 and scrypt allocate the memory their costs name from OpenSSL's
 allocator, the C heap, and free it before the call returns; Argon2 clears its
 copies of the password, salt, secret and associated data, scrypt its copy of
