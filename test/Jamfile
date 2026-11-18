@@ -255,6 +255,16 @@ hash-run agreement_pbkdf2 : agreement_pbkdf2_test.cpp
     <library>/webcpp/hash//openssl : native wasip2 wasip3 ;
 hash-run agreement_pbkdf2_emscripten : agreement_pbkdf2_test.cpp
   : <library>/third_party//sodium <library>/third_party//bearssl : emscripten ;
+# The digests and MACs of every tag backends::openssl has, through the
+# families, against every other linked backend that has the tag (1,000 seeded
+# cases per tag; increment 4's pairs).
+hash-run agreement_families : agreement_families_test.cpp
+  : <library>/third_party//xkcp <library>/third_party//blake3
+    <library>/third_party//sodium <library>/third_party//bearssl
+    <library>/webcpp/hash//openssl : native wasip2 wasip3 ;
+hash-run agreement_families_emscripten : agreement_families_test.cpp
+  : <library>/third_party//xkcp <library>/third_party//blake3
+    <library>/third_party//sodium <library>/third_party//bearssl : emscripten ;
 # Naming the alias refuses an Emscripten program, by the forced include (its
 # message is a fixture of tools/test/hash_jamfiles_test.py). The source is
 # one that builds and runs on Emscripten without the alias (hkdf_hash2), so
@@ -385,8 +395,10 @@ hash-run allocation : allocation_test.cpp
   : <library>/third_party//xkcp <library>/third_party//blake3
     <library>/third_party//sodium <library>/third_party//bearssl
     <target-os>wasi:<linkflags>-Wl,--wrap=malloc,--wrap=calloc,--wrap=realloc,--wrap=aligned_alloc,--wrap=posix_memalign ;
-# OpenSSL's own allocations per call, measured through
-# CRYPTO_set_mem_functions and printed, never bounded; operator new zero.
+# OpenSSL's own allocations per call of every entry point backends::openssl
+# has (its digests, MACs and key derivations), measured through
+# CRYPTO_set_mem_functions and printed, never bounded; operator new zero, and
+# no allocation at all for a refusal by a guard.
 hash-run allocation_openssl : allocation_openssl_test.cpp
   : <library>/webcpp/hash//openssl
     <target-os>wasi:<linkflags>-Wl,--wrap=malloc,--wrap=calloc,--wrap=realloc,--wrap=aligned_alloc,--wrap=posix_memalign

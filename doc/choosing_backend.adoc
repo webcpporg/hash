@@ -9,7 +9,10 @@
 
 A digest has one implementation, Boost.Hash2's or a C library's. A key
 derivation has several, its backends: the same function, giving the same
-bytes, in code of different size, speed and pedigree. A call that names no
+bytes, in code of different size, speed and pedigree. A tag of the families
+(`digest_of`, `hasher`, `mac`, `argon2`) has a backend per cell of its row,
+and the tests compute each case on every backend that has it, pair by pair,
+on a thousand random inputs per tag. A call that names no
 backend takes the default, which is fixed: no measurement, link or define
 changes it. This chapter says what the default is and why, how a program
 names another backend, what each backend does with secrets and memory, and,
@@ -122,11 +125,11 @@ tag of at most 2,097,151, and its HMAC a key of at most `INT_MAX` bytes:
 the key, the label and the context when it frees its context, its one-step
 and X9.63 KDFs their copies of the secret and the info; `kbkdf` answers a key
 of more than `INT_MAX` bytes, `sskdf` and `x963kdf` a secret, an info or an
-output of more than 2^30^ bytes, `unsupported_by_backend`. Its first call reads OpenSSL's
-configuration file. It holds some lengths in an `int`, so hash refuses, before
-OpenSSL is called, a PBKDF2 output (`invalid_output_size`), a PBKDF2 password
-or salt, or an HKDF salt (`input_too_long`) of more than `INT_MAX` bytes. It
-is not built for Emscripten.
+output of more than 2^30^ bytes, `unsupported_by_backend`. Its first call
+reads OpenSSL's configuration file. It holds some lengths in an `int`, so hash
+refuses, before OpenSSL is called, a PBKDF2 output (`invalid_output_size`), a
+PBKDF2 password or salt, or an HKDF salt (`input_too_long`) of more than
+`INT_MAX` bytes. It is not built for Emscripten.
 
 | `xkcp`
 | Hashes without a secret of their own; it allocates nothing.
