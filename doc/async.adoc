@@ -29,8 +29,8 @@ The functions come in two kinds:
 
 * *The heavy functions*, `async_argon2id`, `async_argon2`, `async_scrypt`
 and `async_pbkdf2`, run the work on another thread, on an executor the program
-gives (a `webcpp::asio::thread_pool`'s), and complete on the event loop. They
-exist only where the build has threads.
+gives (the executor of a `webcpp::asio::thread_pool`), and complete on the
+event loop. They exist only where the build has threads.
 * *The cheap functions*, `async_digest`, `async_hmac` and `async_hkdf`, cost
 microseconds: they run at once and complete through the event loop, never
 inside the call. They exist on every target, for the algorithms the browser's
@@ -88,8 +88,8 @@ SharedArrayBuffer's security requirements]); under node they run as they
 are. A program that blocks its main
 thread (`run`, `join`) links `-sPTHREAD_POOL_SIZE=<n>` so that the workers
 start before it blocks. The completion reaches the page's thread through the
-handler's executor: an `io_context` run there, or
-`webcpp::asio::browser::main_thread_context`'s, whose handlers run as
+handler's executor: an `io_context` run there, or the executor of
+`webcpp::asio::browser::main_thread_context`, whose handlers run as
 browser callbacks (bind it with `bind_executor`; the handler must not run an
 `io_context` itself).
 
@@ -228,15 +228,15 @@ output zeroed. Include `<webcpp/hash/backends/webcrypto.hpp>` or
 
 * *The executor is the page's `io_context`.* The promise settles in the
 JavaScript event loop, and only an `io_context` run on the calling thread
-returns to it while it waits. Given a `thread_pool`'s executor, whose threads
-never return to it, the call would never complete: the build stops, or, behind
-`any_io_executor`, the call completes with `invalid_parameters`. Strands and
-type-erased executors of the `io_context` are accepted; behind
+returns to it while it waits. Given the executor of a `thread_pool`, whose
+threads never return to it, the call would never complete: the build stops,
+or, behind `any_io_executor`, the call completes with `invalid_parameters`.
+Strands and type-erased executors of the `io_context` are accepted; behind
 `any_io_executor`, one rebound to another allocator, or a strand of a strand
 (`make_strand(make_strand(executor))`), is not, since the erasure hides its
-type: pass the inner strand, or the `io_context`'s executor.
-That the `io_context` runs on the calling thread is the program's duty: it
-cannot be checked.
+type: pass the inner strand, or the executor of the `io_context`. That the
+`io_context` runs on the calling thread is the program's duty: it cannot be
+checked.
 * *WebCrypto's limits are narrower.* An HKDF info longer than 1,024 bytes
 (node's limit, where the other backends take 32,768) completes with
 `input_too_long`; PBKDF2's iteration count is at most 2^32 - 1

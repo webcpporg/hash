@@ -146,9 +146,9 @@ call the synchronous function the message names.
 
 | `backends::webcrypto` given the executor of a `thread_pool` (or of another
 context than an `io_context`)
-| WebCrypto's promise settles in the JavaScript event loop, to which only an
-`io_context`'s `run` returns: pass the executor of the `io_context` run on the
-calling thread (<<hash-async-webcrypto>>). Behind `any_io_executor` the same
+| WebCrypto's promise settles in the JavaScript event loop, to which only the
+`run` of an `io_context` returns: pass the executor of the `io_context` run on
+the calling thread (<<hash-async-webcrypto>>). Behind `any_io_executor` the same
 mistake completes with `invalid_parameters`.
 
 | `async_pbkdf2` on `backends::webcrypto` over an hmac WebCrypto lacks
