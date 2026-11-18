@@ -16,9 +16,11 @@
 // EVP_MAC_CTX OpenSSL allocates with EVP_MAC_CTX_new; argon2's three variants, argon2id, scrypt,
 // kbkdf, sskdf and x963kdf, whose EVP_KDF_CTX OpenSSL allocates (Argon2's and scrypt's memory
 // among it). Each entry point's refusal by a guard runs too, and must reach no allocator at all.
-// Every call is counted and the totals asserted exactly, so that a tag a wrong trait leaves out
-// fails. OpenSSL's allocations are outside the user's allocator (the accepted departure); they
-// are measured on OpenSSL 3.5.9 (native with assembly, wasip2 and wasip3 without it).
+// Every call is counted and the totals asserted exactly against the call list written here; a
+// tag a wrong trait drops fails the static_assert on backend_has_v instead, and a tag OpenSSL
+// gains later is added here by hand. OpenSSL's allocations are outside the user's allocator (the
+// accepted departure); they are measured on OpenSSL 3.5.9 (native with assembly, wasip2 and wasip3
+// without it).
 
 #include <webcpp/hash/argon2.hpp>
 #include <webcpp/hash/backends/openssl.hpp>
@@ -193,7 +195,8 @@ void measure_mac(char const* name, hash::mac_options<Mac> const& options = {}) {
     using traits = hash::detail::mac_traits<Mac>;
     static_assert(hash::backend_has_v<openssl, Mac, void>);
     constexpr std::size_t key_size = traits::max_key < 32 ? traits::max_key : 32;
-    std::array < std::uint8_t, traits::max_output<32 ? traits::max_output : 32> tag{};
+    constexpr std::size_t tag_size = traits::max_output < 32 ? traits::max_output : 32;
+    std::array<std::uint8_t, tag_size> tag{};
     std::span<std::uint8_t const> const input(bytes);
     for (int round = 1; round != 3; ++round) {
         counted("mac", "mac", name, round, [&] {
