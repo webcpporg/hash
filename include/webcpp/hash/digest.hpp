@@ -635,6 +635,27 @@ struct digest_traits<digests::parallelhash_256> : sp800_185_hash_traits<digests:
 }
 
 /**
+ The family's guards of `digest_of` (spec 2.15), without the backend's: the output's size for the
+ options (`invalid_output_size`), then the options' own. What a backend that completes by itself
+ (`backends::webcrypto`) checks before it starts the work.
+
+ @tparam Digest A tag of `digests`. @param output_size The output's size.
+ @param options The digest's parameters.
+ @return Success, or the error of the first guard that fails, as `digest_of` returns it.
+*/
+template <class Digest>
+[[nodiscard]] boost::system::result<void> digest_guards(std::size_t output_size,
+                                                        digest_options<Digest> const& options) {
+    using traits = digest_traits<Digest>;
+    auto sized =
+        check_output(output_size, traits::min_output(options), traits::max_output(options));
+    if (!sized) {
+        return sized;
+    }
+    return traits::check(options);
+}
+
+/**
  The backend's guard of `digest_of` and `hasher::finish` on an output the family accepts: the
  engine's shortest and longest outputs (`unsupported_by_backend`). It runs after the options'
  guards, so that an option's error comes before the backend's refusal.
@@ -677,13 +698,7 @@ template <class Digest, class Backend = default_backend<Digest>>
                                                     std::span<std::uint8_t const> input,
                                                     digest_options<Digest> const& options = {}) {
     using engine = detail::digest_engine<Backend, Digest>;
-    using traits = detail::digest_traits<Digest>;
-    auto sized = detail::check_output(output.size(), traits::min_output(options),
-                                      traits::max_output(options));
-    if (!sized) {
-        return sized;
-    }
-    auto checked = traits::check(options);
+    auto checked = detail::digest_guards<Digest>(output.size(), options);
     if (!checked) {
         return checked;
     }

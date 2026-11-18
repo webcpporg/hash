@@ -630,12 +630,7 @@ struct async_engine<backends::webcrypto> {
     template <class Digest, class Executor, class CompletionToken>
     static auto digest(Executor const& executor, std::span<std::uint8_t> output,
                        std::span<std::uint8_t const> input, CompletionToken&& token) {
-        using traits = digest_traits<Digest>;
-        constexpr std::uint64_t size = traits::max_output(digest_options<Digest>{});
-        boost::system::result<void> guarded;
-        if (output.size() != size) {
-            guarded = error::invalid_output_size;
-        }
+        auto const guarded = digest_guards<Digest>(output.size(), digest_options<Digest>{});
         webcrypto_digest_request const request{
             .hash = webcrypto_hash_name<Digest>,
             .input = input,
