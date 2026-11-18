@@ -1016,15 +1016,19 @@ struct mac_engine : refused_mac_engine<Mac> {
                   "macs::hmac<digests::sha2_256>.");
 };
 
-/** HMAC over a digest no backend has HMAC over (spec 3.3). */
+/**
+ HMAC over a digest no backend has HMAC over (spec 3.3): one without a standard HMAC
+ (`digests::md5_sha1`, design D41), an extendable-output function, over which HMAC is not defined,
+ or a digest in no backend.
+*/
 template <class Backend, class Digest>
 struct mac_engine<Backend, macs::hmac<Digest>> : refused_mac_engine<macs::hmac<Digest>>,
                                                  needs_library<Backend> {
     static_assert(!std::is_same_v<Backend, no_default>,
-                  "webcpp::hash: macs::hmac over this digest has no default backend, and no "
-                  "backend has it yet.");
+                  "webcpp::hash: macs::hmac over this digest has no default backend: no "
+                  "backend has it.");
     static_assert(refused_elsewhere_v<Backend>,
-                  "webcpp::hash: macs::hmac over this digest is in no backend yet.");
+                  "webcpp::hash: macs::hmac over this digest is in no backend.");
 };
 
 // The refusal of each tag of `macs` on a backend that lacks it (spec 3.3), as the digests'.
