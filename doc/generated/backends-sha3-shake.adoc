@@ -226,7 +226,7 @@
 
 What each backend states on constant time, as the capability table read it:
 
-* `bearssl`: BearSSL at webcpp::crypto's pin: bearssl_kdf.h states no constant-time property for br_shake_*.
+* `bearssl`: BearSSL at 7bea48e (v0.6-39): bearssl_kdf.h states no constant-time property for br_shake_*.
 * `hash2`: Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property.
 * `openssl`: OpenSSL 3.5.9: doc/man7/EVP_MD-*.pod, doc/man3/EVP_DigestInit.pod and providers/implementations/digests/ state no constant-time property.
 * `sodium`: libsodium 1.0.22: its headers state constant time for comparisons (sodium/utils.h) alone, not for its hashing, MAC, key derivation and password hashing functions (crypto_hash_*, crypto_xof_*, crypto_generichash_*, crypto_shorthash_*, crypto_auth_*, crypto_kdf_*, crypto_pwhash_*).

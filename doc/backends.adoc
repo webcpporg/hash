@@ -45,7 +45,7 @@ states about its constant time. The backends:
 | every function of its cells
 
 | bearssl
-| BearSSL at webcpp::crypto's pin
+| BearSSL at 7bea48e (v0.6-39)
 | MIT
 | `/third_party//bearssl`
 | native, wasip2, wasip3, emscripten
@@ -648,30 +648,6 @@ states about its constant time. The backends:
 | not stated
 | native, wasip2, wasip3
 
-| macs::blake2b_mac
-| sodium
-| -
-| not stated
-| native, wasip2, wasip3, emscripten
-
-| macs::blake2b_mac
-| openssl
-| -
-| not stated
-| native, wasip2, wasip3
-
-| macs::blake2s_mac
-| hash2 (partial: a tag under 32 bytes: BLAKE2s's output size is a parameter of the hash, and Boost.Hash2's keyed blake2s_256 has 32 bytes alone)
-| -
-| not stated
-| native, wasip2, wasip3, emscripten
-
-| macs::blake2s_mac
-| openssl
-| -
-| not stated
-| native, wasip2, wasip3
-
 | blake3
 | blake3
 | -
@@ -783,6 +759,30 @@ states about its constant time. The backends:
 
 | macs::kmac_256
 | openssl (partial: a key under 4 or over 512 bytes, a customisation over 512 bytes, or a tag over 2,097,151 bytes: OpenSSL's KMAC limits (kmac_prov.c))
+| -
+| not stated
+| native, wasip2, wasip3
+
+| macs::blake2b_mac
+| sodium
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| macs::blake2b_mac
+| openssl
+| -
+| not stated
+| native, wasip2, wasip3
+
+| macs::blake2s_mac
+| hash2 (partial: a tag under 32 bytes: BLAKE2s's output size is a parameter of the hash, and Boost.Hash2's keyed blake2s_256 has 32 bytes alone)
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| macs::blake2s_mac
+| openssl
 | -
 | not stated
 | native, wasip2, wasip3
@@ -1294,7 +1294,7 @@ states about its constant time. The backends:
 | native, wasip2, wasip3
 
 | hkdf
-| webcrypto (asynchronous family only)
+| webcrypto (asynchronous family only) (partial: an info longer than 1,024 bytes, which completes with input_too_long: WebCrypto's limit as node has it, where the other backends take 32,768)
 | hmac_sha1_160, hmac_sha2_256, hmac_sha2_384, hmac_sha2_512
 | not stated
 | emscripten
@@ -1312,7 +1312,7 @@ states about its constant time. The backends:
 | native, wasip2, wasip3
 
 | pbkdf2
-| webcrypto (asynchronous family only)
+| webcrypto (asynchronous family only) (partial: an iteration count above 2^32 - 1 (invalid_iterations) and an output longer than (2^32 - 1) / 8 bytes (invalid_output_size): WebCrypto's deriveBits counts iterations and bits in 32 bits)
 | hmac_sha1_160, hmac_sha2_256, hmac_sha2_384, hmac_sha2_512
 | not stated
 | emscripten
@@ -1504,12 +1504,6 @@ The backend a call that names none uses, on every target, whatever the program l
 | digests::blake2s_256
 | hash2
 
-| macs::blake2b_mac
-| sodium
-
-| macs::blake2s_mac
-| hash2
-
 | digests::blake3
 | blake3
 
@@ -1530,6 +1524,12 @@ The backend a call that names none uses, on every target, whatever the program l
 
 | macs::kmac_256
 | xkcp
+
+| macs::blake2b_mac
+| sodium
+
+| macs::blake2s_mac
+| hash2
 
 | macs::hmac<digests::md5>
 | hash2
@@ -1627,21 +1627,24 @@ The backend a call that names none uses, on every target, whatever the program l
 What each backend's upstream states, and where:
 
 * hash2: not stated. Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property.
-* xkcp: not stated. XKCP at d20c8fc: README.markdown, lib/low/KeccakP-1600 and lib/high/Keccak (KeccakSponge, FIPS202/KeccakHash) state no constant-time property.
-* xkcp: not stated. XKCP at d20c8fc: README.markdown, lib/low/KeccakP-1600 and lib/high (KangarooTwelve, TurboSHAKE, Keccak/KeccakSponge) state no constant-time property.
-* xkcp: not stated. XKCP at d20c8fc: README.markdown, lib/low/KeccakP-1600 and lib/high/Keccak (KeccakSponge, FIPS202/KeccakHash, SP800-185) state no constant-time property.
+* xkcp: not stated.
+** XKCP at d20c8fc: README.markdown, lib/low/KeccakP-1600 and lib/high/Keccak (KeccakSponge, FIPS202/KeccakHash) state no constant-time property.
+** XKCP at d20c8fc: README.markdown, lib/low/KeccakP-1600 and lib/high (KangarooTwelve, TurboSHAKE, Keccak/KeccakSponge) state no constant-time property.
+** XKCP at d20c8fc: README.markdown, lib/low/KeccakP-1600 and lib/high/Keccak (KeccakSponge, FIPS202/KeccakHash, SP800-185) state no constant-time property.
 * blake3: not stated. BLAKE3 1.8.7: README.md and c/README.md state no constant-time property.
 * sodium: not stated. libsodium 1.0.22: its headers state constant time for comparisons (sodium/utils.h) alone, not for its hashing, MAC, key derivation and password hashing functions (crypto_hash_*, crypto_xof_*, crypto_generichash_*, crypto_shorthash_*, crypto_auth_*, crypto_kdf_*, crypto_pwhash_*).
-* bearssl: not stated. BearSSL at webcpp::crypto's pin: bearssl_hash.h states constant time for its GHASH implementations alone, not for br_md5_*, br_sha1_*, br_sha224_* to br_sha512_* or br_md5sha1_*.
-* bearssl: not stated. BearSSL at webcpp::crypto's pin: bearssl_kdf.h states no constant-time property for br_shake_*.
-* bearssl: not stated. BearSSL at webcpp::crypto's pin: bearssl_hmac.h states constant time for br_hmac_outCT alone; mac calls br_hmac_out.
-* bearssl: not stated. BearSSL at webcpp::crypto's pin: bearssl_hmac.h states constant time for br_hmac_outCT alone; br_hkdf_* (src/kdf/hkdf.c) calls br_hmac_out.
-* openssl: not stated. OpenSSL 3.5.9: doc/man7/EVP_MD-*.pod, doc/man3/EVP_DigestInit.pod and providers/implementations/digests/ state no constant-time property.
-* openssl: not stated. OpenSSL 3.5.9: doc/man3/EVP_MAC.pod, doc/man7/EVP_MAC-HMAC.pod, EVP_MAC-KMAC.pod, EVP_MAC-BLAKE2.pod, EVP_MAC-Siphash.pod and providers/implementations/macs/ state no constant-time property.
-* openssl: not stated. OpenSSL 3.5.9: doc/man7/EVP_KDF-HKDF.pod and EVP_KDF-PBKDF2.pod state no constant-time property.
-* openssl: not stated. OpenSSL 3.5.9: doc/man7/EVP_KDF-KB.pod states no constant-time property.
-* openssl: not stated. OpenSSL 3.5.9: doc/man7/EVP_KDF-SS.pod states no constant-time property.
-* openssl: not stated. OpenSSL 3.5.9: doc/man7/EVP_KDF-X963.pod states no constant-time property.
-* openssl: not stated. OpenSSL 3.5.9: doc/man7/EVP_KDF-ARGON2.pod states that Argon2i's memory accesses are independent of the data and Argon2d's depend on it, and states no constant-time property.
-* openssl: not stated. OpenSSL 3.5.9: doc/man7/EVP_KDF-SCRYPT.pod states no constant-time property.
+* bearssl: not stated.
+** BearSSL at 7bea48e (v0.6-39): bearssl_hash.h states constant time for its GHASH implementations alone, not for br_md5_*, br_sha1_*, br_sha224_* to br_sha512_* or br_md5sha1_*.
+** BearSSL at 7bea48e (v0.6-39): bearssl_kdf.h states no constant-time property for br_shake_*.
+** BearSSL at 7bea48e (v0.6-39): bearssl_hmac.h states constant time for br_hmac_outCT alone; mac calls br_hmac_out.
+** BearSSL at 7bea48e (v0.6-39): bearssl_hmac.h states constant time for br_hmac_outCT alone; br_hkdf_* (src/kdf/hkdf.c) calls br_hmac_out.
+* openssl: not stated.
+** OpenSSL 3.5.9: doc/man7/EVP_MD-*.pod, doc/man3/EVP_DigestInit.pod and providers/implementations/digests/ state no constant-time property.
+** OpenSSL 3.5.9: doc/man3/EVP_MAC.pod, doc/man7/EVP_MAC-HMAC.pod, EVP_MAC-KMAC.pod, EVP_MAC-BLAKE2.pod, EVP_MAC-Siphash.pod and providers/implementations/macs/ state no constant-time property.
+** OpenSSL 3.5.9: doc/man7/EVP_KDF-HKDF.pod and EVP_KDF-PBKDF2.pod state no constant-time property.
+** OpenSSL 3.5.9: doc/man7/EVP_KDF-KB.pod states no constant-time property.
+** OpenSSL 3.5.9: doc/man7/EVP_KDF-SS.pod states no constant-time property.
+** OpenSSL 3.5.9: doc/man7/EVP_KDF-X963.pod states no constant-time property.
+** OpenSSL 3.5.9: doc/man7/EVP_KDF-ARGON2.pod states that Argon2i's memory accesses are independent of the data and Argon2d's depend on it, and states no constant-time property.
+** OpenSSL 3.5.9: doc/man7/EVP_KDF-SCRYPT.pod states no constant-time property.
 * webcrypto: not stated. The Web Cryptography API (W3C Recommendation, 2017) states no constant-time property of digest, sign or deriveBits; each JavaScript runtime's implementation decides, and webcpp reads none.

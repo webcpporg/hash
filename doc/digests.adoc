@@ -344,7 +344,8 @@ BLAKE2 (RFC 7693) is a digest faster than MD5 in software and as strong as
 SHA-3, designed from BLAKE, a SHA-3 finalist. BLAKE2b works on 64-bit words
 and gives up to 64 bytes; BLAKE2s works on 32-bit words, for small machines,
 and gives up to 32 bytes. Both take a key, so a keyed BLAKE2 is a MAC without
-HMAC's double pass. Argon2 is built on BLAKE2b, libsodium's generic hash is
+HMAC's double pass (`macs::blake2b_mac` and `macs::blake2s_mac`,
+<<hash-blake2b-mac-sodium>>). Argon2 is built on BLAKE2b, libsodium's generic hash is
 BLAKE2b, and WireGuard uses BLAKE2s for its hash, its MAC and its HKDF.
 
 [source]
@@ -625,8 +626,6 @@ first 24 bytes) and its KMAC hash have no tag, and Whirlpool is in OpenSSL's
 legacy provider, which webcpp does not load: the capability table says why.
 * *A tag without its backend stops the build.* A tag whose backend the
 program does not link stops with a message that names the line to add; a tag
-that the backend does not have yet stops with a message that names the
-backends that have it, or says that none has it yet. A default whose engine
-comes in a later increment can give both, one build after the other
-(<<hash-jamfile-messages>>).
+that the backend does not have stops with a message that names the backends
+that have it, or says that none has it (<<hash-jamfile-messages>>).
 

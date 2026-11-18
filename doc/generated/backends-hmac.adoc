@@ -464,7 +464,7 @@
 
 What each backend states on constant time, as the capability table read it:
 
-* `bearssl`: BearSSL at webcpp::crypto's pin: bearssl_hmac.h states constant time for br_hmac_outCT alone; mac calls br_hmac_out.
+* `bearssl`: BearSSL at 7bea48e (v0.6-39): bearssl_hmac.h states constant time for br_hmac_outCT alone; mac calls br_hmac_out.
 * `hash2`: Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property.
 * `openssl`: OpenSSL 3.5.9: doc/man3/EVP_MAC.pod, doc/man7/EVP_MAC-HMAC.pod, EVP_MAC-KMAC.pod, EVP_MAC-BLAKE2.pod, EVP_MAC-Siphash.pod and providers/implementations/macs/ state no constant-time property.
 * `sodium`: libsodium 1.0.22: its headers state constant time for comparisons (sodium/utils.h) alone, not for its hashing, MAC, key derivation and password hashing functions (crypto_hash_*, crypto_xof_*, crypto_generichash_*, crypto_shorthash_*, crypto_auth_*, crypto_kdf_*, crypto_pwhash_*).

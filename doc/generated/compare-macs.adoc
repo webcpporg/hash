@@ -55,6 +55,20 @@
 | recommended
 | no
 
+| <<hash-blake2b-mac-sodium,`macs::blake2b_mac`>>
+| 1 to 64 bytes
+| up to 256 bits, bounded by the key's and the tag's sizes
+| RFC 7693, keyed (section 2.5)
+| recommended
+| no
+
+| <<hash-mac-family,`macs::blake2s_mac`>>
+| 1 to 32 bytes
+| 128 bits and more, up to the tag's size
+| RFC 7693, keyed (section 2.5)
+| recommended
+| no
+
 | <<hash-hmac,`hmac`>>
 | the digest of H
 | that of H's digest, with a key as long as it
@@ -356,6 +370,18 @@
 | -
 | link:https://doi.org/10.6028/NIST.SP.800-56Cr2[A MAC and a KDF of NIST SP 800-56C (KMAC-based key derivation)]
 | As KMAC128, where a format asks for 256-bit security.
+
+| <<hash-blake2b-mac-sodium,`macs::blake2b_mac`>>
+| -
+| -
+| link:https://www.rfc-editor.org/rfc/rfc7693#section-2.5[RFC 7693's keyed BLAKE2b, a MAC without HMAC's two passes]; link:https://doc.libsodium.org/hashing/generic_hashing[libsodium's keyed generic hash, crypto_generichash with a key]
+| A fast keyed tag on 64-bit machines, of any size from 1 to 64 bytes; HMAC-SHA-256 where a format or WebCrypto must agree.
+
+| <<hash-mac-family,`macs::blake2s_mac`>>
+| -
+| -
+| link:https://www.wireguard.com/protocol/[WireGuard's MAC]
+| A fast keyed tag on 32-bit and small machines, without HMAC's two passes.
 
 | <<hash-hmac,`hmac`>>
 | 599 MiB/s (hash2)

@@ -28,7 +28,7 @@
 | not stated
 
 | `pbkdf2`
-| `webcrypto` (asynchronous family only)
+| `webcrypto` (asynchronous family only) (partial: an iteration count above 2^32 - 1 (invalid_iterations) and an output longer than (2^32 - 1) / 8 bytes (invalid_output_size): WebCrypto's deriveBits counts iterations and bits in 32 bits)
 | `/webcpp/asio//asio`
 | emscripten
 | `hmac_sha1_160`, `hmac_sha2_256`, `hmac_sha2_384`, `hmac_sha2_512`

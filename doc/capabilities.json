@@ -7,8 +7,8 @@
         "backends[]": "Each library a function runs on: name (as cells name it), tag (its webcpp::hash::backends type), macro (the word of WEBCPP_HASH_HAS_<macro>, null for a backend that links no library of its own), library (name and pin), licence, jamfile (the target a program names), targets (where it builds), asynchronous_only (present and true on a backend that only the asynchronous family of async.hpp takes, backends::webcrypto: its cells are the asynchronous functions', async_digest, async_hmac, async_hkdf and async_pbkdf2, never the synchronous ones, and it is never a default), and optionally omitted[] ({names, reason}: what the library has and hash does not expose or does not load, each with its upstream names and why).",
         "hmacs": "The hmac columns of a function over an hmac: the aliases of <webcpp/hash/hmac.hpp>, and \"other\", hmac<H> over any other Boost.Hash2 hash whose result is a digest.",
         "algorithms[]": "One row group of spec 3.5: name, macro (the algorithm's word in upper case), tag (its kdfs:: type, or null), chapter (the documentation's chapter: digests, macs, kdfs, password_hashing, non-cryptographic), standard, functions.",
-        "functions[]": "One public name: name (a type's or function's own name; a family's row is named by its qualified tag, as digests::sha2_256 or macs::hmac<digests::sha2_256>), kind (\"type\": a Boost.Hash2-form type; \"function\": a function template with a Backend parameter; \"digest\": a tag of digest_of and hasher; \"mac\": a tag of mac; \"kdf\": a variant of argon2), header, default (for a function or a family's tag, the backend default_backend names when the call names none, null for a tag with no default (detail::no_default) and for a type; a family's default may be a backend whose cell lands in a later increment), backends.",
-        "backends{}": "Per backend name, the cell: since (the increment it came with, 1 to 7), hmacs (the columns it has, or null for a function or type that takes no hmac), partial (only on a cell that refuses some values the family accepts: what it refuses, with unsupported_by_backend), constant_time {value: \"yes\", \"no\" or \"not stated\", source: where upstream says so, or what was read and says nothing}. A cell holds on every target of its backend."
+        "functions[]": "One public name: name (a type's or function's own name; a family's row is named by its qualified tag, as digests::sha2_256 or macs::hmac<digests::sha2_256>), kind (\"type\": a Boost.Hash2-form type; \"function\": a function template with a Backend parameter; \"digest\": a tag of digest_of and hasher; \"mac\": a tag of mac; \"kdf\": a variant of argon2), header, default (for a function or a family's tag, the backend default_backend names when the call names none, null for a tag with no default (detail::no_default) and for a type; every default has its cell), backends.",
+        "backends{}": "Per backend name, the cell: since (the increment it came with, 1 to 7), hmacs (the columns it has, or null for a function or type that takes no hmac), partial (only on a cell that refuses some values the family accepts: what it refuses, with unsupported_by_backend, or, for backends::webcrypto's narrower limits, with the error its backend_limits name), constant_time {value: \"yes\", \"no\" or \"not stated\", source: where upstream says so, or what was read and says nothing}. A cell holds on every target of its backend."
     },
     "targets": [
         "native",
@@ -77,7 +77,7 @@
             "name": "bearssl",
             "tag": "backends::bearssl",
             "macro": "BEARSSL",
-            "library": "BearSSL at webcpp::crypto's pin",
+            "library": "BearSSL at 7bea48e (v0.6-39)",
             "licence": "MIT",
             "jamfile": "/third_party//bearssl",
             "targets": [
@@ -324,7 +324,7 @@
                             "hmacs": null,
                             "constant_time": {
                                 "value": "not stated",
-                                "source": "BearSSL at webcpp::crypto's pin: bearssl_hash.h states constant time for its GHASH implementations alone, not for br_md5_*, br_sha1_*, br_sha224_* to br_sha512_* or br_md5sha1_*."
+                                "source": "BearSSL at 7bea48e (v0.6-39): bearssl_hash.h states constant time for its GHASH implementations alone, not for br_md5_*, br_sha1_*, br_sha224_* to br_sha512_* or br_md5sha1_*."
                             }
                         },
                         "openssl": {
@@ -356,7 +356,7 @@
                             "hmacs": null,
                             "constant_time": {
                                 "value": "not stated",
-                                "source": "BearSSL at webcpp::crypto's pin: bearssl_hash.h states constant time for its GHASH implementations alone, not for br_md5_*, br_sha1_*, br_sha224_* to br_sha512_* or br_md5sha1_*."
+                                "source": "BearSSL at 7bea48e (v0.6-39): bearssl_hash.h states constant time for its GHASH implementations alone, not for br_md5_*, br_sha1_*, br_sha224_* to br_sha512_* or br_md5sha1_*."
                             }
                         },
                         "openssl": {
@@ -396,7 +396,7 @@
                             "hmacs": null,
                             "constant_time": {
                                 "value": "not stated",
-                                "source": "BearSSL at webcpp::crypto's pin: bearssl_hash.h states constant time for its GHASH implementations alone, not for br_md5_*, br_sha1_*, br_sha224_* to br_sha512_* or br_md5sha1_*."
+                                "source": "BearSSL at 7bea48e (v0.6-39): bearssl_hash.h states constant time for its GHASH implementations alone, not for br_md5_*, br_sha1_*, br_sha224_* to br_sha512_* or br_md5sha1_*."
                             }
                         },
                         "openssl": {
@@ -436,7 +436,7 @@
                             "hmacs": null,
                             "constant_time": {
                                 "value": "not stated",
-                                "source": "BearSSL at webcpp::crypto's pin: bearssl_hash.h states constant time for its GHASH implementations alone, not for br_md5_*, br_sha1_*, br_sha224_* to br_sha512_* or br_md5sha1_*."
+                                "source": "BearSSL at 7bea48e (v0.6-39): bearssl_hash.h states constant time for its GHASH implementations alone, not for br_md5_*, br_sha1_*, br_sha224_* to br_sha512_* or br_md5sha1_*."
                             }
                         },
                         "openssl": {
@@ -476,7 +476,7 @@
                             "hmacs": null,
                             "constant_time": {
                                 "value": "not stated",
-                                "source": "BearSSL at webcpp::crypto's pin: bearssl_hash.h states constant time for its GHASH implementations alone, not for br_md5_*, br_sha1_*, br_sha224_* to br_sha512_* or br_md5sha1_*."
+                                "source": "BearSSL at 7bea48e (v0.6-39): bearssl_hash.h states constant time for its GHASH implementations alone, not for br_md5_*, br_sha1_*, br_sha224_* to br_sha512_* or br_md5sha1_*."
                             }
                         },
                         "openssl": {
@@ -524,7 +524,7 @@
                             "hmacs": null,
                             "constant_time": {
                                 "value": "not stated",
-                                "source": "BearSSL at webcpp::crypto's pin: bearssl_hash.h states constant time for its GHASH implementations alone, not for br_md5_*, br_sha1_*, br_sha224_* to br_sha512_* or br_md5sha1_*."
+                                "source": "BearSSL at 7bea48e (v0.6-39): bearssl_hash.h states constant time for its GHASH implementations alone, not for br_md5_*, br_sha1_*, br_sha224_* to br_sha512_* or br_md5sha1_*."
                             }
                         },
                         "openssl": {
@@ -604,7 +604,7 @@
                             "hmacs": null,
                             "constant_time": {
                                 "value": "not stated",
-                                "source": "BearSSL at webcpp::crypto's pin: bearssl_hash.h states constant time for its GHASH implementations alone, not for br_md5_*, br_sha1_*, br_sha224_* to br_sha512_* or br_md5sha1_*."
+                                "source": "BearSSL at 7bea48e (v0.6-39): bearssl_hash.h states constant time for its GHASH implementations alone, not for br_md5_*, br_sha1_*, br_sha224_* to br_sha512_* or br_md5sha1_*."
                             }
                         },
                         "openssl": {
@@ -901,7 +901,7 @@
                             "hmacs": null,
                             "constant_time": {
                                 "value": "not stated",
-                                "source": "BearSSL at webcpp::crypto's pin: bearssl_kdf.h states no constant-time property for br_shake_*."
+                                "source": "BearSSL at 7bea48e (v0.6-39): bearssl_kdf.h states no constant-time property for br_shake_*."
                             }
                         },
                         "openssl": {
@@ -949,7 +949,7 @@
                             "hmacs": null,
                             "constant_time": {
                                 "value": "not stated",
-                                "source": "BearSSL at webcpp::crypto's pin: bearssl_kdf.h states no constant-time property for br_shake_*."
+                                "source": "BearSSL at 7bea48e (v0.6-39): bearssl_kdf.h states no constant-time property for br_shake_*."
                             }
                         },
                         "openssl": {
@@ -1386,55 +1386,6 @@
                             }
                         }
                     }
-                },
-                {
-                    "name": "macs::blake2b_mac",
-                    "kind": "mac",
-                    "header": "webcpp/hash/mac.hpp",
-                    "default": "sodium",
-                    "backends": {
-                        "sodium": {
-                            "since": 2,
-                            "hmacs": null,
-                            "constant_time": {
-                                "value": "not stated",
-                                "source": "libsodium 1.0.22: its headers state constant time for comparisons (sodium/utils.h) alone, not for its hashing, MAC, key derivation and password hashing functions (crypto_hash_*, crypto_xof_*, crypto_generichash_*, crypto_shorthash_*, crypto_auth_*, crypto_kdf_*, crypto_pwhash_*)."
-                            }
-                        },
-                        "openssl": {
-                            "since": 4,
-                            "hmacs": null,
-                            "constant_time": {
-                                "value": "not stated",
-                                "source": "OpenSSL 3.5.9: doc/man3/EVP_MAC.pod, doc/man7/EVP_MAC-HMAC.pod, EVP_MAC-KMAC.pod, EVP_MAC-BLAKE2.pod, EVP_MAC-Siphash.pod and providers/implementations/macs/ state no constant-time property."
-                            }
-                        }
-                    }
-                },
-                {
-                    "name": "macs::blake2s_mac",
-                    "kind": "mac",
-                    "header": "webcpp/hash/mac.hpp",
-                    "default": "hash2",
-                    "backends": {
-                        "hash2": {
-                            "since": 2,
-                            "hmacs": null,
-                            "partial": "a tag under 32 bytes: BLAKE2s's output size is a parameter of the hash, and Boost.Hash2's keyed blake2s_256 has 32 bytes alone",
-                            "constant_time": {
-                                "value": "not stated",
-                                "source": "Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property."
-                            }
-                        },
-                        "openssl": {
-                            "since": 4,
-                            "hmacs": null,
-                            "constant_time": {
-                                "value": "not stated",
-                                "source": "OpenSSL 3.5.9: doc/man3/EVP_MAC.pod, doc/man7/EVP_MAC-HMAC.pod, EVP_MAC-KMAC.pod, EVP_MAC-BLAKE2.pod, EVP_MAC-Siphash.pod and providers/implementations/macs/ state no constant-time property."
-                            }
-                        }
-                    }
                 }
             ]
         },
@@ -1716,6 +1667,64 @@
                             "since": 4,
                             "hmacs": null,
                             "partial": "a key under 4 or over 512 bytes, a customisation over 512 bytes, or a tag over 2,097,151 bytes: OpenSSL's KMAC limits (kmac_prov.c)",
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "OpenSSL 3.5.9: doc/man3/EVP_MAC.pod, doc/man7/EVP_MAC-HMAC.pod, EVP_MAC-KMAC.pod, EVP_MAC-BLAKE2.pod, EVP_MAC-Siphash.pod and providers/implementations/macs/ state no constant-time property."
+                            }
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "blake2_mac",
+            "macro": "BLAKE2_MAC",
+            "tag": null,
+            "chapter": "macs",
+            "standard": "RFC 7693, keyed (section 2.5)",
+            "functions": [
+                {
+                    "name": "macs::blake2b_mac",
+                    "kind": "mac",
+                    "header": "webcpp/hash/mac.hpp",
+                    "default": "sodium",
+                    "backends": {
+                        "sodium": {
+                            "since": 2,
+                            "hmacs": null,
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "libsodium 1.0.22: its headers state constant time for comparisons (sodium/utils.h) alone, not for its hashing, MAC, key derivation and password hashing functions (crypto_hash_*, crypto_xof_*, crypto_generichash_*, crypto_shorthash_*, crypto_auth_*, crypto_kdf_*, crypto_pwhash_*)."
+                            }
+                        },
+                        "openssl": {
+                            "since": 4,
+                            "hmacs": null,
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "OpenSSL 3.5.9: doc/man3/EVP_MAC.pod, doc/man7/EVP_MAC-HMAC.pod, EVP_MAC-KMAC.pod, EVP_MAC-BLAKE2.pod, EVP_MAC-Siphash.pod and providers/implementations/macs/ state no constant-time property."
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "macs::blake2s_mac",
+                    "kind": "mac",
+                    "header": "webcpp/hash/mac.hpp",
+                    "default": "hash2",
+                    "backends": {
+                        "hash2": {
+                            "since": 2,
+                            "hmacs": null,
+                            "partial": "a tag under 32 bytes: BLAKE2s's output size is a parameter of the hash, and Boost.Hash2's keyed blake2s_256 has 32 bytes alone",
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property."
+                            }
+                        },
+                        "openssl": {
+                            "since": 4,
+                            "hmacs": null,
                             "constant_time": {
                                 "value": "not stated",
                                 "source": "OpenSSL 3.5.9: doc/man3/EVP_MAC.pod, doc/man7/EVP_MAC-HMAC.pod, EVP_MAC-KMAC.pod, EVP_MAC-BLAKE2.pod, EVP_MAC-Siphash.pod and providers/implementations/macs/ state no constant-time property."
@@ -2023,7 +2032,7 @@
                             "hmacs": null,
                             "constant_time": {
                                 "value": "not stated",
-                                "source": "BearSSL at webcpp::crypto's pin: bearssl_hmac.h states constant time for br_hmac_outCT alone; mac calls br_hmac_out."
+                                "source": "BearSSL at 7bea48e (v0.6-39): bearssl_hmac.h states constant time for br_hmac_outCT alone; mac calls br_hmac_out."
                             }
                         },
                         "openssl": {
@@ -2056,7 +2065,7 @@
                             "hmacs": null,
                             "constant_time": {
                                 "value": "not stated",
-                                "source": "BearSSL at webcpp::crypto's pin: bearssl_hmac.h states constant time for br_hmac_outCT alone; mac calls br_hmac_out."
+                                "source": "BearSSL at 7bea48e (v0.6-39): bearssl_hmac.h states constant time for br_hmac_outCT alone; mac calls br_hmac_out."
                             }
                         },
                         "openssl": {
@@ -2097,7 +2106,7 @@
                             "hmacs": null,
                             "constant_time": {
                                 "value": "not stated",
-                                "source": "BearSSL at webcpp::crypto's pin: bearssl_hmac.h states constant time for br_hmac_outCT alone; mac calls br_hmac_out."
+                                "source": "BearSSL at 7bea48e (v0.6-39): bearssl_hmac.h states constant time for br_hmac_outCT alone; mac calls br_hmac_out."
                             }
                         },
                         "openssl": {
@@ -2138,7 +2147,7 @@
                             "hmacs": null,
                             "constant_time": {
                                 "value": "not stated",
-                                "source": "BearSSL at webcpp::crypto's pin: bearssl_hmac.h states constant time for br_hmac_outCT alone; mac calls br_hmac_out."
+                                "source": "BearSSL at 7bea48e (v0.6-39): bearssl_hmac.h states constant time for br_hmac_outCT alone; mac calls br_hmac_out."
                             }
                         },
                         "openssl": {
@@ -2179,7 +2188,7 @@
                             "hmacs": null,
                             "constant_time": {
                                 "value": "not stated",
-                                "source": "BearSSL at webcpp::crypto's pin: bearssl_hmac.h states constant time for br_hmac_outCT alone; mac calls br_hmac_out."
+                                "source": "BearSSL at 7bea48e (v0.6-39): bearssl_hmac.h states constant time for br_hmac_outCT alone; mac calls br_hmac_out."
                             }
                         },
                         "openssl": {
@@ -2228,7 +2237,7 @@
                             "hmacs": null,
                             "constant_time": {
                                 "value": "not stated",
-                                "source": "BearSSL at webcpp::crypto's pin: bearssl_hmac.h states constant time for br_hmac_outCT alone; mac calls br_hmac_out."
+                                "source": "BearSSL at 7bea48e (v0.6-39): bearssl_hmac.h states constant time for br_hmac_outCT alone; mac calls br_hmac_out."
                             }
                         },
                         "openssl": {
@@ -2902,7 +2911,7 @@
                             ],
                             "constant_time": {
                                 "value": "not stated",
-                                "source": "BearSSL at webcpp::crypto's pin: bearssl_hmac.h states constant time for br_hmac_outCT alone; br_hkdf_* (src/kdf/hkdf.c) calls br_hmac_out."
+                                "source": "BearSSL at 7bea48e (v0.6-39): bearssl_hmac.h states constant time for br_hmac_outCT alone; br_hkdf_* (src/kdf/hkdf.c) calls br_hmac_out."
                             }
                         },
                         "openssl": {
@@ -2937,6 +2946,7 @@
                                 "hmac_sha2_384",
                                 "hmac_sha2_512"
                             ],
+                            "partial": "an info longer than 1,024 bytes, which completes with input_too_long: WebCrypto's limit as node has it, where the other backends take 32,768",
                             "constant_time": {
                                 "value": "not stated",
                                 "source": "The Web Cryptography API (W3C Recommendation, 2017) states no constant-time property of digest, sign or deriveBits; each JavaScript runtime's implementation decides, and webcpp reads none."
@@ -3018,6 +3028,7 @@
                                 "hmac_sha2_384",
                                 "hmac_sha2_512"
                             ],
+                            "partial": "an iteration count above 2^32 - 1 (invalid_iterations) and an output longer than (2^32 - 1) / 8 bytes (invalid_output_size): WebCrypto's deriveBits counts iterations and bits in 32 bits",
                             "constant_time": {
                                 "value": "not stated",
                                 "source": "The Web Cryptography API (W3C Recommendation, 2017) states no constant-time property of digest, sign or deriveBits; each JavaScript runtime's implementation decides, and webcpp reads none."
