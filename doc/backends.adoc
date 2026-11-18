@@ -649,6 +649,12 @@ states about its constant time. The backends:
 | native, wasip2, wasip3
 
 | macs::blake2b_mac
+| sodium
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| macs::blake2b_mac
 | openssl
 | -
 | not stated

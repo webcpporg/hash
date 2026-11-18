@@ -1273,7 +1273,7 @@ struct mac_engine<Backend, macs::blake2b_mac> : refused_mac_engine<macs::blake2b
                                                 needs_library<Backend> {
     static_assert(refused_elsewhere_v<Backend>,
                   "webcpp::hash: macs::blake2b_mac is not in this backend. Name one of: "
-                  "backends::openssl.");
+                  "backends::sodium, backends::openssl.");
 };
 
 /** `macs::blake2s_mac` on a backend without it (spec 3.3, design D34). */

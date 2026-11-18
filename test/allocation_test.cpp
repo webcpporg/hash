@@ -1011,8 +1011,8 @@ int main() {
     argon2_family_on_sodium<hash::kdfs::argon2id>("argon2id", 1);
 #endif
     // Two calls per tag a backend has (doc/capabilities.json): hash2 17 digests and 17 MACs,
-    // xkcp 20 digests and 2 MACs, blake3 one digest, sodium 9 digests and 4 MACs; one call per
-    // tag whose default backend has it, 32 digests and 20 MACs.
+    // xkcp 20 digests and 2 MACs, blake3 one digest, sodium 9 digests and 5 MACs; one call per
+    // tag whose default backend has it, 32 digests and 21 MACs.
     families_on<hash::backends::hash2>("hash2", 68);
 #ifdef WEBCPP_HASH_HAS_XKCP
     families_on<hash::backends::xkcp>("xkcp", 44);
@@ -1021,11 +1021,11 @@ int main() {
     families_on<hash::backends::blake3>("blake3", 2);
 #endif
 #ifdef WEBCPP_HASH_HAS_SODIUM
-    families_on<hash::backends::sodium>("sodium", 26);
+    families_on<hash::backends::sodium>("sodium", 28);
 #endif
 #if defined(WEBCPP_HASH_HAS_XKCP) && defined(WEBCPP_HASH_HAS_BLAKE3) && \
     defined(WEBCPP_HASH_HAS_SODIUM)
-    families_on_defaults(52);
+    families_on_defaults(53);
 #endif
 #ifdef WEBCPP_HASH_HAS_BEARSSL
     all_hmacs<hash::backends::bearssl, false>("bearssl", 18);

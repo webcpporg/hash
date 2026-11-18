@@ -263,6 +263,42 @@ tags.
 alone; `mac` on `backends::sodium` takes a key of any size, hashed first when
 it is longer than the block, as RFC 2104 says and as every other backend does.
 
+[#hash-blake2b-mac-sodium]
+=== Keyed BLAKE2b on libsodium: `macs::blake2b_mac`
+
+Keyed BLAKE2b (RFC 7693, section 2.5) is a MAC by itself: the key goes into
+the hash's first block, so it needs neither HMAC's second pass nor its
+construction. `mac<macs::blake2b_mac>` computes it on `backends::sodium`, its
+default (libsodium's `crypto_generichash_blake2b` with a key, as libsodium's
+own keyed generic hash gives it), with a key of 1 to 64 bytes and a tag of 1
+to 64 bytes; a program links `/third_party//sodium`, on every target.
+`backends::openssl` gives the same tags, named in the call
+(<<hash-macs-openssl>>).
+
+[source]
+----
+include::{examples}/blake2b_mac_sodium.cpp[tag=example,indent=0]
+----
+
+[listing]
+----
+include::{examples}/blake2b_mac_sodium.expected[]
+----
+
+*Pitfalls.*
+
+* *Compare with `webcpp::crypto::equal`.* As for every tag (<<hash-hmac>>).
+* *The length is a parameter, not a cut.* The tag's size goes into the hash:
+a 16-byte tag is not the first 16 bytes of a 32-byte one, and the receiver
+uses the sender's size.
+* *A key of 16 bytes or more.* `mac` takes every size RFC 7693 gives, from 1
+byte (libsodium's 16-byte minimums are advice its functions do not check),
+but the key sets the strength: draw 32 bytes from
+`webcpp::crypto::random_device`. An empty key is `invalid_key_size`: unkeyed
+BLAKE2b is a digest (<<hash-blake2b-options>>).
+* *libsodium's state is wiped.* `mac` keeps libsodium's BLAKE2b state, which
+holds the key, in its own frame and wipes it before it returns.
+
 [#hash-macs-openssl]
 === The MACs of OpenSSL: KMAC, keyed BLAKE2, SipHash and HMAC
 

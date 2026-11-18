@@ -349,7 +349,7 @@
 | recommended
 | no
 
-| <<hash-macs-openssl,`macs::blake2b_mac`>>
+| <<hash-blake2b-mac-sodium,`macs::blake2b_mac`>>
 | 1 to 64 bytes
 | up to 256 bits, bounded by the key's and the tag's sizes
 | RFC 7693
@@ -700,7 +700,7 @@
 | link:https://www.wireguard.com/protocol/[WireGuard's hash, MAC and HKDF]
 | To name the backend in the call, or to hash in pieces with a result that cannot be taken twice; blake2s_256 itself for hash_append and Boost.Hash2's other functions.
 
-| <<hash-macs-openssl,`macs::blake2b_mac`>>
+| <<hash-blake2b-mac-sodium,`macs::blake2b_mac`>>
 | -
 | -
 | link:https://www.rfc-editor.org/rfc/rfc7693#section-2.5[RFC 7693's keyed BLAKE2b, a MAC without HMAC's two passes]; link:https://doc.libsodium.org/hashing/generic_hashing[libsodium's keyed generic hash, crypto_generichash with a key]

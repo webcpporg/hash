@@ -1393,6 +1393,14 @@
                     "header": "webcpp/hash/mac.hpp",
                     "default": "sodium",
                     "backends": {
+                        "sodium": {
+                            "since": 2,
+                            "hmacs": null,
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "libsodium 1.0.22: its headers state constant time for comparisons (sodium/utils.h) alone, not for its hashing, MAC, key derivation and password hashing functions (crypto_hash_*, crypto_xof_*, crypto_generichash_*, crypto_shorthash_*, crypto_auth_*, crypto_kdf_*, crypto_pwhash_*)."
+                            }
+                        },
                         "openssl": {
                             "since": 4,
                             "hmacs": null,

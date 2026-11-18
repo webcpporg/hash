@@ -517,7 +517,7 @@ void macs_agree() {
     agree_mac<macs::kmac_256>("macs::kmac_256", "xkcp,openssl");
     agree_mac<macs::siphash_2_4>("macs::siphash_2_4", "hash2,sodium,openssl");
     agree_mac<macs::siphash_2_4x>("macs::siphash_2_4x", "sodium,openssl");
-    agree_mac<macs::blake2b_mac>("macs::blake2b_mac", "openssl");
+    agree_mac<macs::blake2b_mac>("macs::blake2b_mac", "sodium,openssl");
     agree_mac<macs::blake2s_mac>("macs::blake2s_mac", "hash2,openssl");
 }
 

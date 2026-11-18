@@ -1554,7 +1554,7 @@
             "security": "up to 256 bits, bounded by the key's and the tag's sizes",
             "status": "recommended",
             "webcrypto": null,
-            "anchor": "hash-macs-openssl",
+            "anchor": "hash-blake2b-mac-sodium",
             "uses": [
                 {"text": "RFC 7693's keyed BLAKE2b, a MAC without HMAC's two passes", "source": "https://www.rfc-editor.org/rfc/rfc7693#section-2.5"},
                 {"text": "libsodium's keyed generic hash, crypto_generichash with a key", "source": "https://doc.libsodium.org/hashing/generic_hashing"}

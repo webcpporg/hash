@@ -10,6 +10,7 @@
  `crypto_pwhash_scryptsalsa208sha256_ll`, `digests::blake2b` (RFC 7693, with its key, salt,
  personalisation and output size) over `crypto_generichash_blake2b_*`, `macs::siphash_2_4` and
  `macs::siphash_2_4x` over `crypto_shorthash_siphash24` and `crypto_shorthash_siphashx24`,
+ `macs::blake2b_mac` (keyed BLAKE2b, its default) over `crypto_generichash_blake2b_*`,
  `blake2b_subkey` over `crypto_kdf_blake2b_derive_from_key`, `digests::sha2_256`, `sha2_512`,
  `sha3_256` and `sha3_512` over `crypto_hash_*`, the extendable-output functions
  `digests::shake_128`, `shake_256`, `turboshake_128` and `turboshake_256` over `crypto_xof_*`, and
@@ -870,6 +871,61 @@ struct mac_engine<backends::sodium, macs::siphash_2_4x>
     : sodium_siphash_engine<macs::siphash_2_4x, &crypto_shorthash_siphashx24,
                             crypto_shorthash_siphashx24_BYTES,
                             crypto_shorthash_siphashx24_KEYBYTES> {};
+
+/**
+ Keyed BLAKE2b (RFC 7693, section 2.5) on backends::sodium, `macs::blake2b_mac`'s engine, over
+ libsodium's `crypto_generichash_blake2b_init`, `_update` and `_final`, with the interface of
+ @ref mac_engine. It takes every key and tag size the family accepts, 1 to 64 bytes each:
+ libsodium's functions check the same bounds (its `_BYTES_MIN` and `_KEYBYTES_MIN`, 16, are advice
+ they do not check). The tag's size is a parameter of the hash, given to `_init`, and `_final`
+ writes the tag straight into the output. The state lives in this frame and is wiped before the
+ return; libsodium's `_final` wipes its chaining value and buffer, and the one-shot
+ `crypto_generichash_blake2b`, whose state would live in libsodium's own frame, is not used.
+ A template, so that it reads mac.hpp's traits, complete whatever the order of includes, when a
+ call instantiates it.
+
+ @tparam Mac `macs::blake2b_mac`.
+*/
+template <class Mac>
+struct sodium_keyed_blake2b_engine : full_engine {
+    /**
+     The tag of `input` under `key`.
+
+     @param output The tag, 1 to 64 bytes (the family's guard). @param key The key, 1 to 64 bytes
+     (the family's guard). @param input The message.
+     @return Success, or `error::backend_failure`.
+    */
+    [[nodiscard]] static boost::system::result<void> compute(
+        std::span<std::uint8_t> output, std::span<std::uint8_t const> key,
+        std::span<std::uint8_t const> input, mac_options<Mac> const& /*options*/) noexcept {
+        // The family's sizes are libsodium's bounds, so that libsodium never refuses what its
+        // guards pass. Checked here, where mac.hpp's traits are complete whatever the order of
+        // includes.
+        using traits = mac_traits<Mac>;
+        static_assert(traits::min_output == 1 &&
+                      traits::max_output == crypto_generichash_blake2b_BYTES_MAX);
+        static_assert(traits::min_key == 1 &&
+                      traits::max_key == crypto_generichash_blake2b_KEYBYTES_MAX);
+        if (!sodium_ready()) {
+            return error::backend_failure;
+        }
+        crypto_generichash_blake2b_state keyed{};
+        bool const computed =
+            crypto_generichash_blake2b_init(&keyed, key.data(), key.size(), output.size()) == 0 &&
+            crypto_generichash_blake2b_update(&keyed, nonnull(input), input.size()) == 0 &&
+            crypto_generichash_blake2b_final(&keyed, output.data(), output.size()) == 0;
+        wipe_object(keyed);
+        if (!computed) {
+            return error::backend_failure;
+        }
+        return {};
+    }
+};
+
+/** `macs::blake2b_mac` on backends::sodium, its default: keyed `crypto_generichash_blake2b_*`. */
+template <>
+struct mac_engine<backends::sodium, macs::blake2b_mac>
+    : sodium_keyed_blake2b_engine<macs::blake2b_mac> {};
 
 /**
  `blake2b_subkey` on backends::sodium: `crypto_kdf_blake2b_derive_from_key` (the engine's

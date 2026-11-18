@@ -63,6 +63,13 @@
 | not stated
 
 | `macs::blake2b_mac`
+| `sodium`
+| `/third_party//sodium`
+| native, wasip2, wasip3, emscripten
+| -
+| not stated
+
+| `macs::blake2b_mac`
 | `openssl`
 | `/webcpp/hash//openssl`
 | native, wasip2, wasip3
@@ -91,8 +98,8 @@ What each backend states on constant time, as the capability table read it:
 * `openssl`: OpenSSL 3.5.9: doc/man7/EVP_MD-*.pod, doc/man3/EVP_DigestInit.pod and providers/implementations/digests/ state no constant-time property.
 * `sodium`: libsodium 1.0.22: its headers state constant time for comparisons (sodium/utils.h) alone, not for its hashing, MAC, key derivation and password hashing functions (crypto_hash_*, crypto_xof_*, crypto_generichash_*, crypto_shorthash_*, crypto_auth_*, crypto_kdf_*, crypto_pwhash_*).
 
-The default of `macs::blake2b_mac` is `sodium`, whose cell comes with a later increment: until then a call on the default stops at compile time, and a call names a backend of the table (<<hash-default-backend>>).
-
 The default of `digests::blake2b`: `sodium` on every target, whatever the program links; `hash2`, `openssl` only where the call names it, as its second template argument (<<hash-default-backend>>).
 
 The default of `digests::blake2s_256` and `macs::blake2s_mac`: `hash2` on every target, whatever the program links; `openssl` only where the call names it, as its second template argument (<<hash-default-backend>>).
+
+The default of `macs::blake2b_mac`: `sodium` on every target, whatever the program links; `openssl` only where the call names it, as its second template argument (<<hash-default-backend>>).

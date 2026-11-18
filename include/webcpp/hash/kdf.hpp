@@ -681,6 +681,10 @@ inline constexpr bool backend_has_v<backends::sodium, macs::siphash_2_4, void> =
 template <>
 inline constexpr bool backend_has_v<backends::sodium, macs::siphash_2_4x, void> = true;
 
+/** backends::sodium has `macs::blake2b_mac` (keyed `crypto_generichash_blake2b_*`). */
+template <>
+inline constexpr bool backend_has_v<backends::sodium, macs::blake2b_mac, void> = true;
+
 /**
  backends::sodium has `macs::hmac<digests::sha2_256>` (`crypto_auth_hmacsha256_*`), with a key of
  any size.

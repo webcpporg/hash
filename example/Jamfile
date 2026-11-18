@@ -39,6 +39,8 @@ webcpp.example mac_family.cpp : <library>/webcpp/crypto//crypto ;
 webcpp.example siphash_sodium.cpp : <library>/third_party//sodium ;
 webcpp.example hmac_sodium.cpp : <library>/third_party//sodium
   <library>/webcpp/crypto//crypto ;
+webcpp.example blake2b_mac_sodium.cpp : <library>/third_party//sodium
+  <library>/webcpp/crypto//crypto ;
 webcpp.example kmac.cpp : <library>/webcpp/crypto//crypto
   <library>/third_party//xkcp ;
 webcpp.example macs_openssl.cpp : <library>/webcpp/hash//openssl : native wasip2 wasip3 ;

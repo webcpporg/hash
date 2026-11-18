@@ -207,6 +207,15 @@ hash-run blake2b_sodium : blake2b_sodium_test.cpp
 hash-run siphash_sodium : siphash_sodium_test.cpp
   : <library>/third_party//sodium <library>/third_party//sodium_vectors ;
 
+# macs::blake2b_mac on backends::sodium, its default, libsodium's keyed
+# crypto_generichash_blake2b: BLAKE2's keyed KAT read at run time, Boost.Hash2's
+# keyed blake2b_512 and digests::blake2b on random cases, every key and tag
+# size, the guards, and the wipe of libsodium's state, reported through the
+# seam WEBCPP_HASH_DETAIL_TEST_WIPE_RECORD.
+hash-run blake2b_mac_sodium : blake2b_mac_sodium_test.cpp
+  : <library>/third_party//sodium <library>/third_party//blake2_vectors
+    <define>WEBCPP_HASH_DETAIL_TEST_WIPE_RECORD ;
+
 # blake2b_subkey on backends::sodium, libsodium's
 # crypto_kdf_blake2b_derive_from_key: kdf.exp read at run time, the
 # construction through digest_of, ids past 32 bits, the guards.
