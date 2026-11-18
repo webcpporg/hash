@@ -314,14 +314,18 @@ template <class Digest, class Backend>
 void add_digest_ways(std::vector<way<digest_case<Digest>>>& ways, std::string_view name) {
     if constexpr (available_v<Backend, Digest>) {
         constexpr auto serves = digest_served<Digest, Backend>();
-        ways.push_back({.backend = name,
-                        .how = "digest_of",
-                        .compute = &digest_whole<Digest, Backend>,
-                        .serves = serves});
-        ways.push_back({.backend = name,
-                        .how = "hasher",
-                        .compute = &digest_in_pieces<Digest, Backend>,
-                        .serves = serves});
+        ways.push_back({
+            .backend = name,
+            .how = "digest_of",
+            .compute = &digest_whole<Digest, Backend>,
+            .serves = serves,
+        });
+        ways.push_back({
+            .backend = name,
+            .how = "hasher",
+            .compute = &digest_in_pieces<Digest, Backend>,
+            .serves = serves,
+        });
     }
 }
 
@@ -457,10 +461,12 @@ constexpr auto mac_served() -> bool (*)(mac_case<Mac> const&) {
 template <class Mac, class Backend>
 void add_mac_way(std::vector<way<mac_case<Mac>>>& ways, std::string_view name) {
     if constexpr (available_v<Backend, Mac>) {
-        ways.push_back({.backend = name,
-                        .how = "mac",
-                        .compute = &mac_of<Mac, Backend>,
-                        .serves = mac_served<Mac, Backend>()});
+        ways.push_back({
+            .backend = name,
+            .how = "mac",
+            .compute = &mac_of<Mac, Backend>,
+            .serves = mac_served<Mac, Backend>(),
+        });
     }
 }
 
@@ -600,10 +606,12 @@ void add_argon2_way(std::vector<way<argon2_case>>& ways, std::string_view name) 
     // argon2's variants are told from the function argon2id by argon2_parameters.
     if constexpr (hash::detail::linked_v<Backend> &&
                   hash::backend_has_v<Backend, Variant, hash::argon2_parameters>) {
-        ways.push_back({.backend = name,
-                        .how = "argon2",
-                        .compute = &argon2_of<Variant, Backend>,
-                        .serves = argon2_served<Variant, Backend>()});
+        ways.push_back({
+            .backend = name,
+            .how = "argon2",
+            .compute = &argon2_of<Variant, Backend>,
+            .serves = argon2_served<Variant, Backend>(),
+        });
     }
 }
 
