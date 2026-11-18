@@ -79,6 +79,7 @@
 #include <webcpp/hash/detail/wipe.hpp>
 #include <webcpp/hash/error.hpp>
 #include <webcpp/hash/hmac.hpp>
+#include <webcpp/hash/kdf_standards.hpp>
 #include <webcpp/hash/scrypt.hpp>
 
 #include <boost/system/errc.hpp>
@@ -1558,6 +1559,143 @@ struct mac_engine<backends::openssl, macs::blake2b_mac>
 template <>
 struct mac_engine<backends::openssl, macs::blake2s_mac>
     : openssl_sized_mac_engine<macs::blake2s_mac> {};
+
+/**
+ The longest secret, info and output of OpenSSL's "SSKDF" and "X963KDF", 2^30 bytes
+ (`SSKDF_MAX_INLEN` in `providers/implementations/kdfs/sskdf.c`).
+*/
+inline constexpr std::uint64_t openssl_sskdf_max_size = std::uint64_t{1} << 30U;
+
+/**
+ SP 800-108's KBKDF in counter mode on backends::openssl, OpenSSL's "KBKDF" with the MAC "HMAC"
+ (the engine's interface: @ref kbkdf_engine). The label is OpenSSL's "salt", the context its
+ "info", the counter's width its "r", and the separator and L its "use-separator" and "use-l".
+ OpenSSL's HMAC takes the key's length as an `int` (`HMAC_Init_ex`): a longer key is refused
+ before the call.
+
+ @tparam Hmac A Boost.Hash2 hmac: an alias of `hmac.hpp` but `hmac_ripemd_128`, refused otherwise.
+*/
+template <class Hmac>
+struct kbkdf_engine<backends::openssl, Hmac> {
+    static_assert(openssl_hmac_v<Hmac>,
+                  "webcpp::hash: backends::openssl has kbkdf over the hmacs of hmac.hpp alone, "
+                  "hmac_ripemd_128 excepted, and no other backend has kbkdf.");
+
+    /** HMAC's key length is an `int` in OpenSSL. */
+    static constexpr kdf_standard_limits limits{.max_key = openssl_int_max};
+
+    /**
+     SP 800-108r1, section 4.1.
+
+     @param output_bytes K_OUT, its size L. @param key_bytes K_IN.
+     @param options The label, the context, r, and whether the separator and L are written.
+     @return Success, or OpenSSL's failure.
+    */
+    [[nodiscard]] static boost::system::result<void> derive(std::span<std::uint8_t> output_bytes,
+                                                            std::span<std::uint8_t const> key_bytes,
+                                                            kbkdf_options const& options) noexcept {
+        if constexpr (!openssl_hmac_v<Hmac>) {
+            return error::backend_failure;  // unreachable: the refusal has stopped the build
+        } else {
+            int counter_bits = static_cast<int>(options.counter_bits);
+            int use_separator = options.separator ? 1 : 0;
+            int use_length = options.length ? 1 : 0;
+            std::array<OSSL_PARAM, 10> ossl_params{
+                openssl_text("mode", "counter"),
+                openssl_text("mac", "HMAC"),
+                openssl_text("digest", openssl_digest<Hmac>()),
+                openssl_octets("key", key_bytes),
+                openssl_octets("salt", options.label),
+                openssl_octets("info", options.context),
+                OSSL_PARAM_construct_int("r", &counter_bits),
+                OSSL_PARAM_construct_int("use-separator", &use_separator),
+                OSSL_PARAM_construct_int("use-l", &use_length),
+                OSSL_PARAM_construct_end(),
+            };
+            return openssl_kdf("KBKDF", output_bytes, ossl_params);
+        }
+    }
+};
+
+/**
+ What OpenSSL's "SSKDF" and "X963KDF" share: the digest by name, the secret, the info, and
+ `SSKDF_MAX_INLEN` on each length.
+
+ @tparam Digest A digest of the standard, which `kdf_standards.hpp` has checked.
+*/
+template <class Digest>
+struct openssl_digest_kdf_engine {
+    /** OpenSSL's 2^30 bytes on the secret, the info and the output. */
+    static constexpr kdf_standard_limits limits{
+        .max_key = openssl_sskdf_max_size,
+        .max_info = openssl_sskdf_max_size,
+        .max_output = openssl_sskdf_max_size,
+    };
+
+    /**
+     The KDF `kdf_name` over `Digest`.
+
+     @param kdf_name "SSKDF" or "X963KDF". @param output_bytes The output, its whole size.
+     @param secret_bytes Z. @param info_bytes FixedInfo or SharedInfo.
+     @return Success, or OpenSSL's failure.
+    */
+    [[nodiscard]] static boost::system::result<void> derive_with(
+        char const* kdf_name, std::span<std::uint8_t> output_bytes,
+        std::span<std::uint8_t const> secret_bytes,
+        std::span<std::uint8_t const> info_bytes) noexcept {
+        std::array<OSSL_PARAM, 4> ossl_params{
+            openssl_text("digest", openssl_md_name<Digest>::value),
+            openssl_octets("secret", secret_bytes),
+            openssl_octets("info", info_bytes),
+            OSSL_PARAM_construct_end(),
+        };
+        return openssl_kdf(kdf_name, output_bytes, ossl_params);
+    }
+};
+
+/**
+ SP 800-56C's one-step KDF, hash form, on backends::openssl: OpenSSL's "SSKDF" with a digest and
+ no MAC (the engine's interface: @ref sskdf_engine).
+
+ @tparam Digest A digest of SP 800-56C.
+*/
+template <class Digest>
+struct sskdf_engine<backends::openssl, Digest> : openssl_digest_kdf_engine<Digest> {
+    /**
+     SP 800-56C Rev. 2, section 4.1.
+
+     @param output_bytes The output. @param secret_bytes Z. @param fixed_info_bytes FixedInfo.
+     @return Success, or OpenSSL's failure.
+    */
+    [[nodiscard]] static boost::system::result<void> derive(
+        std::span<std::uint8_t> output_bytes, std::span<std::uint8_t const> secret_bytes,
+        std::span<std::uint8_t const> fixed_info_bytes) noexcept {
+        return openssl_digest_kdf_engine<Digest>::derive_with("SSKDF", output_bytes, secret_bytes,
+                                                              fixed_info_bytes);
+    }
+};
+
+/**
+ ANSI X9.63's KDF on backends::openssl: OpenSSL's "X963KDF" (the engine's interface: @ref
+ x963kdf_engine).
+
+ @tparam Digest A digest of FIPS 180-4.
+*/
+template <class Digest>
+struct x963kdf_engine<backends::openssl, Digest> : openssl_digest_kdf_engine<Digest> {
+    /**
+     ANSI X9.63-2011, section 5.6.3.
+
+     @param output_bytes The output. @param secret_bytes Z. @param shared_info_bytes SharedInfo.
+     @return Success, or OpenSSL's failure.
+    */
+    [[nodiscard]] static boost::system::result<void> derive(
+        std::span<std::uint8_t> output_bytes, std::span<std::uint8_t const> secret_bytes,
+        std::span<std::uint8_t const> shared_info_bytes) noexcept {
+        return openssl_digest_kdf_engine<Digest>::derive_with("X963KDF", output_bytes, secret_bytes,
+                                                              shared_info_bytes);
+    }
+};
 
 }  // namespace webcpp::hash::detail
 

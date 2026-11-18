@@ -967,6 +967,24 @@ states about its constant time. The backends:
 | -
 | not stated
 | native, wasip2, wasip3, emscripten
+
+| kbkdf
+| openssl (partial: a key of more than INT_MAX bytes: OpenSSL takes HMAC's key length as an int (HMAC_Init_ex))
+| hmac_md5_128, hmac_sha1_160, hmac_sha2_224, hmac_sha2_256, hmac_sha2_384, hmac_sha2_512, hmac_sha2_512_224, hmac_sha2_512_256, hmac_sha3_224, hmac_sha3_256, hmac_sha3_384, hmac_sha3_512, hmac_ripemd_160, hmac_blake2b_512, hmac_blake2s_256
+| not stated
+| native, wasip2, wasip3
+
+| sskdf
+| openssl (partial: a secret, an info or an output of more than 2^30 bytes: OpenSSL's SSKDF_MAX_INLEN (providers/implementations/kdfs/sskdf.c))
+| -
+| not stated
+| native, wasip2, wasip3
+
+| x963kdf
+| openssl (partial: a secret, an info or an output of more than 2^30 bytes: OpenSSL's SSKDF_MAX_INLEN (providers/implementations/kdfs/sskdf.c))
+| -
+| not stated
+| native, wasip2, wasip3
 |===
 
 === Password hashing
@@ -1219,5 +1237,8 @@ What each backend's upstream states, and where:
 * openssl: not stated. OpenSSL 3.5.9: doc/man7/EVP_MD-*.pod, doc/man3/EVP_DigestInit.pod and providers/implementations/digests/ state no constant-time property.
 * openssl: not stated. OpenSSL 3.5.9: doc/man3/EVP_MAC.pod, doc/man7/EVP_MAC-HMAC.pod, EVP_MAC-KMAC.pod, EVP_MAC-BLAKE2.pod, EVP_MAC-Siphash.pod and providers/implementations/macs/ state no constant-time property.
 * openssl: not stated. OpenSSL 3.5.9: doc/man7/EVP_KDF-HKDF.pod and EVP_KDF-PBKDF2.pod state no constant-time property.
+* openssl: not stated. OpenSSL 3.5.9: doc/man7/EVP_KDF-KB.pod states no constant-time property.
+* openssl: not stated. OpenSSL 3.5.9: doc/man7/EVP_KDF-SS.pod states no constant-time property.
+* openssl: not stated. OpenSSL 3.5.9: doc/man7/EVP_KDF-X963.pod states no constant-time property.
 * openssl: not stated. OpenSSL 3.5.9: doc/man7/EVP_KDF-ARGON2.pod states that Argon2i's memory accesses are independent of the data and Argon2d's depend on it, and states no constant-time property.
 * openssl: not stated. OpenSSL 3.5.9: doc/man7/EVP_KDF-SCRYPT.pod states no constant-time property.

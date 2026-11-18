@@ -37,6 +37,7 @@ webcpp.headers-alone hash : ../include :
     hash/hkdf.hpp
     hash/hmac.hpp
     hash/kdf.hpp
+    hash/kdf_standards.hpp
     hash/mac.hpp
     hash/pbkdf2.hpp
     hash/scrypt.hpp ;
@@ -300,6 +301,14 @@ hash-run argon2_openssl : argon2_openssl_test.cpp
   : <library>/webcpp/hash//openssl <library>/third_party//sodium
     <library>/third_party//sodium-test-config
     <library>/third_party//openssl_evp_data
+  : native wasip2 wasip3 ;
+# KBKDF (SP 800-108), SSKDF (SP 800-56C) and the X9.63 KDF on backends::openssl
+# (OpenSSL 3.5.9's EVP_KDFs), where webcpp builds OpenSSL: every HMAC case of
+# OpenSSL's evpkdf_kbkdf_counter.txt (NIST CAVP's), every hash-form case of
+# evpkdf_ss.txt and every case of evpkdf_x963.txt, read at run time; a second
+# implementation over Boost.Hash2 on random cases; the standards' guards.
+hash-run kdf_standards_openssl : kdf_standards_openssl_test.cpp
+  : <library>/webcpp/hash//openssl <library>/third_party//openssl_evp_data
   : native wasip2 wasip3 ;
 hash-run scrypt_openssl : scrypt_openssl_test.cpp
   : <library>/webcpp/hash//openssl <library>/third_party//sodium

@@ -43,6 +43,12 @@ struct mac_options;
 /** Argon2's parameters (spec 2.15), defined in `argon2.hpp`; declared here for the engines. */
 struct argon2_parameters;
 
+/**
+ The fixed input of SP 800-108's KBKDF in counter mode, defined in `kdf_standards.hpp`; declared
+ here for the engines.
+*/
+struct kbkdf_options;
+
 }  // namespace webcpp::hash
 
 namespace webcpp::hash::detail {
@@ -1350,6 +1356,132 @@ struct argon2_engine<Backend, kdfs::argon2id> : refused_argon2_engine<kdfs::argo
                                                 needs_library<Backend> {
     static_assert(refused_elsewhere_v<Backend>,
                   "webcpp::hash: kdfs::argon2id is not in this backend. Name one of: "
+                  "backends::openssl.");
+};
+
+/**
+ The narrower limits of an engine of `kbkdf`, `sskdf` or `x963kdf` (`kdf_standards.hpp`), within
+ the standard's: the public functions read them after the standard's guards and answer a longer
+ input with `error::unsupported_by_backend` (ruling R41). The defaults are no limit.
+*/
+struct kdf_standard_limits {
+    /** The longest key (`kbkdf`) or shared secret (`sskdf`, `x963kdf`), in bytes. */
+    std::uint64_t max_key = no_limit;
+    /** The longest fixed or shared info (`sskdf`, `x963kdf`), in bytes. */
+    std::uint64_t max_info = no_limit;
+    /** The longest output, in bytes. */
+    std::uint64_t max_output = no_limit;
+};
+
+/**
+ SP 800-108's KBKDF in counter mode over an hmac on a backend, behind `kbkdf`, which the
+ backend's header specialises for each hmac it has (`backends::openssl` alone). The primary
+ template is reached by every other backend, and by `kbkdf`'s default, which has none (design
+ D34); it refuses at compile time, and its members exist so that the refusal is the only error.
+
+ A specialisation has a constant and a static member function, called by `kbkdf` only after every
+ guard of SP 800-108 and every limit of `limits` has passed:
+
+ @code
+ static constexpr kdf_standard_limits limits{...};
+ // K_OUT, output.size() bytes, from K_IN, key, and the fixed input options states.
+ static boost::system::result<void> derive(std::span<std::uint8_t> output,
+                                           std::span<std::uint8_t const> key,
+                                           kbkdf_options const& options) noexcept;
+ @endcode
+
+ A failure is `error::backend_failure`, or `errc::not_enough_memory` when the library could not
+ allocate; `kbkdf` then zeroes the output.
+
+ @tparam Backend A backend of `backends`, or `no_default`. @tparam Hmac A Boost.Hash2 hmac.
+*/
+template <class Backend, class Hmac>
+struct kbkdf_engine : needs_library<Backend> {
+    static_assert(!std::is_same_v<Backend, no_default>,
+                  "webcpp::hash: kdfs::kbkdf_hmac has no default backend. Name one of: "
+                  "backends::openssl.");
+    static_assert(refused_elsewhere_v<Backend>,
+                  "webcpp::hash: kdfs::kbkdf_hmac is not in this backend. Name one of: "
+                  "backends::openssl.");
+
+    /** Never read: the refusal has stopped the build. */
+    static constexpr kdf_standard_limits limits{};
+
+    /** Never called: the refusal has stopped the build. @return backend_failure. */
+    [[nodiscard]] static boost::system::result<void> derive(
+        std::span<std::uint8_t> /*output*/, std::span<std::uint8_t const> /*key*/,
+        kbkdf_options const& /*options*/) noexcept {
+        return error::backend_failure;
+    }
+};
+
+/**
+ The members a refused engine of `sskdf` or `x963kdf` gives, so that its refusal is the only error
+ of the call.
+*/
+struct refused_digest_kdf_engine {
+    /** Never read. */
+    static constexpr kdf_standard_limits limits{};
+
+    /** Never called. @return backend_failure. */
+    [[nodiscard]] static boost::system::result<void> derive(
+        std::span<std::uint8_t> /*output*/, std::span<std::uint8_t const> /*secret*/,
+        std::span<std::uint8_t const> /*info*/) noexcept {
+        return error::backend_failure;
+    }
+};
+
+/**
+ SP 800-56C's one-step KDF over a digest (its hash form) on a backend, behind `sskdf`, which the
+ backend's header specialises for the digests it has (`backends::openssl` alone). The primary
+ template refuses every other backend, and `sskdf`'s default, which has none (design D34).
+
+ A specialisation has a constant and a static member function, called by `sskdf` only after every
+ guard of SP 800-56C and every limit of `limits` has passed:
+
+ @code
+ static constexpr kdf_standard_limits limits{...};
+ // output.size() bytes: H(counter || Z || FixedInfo) for counter 1, 2, ..., concatenated.
+ static boost::system::result<void> derive(std::span<std::uint8_t> output,
+                                           std::span<std::uint8_t const> secret,
+                                           std::span<std::uint8_t const> fixed_info) noexcept;
+ @endcode
+
+ A failure is `error::backend_failure`, or `errc::not_enough_memory`; `sskdf` then zeroes the
+ output.
+
+ @tparam Backend A backend of `backends`, or `no_default`. @tparam Digest A tag of `digests`.
+*/
+template <class Backend, class Digest>
+struct sskdf_engine : refused_digest_kdf_engine, needs_library<Backend> {
+    static_assert(!std::is_same_v<Backend, no_default>,
+                  "webcpp::hash: kdfs::sskdf has no default backend. Name one of: "
+                  "backends::openssl.");
+    static_assert(refused_elsewhere_v<Backend>,
+                  "webcpp::hash: kdfs::sskdf is not in this backend. Name one of: "
+                  "backends::openssl.");
+};
+
+/**
+ ANSI X9.63's KDF over a digest on a backend, behind `x963kdf`, as @ref sskdf_engine is behind
+ `sskdf`: the counter follows the shared secret, H(Z || counter || SharedInfo).
+
+ @code
+ static constexpr kdf_standard_limits limits{...};
+ static boost::system::result<void> derive(std::span<std::uint8_t> output,
+                                           std::span<std::uint8_t const> secret,
+                                           std::span<std::uint8_t const> shared_info) noexcept;
+ @endcode
+
+ @tparam Backend A backend of `backends`, or `no_default`. @tparam Digest A tag of `digests`.
+*/
+template <class Backend, class Digest>
+struct x963kdf_engine : refused_digest_kdf_engine, needs_library<Backend> {
+    static_assert(!std::is_same_v<Backend, no_default>,
+                  "webcpp::hash: kdfs::x963kdf has no default backend. Name one of: "
+                  "backends::openssl.");
+    static_assert(refused_elsewhere_v<Backend>,
+                  "webcpp::hash: kdfs::x963kdf is not in this backend. Name one of: "
                   "backends::openssl.");
 };
 

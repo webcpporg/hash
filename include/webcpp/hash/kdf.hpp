@@ -32,9 +32,10 @@ namespace webcpp::hash {
  @tparam Backend A backend of `backends`. @tparam Kdf `kdfs::hkdf`, `kdfs::pbkdf2` or another
  tag of `kdfs`; or a tag of `digests` or `macs`; or, for `argon2`, `kdfs::argon2d`,
  `kdfs::argon2i` or `kdfs::argon2id`.
- @tparam Hmac A Boost.Hash2 hmac for a key derivation over one; `void` for a function over none
- and for a family's tag; `argon2_parameters` for the family `argon2`, whose tags `kdfs::argon2id`
- also names the function `argon2id`.
+ @tparam Hmac A Boost.Hash2 hmac for a key derivation over one (`kdfs::kbkdf_hmac` included);
+ `void` for a function over none, `sskdf` and `x963kdf` (over a digest) among them, and for a
+ family's tag; `argon2_parameters` for the family `argon2`, whose tags `kdfs::argon2id` also names
+ the function `argon2id`.
 */
 template <class Backend, class Kdf, class Hmac>
 inline constexpr bool backend_has_v = false;
@@ -120,6 +121,28 @@ inline constexpr bool backend_has_v<backends::openssl, kdfs::argon2id, void> = t
 /** backends::openssl has scrypt (OpenSSL 3.5.9's `EVP_KDF` "SCRYPT"). */
 template <>
 inline constexpr bool backend_has_v<backends::openssl, kdfs::scrypt, void> = true;
+
+/**
+ backends::openssl has SP 800-108's KBKDF in counter mode (OpenSSL 3.5.9's `EVP_KDF` "KBKDF") over
+ every alias of `hmac.hpp` but `hmac_ripemd_128`.
+*/
+template <class Hmac>
+inline constexpr bool backend_has_v<backends::openssl, kdfs::kbkdf_hmac, Hmac> =
+    detail::openssl_hmac_v<Hmac>;
+
+/**
+ backends::openssl has SP 800-56C's one-step KDF over a digest (OpenSSL 3.5.9's `EVP_KDF` "SSKDF"),
+ the function `sskdf`, which takes a digest, not an hmac.
+*/
+template <>
+inline constexpr bool backend_has_v<backends::openssl, kdfs::sskdf, void> = true;
+
+/**
+ backends::openssl has ANSI X9.63's KDF (OpenSSL 3.5.9's `EVP_KDF` "X963KDF"), the function
+ `x963kdf`, which takes a digest, not an hmac.
+*/
+template <>
+inline constexpr bool backend_has_v<backends::openssl, kdfs::x963kdf, void> = true;
 
 /** backends::openssl has Argon2d with every parameter (OpenSSL 3.5.9's `EVP_KDF` "ARGON2D"). */
 template <>

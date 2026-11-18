@@ -21,7 +21,7 @@ of every version are on webcpp's index page.
 * Added HKDF (RFC 5869) and PBKDF2 (RFC 8018) over every Boost.Hash2 hmac, on backends::hash2.
 * Added argon2id (RFC 9106, one lane) with libsodium's three presets, and scrypt (RFC 7914), on backends::sodium.
 * Added backends::sodium's HKDF over HMAC-SHA-256 and HMAC-SHA-512, BLAKE2b with key, salt, personalisation and length, SipHash-2-4, SipHash-2-4x and blake2b_subkey, and backends::bearssl's HKDF over MD5, SHA-1 and SHA-2 (hkdf alone).
-* Added backends::openssl, OpenSSL 3.5.9 through /webcpp/hash//openssl (native, wasip2, wasip3): HKDF, PBKDF2, scrypt, Argon2 (every parameter), digests (SHA-1/2/3, SHAKE, Keccak, BLAKE2, RIPEMD-160, MD5-SHA1, SM3), MACs (HMAC, KMAC, BLAKE2, SipHash).
+* Added backends::openssl, OpenSSL 3.5.9 through /webcpp/hash//openssl (native, wasip2, wasip3): HKDF, PBKDF2, scrypt, Argon2, KBKDF, SSKDF, X9.63 KDF, digests (SHA-1/2/3, SHAKE, Keccak, BLAKE2, RIPEMD-160, MD5-SHA1, SM3), MACs (HMAC, KMAC, BLAKE2, SipHash).
 * Added the default backend, hash2 for key derivation and sodium for argon2id and scrypt, and doc/capabilities.json, the capability table naming each function's default.
 * Added the measured tables (doc/measurements.*) from release builds, a reference of 2026-11-16 that decides nothing, and allocation tests: none in hash's code.
 * Added the guide: chapters per family and per use case, an example per section, generated tables and llms.txt, and a Boost.Hash2 proposal of keccak_224 to keccak_512.

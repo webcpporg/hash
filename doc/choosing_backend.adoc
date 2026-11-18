@@ -118,7 +118,11 @@ in a `size_t`: the family `argon2` takes at most 4,194,303 KiB on wasm32
 (`invalid_parameters`).
 Its KMAC takes a key of 4 to 512 bytes, a customisation of at most 512 and a
 tag of at most 2,097,151, and its HMAC a key of at most `INT_MAX` bytes:
-`mac` answers others `unsupported_by_backend`. Its first call reads OpenSSL's
+`mac` answers others `unsupported_by_backend`. Its KBKDF clears its copies of
+the key, the label and the context when it frees its context, its one-step
+and X9.63 KDFs their copies of the secret and the info; `kbkdf` answers a key
+of more than `INT_MAX` bytes, `sskdf` and `x963kdf` a secret, an info or an
+output of more than 2^30^ bytes, `unsupported_by_backend`. Its first call reads OpenSSL's
 configuration file. It holds some lengths in an `int`, so hash refuses, before
 OpenSSL is called, a PBKDF2 output (`invalid_output_size`), a PBKDF2 password
 or salt, or an HKDF salt (`input_too_long`) of more than `INT_MAX` bytes. It

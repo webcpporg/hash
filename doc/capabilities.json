@@ -2469,6 +2469,103 @@
             ]
         },
         {
+            "name": "kbkdf",
+            "macro": "KBKDF",
+            "tag": "kdfs::kbkdf_hmac",
+            "chapter": "kdfs",
+            "standard": "NIST SP 800-108r1, counter mode over HMAC",
+            "functions": [
+                {
+                    "name": "kbkdf",
+                    "kind": "function",
+                    "tag": "kdfs::kbkdf_hmac",
+                    "header": "webcpp/hash/kdf_standards.hpp",
+                    "default": null,
+                    "backends": {
+                        "openssl": {
+                            "since": 4,
+                            "hmacs": [
+                                "hmac_md5_128",
+                                "hmac_sha1_160",
+                                "hmac_sha2_224",
+                                "hmac_sha2_256",
+                                "hmac_sha2_384",
+                                "hmac_sha2_512",
+                                "hmac_sha2_512_224",
+                                "hmac_sha2_512_256",
+                                "hmac_sha3_224",
+                                "hmac_sha3_256",
+                                "hmac_sha3_384",
+                                "hmac_sha3_512",
+                                "hmac_ripemd_160",
+                                "hmac_blake2b_512",
+                                "hmac_blake2s_256"
+                            ],
+                            "partial": "a key of more than INT_MAX bytes: OpenSSL takes HMAC's key length as an int (HMAC_Init_ex)",
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "OpenSSL 3.5.9: doc/man7/EVP_KDF-KB.pod states no constant-time property."
+                            }
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "sskdf",
+            "macro": "SSKDF",
+            "tag": "kdfs::sskdf",
+            "chapter": "kdfs",
+            "standard": "NIST SP 800-56C Rev. 2, one-step KDF over a hash function (SHA-1, SHA-2, SHA-3)",
+            "functions": [
+                {
+                    "name": "sskdf",
+                    "kind": "function",
+                    "tag": "kdfs::sskdf",
+                    "header": "webcpp/hash/kdf_standards.hpp",
+                    "default": null,
+                    "backends": {
+                        "openssl": {
+                            "since": 4,
+                            "hmacs": null,
+                            "partial": "a secret, an info or an output of more than 2^30 bytes: OpenSSL's SSKDF_MAX_INLEN (providers/implementations/kdfs/sskdf.c)",
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "OpenSSL 3.5.9: doc/man7/EVP_KDF-SS.pod states no constant-time property."
+                            }
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "x963kdf",
+            "macro": "X963KDF",
+            "tag": "kdfs::x963kdf",
+            "chapter": "kdfs",
+            "standard": "ANSI X9.63-2011 and SEC 1 v2, over a hash function of FIPS 180-4 (SHA-1, SHA-2)",
+            "functions": [
+                {
+                    "name": "x963kdf",
+                    "kind": "function",
+                    "tag": "kdfs::x963kdf",
+                    "header": "webcpp/hash/kdf_standards.hpp",
+                    "default": null,
+                    "backends": {
+                        "openssl": {
+                            "since": 4,
+                            "hmacs": null,
+                            "partial": "a secret, an info or an output of more than 2^30 bytes: OpenSSL's SSKDF_MAX_INLEN (providers/implementations/kdfs/sskdf.c)",
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "OpenSSL 3.5.9: doc/man7/EVP_KDF-X963.pod states no constant-time property."
+                            }
+                        }
+                    }
+                }
+            ]
+        },
+        {
             "name": "argon2id",
             "macro": "ARGON2ID",
             "tag": "kdfs::argon2id",

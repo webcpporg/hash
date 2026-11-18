@@ -37,7 +37,8 @@ sources, for the program's target:
 | `/third_party//bearssl`
 | every target
 
-| HKDF, PBKDF2, scrypt, Argon2, a digest or a MAC on `backends::openssl`
+| HKDF, PBKDF2, scrypt, Argon2, KBKDF, the one-step KDF, the X9.63 KDF, a
+digest or a MAC on `backends::openssl`
 | `/webcpp/hash//openssl`
 | native, wasip2, wasip3
 |===
@@ -102,6 +103,13 @@ one asked for.
 
 | `hmac_ripemd_128` on `backends::openssl`
 | OpenSSL 3.5 has no RIPEMD-128: name `backends::hash2`.
+
+| `kbkdf` over an hmac `backends::openssl` does not have
+| No backend has it: use an hmac of `hmac.hpp` but `hmac_ripemd_128`.
+
+| `sskdf` or `x963kdf` over a digest its standard does not take
+| The message lists the digests the standard takes (SP 800-56C: SHA-1, SHA-2,
+SHA-3; ANSI X9.63: SHA-1, SHA-2): name one.
 
 | `argon2id`, `scrypt` or `blake2b_subkey` on another backend than
 `backends::sodium`

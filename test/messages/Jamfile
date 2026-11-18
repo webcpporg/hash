@@ -38,3 +38,7 @@ build-project digest_no_default ;
 build-project mac_no_default ;
 build-project argon2_no_default ;
 build-project argon2d_on_sodium ;
+build-project kdf_standards_no_default ;
+build-project kdf_standards_on_hash2 ;
+build-project kdf_standards_digest ;
+build-project kbkdf_hmac_on_openssl ;

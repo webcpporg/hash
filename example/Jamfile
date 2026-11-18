@@ -40,6 +40,9 @@ webcpp.example hkdf_backends.cpp : <library>/third_party//sodium
   <library>/third_party//bearssl ;
 webcpp.example pbkdf2.cpp ;
 webcpp.example blake2b_subkey.cpp : <library>/third_party//sodium ;
+webcpp.example kbkdf.cpp : <library>/webcpp/hash//openssl : native wasip2 wasip3 ;
+webcpp.example sskdf.cpp : <library>/webcpp/hash//openssl : native wasip2 wasip3 ;
+webcpp.example x963kdf.cpp : <library>/webcpp/hash//openssl : native wasip2 wasip3 ;
 
 # Password hashing.
 webcpp.example argon2id.cpp : <library>/third_party//sodium ;

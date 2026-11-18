@@ -46,6 +46,13 @@
         },
         {
             "headers": [
+                "include/webcpp/hash/kdf_standards.hpp"
+            ],
+            "must-not-include": ["xkcp", "blake3", "sodium", "bearssl", "openssl/"],
+            "why": "kbkdf, sskdf and x963kdf include no C library's header: backends::openssl's webcpp header comes in under WEBCPP_HASH_HAS_OPENSSL, so that a program that includes only kdf_standards.hpp gets their engines (spec sections 2.12 and 2.15)"
+        },
+        {
+            "headers": [
                 "include/webcpp/hash/digest.hpp",
                 "include/webcpp/hash/mac.hpp"
             ],

@@ -12,7 +12,8 @@
 // even when it is not the last (Argon2's memory adds "invalid memory size" after it), zeroes its
 // output, frees every block OpenSSL allocated for it (the live blocks are back to where
 // they were), and leaves the thread's error queue empty. The calls: mac over HMAC, KMAC, keyed
-// BLAKE2b and SipHash, digest_of, a hasher's make, argon2, argon2id and scrypt. OpenSSL's Argon2
+// BLAKE2b and SipHash, digest_of, a hasher's make, argon2, argon2id, scrypt, kbkdf, sskdf and
+// x963kdf. OpenSSL's Argon2
 // does not check some of its allocations (its first hash and its first and last blocks), and
 // returns success over a wrong tag when one fails: backends::openssl answers a call during which
 // OpenSSL raised an error as a failure, whatever OpenSSL returned. A hasher's update and finish
@@ -23,6 +24,8 @@
 #include <webcpp/hash/backends/openssl.hpp>
 #include <webcpp/hash/digest.hpp>
 #include <webcpp/hash/error.hpp>
+#include <webcpp/hash/hmac.hpp>
+#include <webcpp/hash/kdf_standards.hpp>
 #include <webcpp/hash/mac.hpp>
 #include <webcpp/hash/scrypt.hpp>
 #include <webcpp/test/exit_status.hpp>
@@ -224,6 +227,22 @@ void check_password_hashing() {
     });
 }
 
+void check_kdf_standards() {
+    std::array<std::uint8_t, 16> const key{7, 8, 9};
+    std::array<std::uint8_t, 8> const info{1, 2};
+    std::array<std::uint8_t, 80> output{};
+    fail_each_allocation("kbkdf hmac_sha2_256", output, [&] {
+        return hash::kbkdf<hash::hmac_sha2_256, openssl>(output, key,
+                                                         {.label = info, .context = info});
+    });
+    fail_each_allocation("sskdf sha2_256", output, [&] {
+        return hash::sskdf<hash::digests::sha2_256, openssl>(output, key, info);
+    });
+    fail_each_allocation("x963kdf sha2_256", output, [&] {
+        return hash::x963kdf<hash::digests::sha2_256, openssl>(output, key, info);
+    });
+}
+
 }  // namespace
 
 int main() {
@@ -234,5 +253,6 @@ int main() {
     check_macs();
     check_digests();
     check_password_hashing();
+    check_kdf_standards();
     return webcpp::test::exit_status(boost::report_errors());
 }

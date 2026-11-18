@@ -707,6 +707,45 @@
             ],
             "choose": "To derive the keys a libsodium program derives from the same master key, or keys numbered by id from one random master key; hkdf for a secret that is not uniformly random."
         },
+        "kbkdf": {
+            "summary": "KBKDF, NIST SP 800-108's key derivation in counter mode over HMAC: keys from a key-derivation key, a label and a context.",
+            "output": "1 byte to 2^r - 1 digests (at most 2^29 - 1 bytes with L)",
+            "security": "that of the HMAC and of the key-derivation key, which must be a key, not a password",
+            "status": "recommended",
+            "webcrypto": null,
+            "anchor": "hash-kbkdf",
+            "uses": [
+                {"text": "Kerberos's AES-SHA2 encryption types derive their keys with it (RFC 8009's KDF-HMAC-SHA2)", "source": "https://www.rfc-editor.org/rfc/rfc8009"},
+                {"text": "NIST's approved key derivation from a key, SP 800-108r1", "source": "https://doi.org/10.6028/NIST.SP.800-108r1-upd1"}
+            ],
+            "choose": "When a standard, a protocol or a smart card names SP 800-108's counter mode; hkdf for a new design."
+        },
+        "sskdf": {
+            "summary": "The one-step KDF of NIST SP 800-56C over a hash (the Concat KDF): keys from a key-agreement's shared secret and its fixed info.",
+            "output": "1 byte to 2^32 - 1 digests (backends::openssl: at most 2^30 bytes)",
+            "security": "that of the digest and of the shared secret",
+            "status": "recommended",
+            "webcrypto": null,
+            "anchor": "hash-sskdf",
+            "uses": [
+                {"text": "JOSE's ECDH-ES key agreement (JWE), its Concat KDF", "source": "https://www.rfc-editor.org/rfc/rfc7518#section-4.6.2"},
+                {"text": "Kerberos's PKINIT key derivation", "source": "https://www.rfc-editor.org/rfc/rfc8636"}
+            ],
+            "choose": "To derive the key JOSE's ECDH-ES, PKINIT or another SP 800-56C protocol derives; hkdf for a new design."
+        },
+        "x963kdf": {
+            "summary": "The KDF of ANSI X9.63 (SEC 1): keys from an elliptic-curve shared secret and shared info, the counter after the secret.",
+            "output": "1 byte to 2^32 - 1 digests less 1 byte (backends::openssl: at most 2^30 bytes)",
+            "security": "that of the digest and of the shared secret",
+            "status": "recommended",
+            "webcrypto": null,
+            "anchor": "hash-x963kdf",
+            "uses": [
+                {"text": "ECIES, the elliptic-curve integrated encryption scheme of SEC 1", "source": "https://www.secg.org/sec1-v2.pdf"},
+                {"text": "Apple's ECIES algorithms of its Security framework, as their names say (X963SHA256)", "source": "https://developer.apple.com/documentation/security/seckeyalgorithm/eciesencryptionstandardx963sha256aesgcm"}
+            ],
+            "choose": "To derive the keys ECIES or a smart card's key agreement derives by ANSI X9.63; hkdf for a new design."
+        },
         "argon2id": {
             "summary": "Argon2id: the recommended password hash, memory-hard, winner of the Password Hashing Competition.",
             "output": "16 to 2^32 - 1 bytes",
@@ -1413,6 +1452,9 @@
         {"need": "store users' passwords for a login", "use": "argon2id with argon2id_interactive or stronger, a random 16-byte salt per user", "function": "argon2id", "backend": "link /third_party//sodium", "example": "password_storage.cpp", "anchor": "hash-privacy-passwords"},
         {"need": "turn a password into an encryption key (a password manager, an encrypted backup)", "use": "argon2id with argon2id_moderate or argon2id_sensitive, then hkdf for each purpose", "function": "argon2id", "backend": "link /third_party//sodium", "example": "argon2id.cpp", "anchor": "hash-argon2id"},
         {"need": "turn a shared secret (an ECDH result) into keys", "use": "hkdf over hmac_sha2_256, one info label per key", "function": "hkdf", "backend": "the default; name a backend only to match another program's", "example": "hkdf.cpp", "anchor": "hash-hkdf"},
+        {"need": "derive the key JOSE's ECDH-ES (a JWE) or another NIST SP 800-56C protocol derives from a shared secret", "use": "sskdf over digests::sha2_256, the fixed info as the protocol writes it", "function": "sskdf", "backend": "name backends::openssl and link /webcpp/hash//openssl", "example": "sskdf.cpp", "anchor": "hash-sskdf"},
+        {"need": "derive the keys of ECIES or of a smart card's key agreement (ANSI X9.63)", "use": "x963kdf over digests::sha2_256, the shared info as the scheme writes it", "function": "x963kdf", "backend": "name backends::openssl and link /webcpp/hash//openssl", "example": "x963kdf.cpp", "anchor": "hash-x963kdf"},
+        {"need": "derive keys from a key as NIST SP 800-108 or Kerberos does (a label and a context)", "use": "kbkdf over hmac_sha2_256 with the label and the context", "function": "kbkdf", "backend": "name backends::openssl and link /webcpp/hash//openssl", "example": "kbkdf.cpp", "anchor": "hash-kbkdf"},
         {"need": "derive many keys from one master key, one per purpose", "use": "hkdf_expand (or hkdf) with distinct info labels, blake2b_subkey (libsodium's crypto_kdf) by id, or blake3::derive_key with a context string", "function": "hkdf_expand", "backend": "the default", "example": "subkeys.cpp", "anchor": "hash-privacy-subkeys"},
         {"need": "build a hash table, set or Bloom filter whose keys come from the network", "use": "siphash_64 keyed with 16 random bytes per process", "function": "siphash_64", "backend": "none: one backend", "example": "siphash.cpp", "anchor": "hash-siphash"},
         {"need": "build a hash table of my own trusted keys, or a fast checksum", "use": "xxh3_128 or fnv1a_64", "function": "xxh3_128", "backend": "none: one backend", "example": "checksums.cpp", "anchor": "hash-non-cryptographic-functions"},

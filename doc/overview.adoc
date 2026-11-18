@@ -54,6 +54,10 @@ hashes, HMAC
 
 | BLAKE2b subkeys (libsodium's `crypto_kdf`)
 | libsodium's `crypto_kdf_blake2b_derive_from_key`
+
+| KBKDF (NIST SP 800-108), the one-step KDF (NIST SP 800-56C), the X9.63 KDF
+(ANSI X9.63)
+| OpenSSL's `EVP_KDF`s, on `backends::openssl` named in the call
 |===
 
 Every function is synchronous, reports failure as a value

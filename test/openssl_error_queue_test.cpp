@@ -6,8 +6,8 @@
 
 // OpenSSL's error queue (spec section 3.4): on an empty queue, hkdf_extract, hkdf_expand, hkdf,
 // pbkdf2, digest_of, a hasher's make, update and finish, mac (HMAC, KMAC, keyed BLAKE2s and
-// SipHash), argon2 (Argon2d with a secret and associated data), argon2id and scrypt on
-// backends::openssl leave it empty,
+// SipHash), argon2 (Argon2d with a secret and associated data), argon2id, scrypt, kbkdf, sskdf
+// and x963kdf on backends::openssl leave it empty,
 // OpenSSL's first fetch and initialisation among them; an entry of the caller's survives each, and
 // nothing of webcpp's is left beside it; a mark the caller set on its own entry survives them too,
 // and the caller's pop to it still finds it. openssl_failure_test.cpp checks the same around a
@@ -18,6 +18,7 @@
 #include <webcpp/hash/digest.hpp>
 #include <webcpp/hash/hkdf.hpp>
 #include <webcpp/hash/hmac.hpp>
+#include <webcpp/hash/kdf_standards.hpp>
 #include <webcpp/hash/mac.hpp>
 #include <webcpp/hash/pbkdf2.hpp>
 #include <webcpp/hash/scrypt.hpp>
@@ -50,8 +51,8 @@ std::size_t drain(unsigned long& first) {
 }
 
 /**
- Each of the four key derivations, the digest family, the MAC family, Argon2 and scrypt once, on
- OpenSSL, each a success.
+ Each of the four key derivations, the digest family, the MAC family, Argon2, scrypt and the
+ key derivations of standards once, on OpenSSL, each a success.
 */
 void call_each() {
     std::array<std::uint8_t, 13> const salt{1, 2, 3};
@@ -96,6 +97,11 @@ void call_each() {
     BOOST_TEST((hash::argon2id<openssl>(digest, ikm, password_salt, {.passes = 1, .memory = 8192})
                     .has_value()));
     BOOST_TEST((hash::scrypt<openssl>(digest, ikm, salt, {.n = 16, .r = 1, .p = 1}).has_value()));
+
+    BOOST_TEST(
+        (hash::kbkdf<hmac, openssl>(output, ikm, {.label = salt, .context = info}).has_value()));
+    BOOST_TEST((hash::sskdf<hash::digests::sha2_256, openssl>(output, ikm, info).has_value()));
+    BOOST_TEST((hash::x963kdf<hash::digests::sha2_256, openssl>(output, ikm, info).has_value()));
 }
 
 }  // namespace

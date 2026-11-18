@@ -71,9 +71,19 @@ using backend_tags =
     std::tuple<hash::backends::hash2, hash::backends::xkcp, hash::backends::blake3,
                hash::backends::sodium, hash::backends::bearssl, hash::backends::openssl>;
 
-// The functions with a Backend parameter: those over an hmac, and those over none.
-using hmac_functions = test::kdf_operations;
-using plain_functions = std::tuple<kdfs::argon2id, kdfs::scrypt, kdfs::blake2b_subkey>;
+// The functions with a Backend parameter: those over an hmac (increment 1's and kbkdf), and those
+// over none (sskdf and x963kdf take a digest, which no column of the table names).
+template <class First, class Second>
+struct joined;
+
+template <class... First, class... Second>
+struct joined<std::tuple<First...>, std::tuple<Second...>> {
+    using type = std::tuple<First..., Second...>;
+};
+
+using hmac_functions = joined<test::kdf_operations, std::tuple<kdfs::kbkdf_hmac>>::type;
+using plain_functions =
+    std::tuple<kdfs::argon2id, kdfs::scrypt, kdfs::blake2b_subkey, kdfs::sskdf, kdfs::x963kdf>;
 
 template <class Function>
 constexpr std::string_view function_name() {
@@ -83,6 +93,12 @@ constexpr std::string_view function_name() {
         return "scrypt";
     } else if constexpr (std::is_same_v<Function, kdfs::blake2b_subkey>) {
         return "blake2b_subkey";
+    } else if constexpr (std::is_same_v<Function, kdfs::kbkdf_hmac>) {
+        return "kbkdf";
+    } else if constexpr (std::is_same_v<Function, kdfs::sskdf>) {
+        return "sskdf";
+    } else if constexpr (std::is_same_v<Function, kdfs::x963kdf>) {
+        return "x963kdf";
     } else {
         return test::name_of_operation<Function>();
     }
@@ -282,12 +298,17 @@ void check_backend_fields(json::object const& table) {
     check_cell_fields(table, tagged);
 }
 
-// Each function's default, the backend default_backend names for its tag; a type row has none.
+// Each function's default, the backend default_backend names for its tag, null for a function
+// without one (detail::no_default); a type row has none.
 template <class Function>
 void check_default(json::object const& table) {
     auto const& listed = function_row(table, function_name<Function>()).at("default");
-    std::string_view const chosen = test::name_of<hash::default_backend<Function>>();
-    if (!BOOST_TEST(listed.is_string() && listed.as_string() == chosen)) {
+    using chosen_backend = hash::default_backend<Function>;
+    std::string_view const chosen = test::name_of<chosen_backend>();
+    bool const agrees = std::is_same_v<chosen_backend, hash::detail::no_default>
+                            ? listed.is_null()
+                            : listed.is_string() && listed.as_string() == chosen;
+    if (!BOOST_TEST(agrees)) {
         std::cerr << "  default of " << function_name<Function>() << '\n';
     }
 }
@@ -560,7 +581,8 @@ void check_names(json::object const& table) {
         }
     }
     names known_functions{
-        "hkdf_extract", "hkdf_expand", "hkdf", "pbkdf2", "argon2id", "scrypt", "blake2b_subkey",
+        "hkdf_extract", "hkdf_expand",    "hkdf",  "pbkdf2", "argon2id",
+        "scrypt",       "blake2b_subkey", "kbkdf", "sskdf",  "x963kdf",
     };
     for (auto const& row : type_rows()) {
         known_functions.emplace(row.name);
@@ -826,6 +848,27 @@ std::vector<refusal> const& refusals() {
             .functions = {"hkdf", "pbkdf2"},
             .hmacs = {"other"},
         },
+        {
+            .header = "backends/openssl.hpp",
+            .start = "backends::openssl has kbkdf over the hmacs of hmac.hpp alone",
+            .backend = "openssl",
+            .functions = {"kbkdf"},
+            .hmacs = {"lacks"},
+        },
+        {
+            .header = "kdf_standards.hpp",
+            .start = "sskdf takes a digest of SP 800-56C",
+            .backend = "",
+            .functions = {},
+            .hmacs = {},
+        },
+        {
+            .header = "kdf_standards.hpp",
+            .start = "x963kdf takes a digest of FIPS 180-4",
+            .backend = "",
+            .functions = {},
+            .hmacs = {},
+        },
     };
     return all;
 }
@@ -887,15 +930,31 @@ std::string_view family_tag_of(std::string_view text) {
     return qualified ? tag : std::string_view{};
 }
 
-// A family tag's refusal names exactly the backends of the tag's row, none when it has no row.
-// Returns whether the text is a family tag's.
+// The row of a function whose tag is `tag` (kbkdf's is kdfs::kbkdf_hmac), or null when none is.
+json::object const* row_of_tag(json::object const& table, std::string_view tag) {
+    for (auto const* function : functions_of(table)) {
+        auto const* const listed = function->if_contains("tag");
+        if (listed != nullptr && listed->is_string() && listed->as_string() == tag) {
+            return function;
+        }
+    }
+    return nullptr;
+}
+
+// A family tag's refusal names exactly the backends of the tag's row (a family's row, named by
+// the tag, or a function's, which names it as its tag), none when it has no row. Returns whether
+// the text is a family tag's.
 bool check_family_refusal(json::object const& table, std::string const& text) {
     std::string_view const tag = family_tag_of(text);
     if (tag.empty()) {
         return false;
     }
     names row;
-    if (auto const* const found = find_row(table, tag); found != nullptr) {
+    auto const* found = find_row(table, tag);
+    if (found == nullptr) {
+        found = row_of_tag(table, tag);
+    }
+    if (found != nullptr) {
         for (auto const& backend : found->at("backends").as_object()) {
             row.emplace(backend.key());
         }

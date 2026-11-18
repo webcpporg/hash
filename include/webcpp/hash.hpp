@@ -23,6 +23,7 @@
 #include <webcpp/hash/hkdf.hpp>
 #include <webcpp/hash/hmac.hpp>
 #include <webcpp/hash/kdf.hpp>
+#include <webcpp/hash/kdf_standards.hpp>
 #include <webcpp/hash/mac.hpp>
 #include <webcpp/hash/pbkdf2.hpp>
 
@@ -60,8 +61,8 @@
 #endif
 
 // scrypt, whose backends are libsodium's and OpenSSL's: a program that links neither leaves it
-// out. argon2.hpp, above, needs no library: its functions refuse at compile time, with the Jamfile
-// line to add, when they are called without one.
+// out. argon2.hpp and kdf_standards.hpp, above, need no library: their functions refuse at compile
+// time, with the Jamfile line to add, when they are called without one.
 #if defined(WEBCPP_HASH_HAS_SODIUM) || defined(WEBCPP_HASH_HAS_OPENSSL)
 #include <webcpp/hash/scrypt.hpp>
 #endif
