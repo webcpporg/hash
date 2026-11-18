@@ -33,6 +33,11 @@
 #include <string_view>
 #include <vector>
 
+// detail/xkcp_storage.h keeps its enumeration out of a C++ program's global namespace: a program
+// may declare a name its enumerators have.
+[[maybe_unused]] constexpr int webcpp_hash_xkcp_sponge_words = 0;
+static_assert(webcpp::hash::detail::webcpp_hash_xkcp_sponge_words == 27);
+
 namespace {
 
 namespace detail = webcpp::hash::detail;

@@ -63,17 +63,24 @@ using xkcp_tuplehash_storage = std::array<std::uint64_t, webcpp_hash_xkcp_tupleh
 /** The storage of a `ParallelHash_Instance`: `webcpp_hash_xkcp_parallelhash_words` words. */
 using xkcp_parallelhash_storage = std::array<std::uint64_t, webcpp_hash_xkcp_parallelhash_words>;
 
-// Each storage is detail/xkcp_storage.h's number of words, the one the adapter checks XKCP's
-// structure against: an edit of either side alone stops the build.
-static_assert(std::tuple_size_v<xkcp_sponge_storage> == webcpp_hash_xkcp_sponge_words);
-static_assert(std::tuple_size_v<xkcp_keccak_hash_storage> == webcpp_hash_xkcp_keccak_hash_words);
-static_assert(std::tuple_size_v<xkcp_turboshake_storage> == webcpp_hash_xkcp_turboshake_words);
-static_assert(std::tuple_size_v<xkcp_kangarootwelve_storage> ==
-              webcpp_hash_xkcp_kangarootwelve_words);
-static_assert(std::tuple_size_v<xkcp_cshake_storage> == webcpp_hash_xkcp_cshake_words);
-static_assert(std::tuple_size_v<xkcp_kmac_storage> == webcpp_hash_xkcp_kmac_words);
-static_assert(std::tuple_size_v<xkcp_tuplehash_storage> == webcpp_hash_xkcp_tuplehash_words);
-static_assert(std::tuple_size_v<xkcp_parallelhash_storage> == webcpp_hash_xkcp_parallelhash_words);
+/**
+ Whether `Storage` is exactly `Words` words of `std::uint64_t`, at their alignment: the room the
+ adapter's C static assertions check each XKCP structure against (`detail/xkcp_storage.h`).
+
+ @tparam Storage A storage type of this header.
+ @tparam Words Its number of words in `detail/xkcp_storage.h`.
+*/
+template <class Storage, std::size_t Words>
+inline constexpr bool holds_words_v =
+    sizeof(Storage) == Words * sizeof(std::uint64_t) && alignof(Storage) == alignof(std::uint64_t);
+static_assert(holds_words_v<xkcp_sponge_storage, webcpp_hash_xkcp_sponge_words>);
+static_assert(holds_words_v<xkcp_keccak_hash_storage, webcpp_hash_xkcp_keccak_hash_words>);
+static_assert(holds_words_v<xkcp_turboshake_storage, webcpp_hash_xkcp_turboshake_words>);
+static_assert(holds_words_v<xkcp_kangarootwelve_storage, webcpp_hash_xkcp_kangarootwelve_words>);
+static_assert(holds_words_v<xkcp_cshake_storage, webcpp_hash_xkcp_cshake_words>);
+static_assert(holds_words_v<xkcp_kmac_storage, webcpp_hash_xkcp_kmac_words>);
+static_assert(holds_words_v<xkcp_tuplehash_storage, webcpp_hash_xkcp_tuplehash_words>);
+static_assert(holds_words_v<xkcp_parallelhash_storage, webcpp_hash_xkcp_parallelhash_words>);
 
 }  // namespace webcpp::hash::detail
 
