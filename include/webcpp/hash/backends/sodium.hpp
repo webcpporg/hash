@@ -31,8 +31,9 @@
  On Emscripten `/third_party//sodium` links a program with `-sALLOW_MEMORY_GROWTH=1`: Argon2 and
  scrypt allocate the memory their costs name, past Emscripten's fixed 16 MiB.
 
- Every engine function calls `sodium_init()` first (it returns 0 the first time and 1 after,
- both success), so that a program that never initialised libsodium is safe.
+ Every engine function that starts work on libsodium (`init`, `one_shot`, `compute`, `derive`,
+ `extract`, `expand`) calls `sodium_init()` first (it returns 0 the first time and 1 after, both
+ success), so that a program that never initialised libsodium is safe.
 
  @see "Key derivation", in the guide.
 */
@@ -43,7 +44,7 @@
 
 #ifndef WEBCPP_HASH_HAS_SODIUM
 #error \
-    "webcpp::hash: backends::sodium, argon2id, scrypt and blake2b_subkey need libsodium. Add /third_party//sodium to the program's Jamfile: exe app : app.cpp /webcpp/hash//hash /third_party//sodium ;"
+    "webcpp::hash: backends::sodium needs libsodium. Add /third_party//sodium to the program's Jamfile: exe app : app.cpp /webcpp/hash//hash /third_party//sodium ;"
 #else
 
 #include <webcpp/hash/detail/canary.h>
@@ -139,11 +140,11 @@ inline void touch_sodium_canary() noexcept {
 }
 
 /**
- Initialises libsodium, as every engine function does first: `sodium_init` returns 0 the first
- time and 1 after, both success, and -1 when it cannot initialise. On Emscripten with threads,
- libsodium's random source is a JavaScript function of the thread that set it, a Web Worker's own:
- `randombytes_stir` sets it on the calling thread when it has none, since libsodium's Argon2 draws
- random bytes (it fills the output first) on whichever thread runs it.
+ Initialises libsodium, as every engine function that starts work on it does first: `sodium_init`
+ returns 0 the first time and 1 after, both success, and -1 when it cannot initialise. On Emscripten
+ with threads, libsodium's random source is a JavaScript function of the thread that set it, a Web
+ Worker's own: `randombytes_stir` sets it on the calling thread when it has none, since libsodium's
+ Argon2 draws random bytes (it fills the output first) on whichever thread runs it.
 
  @return Whether libsodium is ready.
 */
@@ -562,8 +563,8 @@ private:
 /**
  A fixed-size digest on backends::sodium, over libsodium's `crypto_hash_*`, with the interface of
  @ref digest_engine. It calls `_init`, `_update` and `_final`, which writes the whole digest, of the
- size the family's guard holds the output to. libsodium's `_final` wipes the state, and `destroy`
- wipes it again, for a hash that ends before `finish`.
+ size the family's guard holds the output to. SHA-2's `_final` wipes the state, SHA-3's does not:
+ `destroy` wipes it in every case, and for a hash that ends before `finish`.
 
  @tparam Digest The tag of `digests`. @tparam State libsodium's state. @tparam Size The digest's
  size, libsodium's `_BYTES`. @tparam Init libsodium's `_init`. @tparam Update libsodium's
