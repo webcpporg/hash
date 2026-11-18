@@ -646,6 +646,26 @@ template <class Digest>
 constexpr bool is_tuplehash = std::is_same_v<Digest, digests::tuplehash_128> ||
                               std::is_same_v<Digest, digests::tuplehash_256>;
 
+// Digest on xkcp over all through a hasher, its pieces split at first and second (TupleHash's:
+// all in one update, its tuple's one element), against expected.
+template <class Digest>
+void expect_hasher(std::span<std::uint8_t const> all, std::size_t first, std::size_t second,
+                   hash::digest_options<Digest> const& options, std::string_view expected,
+                   std::string const& what) {
+    auto hashing = hash::hasher<Digest, xkcp>::make(options);
+    test::require(BOOST_TEST(hashing.has_value()));
+    BOOST_TEST(hashing->update(all.first(first)).has_value());
+    if constexpr (!is_tuplehash<Digest>) {
+        BOOST_TEST(hashing->update(all.subspan(first, second - first)).has_value());
+        BOOST_TEST(hashing->update(all.subspan(second)).has_value());
+    }
+    bytes pieces(expected.size() / 2);
+    BOOST_TEST(hashing->finish(pieces).has_value());
+    if (!BOOST_TEST_EQ(test::to_hex(pieces), expected)) {
+        std::cerr << "  hasher split at " << first << ", " << second << ": " << what << '\n';
+    }
+}
+
 // Digest on xkcp over input, of size bytes, in one call and at every split through a hasher
 // (TupleHash's: in one update, its tuple's one element): each against expected.
 template <class Digest>
@@ -658,29 +678,10 @@ void expect_digest(bytes const& input, hash::digest_options<Digest> const& optio
     }
     std::span<std::uint8_t const> const all(input);
     if constexpr (is_tuplehash<Digest>) {
-        auto hashing = hash::hasher<Digest, xkcp>::make(options);
-        test::require(BOOST_TEST(hashing.has_value()));
-        BOOST_TEST(hashing->update(all).has_value());
-        bytes whole(expected.size() / 2);
-        BOOST_TEST(hashing->finish(whole).has_value());
-        if (!BOOST_TEST_EQ(test::to_hex(whole), expected)) {
-            std::cerr << "  hasher, one element: " << what << '\n';
-        }
+        expect_hasher<Digest>(all, all.size(), all.size(), options, expected, what);
     } else {
-        // An else, not a return above: MSVC's C4702 calls the loop unreachable in TupleHash's
-        // instantiation otherwise.
         for (auto const& [first, second] : splits(input.size())) {
-            auto hashing = hash::hasher<Digest, xkcp>::make(options);
-            test::require(BOOST_TEST(hashing.has_value()));
-            BOOST_TEST(hashing->update(all.first(first)).has_value());
-            BOOST_TEST(hashing->update(all.subspan(first, second - first)).has_value());
-            BOOST_TEST(hashing->update(all.subspan(second)).has_value());
-            bytes pieces(expected.size() / 2);
-            BOOST_TEST(hashing->finish(pieces).has_value());
-            if (!BOOST_TEST_EQ(test::to_hex(pieces), expected)) {
-                std::cerr << "  hasher split at " << first << ", " << second << ": " << what
-                          << '\n';
-            }
+            expect_hasher<Digest>(all, first, second, options, expected, what);
         }
     }
 }
