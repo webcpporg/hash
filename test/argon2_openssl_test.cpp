@@ -187,8 +187,10 @@ std::string evp_tag(stanza const& lines, std::size_t tag_size) {
 // An expected failure of evpkdf_argon2.txt through the family, when it has the stanza's
 // parameters: the family refuses the value OpenSSL refuses, with the error of its guard, the output
 // untouched. Where the stanza sets no salt, a 16-byte one; no tag size, 32 bytes. A stanza of
-// threads or of a version has no equivalent (argon2 runs one thread of version 0x13): false.
-bool refuses_evp_failure(stanza const& lines) {
+// threads or of a version has no equivalent (argon2 runs one thread of version 0x13): false. The
+// variant is the stanza's, and a failure names the expected failure's index and KDF.
+template <class Variant>
+bool refuses_evp_failure(stanza const& lines, std::size_t index, std::string_view kdf) {
     for (auto const& [key, value] : lines) {
         if (key.starts_with("Ctrl.") &&
             (value.starts_with("threads:") || value.starts_with("version:"))) {
@@ -206,15 +208,17 @@ bool refuses_evp_failure(stanza const& lines) {
         expected = hash::error::invalid_salt_size;
     }
     bytes tag(tag_size, untouched);
-    auto const refused = hash::argon2<kdfs::argon2d, openssl>(
-        tag, {}, salt,
-        {
-            .passes = ctrl_number(lines, "Ctrl.iter", 3),
-            .memory_kib = ctrl_number(lines, "Ctrl.memcost", 8),
-            .lanes = ctrl_number(lines, "Ctrl.lanes", 1),
-        });
+    auto const refused =
+        hash::argon2<Variant, openssl>(tag, {}, salt,
+                                       {
+                                           .passes = ctrl_number(lines, "Ctrl.iter", 3),
+                                           .memory_kib = ctrl_number(lines, "Ctrl.memcost", 8),
+                                           .lanes = ctrl_number(lines, "Ctrl.lanes", 1),
+                                       });
     if (!BOOST_TEST(failed_with(refused, expected)) || !BOOST_TEST(all_of(tag, untouched))) {
-        std::cerr << "  evpkdf_argon2.txt, an expected failure the family does not refuse\n";
+        std::cerr << "  evpkdf_argon2.txt, expected failure " << index << " (" << kdf
+                  << "), which the family does not refuse with "
+                  << hash::make_error_code(expected).message() << '\n';
     }
     return true;
 }
@@ -232,7 +236,17 @@ void check_evp_data() {
             continue;
         }
         if (value_of(lines, "Result")) {
-            ++(refuses_evp_failure(lines) ? refused : no_equivalent);
+            std::size_t const index = refused + no_equivalent;
+            bool stated = false;
+            if (*kdf == "ARGON2D") {
+                stated = refuses_evp_failure<kdfs::argon2d>(lines, index, *kdf);
+            } else if (*kdf == "ARGON2I") {
+                stated = refuses_evp_failure<kdfs::argon2i>(lines, index, *kdf);
+            } else {
+                test::require(BOOST_TEST_EQ(*kdf, std::string("ARGON2ID")));
+                stated = refuses_evp_failure<kdfs::argon2id>(lines, index, *kdf);
+            }
+            ++(stated ? refused : no_equivalent);
             continue;
         }
         std::string expected = *value_of(lines, "Output");
