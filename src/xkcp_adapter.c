@@ -14,17 +14,20 @@
  *
  * The high-level interfaces (the sponge, FIPS 202's Keccak_Hash, TurboSHAKE, KangarooTwelve,
  * and SP 800-185's cSHAKE, KMAC, TupleHash and ParallelHash): each instance lives in the
- * caller's storage of 64-bit words, opaque to it, whose size detail/xkcp.hpp fixes per kind
- * (WEBCPP_HASH_XKCP_*_WORDS below, the same numbers); static assertions stop the build on
- * any target or pin where XKCP's structure outgrows it or needs a stricter alignment. Every
- * length is in bytes and every function returns XKCP's answer, 0 on success. SP 800-185 and
- * Keccak_Hash count lengths in bits in a size_t: input and squeezed output are passed in
- * chunks of at most SIZE_MAX / 8 bytes, and a key, name, customisation, tuple element or
- * fixed output longer than that is refused (1) before XKCP is called. A null pointer with a
- * length of zero is passed as a pointer to an empty byte string. */
+ * caller's storage of 64-bit words, opaque to it, whose size per kind is
+ * detail/xkcp_storage.h's WEBCPP_HASH_XKCP_*_WORDS, the numbers detail/xkcp.hpp allocates;
+ * static assertions stop the build on any target or pin where XKCP's structure outgrows it
+ * or needs a stricter alignment. Every length is in bytes and every function returns XKCP's
+ * answer, 0 on success. SP 800-185 and Keccak_Hash count lengths in bits in a size_t: input
+ * and squeezed output are passed in chunks of at most SIZE_MAX / 8 bytes, and a key, name,
+ * customisation, tuple element or fixed output longer than that is refused (1) before XKCP
+ * is called. A null pointer with a length of zero is passed as a pointer to an empty byte
+ * string. */
 #include <limits.h>
 #include <stddef.h>
 #include <stdint.h>
+
+#include <webcpp/hash/detail/xkcp_storage.h>
 
 #include "KangarooTwelve.h"
 #include "KeccakHash.h"
@@ -53,16 +56,6 @@ void webcpp_hash_xkcp_extract_bytes(const uint64_t* state, unsigned char* data, 
                              (unsigned int)length);
 }
 
-/* The storage of each instance kind, in 64-bit words: detail/xkcp.hpp's xkcp_*_storage. */
-#define WEBCPP_HASH_XKCP_SPONGE_WORDS 27
-#define WEBCPP_HASH_XKCP_KECCAK_HASH_WORDS 28
-#define WEBCPP_HASH_XKCP_TURBOSHAKE_WORDS 27
-#define WEBCPP_HASH_XKCP_KANGAROOTWELVE_WORDS 58
-#define WEBCPP_HASH_XKCP_CSHAKE_WORDS 30
-#define WEBCPP_HASH_XKCP_KMAC_WORDS 31
-#define WEBCPP_HASH_XKCP_TUPLEHASH_WORDS 31
-#define WEBCPP_HASH_XKCP_PARALLELHASH_WORDS 59
-
 /* That type fits in that many words of uint64_t, at their alignment: _Static_assert where the
  * dialect has it (C11), else an array whose size is negative when it does not, which MSVC's
  * C without /std:c11 also stops on. */
@@ -70,9 +63,7 @@ void webcpp_hash_xkcp_extract_bytes(const uint64_t* state, unsigned char* data, 
 #define WEBCPP_HASH_XKCP_FITS(type, words)                                                  \
     _Static_assert(                                                                         \
         sizeof(type) <= (words) * sizeof(uint64_t) && _Alignof(type) <= _Alignof(uint64_t), \
-        #type " outgrows webcpp's storage: raise " #words                                   \
-              " here and in "                                                               \
-              "detail/xkcp.hpp")
+        #type " outgrows webcpp's storage: raise " #words " in detail/xkcp_storage.h")
 #else
 #define WEBCPP_HASH_XKCP_FITS(type, words)                                                      \
     typedef char webcpp_hash_xkcp_##type##_outgrows_its_storage                                 \

@@ -62,6 +62,7 @@
         {
             "headers": [
                 "include/webcpp/hash/detail/xkcp.hpp",
+                "include/webcpp/hash/detail/xkcp_storage.h",
                 "include/webcpp/hash/keccak.hpp"
             ],
             "must-not-include": ["Keccak", "SnP", "brg_endian", "config.h", "align.h", "xkcp/"],

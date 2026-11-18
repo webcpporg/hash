@@ -17,18 +17,19 @@
  four phases, `initialize`, `update`, `final` and `squeeze`, named
  `webcpp_hash_xkcp_<interface>_<phase>`; TupleHash and ParallelHash also end with
  `final_length`, which takes the output length at the end. An instance lives in the caller's
- storage, the `xkcp_<kind>_storage` below, opaque to it: its size is the native maximum of XKCP's
- structure (smaller on wasm32, where `size_t` is 4 bytes), which the adapter's static assertions
- check on every target. A storage is used for one instance from its `initialize` on, and wiped by
- its owner when done. Every length is in bytes; every function returns XKCP's answer, 0 on success
- and nonzero on a refusal (a phase out of order, a parameter XKCP does not take). SP 800-185's
- and `Keccak_Hash`'s lengths are bits in a `size_t`: the adapter passes input and squeezed
- output in chunks, and refuses a key, function name, customisation, tuple element or fixed
- output longer than `SIZE_MAX / 8` bytes. A pointer may be null when its length is zero.
+ storage, the `xkcp_<kind>_storage` below, opaque to it: its size, in `detail/xkcp_storage.h`, is
+ the native maximum of XKCP's structure (smaller on wasm32, where `size_t` is 4 bytes), which the
+ adapter's static assertions check on every target. A storage is used for one instance from its
+ `initialize` on, and wiped by its owner when done. Every length is in bytes; every function returns
+ XKCP's answer, 0 on success and nonzero on a refusal (a phase out of order, a parameter XKCP does
+ not take). SP 800-185's and `Keccak_Hash`'s lengths are bits in a `size_t`: the adapter passes
+ input and squeezed output in chunks, and refuses a key, function name, customisation, tuple element
+ or fixed output longer than `SIZE_MAX / 8` bytes. A pointer may be null when its length is zero.
 */
 #ifndef WEBCPP_HASH_DETAIL_XKCP_HPP
 #define WEBCPP_HASH_DETAIL_XKCP_HPP
 
+#include <webcpp/hash/detail/xkcp_storage.h>
 #include <webcpp/hash/config.hpp>
 
 #include <array>
@@ -37,29 +38,42 @@
 
 namespace webcpp::hash::detail {
 
-/** The storage of a `KeccakWidth1600_SpongeInstance` (216 bytes). */
-using xkcp_sponge_storage = std::array<std::uint64_t, 27>;
+/** The storage of a `KeccakWidth1600_SpongeInstance`: `WEBCPP_HASH_XKCP_SPONGE_WORDS` words. */
+using xkcp_sponge_storage = std::array<std::uint64_t, WEBCPP_HASH_XKCP_SPONGE_WORDS>;
 
-/** The storage of a `Keccak_HashInstance` (224 bytes). */
-using xkcp_keccak_hash_storage = std::array<std::uint64_t, 28>;
+/** The storage of a `Keccak_HashInstance`: `WEBCPP_HASH_XKCP_KECCAK_HASH_WORDS` words. */
+using xkcp_keccak_hash_storage = std::array<std::uint64_t, WEBCPP_HASH_XKCP_KECCAK_HASH_WORDS>;
 
-/** The storage of a `TurboSHAKE_Instance` (216 bytes). */
-using xkcp_turboshake_storage = std::array<std::uint64_t, 27>;
+/** The storage of a `TurboSHAKE_Instance`: `WEBCPP_HASH_XKCP_TURBOSHAKE_WORDS` words. */
+using xkcp_turboshake_storage = std::array<std::uint64_t, WEBCPP_HASH_XKCP_TURBOSHAKE_WORDS>;
 
-/** The storage of a `KangarooTwelve_Instance` (464 bytes natively, 456 on wasm32). */
-using xkcp_kangarootwelve_storage = std::array<std::uint64_t, 58>;
+/** The storage of a `KangarooTwelve_Instance`: `WEBCPP_HASH_XKCP_KANGAROOTWELVE_WORDS` words. */
+using xkcp_kangarootwelve_storage =
+    std::array<std::uint64_t, WEBCPP_HASH_XKCP_KANGAROOTWELVE_WORDS>;
 
-/** The storage of a `cSHAKE_Instance` (240 bytes). */
-using xkcp_cshake_storage = std::array<std::uint64_t, 30>;
+/** The storage of a `cSHAKE_Instance`: `WEBCPP_HASH_XKCP_CSHAKE_WORDS` words. */
+using xkcp_cshake_storage = std::array<std::uint64_t, WEBCPP_HASH_XKCP_CSHAKE_WORDS>;
 
-/** The storage of a `KMAC_Instance` (248 bytes). */
-using xkcp_kmac_storage = std::array<std::uint64_t, 31>;
+/** The storage of a `KMAC_Instance`: `WEBCPP_HASH_XKCP_KMAC_WORDS` words. */
+using xkcp_kmac_storage = std::array<std::uint64_t, WEBCPP_HASH_XKCP_KMAC_WORDS>;
 
-/** The storage of a `TupleHash_Instance` (248 bytes). */
-using xkcp_tuplehash_storage = std::array<std::uint64_t, 31>;
+/** The storage of a `TupleHash_Instance`: `WEBCPP_HASH_XKCP_TUPLEHASH_WORDS` words. */
+using xkcp_tuplehash_storage = std::array<std::uint64_t, WEBCPP_HASH_XKCP_TUPLEHASH_WORDS>;
 
-/** The storage of a `ParallelHash_Instance` (472 bytes natively, 456 on wasm32). */
-using xkcp_parallelhash_storage = std::array<std::uint64_t, 59>;
+/** The storage of a `ParallelHash_Instance`: `WEBCPP_HASH_XKCP_PARALLELHASH_WORDS` words. */
+using xkcp_parallelhash_storage = std::array<std::uint64_t, WEBCPP_HASH_XKCP_PARALLELHASH_WORDS>;
+
+// Each storage is detail/xkcp_storage.h's number of words, the one the adapter checks XKCP's
+// structure against: an edit of either side alone stops the build.
+static_assert(std::tuple_size_v<xkcp_sponge_storage> == WEBCPP_HASH_XKCP_SPONGE_WORDS);
+static_assert(std::tuple_size_v<xkcp_keccak_hash_storage> == WEBCPP_HASH_XKCP_KECCAK_HASH_WORDS);
+static_assert(std::tuple_size_v<xkcp_turboshake_storage> == WEBCPP_HASH_XKCP_TURBOSHAKE_WORDS);
+static_assert(std::tuple_size_v<xkcp_kangarootwelve_storage> ==
+              WEBCPP_HASH_XKCP_KANGAROOTWELVE_WORDS);
+static_assert(std::tuple_size_v<xkcp_cshake_storage> == WEBCPP_HASH_XKCP_CSHAKE_WORDS);
+static_assert(std::tuple_size_v<xkcp_kmac_storage> == WEBCPP_HASH_XKCP_KMAC_WORDS);
+static_assert(std::tuple_size_v<xkcp_tuplehash_storage> == WEBCPP_HASH_XKCP_TUPLEHASH_WORDS);
+static_assert(std::tuple_size_v<xkcp_parallelhash_storage> == WEBCPP_HASH_XKCP_PARALLELHASH_WORDS);
 
 }  // namespace webcpp::hash::detail
 
