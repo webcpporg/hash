@@ -666,18 +666,21 @@ void expect_digest(bytes const& input, hash::digest_options<Digest> const& optio
         if (!BOOST_TEST_EQ(test::to_hex(whole), expected)) {
             std::cerr << "  hasher, one element: " << what << '\n';
         }
-        return;
-    }
-    for (auto const& [first, second] : splits(input.size())) {
-        auto hashing = hash::hasher<Digest, xkcp>::make(options);
-        test::require(BOOST_TEST(hashing.has_value()));
-        BOOST_TEST(hashing->update(all.first(first)).has_value());
-        BOOST_TEST(hashing->update(all.subspan(first, second - first)).has_value());
-        BOOST_TEST(hashing->update(all.subspan(second)).has_value());
-        bytes pieces(expected.size() / 2);
-        BOOST_TEST(hashing->finish(pieces).has_value());
-        if (!BOOST_TEST_EQ(test::to_hex(pieces), expected)) {
-            std::cerr << "  hasher split at " << first << ", " << second << ": " << what << '\n';
+    } else {
+        // An else, not a return above: MSVC's C4702 calls the loop unreachable in TupleHash's
+        // instantiation otherwise.
+        for (auto const& [first, second] : splits(input.size())) {
+            auto hashing = hash::hasher<Digest, xkcp>::make(options);
+            test::require(BOOST_TEST(hashing.has_value()));
+            BOOST_TEST(hashing->update(all.first(first)).has_value());
+            BOOST_TEST(hashing->update(all.subspan(first, second - first)).has_value());
+            BOOST_TEST(hashing->update(all.subspan(second)).has_value());
+            bytes pieces(expected.size() / 2);
+            BOOST_TEST(hashing->finish(pieces).has_value());
+            if (!BOOST_TEST_EQ(test::to_hex(pieces), expected)) {
+                std::cerr << "  hasher split at " << first << ", " << second << ": " << what
+                          << '\n';
+            }
         }
     }
 }
