@@ -39,7 +39,7 @@ enum webcpp_hash_xkcp_storage_words {
     /** The words of a `TupleHash_Instance`: 248 bytes. */
     webcpp_hash_xkcp_tuplehash_words = 31,
     /** The words of a `ParallelHash_Instance`: 472 bytes natively, 456 on wasm32. */
-    webcpp_hash_xkcp_parallelhash_words = 59
+    webcpp_hash_xkcp_parallelhash_words = 59 /* NOLINT(readability-trailing-comma): C89 has none */
 };
 #ifdef __cplusplus
 } /* namespace webcpp::hash::detail */
