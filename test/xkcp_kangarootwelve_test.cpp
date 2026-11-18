@@ -23,8 +23,8 @@
 // - kangarootwelve_max_bytes, the guard of XKCP's count of chunks, is no limit where a size_t has
 //   64 bits; its seam test is xkcp_kangarootwelve_limits_test.cpp.
 //
-// Agreement with libsodium's TurboSHAKE waits for the task "Agreement across increments" (ruling
-// R6): libsodium's engine comes with another increment.
+// Agreement with libsodium's TurboSHAKE, on random inputs, outputs and domain bytes, is in
+// agreement_families_test.cpp (the task "Agreement across increments", ruling R6).
 
 #include <webcpp/hash/backends/xkcp.hpp>
 #include <webcpp/hash/digest.hpp>

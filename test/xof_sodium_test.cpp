@@ -11,8 +11,8 @@
 // SHAKE256 against FIPS 202's examples (4,096 bits of output); SHAKE against Boost.Hash2's
 // shake_128 and shake_256 on random inputs, past one rate block (Hash2's result() gives the stream
 // block after block), and against backends::hash2 at every size (ruling R89); then TurboSHAKE's
-// domain byte, the family's guard (ruling R25), before any engine. The agreement with XKCP comes
-// with increment 3 (ruling R6).
+// domain byte, the family's guard (ruling R25), before any engine. The agreement with XKCP,
+// BearSSL and OpenSSL is in agreement_families_test.cpp (ruling R6).
 
 #include <webcpp/hash/backends/sodium.hpp>
 #include <webcpp/hash/digest.hpp>
