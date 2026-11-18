@@ -35,11 +35,12 @@ namespace webcpp::hash {
 enum class error : int {
     /** An output that is not of a size the function produces: empty, too short or too long. */
     invalid_output_size = 1,
-    /** A key that is not of a size the function accepts: HKDF's pseudorandom key, a MAC's key. */
+    /** A key that is not of a size the function accepts: HKDF's pseudorandom key, a MAC's key, a
+        derivation's master key or secret. */
     invalid_key_size = 2,
     /** A salt that is not of a size the function accepts. */
     invalid_salt_size = 3,
-    /** An iteration count of zero. */
+    /** An iteration count of zero, or above the backend's limit (`backend_limits`). */
     invalid_iterations = 4,
     /** A parameter that is outside the function's limits: a cost, a lane count, an option. */
     invalid_parameters = 5,
@@ -61,7 +62,8 @@ inline const char* message_of(int error_value) noexcept {
         case error::invalid_output_size: return "the output is not of a size the function produces";
         case error::invalid_key_size: return "the key is not of a size the function accepts";
         case error::invalid_salt_size: return "the salt is not of a size the function accepts";
-        case error::invalid_iterations: return "the iteration count is zero";
+        case error::invalid_iterations:
+            return "the iteration count is zero or more than the backend takes";
         case error::invalid_parameters: return "a parameter is outside the function's limits";
         case error::input_too_long: return "an input is longer than the function accepts";
         case error::backend_failure: return "the backend failed where it should not";

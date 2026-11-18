@@ -46,7 +46,7 @@ constexpr std::array<expected_message, 9> messages{
         {
             .value = hash::error::invalid_iterations,
             .number = 4,
-            .text = "the iteration count is zero",
+            .text = "the iteration count is zero or more than the backend takes",
         },
         {
             .value = hash::error::invalid_parameters,
