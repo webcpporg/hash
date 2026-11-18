@@ -19,11 +19,12 @@
 // family (async.hpp, increment 7) takes its storage from the handler's associated allocator, as
 // Asio's operations do: with an arena of the test's bound to the handler, the cheap functions
 // (async_digest, async_hmac, async_hkdf, and their guards' refusals) call neither operator new
-// nor the C allocator, the arena gets back every block before the handler runs, and a heavy
-// function (async_pbkdf2 on a thread pool, natively) allocates one shared state of webcpp's with
-// operator new, a departure the guide records, besides what Asio's pool takes; its count is
-// printed. Every printed result is one `record key=value ...` line, collected by
-// bench/allocation_collect.py.
+// nor the C allocator, and the arena gets back every block before the handler runs; the heavy
+// functions (natively, on a thread pool) take their state and completion from the arena too and
+// call no operator new, the pool's queue and libsodium's memory being the C allocator's; on
+// Emscripten the four functions on backends::webcrypto call the C allocator only as often as
+// webcpp::asio's promise bridge does for a bare await, once per promise. Every printed result is
+// one `record key=value ...` line, collected by bench/allocation_collect.py.
 
 #include <webcpp/hash/algorithms.hpp>
 #include <webcpp/hash/argon2.hpp>
@@ -49,6 +50,9 @@
 #endif
 
 #include <webcpp/asio/bind_allocator.hpp>
+#ifdef WEBCPP_TARGET_EMSCRIPTEN
+#include <webcpp/asio/browser/async_await.hpp>
+#endif
 #include <webcpp/asio/bind_executor.hpp>
 #include <webcpp/asio/io_context.hpp>
 #ifdef WEBCPP_HASH_HAS_THREADS
@@ -70,6 +74,7 @@
 #include <cstdlib>
 #include <new>
 #include <span>
+#include <string_view>
 
 namespace hash = webcpp::hash;
 
@@ -473,10 +478,12 @@ struct arena_allocator {
 
 // One asynchronous call in a window: `start(handler)` initiates it with a handler bound to the
 // arena, then the context runs until the handler has been called once with `expected`, with every
-// block of the arena given back. Neither counter moves, and the arena gave at least one block.
+// block of the arena given back. operator new is not called, the C allocator `others_c` times
+// (another library's: webcpp::asio's promise bridge), and the arena gave at least one block.
 template <class Start>
 void async_allocates_nothing(char const* name, webcpp::asio::io_context& context,
-                             boost::system::error_code expected, Start start) {
+                             boost::system::error_code expected, Start start,
+                             std::size_t others_c = 0) {
     ++calls_made;
     int const taken_before = handler_arena.taken.load();
     int calls = 0;
@@ -497,7 +504,7 @@ void async_allocates_nothing(char const* name, webcpp::asio::io_context& context
     BOOST_TEST(code == expected);
     BOOST_TEST_EQ(live_at_call, 0);
     BOOST_TEST_GE(handler_arena.taken.load() - taken_before, 1);
-    if (!BOOST_TEST_EQ(news, 0U) || !BOOST_TEST_EQ(cs, 0U)) {
+    if (!BOOST_TEST_EQ(news, 0U) || !BOOST_TEST_EQ(cs, others_c)) {
         std::printf("allocated: %s (new %zu, C %zu)\n", name, news, cs);
     }
 }
@@ -539,43 +546,165 @@ void async_cheap() {
     BOOST_TEST_EQ(calls_made - before, 6U);
 }
 
-#ifdef WEBCPP_HASH_HAS_THREADS
-// A heavy function, async_pbkdf2 on backends::hash2, its work on a pool of one thread and its
-// completion on the context, the handler bound to the arena: the arena gets back every block
-// before the handler runs; operator new is called for webcpp's shared state of the operation (one
-// block: it may outlive the completion, held by the cancellation slot, so it is never the
-// handler's allocator's) and by Asio's pool for the job it queues. The
-// count is printed, never hidden; C allocator calls are not asserted, since the pool's thread
-// allocates on its own.
-void async_heavy() {
+#ifdef WEBCPP_TARGET_EMSCRIPTEN
+// The four functions on backends::webcrypto (Emscripten): the bridge's waits, the operation and
+// its posts are the handler's arena's, every block given back before the handler runs, and
+// operator new is not called; a refusal (an output of 0 bytes) each too: 8 calls. webcpp::asio's
+// promise bridge calls the C allocator itself, for each promise awaited, whoever awaits it: a
+// bare async_await, measured first, gives its count, and each call is held to that count per
+// promise (one for a digest, two for importKey and then sign or deriveBits), so that webcpp::hash's
+// code adds none. One call before the windows lets the bridge and the io_context make what they
+// make once.
+void async_webcrypto() {
     namespace asio = webcpp::asio;
+    using hash::backends::webcrypto;
+    std::size_t const before = calls_made;
     asio::io_context context;
-    asio::thread_pool pool(1);
+    auto const executor = context.get_executor();
     std::array<std::uint8_t, 32> out{};
-    auto const start = [&](auto handler) {
-        hash::async_pbkdf2<hash::hmac_sha2_256, hash::backends::hash2>(
-            pool.get_executor(), out, input.first(20), input.first(16), 2,
-            asio::bind_executor(context.get_executor(), std::move(handler)));
-    };
-    start([](boost::system::error_code) {});
-    context.run();  // lint-run: the context's first run, outside the window
+    std::span<std::uint8_t> const none{};
+    hash::async_digest<hash::digests::sha2_256, webcrypto>(executor, out, input,
+                                                           [](boost::system::error_code) {});
+    hash::async_pbkdf2<hash::hmac_sha2_256, webcrypto>(
+        executor, out, input.first(20), input.first(16), 2, [](boost::system::error_code) {});
+    context.run();  // lint-run: the context's first run, outside the windows
+    window const bare;
+    asio::browser::async_await(
+        executor, emscripten::val::global("Promise").call<emscripten::val>("resolve", 1),
+        asio::bind_allocator(arena_allocator<char>(),
+                             [](boost::system::error_code, emscripten::val const&) {}));
+    context.restart();
+    context.run();  // lint-run: the bare await's completion, under the counter
+    BOOST_TEST_EQ(bare.news(), 0U);
+    std::size_t const per_promise = bare.cs();
+    std::printf("record operation=async_await backend=webcpp_asio target=%s new=%zu c=%zu\n",
+                webcpp::test::target_name, bare.news(), per_promise);
+    boost::system::error_code const fine;
+    boost::system::error_code const refused = hash::error::invalid_output_size;
+    async_allocates_nothing(
+        "async_digest webcrypto", context, fine,
+        [&](auto handler) {
+            hash::async_digest<hash::digests::sha2_256, webcrypto>(executor, out, input,
+                                                                   std::move(handler));
+        },
+        per_promise);
+    async_allocates_nothing("async_digest webcrypto refused", context, refused, [&](auto handler) {
+        hash::async_digest<hash::digests::sha2_256, webcrypto>(executor, none, input,
+                                                               std::move(handler));
+    });
+    async_allocates_nothing(
+        "async_hmac webcrypto", context, fine,
+        [&](auto handler) {
+            hash::async_hmac<hash::hmac_sha2_256, webcrypto>(executor, out, input.first(16), input,
+                                                             std::move(handler));
+        },
+        2 * per_promise);
+    async_allocates_nothing("async_hmac webcrypto refused", context, refused, [&](auto handler) {
+        hash::async_hmac<hash::hmac_sha2_256, webcrypto>(executor, none, input.first(16), input,
+                                                         std::move(handler));
+    });
+    async_allocates_nothing(
+        "async_hkdf webcrypto", context, fine,
+        [&](auto handler) {
+            hash::async_hkdf<hash::hmac_sha2_256, webcrypto>(executor, out, {}, input, {},
+                                                             std::move(handler));
+        },
+        2 * per_promise);
+    async_allocates_nothing("async_hkdf webcrypto refused", context, refused, [&](auto handler) {
+        hash::async_hkdf<hash::hmac_sha2_256, webcrypto>(executor, none, {}, input, {},
+                                                         std::move(handler));
+    });
+    async_allocates_nothing(
+        "async_pbkdf2 webcrypto", context, fine,
+        [&](auto handler) {
+            hash::async_pbkdf2<hash::hmac_sha2_256, webcrypto>(
+                executor, out, input.first(20), input.first(16), 2, std::move(handler));
+        },
+        2 * per_promise);
+    async_allocates_nothing("async_pbkdf2 webcrypto refused", context, refused, [&](auto handler) {
+        hash::async_pbkdf2<hash::hmac_sha2_256, webcrypto>(executor, none, input.first(20),
+                                                           input.first(16), 2, std::move(handler));
+    });
+    BOOST_TEST_EQ(calls_made - before, 8U);
+}
+#endif
+
+#ifdef WEBCPP_HASH_HAS_THREADS
+// One heavy call in a window: `start(handler)` initiates it, its work on `pool` and its
+// completion on `context`, the handler bound to the arena; the context runs until the handler has
+// been called once, successfully, with every block of the arena given back. The operation's state
+// and its completion are the arena's (two blocks at least), and operator new is not called;
+// libsodium's own memory (Argon2id's matrix, scrypt's) is the C allocator's, as for the synchronous
+// calls, so the C allocator's calls are printed, not asserted. One call before the window lets the
+// pool and the context make what they make once.
+template <class Start>
+void heavy_allocates_nothing(char const* name, webcpp::asio::io_context& context, Start start) {
+    namespace asio = webcpp::asio;
+    ++calls_made;
+    start(asio::bind_executor(context.get_executor(), [](boost::system::error_code) {}));
+    context.restart();
+    context.run();  // lint-run: the first call's completion, outside the window
+    int const taken_before = handler_arena.taken.load();
     int calls = 0;
     int live_at_call = -1;
     window const w;
-    start(asio::bind_allocator(arena_allocator<char>(), [&](boost::system::error_code done) {
-        ++calls;
-        live_at_call = handler_arena.live.load();
-        BOOST_TEST(!done);
-    }));
+    start(asio::bind_executor(
+        context.get_executor(),
+        asio::bind_allocator(arena_allocator<char>(), [&](boost::system::error_code done) {
+            ++calls;
+            live_at_call = handler_arena.live.load();
+            BOOST_TEST(!done);
+        })));
     context.restart();
     context.run();  // lint-run: the call's completion, under the counter
     std::size_t const news = w.news();
-    pool.join();
+    std::size_t const cs = w.cs();
     BOOST_TEST_EQ(calls, 1);
     BOOST_TEST_EQ(live_at_call, 0);
-    BOOST_TEST_GE(news, 1U);
-    std::printf("record operation=async_pbkdf2 backend=hash2 target=%s new=%zu\n",
-                webcpp::test::target_name, news);
+    BOOST_TEST_GE(handler_arena.taken.load() - taken_before, 2);
+    if (!BOOST_TEST_EQ(news, 0U)) {
+        std::printf("allocated: %s (new %zu)\n", name, news);
+    }
+    std::printf("record operation=%s backend=%s target=%s new=%zu c=%zu\n", name,
+                std::string_view(name) == "async_pbkdf2" ? "hash2" : "sodium",
+                webcpp::test::target_name, news, cs);
+}
+
+// The heavy functions (natively, where the build has threads), each on its default backend but
+// async_pbkdf2, on backends::hash2 named: 4 calls, 3 until the family's Argon2id lands.
+void async_heavy() {
+    namespace asio = webcpp::asio;
+    std::size_t const before = calls_made;
+    asio::io_context context;
+    asio::thread_pool pool(1);
+    auto const work = pool.get_executor();
+    std::array<std::uint8_t, 32> out{};
+    std::array<std::uint8_t, hash::argon2id_salt_size> const salt{};
+    auto const password = input.first(20);
+    heavy_allocates_nothing("async_pbkdf2", context, [&](auto handler) {
+        hash::async_pbkdf2<hash::hmac_sha2_256, hash::backends::hash2>(
+            work, out, password, input.first(16), 2, std::move(handler));
+    });
+    heavy_allocates_nothing("async_argon2id", context, [&](auto handler) {
+        hash::async_argon2id(work, out, password, salt, {.passes = 1, .memory = 8192},
+                             std::move(handler));
+    });
+    // The family's Argon2id on its default, backends::sodium, once that engine has landed (stream
+    // sodium-2): until then the call refuses at compile time.
+    constexpr bool family_on_sodium =
+        hash::backend_has_v<hash::backends::sodium, hash::kdfs::argon2id, hash::argon2_parameters>;
+    if constexpr (family_on_sodium) {
+        heavy_allocates_nothing("async_argon2", context, [&](auto handler) {
+            hash::async_argon2<hash::kdfs::argon2id>(
+                work, out, password, salt, {.passes = 1, .memory_kib = 8}, std::move(handler));
+        });
+    }
+    heavy_allocates_nothing("async_scrypt", context, [&](auto handler) {
+        hash::async_scrypt(work, out, password, salt, {.n = 1024, .r = 8, .p = 1},
+                           std::move(handler));
+    });
+    pool.join();
+    BOOST_TEST_EQ(calls_made - before, family_on_sodium ? 4U : 3U);
 }
 #endif
 
@@ -588,6 +717,9 @@ int main() {
     async_cheap();
 #ifdef WEBCPP_HASH_HAS_THREADS
     async_heavy();
+#endif
+#ifdef WEBCPP_TARGET_EMSCRIPTEN
+    async_webcrypto();
 #endif
 #ifdef WEBCPP_HASH_HAS_XKCP
     keccak();

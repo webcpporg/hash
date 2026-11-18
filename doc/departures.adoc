@@ -49,10 +49,8 @@ release publishes one (<<hash-upstream>>), with no change to any result.
 [#hash-departures-c-libraries]
 === What the C libraries allocate
 
-hash's own synchronous code allocates nothing, but two of its C libraries
-do, outside any allocator of the program, and hash records it rather than
-hides it (the asynchronous family's own allocation is
-<<hash-departures-async>>'s):
+hash's own code allocates nothing, but two of its C libraries do, outside any
+allocator of the program, and hash records it rather than hides it:
 
 * *libsodium's Argon2id and scrypt* allocate the memory their costs name, with
 `mmap` where the system has it, else `malloc` (and, for Argon2's 64-byte
@@ -67,18 +65,3 @@ The counting test of allocations proves that hash's own code allocates
 nothing, on every backend and target, and measures what these libraries
 allocate where a program can count it; the measured chapters at the end of
 <<hash-choosing-backend>> show the counts.
-
-[#hash-departures-async]
-=== What the asynchronous family allocates
-
-The asynchronous functions of `<webcpp/hash/async.hpp>` follow Asio's rule:
-an operation's storage is its handler's associated allocator's, and every
-block is given back before the handler runs. The cheap functions
-(`async_digest`, `async_hmac`, `async_hkdf`) take nothing else: their post is
-the handler's. The heavy ones (`async_argon2id`, `async_argon2`,
-`async_scrypt`, `async_pbkdf2` on a synchronous backend) allocate one block of
-webcpp's own per call with `operator new`, the operation's state shared by the
-job on the pool and the handler of a connected cancellation slot, which may
-hold it past the completion and so must hold nothing of the handler's
-allocator; the pool's own queue allocates as Asio does. The counting test of
-allocations states both.

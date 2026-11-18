@@ -128,11 +128,12 @@ the pool to the memory the program may spend, not to the number of logins.
 * *`use_future` without exceptions.* An error completes a future with an
 exception; a program built without exceptions reads errors with a callback or
 `as_tuple`.
-* *One block of webcpp's per call.* The operation's shared state, which a
-connected cancellation slot may hold past the completion, is allocated with
-`operator new`, never with the handler's allocator; Asio's pool allocates the
-job it queues. What the handler's allocator gives, Asio gives back before the
-handler runs (<<hash-departures-async>>).
+* *The storage is the handler's.* The operation's state and its completion
+are allocated with the handler's associated allocator (`bind_allocator`), as
+every Asio operation's are, and all of it is given back before the handler
+runs, a cancellation's completion included; the pool allocates the job it
+queues as Asio does. webcpp's own code calls neither `operator new` nor the C
+allocator.
 
 [#hash-async-cheap]
 === The cheap functions through the event loop

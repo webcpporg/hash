@@ -464,80 +464,98 @@ void check_queued(asio::io_context& context) {
     BOOST_TEST_EQ(output[0], 0x5a);
 }
 
-// An allocator that counts the blocks it holds, shared by its rebound copies; its deallocation may
-// run on a pool's thread.
+// What a holding_allocator counts, shared by its rebound copies: the blocks it holds now, and
+// every block it has given.
+struct holding {
+    std::atomic<int> held{0};
+    std::atomic<int> taken{0};
+};
+
+// An allocator that counts the blocks it holds and gives; its deallocation may run on a pool's
+// thread.
 template <class T>
 struct holding_allocator {
     using value_type = T;
-    std::atomic<int>* held;
+    holding* counts;
 
-    explicit holding_allocator(std::atomic<int>* counter) noexcept : held(counter) {}
+    explicit holding_allocator(holding* counter) noexcept : counts(counter) {}
 
     // Allocator rebind conversions must be implicit (Allocator requirements).
     template <class U>
     // NOLINTNEXTLINE(misc-explicit-constructor)
-    holding_allocator(holding_allocator<U> const& other) noexcept : held(other.held) {}
+    holding_allocator(holding_allocator<U> const& other) noexcept : counts(other.counts) {}
 
     T* allocate(std::size_t count) {
-        held->fetch_add(1);
+        counts->held.fetch_add(1);
+        counts->taken.fetch_add(1);
         return std::allocator<T>().allocate(count);
     }
 
     void deallocate(T* pointer, std::size_t count) noexcept {
         std::allocator<T>().deallocate(pointer, count);
-        held->fetch_sub(1);
+        counts->held.fetch_sub(1);
     }
 
     template <class U>
     bool operator==(holding_allocator<U> const& other) const noexcept {
-        return held == other.held;
+        return counts == other.counts;
     }
 };
 
-// Asio's rule for the handler's associated allocator: an operation gives back everything it took
-// from it before it calls the handler, so that the handler can reuse it. Checked on the three
-// ways a heavy call completes: the work done (with a connected cancellation slot), a guard's
-// refusal, and a cancellation before the work starts, in a busy pool.
+// The operation's storage is the handler's (spec 11.4): the operation's state and its completion
+// come from the handler's associated allocator, two blocks at least, and, by Asio's rule, the
+// operation gives back every one before it calls the handler, so that the handler can reuse it.
+// Checked on the four ways a heavy call completes: the work done (with a connected cancellation
+// slot), a guard's refusal (its post alone), a cancellation before the work starts, in a busy
+// pool, and one after the work has started.
 void check_allocator_released(asio::io_context& context, asio::thread_pool& pool) {
     auto const password = bytes_of("password");
     std::array<std::uint8_t, hash::argon2id_salt_size> const salt{};
     hash::argon2id_parameters const small{.passes = 1, .memory = 32768};
     std::array<std::uint8_t, 32> output{};
-    std::atomic<int> held{0};
+    holding counts;
 
-    auto const start = [&](auto& work, std::span<std::uint8_t const> salt_bytes,
-                           asio::cancellation_signal& signal, int& held_at_call,
-                           boost::system::error_code& code) {
-        held_at_call = -1;
-        hash::async_argon2id<recording>(
+    struct seen {
+        int held_at_call = -1;
+        int taken = 0;
+        boost::system::error_code code;
+    };
+    auto const start = [&]<class Backend>(Backend*, auto& work,
+                                          std::span<std::uint8_t const> salt_bytes,
+                                          asio::cancellation_signal& signal, seen& call) {
+        int const taken_before = counts.taken.load();
+        hash::async_argon2id<Backend>(
             work.get_executor(), output, password, salt_bytes, small,
             asio::bind_cancellation_slot(
                 signal.slot(),
-                asio::bind_executor(context.get_executor(),
-                                    asio::bind_allocator(holding_allocator<char>(&held),
-                                                         [&](boost::system::error_code done) {
-                                                             held_at_call = held.load();
-                                                             code = done;
-                                                         }))));
+                asio::bind_executor(
+                    context.get_executor(),
+                    asio::bind_allocator(holding_allocator<char>(&counts),
+                                         [&, taken_before](boost::system::error_code done) {
+                                             call.held_at_call = counts.held.load();
+                                             call.taken = counts.taken.load() - taken_before;
+                                             call.code = done;
+                                         }))));
     };
+    auto* const on_recording = static_cast<recording*>(nullptr);
 
     asio::cancellation_signal done_signal;
-    int done_held = 0;
-    boost::system::error_code done_code;
-    start(pool, salt, done_signal, done_held, done_code);
+    seen done;
+    start(on_recording, pool, salt, done_signal, done);
     context.restart();
     context.run_for(std::chrono::seconds(30));  // lint-run: the test's event loop
-    BOOST_TEST(!done_code);
-    BOOST_TEST_EQ(done_held, 0);
+    BOOST_TEST(!done.code);
+    BOOST_TEST_EQ(done.held_at_call, 0);
+    BOOST_TEST_GE(done.taken, 2);
 
     asio::cancellation_signal refused_signal;
-    int refused_held = 0;
-    boost::system::error_code refused_code;
-    start(pool, std::span(salt).first(8), refused_signal, refused_held, refused_code);
+    seen refused;
+    start(on_recording, pool, std::span(salt).first(8), refused_signal, refused);
     context.restart();
     context.run_for(std::chrono::seconds(5));  // lint-run: the test's event loop
-    BOOST_TEST(refused_code == hash::error::invalid_salt_size);
-    BOOST_TEST_EQ(refused_held, 0);
+    BOOST_TEST(refused.code == hash::error::invalid_salt_size);
+    BOOST_TEST_EQ(refused.held_at_call, 0);
+    BOOST_TEST_GE(refused.taken, 1);
 
     asio::thread_pool busy(1);
     std::promise<void> release;
@@ -551,17 +569,76 @@ void check_allocator_released(asio::io_context& context, asio::thread_pool& pool
         std::this_thread::yield();
     }
     asio::cancellation_signal cancel_signal;
-    int cancel_held = 0;
-    boost::system::error_code cancel_code;
-    start(busy, salt, cancel_signal, cancel_held, cancel_code);
+    seen cancelled;
+    start(on_recording, busy, salt, cancel_signal, cancelled);
     cancel_signal.emit(asio::cancellation_type::terminal);
     context.restart();
     context.run_for(std::chrono::seconds(5));  // lint-run: the test's event loop
-    BOOST_TEST(cancel_code == asio::error::operation_aborted);
-    BOOST_TEST_EQ(cancel_held, 0);
+    BOOST_TEST(cancelled.code == asio::error::operation_aborted);
+    BOOST_TEST_EQ(cancelled.held_at_call, 0);
+    BOOST_TEST_GE(cancelled.taken, 2);
     release.set_value();
     busy.join();
-    BOOST_TEST_EQ(held.load(), 0);
+
+    asio::thread_pool one(1);
+    gate_entered = false;
+    gate_open = false;
+    asio::cancellation_signal running_signal;
+    seen running;
+    start(static_cast<gated*>(nullptr), one, salt, running_signal, running);
+    while (!gate_entered) {
+        std::this_thread::yield();
+    }
+    running_signal.emit(asio::cancellation_type::terminal);
+    gate_open = true;
+    context.restart();
+    context.run_for(std::chrono::seconds(5));  // lint-run: the test's event loop
+    BOOST_TEST(running.code == asio::error::operation_aborted);
+    BOOST_TEST_EQ(running.held_at_call, 0);
+    BOOST_TEST_GE(running.taken, 2);
+    one.join();
+    BOOST_TEST_EQ(counts.held.load(), 0);
+}
+
+// A cancellation racing the pool: 300 quick PBKDF2s, each cancelled after a spin of 0 to 299
+// yields, so that the emit lands while the job waits, while the pool takes it, while it runs and
+// after it has completed. Each call completes exactly once, successfully or with
+// operation_aborted, and the handler's allocator holds nothing when it runs.
+void check_cancellation_races(asio::io_context& context) {
+    asio::thread_pool pool(1);
+    holding counts;
+    std::array<std::uint8_t, 32> output{};
+    int aborted = 0;
+    for (int round = 0; round != 300; ++round) {
+        asio::cancellation_signal signal;
+        int calls = 0;
+        int held_at_call = -1;
+        boost::system::error_code code;
+        hash::async_pbkdf2<hash::hmac_sha2_256, hash::backends::hash2>(
+            pool.get_executor(), output, bytes_of("password"), bytes_of("salt"), 1,
+            asio::bind_cancellation_slot(
+                signal.slot(),
+                asio::bind_executor(context.get_executor(),
+                                    asio::bind_allocator(holding_allocator<char>(&counts),
+                                                         [&](boost::system::error_code done) {
+                                                             ++calls;
+                                                             held_at_call = counts.held.load();
+                                                             code = done;
+                                                         }))));
+        for (int spin = 0; spin != round; ++spin) {
+            std::this_thread::yield();
+        }
+        signal.emit(asio::cancellation_type::terminal);
+        context.restart();
+        context.run_for(std::chrono::seconds(5));  // lint-run: the test's event loop
+        BOOST_TEST_EQ(calls, 1);
+        BOOST_TEST_EQ(held_at_call, 0);
+        BOOST_TEST(!code || code == asio::error::operation_aborted);
+        aborted += code ? 1 : 0;
+    }
+    pool.join();
+    BOOST_TEST_EQ(counts.held.load(), 0);
+    BOOST_TEST_GE(aborted, 1);
 }
 
 // The caller's event loop stays responsive: a 10 ms timer on its io_context fires while an Argon2id
@@ -737,6 +814,7 @@ int main() {
     check_queued(context);
     check_allocator_released(context, pool);
     check_cancelled_running(context);
+    check_cancellation_races(context);
     check_awaitable(context, pool);
     pool.join();
     return webcpp::test::exit_status(boost::report_errors());
