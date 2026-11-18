@@ -35,8 +35,7 @@ namespace webcpp::hash {
 enum class error : int {
     /** An output that is not of a size the function produces: empty, too short or too long. */
     invalid_output_size = 1,
-    /** A key that is not of a size the function accepts: HKDF's pseudorandom key, a MAC's key, a
-        derivation's master key or secret. */
+    /** A key that is not of a size the function accepts: a MAC's, a derivation's, HKDF's PRK. */
     invalid_key_size = 2,
     /** A salt that is not of a size the function accepts. */
     invalid_salt_size = 3,

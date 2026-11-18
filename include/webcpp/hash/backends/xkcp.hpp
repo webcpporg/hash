@@ -445,6 +445,7 @@ struct xkcp_sp800_185_state {
  writes.
 
  @tparam Functions The adapter's functions.
+ @tparam State `xkcp_sp800_185_state` of the instance's storage.
  @param hashed The state. @param output The output. @return Success, or backend_failure.
 */
 template <class Functions, class State>

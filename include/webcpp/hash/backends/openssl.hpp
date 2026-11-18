@@ -578,11 +578,11 @@ struct hkdf_engine<backends::openssl, Hmac> {
         // The PRK is derived into the result returned, whose wiping is the caller's: one return of
         // that one object, so that it is constructed in the caller's slot and no copy is left here.
         boost::system::result<digest_type> prk_bytes{boost::system::in_place_value};
-        digest_type& param_name = prk_bytes.unsafe_value();
-        const auto derive_result = openssl_kdf(
-            "HKDF", std::span<std::uint8_t>(param_name.data(), param_name.size()), ossl_params);
+        digest_type& prk = prk_bytes.unsafe_value();
+        const auto derive_result =
+            openssl_kdf("HKDF", std::span<std::uint8_t>(prk.data(), prk.size()), ossl_params);
         if (!derive_result) {
-            wipe_object(param_name);
+            wipe_object(prk);
             prk_bytes = derive_result.error();
         }
         return prk_bytes;

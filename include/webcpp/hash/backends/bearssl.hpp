@@ -329,8 +329,11 @@ struct bearssl_shake {
         br_shake_inject(&hashed, data, size);
     }
 
-    /** Writes the output. @param hashed The context. @param output The output, of any size from 1
-     * byte. */
+    /**
+     Writes the output.
+
+     @param hashed The context. @param output The output, of any size from 1 byte.
+    */
     static void out(context& hashed, std::span<std::uint8_t> output) noexcept {
         br_shake_flip(&hashed);
         br_shake_produce(&hashed, output.data(), output.size());
