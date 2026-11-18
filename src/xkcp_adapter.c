@@ -15,7 +15,7 @@
  * The high-level interfaces (the sponge, FIPS 202's Keccak_Hash, TurboSHAKE, KangarooTwelve,
  * and SP 800-185's cSHAKE, KMAC, TupleHash and ParallelHash): each instance lives in the
  * caller's storage of 64-bit words, opaque to it, whose size per kind is
- * detail/xkcp_storage.h's WEBCPP_HASH_XKCP_*_WORDS, the numbers detail/xkcp.hpp allocates;
+ * detail/xkcp_storage.h's webcpp_hash_xkcp_*_words, the numbers detail/xkcp.hpp allocates;
  * static assertions stop the build on any target or pin where XKCP's structure outgrows it
  * or needs a stricter alignment. Every length is in bytes and every function returns XKCP's
  * answer, 0 on success. SP 800-185 and Keccak_Hash count lengths in bits in a size_t: input
@@ -72,14 +72,14 @@ void webcpp_hash_xkcp_extract_bytes(const uint64_t* state, unsigned char* data, 
              : -1]
 #endif
 
-WEBCPP_HASH_XKCP_FITS(KeccakWidth1600_SpongeInstance, WEBCPP_HASH_XKCP_SPONGE_WORDS);
-WEBCPP_HASH_XKCP_FITS(Keccak_HashInstance, WEBCPP_HASH_XKCP_KECCAK_HASH_WORDS);
-WEBCPP_HASH_XKCP_FITS(TurboSHAKE_Instance, WEBCPP_HASH_XKCP_TURBOSHAKE_WORDS);
-WEBCPP_HASH_XKCP_FITS(KangarooTwelve_Instance, WEBCPP_HASH_XKCP_KANGAROOTWELVE_WORDS);
-WEBCPP_HASH_XKCP_FITS(cSHAKE_Instance, WEBCPP_HASH_XKCP_CSHAKE_WORDS);
-WEBCPP_HASH_XKCP_FITS(KMAC_Instance, WEBCPP_HASH_XKCP_KMAC_WORDS);
-WEBCPP_HASH_XKCP_FITS(TupleHash_Instance, WEBCPP_HASH_XKCP_TUPLEHASH_WORDS);
-WEBCPP_HASH_XKCP_FITS(ParallelHash_Instance, WEBCPP_HASH_XKCP_PARALLELHASH_WORDS);
+WEBCPP_HASH_XKCP_FITS(KeccakWidth1600_SpongeInstance, webcpp_hash_xkcp_sponge_words);
+WEBCPP_HASH_XKCP_FITS(Keccak_HashInstance, webcpp_hash_xkcp_keccak_hash_words);
+WEBCPP_HASH_XKCP_FITS(TurboSHAKE_Instance, webcpp_hash_xkcp_turboshake_words);
+WEBCPP_HASH_XKCP_FITS(KangarooTwelve_Instance, webcpp_hash_xkcp_kangarootwelve_words);
+WEBCPP_HASH_XKCP_FITS(cSHAKE_Instance, webcpp_hash_xkcp_cshake_words);
+WEBCPP_HASH_XKCP_FITS(KMAC_Instance, webcpp_hash_xkcp_kmac_words);
+WEBCPP_HASH_XKCP_FITS(TupleHash_Instance, webcpp_hash_xkcp_tuplehash_words);
+WEBCPP_HASH_XKCP_FITS(ParallelHash_Instance, webcpp_hash_xkcp_parallelhash_words);
 
 /* The most bytes whose length in bits a size_t holds. */
 #define WEBCPP_HASH_XKCP_BIT_CHUNK (SIZE_MAX / 8)

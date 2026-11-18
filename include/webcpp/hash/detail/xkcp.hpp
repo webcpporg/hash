@@ -38,42 +38,42 @@
 
 namespace webcpp::hash::detail {
 
-/** The storage of a `KeccakWidth1600_SpongeInstance`: `WEBCPP_HASH_XKCP_SPONGE_WORDS` words. */
-using xkcp_sponge_storage = std::array<std::uint64_t, WEBCPP_HASH_XKCP_SPONGE_WORDS>;
+/** The storage of a `KeccakWidth1600_SpongeInstance`: `webcpp_hash_xkcp_sponge_words` words. */
+using xkcp_sponge_storage = std::array<std::uint64_t, webcpp_hash_xkcp_sponge_words>;
 
-/** The storage of a `Keccak_HashInstance`: `WEBCPP_HASH_XKCP_KECCAK_HASH_WORDS` words. */
-using xkcp_keccak_hash_storage = std::array<std::uint64_t, WEBCPP_HASH_XKCP_KECCAK_HASH_WORDS>;
+/** The storage of a `Keccak_HashInstance`: `webcpp_hash_xkcp_keccak_hash_words` words. */
+using xkcp_keccak_hash_storage = std::array<std::uint64_t, webcpp_hash_xkcp_keccak_hash_words>;
 
-/** The storage of a `TurboSHAKE_Instance`: `WEBCPP_HASH_XKCP_TURBOSHAKE_WORDS` words. */
-using xkcp_turboshake_storage = std::array<std::uint64_t, WEBCPP_HASH_XKCP_TURBOSHAKE_WORDS>;
+/** The storage of a `TurboSHAKE_Instance`: `webcpp_hash_xkcp_turboshake_words` words. */
+using xkcp_turboshake_storage = std::array<std::uint64_t, webcpp_hash_xkcp_turboshake_words>;
 
-/** The storage of a `KangarooTwelve_Instance`: `WEBCPP_HASH_XKCP_KANGAROOTWELVE_WORDS` words. */
+/** The storage of a `KangarooTwelve_Instance`: `webcpp_hash_xkcp_kangarootwelve_words` words. */
 using xkcp_kangarootwelve_storage =
-    std::array<std::uint64_t, WEBCPP_HASH_XKCP_KANGAROOTWELVE_WORDS>;
+    std::array<std::uint64_t, webcpp_hash_xkcp_kangarootwelve_words>;
 
-/** The storage of a `cSHAKE_Instance`: `WEBCPP_HASH_XKCP_CSHAKE_WORDS` words. */
-using xkcp_cshake_storage = std::array<std::uint64_t, WEBCPP_HASH_XKCP_CSHAKE_WORDS>;
+/** The storage of a `cSHAKE_Instance`: `webcpp_hash_xkcp_cshake_words` words. */
+using xkcp_cshake_storage = std::array<std::uint64_t, webcpp_hash_xkcp_cshake_words>;
 
-/** The storage of a `KMAC_Instance`: `WEBCPP_HASH_XKCP_KMAC_WORDS` words. */
-using xkcp_kmac_storage = std::array<std::uint64_t, WEBCPP_HASH_XKCP_KMAC_WORDS>;
+/** The storage of a `KMAC_Instance`: `webcpp_hash_xkcp_kmac_words` words. */
+using xkcp_kmac_storage = std::array<std::uint64_t, webcpp_hash_xkcp_kmac_words>;
 
-/** The storage of a `TupleHash_Instance`: `WEBCPP_HASH_XKCP_TUPLEHASH_WORDS` words. */
-using xkcp_tuplehash_storage = std::array<std::uint64_t, WEBCPP_HASH_XKCP_TUPLEHASH_WORDS>;
+/** The storage of a `TupleHash_Instance`: `webcpp_hash_xkcp_tuplehash_words` words. */
+using xkcp_tuplehash_storage = std::array<std::uint64_t, webcpp_hash_xkcp_tuplehash_words>;
 
-/** The storage of a `ParallelHash_Instance`: `WEBCPP_HASH_XKCP_PARALLELHASH_WORDS` words. */
-using xkcp_parallelhash_storage = std::array<std::uint64_t, WEBCPP_HASH_XKCP_PARALLELHASH_WORDS>;
+/** The storage of a `ParallelHash_Instance`: `webcpp_hash_xkcp_parallelhash_words` words. */
+using xkcp_parallelhash_storage = std::array<std::uint64_t, webcpp_hash_xkcp_parallelhash_words>;
 
 // Each storage is detail/xkcp_storage.h's number of words, the one the adapter checks XKCP's
 // structure against: an edit of either side alone stops the build.
-static_assert(std::tuple_size_v<xkcp_sponge_storage> == WEBCPP_HASH_XKCP_SPONGE_WORDS);
-static_assert(std::tuple_size_v<xkcp_keccak_hash_storage> == WEBCPP_HASH_XKCP_KECCAK_HASH_WORDS);
-static_assert(std::tuple_size_v<xkcp_turboshake_storage> == WEBCPP_HASH_XKCP_TURBOSHAKE_WORDS);
+static_assert(std::tuple_size_v<xkcp_sponge_storage> == webcpp_hash_xkcp_sponge_words);
+static_assert(std::tuple_size_v<xkcp_keccak_hash_storage> == webcpp_hash_xkcp_keccak_hash_words);
+static_assert(std::tuple_size_v<xkcp_turboshake_storage> == webcpp_hash_xkcp_turboshake_words);
 static_assert(std::tuple_size_v<xkcp_kangarootwelve_storage> ==
-              WEBCPP_HASH_XKCP_KANGAROOTWELVE_WORDS);
-static_assert(std::tuple_size_v<xkcp_cshake_storage> == WEBCPP_HASH_XKCP_CSHAKE_WORDS);
-static_assert(std::tuple_size_v<xkcp_kmac_storage> == WEBCPP_HASH_XKCP_KMAC_WORDS);
-static_assert(std::tuple_size_v<xkcp_tuplehash_storage> == WEBCPP_HASH_XKCP_TUPLEHASH_WORDS);
-static_assert(std::tuple_size_v<xkcp_parallelhash_storage> == WEBCPP_HASH_XKCP_PARALLELHASH_WORDS);
+              webcpp_hash_xkcp_kangarootwelve_words);
+static_assert(std::tuple_size_v<xkcp_cshake_storage> == webcpp_hash_xkcp_cshake_words);
+static_assert(std::tuple_size_v<xkcp_kmac_storage> == webcpp_hash_xkcp_kmac_words);
+static_assert(std::tuple_size_v<xkcp_tuplehash_storage> == webcpp_hash_xkcp_tuplehash_words);
+static_assert(std::tuple_size_v<xkcp_parallelhash_storage> == webcpp_hash_xkcp_parallelhash_words);
 
 }  // namespace webcpp::hash::detail
 
