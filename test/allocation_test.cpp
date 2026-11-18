@@ -372,100 +372,6 @@ void keccak() {
     BOOST_TEST_EQ(calls_made - before, 1U);
 }
 
-// A tag of digests on backends::xkcp (increment 3), its output `size` bytes: digest_of and a hasher
-// from make to finish.
-template <class Digest>
-void xkcp_digest_hashes(std::size_t size, hash::digest_options<Digest> const& options) {
-    std::array<std::uint8_t, 64> output{};
-    std::span<std::uint8_t> const digest(output.data(), size);
-    BOOST_TEST((hash::digest_of<Digest, hash::backends::xkcp>(digest, input, options).has_value()));
-    auto hashing = hash::hasher<Digest, hash::backends::xkcp>::make(options);
-    BOOST_TEST(hashing.has_value());
-    if (hashing) {
-        BOOST_TEST(hashing->update(input.first(40)).has_value());
-        BOOST_TEST(hashing->update(input.subspan(40)).has_value());
-        BOOST_TEST(hashing->finish(digest).has_value());
-    }
-}
-
-// The same tag's refusals: an empty output, and a second finish.
-template <class Digest>
-void xkcp_digest_refuses(std::size_t size, hash::digest_options<Digest> const& options) {
-    std::array<std::uint8_t, 64> output{};
-    std::span<std::uint8_t> const digest(output.data(), size);
-    BOOST_TEST(
-        !(hash::digest_of<Digest, hash::backends::xkcp>(std::span<std::uint8_t>{}, input, options)
-              .has_value()));
-    auto hashing = hash::hasher<Digest, hash::backends::xkcp>::make(options);
-    BOOST_TEST(hashing.has_value());
-    if (hashing) {
-        BOOST_TEST(hashing->finish(digest).has_value());
-        BOOST_TEST(!hashing->finish(digest).has_value());
-    }
-}
-
-// A tag of digests on backends::xkcp: its hashes (1), then its refusals (1), at its longest output
-// up to 64 bytes.
-template <class Digest>
-void xkcp_digest_allocates_nothing(char const* name,
-                                   hash::digest_options<Digest> const& options = {}) {
-    using traits = hash::detail::digest_traits<Digest>;
-    auto const size =
-        static_cast<std::size_t>(std::min(traits::max_output(options), std::uint64_t{64}));
-    allocates_nothing(name, [&] { xkcp_digest_hashes<Digest>(size, options); });
-    allocates_nothing(name, [&] { xkcp_digest_refuses<Digest>(size, options); });
-}
-
-// A tag of macs on backends::xkcp: a tag (1), and the refusal of a tag shorter than 4 bytes (1).
-template <class Mac>
-void xkcp_mac_allocates_nothing(char const* name) {
-    allocates_nothing(name, [] {
-        std::array<std::uint8_t, 32> tag{};
-        BOOST_TEST((hash::mac<Mac, hash::backends::xkcp>(tag, input.first(16), input).has_value()));
-        BOOST_TEST((hash::mac<Mac, hash::backends::xkcp>(tag, input.first(16), input, {.xof = true})
-                        .has_value()));
-    });
-    allocates_nothing(name, [] {
-        std::array<std::uint8_t, 3> tag{};
-        BOOST_TEST(
-            !(hash::mac<Mac, hash::backends::xkcp>(tag, input.first(16), input).has_value()));
-    });
-}
-
-// Increment 3's entry points, the families' tags on backends::xkcp: 20 digests and 2 MACs, two
-// windows each.
-void xkcp_families() {
-    namespace digests = hash::digests;
-    std::size_t const before = calls_made;
-    std::array<std::uint8_t, 7> const label{'w', 'e', 'b', 'c', 'p', 'p', '!'};
-    xkcp_digest_allocates_nothing<digests::keccak_224>("keccak_224 on xkcp");
-    xkcp_digest_allocates_nothing<digests::keccak_256>("keccak_256 on xkcp");
-    xkcp_digest_allocates_nothing<digests::keccak_384>("keccak_384 on xkcp");
-    xkcp_digest_allocates_nothing<digests::keccak_512>("keccak_512 on xkcp");
-    xkcp_digest_allocates_nothing<digests::sha3_224>("sha3_224 on xkcp");
-    xkcp_digest_allocates_nothing<digests::sha3_256>("sha3_256 on xkcp");
-    xkcp_digest_allocates_nothing<digests::sha3_384>("sha3_384 on xkcp");
-    xkcp_digest_allocates_nothing<digests::sha3_512>("sha3_512 on xkcp");
-    xkcp_digest_allocates_nothing<digests::shake_128>("shake_128 on xkcp");
-    xkcp_digest_allocates_nothing<digests::shake_256>("shake_256 on xkcp");
-    xkcp_digest_allocates_nothing<digests::cshake_128>(
-        "cshake_128", {.function_name = label, .customisation = label});
-    xkcp_digest_allocates_nothing<digests::cshake_256>("cshake_256", {.customisation = label});
-    xkcp_digest_allocates_nothing<digests::tuplehash_128>("tuplehash_128",
-                                                          {.customisation = label});
-    xkcp_digest_allocates_nothing<digests::tuplehash_256>("tuplehash_256", {.xof = true});
-    xkcp_digest_allocates_nothing<digests::parallelhash_128>(
-        "parallelhash_128", {.block_size = 8, .customisation = label});
-    xkcp_digest_allocates_nothing<digests::parallelhash_256>("parallelhash_256",
-                                                             {.block_size = 16, .xof = true});
-    xkcp_digest_allocates_nothing<digests::kt128>("kt128", {.customisation = label});
-    xkcp_digest_allocates_nothing<digests::kt256>("kt256");
-    xkcp_digest_allocates_nothing<digests::turboshake_128>("turboshake_128", {.domain = 0x0B});
-    xkcp_digest_allocates_nothing<digests::turboshake_256>("turboshake_256");
-    xkcp_mac_allocates_nothing<hash::macs::kmac_128>("kmac_128");
-    xkcp_mac_allocates_nothing<hash::macs::kmac_256>("kmac_256");
-    BOOST_TEST_EQ(calls_made - before, 44U);
-}
 #endif
 
 #ifdef WEBCPP_HASH_HAS_BLAKE3
@@ -576,45 +482,80 @@ void for_each_tag(Check check) {
 template <class Backend, class Tag, class Key = void>
 constexpr bool runs_v = hash::backend_has_v<Backend, Tag, Key> && hash::detail::linked_v<Backend>;
 
-// The options of a family call on any backend: ParallelHash's block size, which has no default (8
-// bytes, the least XKCP takes); the defaults for every other tag.
+// A label for the options that take a string: cSHAKE's function name, the customisations.
+constexpr std::array<std::uint8_t, 7> label{'w', 'e', 'b', 'c', 'p', 'p', '!'};
+
+// The options of a family call on any backend, each one a tag has set away from its default, so
+// that the options' paths run under the counter too: ParallelHash's block size, which has no
+// default (8 bytes, the least XKCP takes), cSHAKE's function name, the customisations, and
+// TurboSHAKE's domain byte (0x0B, KangarooTwelve's); the fixed-length form where there is a choice
+// (family_xof gives the other).
 template <class Tag>
 hash::digest_options<Tag> family_options() {
-    if constexpr (requires(hash::digest_options<Tag> options) { options.block_size; }) {
-        return {.block_size = 8};
-    } else {
-        return {};
+    hash::digest_options<Tag> options{};
+    if constexpr (requires { options.block_size; }) {
+        options.block_size = 8;
     }
+    if constexpr (requires { options.function_name; }) {
+        options.function_name = label;
+    }
+    if constexpr (requires { options.customisation; }) {
+        options.customisation = label;
+    }
+    if constexpr (requires { options.domain; }) {
+        options.domain = 0x0B;
+    }
+    return options;
+}
+
+// The extendable-output form of a tag that has the choice (TupleHash, ParallelHash), else the
+// tag's family_options.
+template <class Tag>
+hash::digest_options<Tag> family_xof() {
+    auto options = family_options<Tag>();
+    if constexpr (requires { options.xof; }) {
+        options.xof = true;
+    }
+    return options;
 }
 
 // The output size of a family call: the tag's longest for those options, 32 bytes for an
 // extendable output, at most 64 bytes (TupleHash's fixed-length form has no other bound).
 template <class Tag>
-std::size_t family_output_size() {
-    auto const longest = hash::detail::digest_traits<Tag>::max_output(family_options<Tag>());
+std::size_t family_output_size(hash::digest_options<Tag> const& options) {
+    auto const longest = hash::detail::digest_traits<Tag>::max_output(options);
     return longest == hash::detail::no_limit
                ? 32
                : static_cast<std::size_t>(std::min(longest, std::uint64_t{64}));
 }
 
-// digest_of and hasher on Backend (family_output_size), then a refusal (an empty output): two
-// calls.
+// digest_of on Backend (family_output_size) and a hasher from make to finish in the
+// extendable-output form where the tag has one; then the refusals, an empty output and
+// a second finish: two calls.
 template <class Tag, class Backend>
 void family_digest_allocates_nothing(char const* name) {
     auto const options = family_options<Tag>();
-    std::vector<std::uint8_t> output(family_output_size<Tag>());
+    auto const xof = family_xof<Tag>();
+    std::vector<std::uint8_t> output(family_output_size<Tag>(options));
+    std::vector<std::uint8_t> streamed(family_output_size<Tag>(xof));
     allocates_nothing(name, [&] {
         BOOST_TEST((hash::digest_of<Tag, Backend>(output, input, options).has_value()));
-        auto hashing = hash::hasher<Tag, Backend>::make(options);
+        auto hashing = hash::hasher<Tag, Backend>::make(xof);
         BOOST_TEST(hashing.has_value());
         if (hashing) {
             BOOST_TEST(hashing->update(input.first(7)).has_value());
             BOOST_TEST(hashing->update(input.subspan(7)).has_value());
-            BOOST_TEST(hashing->finish(output).has_value());
+            BOOST_TEST(hashing->finish(streamed).has_value());
         }
     });
     allocates_nothing(name, [&] {
         BOOST_TEST(!(hash::digest_of<Tag, Backend>(std::span<std::uint8_t>{}, input, options)));
+        auto hashing = hash::hasher<Tag, Backend>::make(options);
+        BOOST_TEST(hashing.has_value());
+        if (hashing) {
+            BOOST_TEST(hashing->finish(output).has_value());
+            BOOST_TEST(!hashing->finish(output).has_value());
+        }
     });
 }
 
@@ -628,17 +569,28 @@ std::size_t family_tag_size() {
                : static_cast<std::size_t>(std::min(traits::max_output, std::uint64_t{64}));
 }
 
-// mac on Backend (family_tag_size, under its shortest key), then a refusal (an empty tag): two
-// calls.
+// mac on Backend (family_tag_size, under its shortest key, with the label as customisation where
+// the tag takes one) and, where the tag has one, its extendable-output form; then a refusal (an
+// empty tag): two calls.
 template <class Tag, class Backend>
 void family_mac_allocates_nothing(char const* name) {
     using traits = hash::detail::mac_traits<Tag>;
     std::vector<std::uint8_t> output(family_tag_size<Tag>());
     std::vector<std::uint8_t> const key(traits::min_key, 0x0b);
-    allocates_nothing(
-        name, [&] { BOOST_TEST((hash::mac<Tag, Backend>(output, key, input).has_value())); });
+    hash::mac_options<Tag> options{};
+    if constexpr (requires { options.customisation; }) {
+        options.customisation = label;
+    }
     allocates_nothing(name, [&] {
-        BOOST_TEST(!(hash::mac<Tag, Backend>(std::span<std::uint8_t>{}, key, input)));
+        BOOST_TEST((hash::mac<Tag, Backend>(output, key, input, options).has_value()));
+        if constexpr (requires { options.xof; }) {
+            auto xof = options;
+            xof.xof = true;
+            BOOST_TEST((hash::mac<Tag, Backend>(output, key, input, xof).has_value()));
+        }
+    });
+    allocates_nothing(name, [&] {
+        BOOST_TEST(!(hash::mac<Tag, Backend>(std::span<std::uint8_t>{}, key, input, options)));
     });
 }
 
@@ -668,7 +620,7 @@ void families_on_defaults(std::size_t expected_calls) {
     for_each_tag<digest_tags>([&]<class Tag> {
         if constexpr (runs_v<hash::default_backend<Tag>, Tag>) {
             auto const options = family_options<Tag>();
-            std::vector<std::uint8_t> output(family_output_size<Tag>());
+            std::vector<std::uint8_t> output(family_output_size<Tag>(options));
             allocates_nothing("default digest", [&] {
                 BOOST_TEST((hash::digest_of<Tag>(output, input, options).has_value()));
                 auto hashing = hash::hasher<Tag>::make(options);
@@ -1033,7 +985,6 @@ int main() {
 #endif
 #ifdef WEBCPP_HASH_HAS_XKCP
     keccak();
-    xkcp_families();
 #endif
 #ifdef WEBCPP_HASH_HAS_BLAKE3
     blake3();
