@@ -127,7 +127,8 @@ struct fixed_output {
      @return Success.
     */
     template <class Options>
-    static constexpr boost::system::result<void> check(Options const& /*options*/) noexcept {
+    [[nodiscard]] static constexpr boost::system::result<void> check(
+        Options const& /*options*/) noexcept {
         return {};
     }
 };
@@ -160,7 +161,8 @@ struct extendable_output {
      @return Success.
     */
     template <class Options>
-    static constexpr boost::system::result<void> check(Options const& /*options*/) noexcept {
+    [[nodiscard]] static constexpr boost::system::result<void> check(
+        Options const& /*options*/) noexcept {
         return {};
     }
 };
@@ -296,7 +298,7 @@ struct digest_traits<digests::blake2b> {
      @return Success; or `invalid_output_size`, `invalid_key_size`, `invalid_salt_size` or
      `invalid_parameters`.
     */
-    static constexpr boost::system::result<void> check(
+    [[nodiscard]] static constexpr boost::system::result<void> check(
         digest_options<digests::blake2b> const& options) noexcept {
         if (options.output_size == 0 || options.output_size > max_size) {
             return error::invalid_output_size;
@@ -319,7 +321,7 @@ struct digest_traits<digests::blake2b> {
 
  @param string_bytes The string. @return Its refusal, or success.
 */
-inline boost::system::result<void> check_sp800_185_string(
+[[nodiscard]] inline boost::system::result<void> check_sp800_185_string(
     std::span<std::uint8_t const> string_bytes) noexcept {
     if (exceeds(string_bytes.size(), sp800_185_max_bytes)) {
         return error::input_too_long;
@@ -335,8 +337,9 @@ inline boost::system::result<void> check_sp800_185_string(
  @param max_size The tag's longest output for its options.
  @return Success, or `invalid_output_size`.
 */
-inline boost::system::result<void> check_output(std::size_t output_size, std::uint64_t min_size,
-                                                std::uint64_t max_size) noexcept {
+[[nodiscard]] inline boost::system::result<void> check_output(std::size_t output_size,
+                                                              std::uint64_t min_size,
+                                                              std::uint64_t max_size) noexcept {
     if (output_size < min_size || exceeds(output_size, max_size)) {
         return error::invalid_output_size;
     }
@@ -353,7 +356,7 @@ inline boost::system::result<void> check_output(std::size_t output_size, std::ui
  @return Success, or `unsupported_by_backend`.
 */
 template <class Engine>
-boost::system::result<void> check_engine_output(std::size_t output_size) noexcept {
+[[nodiscard]] boost::system::result<void> check_engine_output(std::size_t output_size) noexcept {
     if (exceeds(Engine::min_output, output_size) || exceeds(output_size, Engine::max_output)) {
         return error::unsupported_by_backend;
     }
