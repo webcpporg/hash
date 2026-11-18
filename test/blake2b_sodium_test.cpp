@@ -123,7 +123,8 @@ void check_unkeyed_kat() {
     std::size_t run = 0;
     for (auto const& entry : doc.as_array()) {
         auto const& vector = entry.as_object();
-        if (vector.at("hash").as_string() != "blake2b" || !vector.at("key").as_string().empty()) {
+        auto const& key = vector.at("key").as_string();
+        if (vector.at("hash").as_string() != "blake2b" || !key.empty()) {
             continue;
         }
         auto const input = test::from_hex(vector.at("in").as_string());
