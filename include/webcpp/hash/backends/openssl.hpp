@@ -6,12 +6,12 @@
 
 /**
  `backends::openssl`: HKDF (RFC 5869), PBKDF2 (RFC 8018), scrypt (RFC 7914) and Argon2 (RFC 9106)
- of OpenSSL 3.5.9, its `EVP_KDF`s "HKDF", "PBKDF2", "SCRYPT", "ARGON2D", "ARGON2I" and "ARGON2ID",
- the digests of its default provider through `EVP_MD` and its MACs through `EVP_MAC`, built from
- `third_party/libs/openssl` by `/webcpp/hash//openssl`, static, on native, wasip2 and wasip3;
- never on Emscripten, and never a default backend (design D34): a call names it. The key
- derivations have every hmac of `hmac.hpp` but `hmac_ripemd_128` (spec section 3.2). The digests
- are MD5, SHA-1, the six SHA-2, the four SHA-3, SHAKE128 and SHAKE256 (any output size),
+ of OpenSSL 3.5.9, its `EVP_KDF` implementations "HKDF", "PBKDF2", "SCRYPT", "ARGON2D", "ARGON2I"
+ and "ARGON2ID", the digests of its default provider through `EVP_MD` and its MACs through
+ `EVP_MAC`, built from `third_party/libs/openssl` by `/webcpp/hash//openssl`, static, on native,
+ wasip2 and wasip3; never on Emscripten, and never a default backend (design D34): a call names it.
+ The key derivations have every hmac of `hmac.hpp` but `hmac_ripemd_128` (spec section 3.2). The
+ digests are MD5, SHA-1, the six SHA-2, the four SHA-3, SHAKE128 and SHAKE256 (any output size),
  Keccak-224 to Keccak-512, BLAKE2s-256, BLAKE2b unkeyed (1 to 64 bytes), RIPEMD-160, MD5-SHA1
  and SM3; the default provider's SHA-256/192 and KMAC hashes have no tag, and Whirlpool, MD4 and
  MDC2 are in the legacy provider, which webcpp does not load (`doc/capabilities.json` says why).
@@ -35,9 +35,9 @@
  freeing a digest's context and `EVP_MAC_CTX_free` as freeing a MAC's, not as clearing them; as
  read at 3.5.9, its HMAC, KMAC and BLAKE2 MACs clear their copy of the key when freed (the BLAKE2
  MACs' first block, which holds the key too, only once the tag is computed, not when a call fails
- before), and its SipHash frees its keyed state without clearing it. Its default initialisation, on the first
- call, reads the configuration file of the directory it was configured with, as any program of
- OpenSSL does.
+ before), and its SipHash frees its keyed state without clearing it. Its default initialisation, on
+ the first call, reads the configuration file of the directory it was configured with, as any
+ program of OpenSSL does.
 
  Its limits: OpenSSL 3.5.9 holds some lengths in an `int`, so the public functions refuse,
  before OpenSSL is called, PBKDF2's output (`invalid_output_size`), password and salt
@@ -49,7 +49,7 @@
  as a `uint32_t` and sizes the memory in a `size_t`: `argon2` refuses m above 4,194,303 KiB on
  wasm32 (`unsupported_by_backend`), and `argon2id` a memory above 4 TiB less 1 KiB natively
  (`invalid_parameters`; on wasm32 no whole number of KiB in a `size_t` is past its limit).
- PBKDF2 keeps the output's and the salt's lengths in `int`s, and HMAC, through `HMAC_Init_ex`,
+ PBKDF2 keeps the output's and the salt's lengths in `int` values, and HMAC, through `HMAC_Init_ex`,
  its key's length, which is PBKDF2's password and HKDF-Extract's salt; HKDF-Expand's key, the
  PRK, takes the same path and is limited alike, though it is always one digest. HKDF's IKM, info
  and output stay in `size_t`.

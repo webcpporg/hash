@@ -9,8 +9,8 @@
  standard: `kbkdf`, SP 800-108's key-based KDF in counter mode over an HMAC; `sskdf`, SP 800-56C's
  one-step KDF over a digest (its hash form); and `x963kdf`, ANSI X9.63's KDF, which ECIES and the
  elliptic-curve key agreements of SEC 1 use. Each has `backends::openssl` alone (OpenSSL 3.5.9's
- `EVP_KDF`s "KBKDF", "SSKDF" and "X963KDF"), never a default (design D34): the call names it, and
- the program links `/webcpp/hash//openssl` (native, wasip2 and wasip3).
+ `EVP_KDF` implementations "KBKDF", "SSKDF" and "X963KDF"), never a default (design D34): the call
+ names it, and the program links `/webcpp/hash//openssl` (native, wasip2 and wasip3).
 
  None of them is for a password (Argon2id is) nor a better choice than HKDF for a new design: they
  are here to derive the bytes a standard, a smart card or another library derives.
