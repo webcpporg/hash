@@ -101,7 +101,7 @@ constexpr std::array<std::uint8_t, 100> message = [] {
     return bytes;
 }();
 
-std::span<std::uint8_t const> const input(message);
+std::span<std::uint8_t const> const message_input(message);
 
 /** What a window of calls allocated: operator new's and the C library's, apart. */
 struct window {
@@ -156,21 +156,22 @@ template <class Hmac, class Backend>
 void hkdf_steps_allocate_nothing(char const* name, std::span<std::uint8_t> okm,
                                  std::span<std::uint8_t const> long_info) {
     allocates_nothing(name, [&] {
-        auto const prk = hash::hkdf_extract<Hmac, Backend>(input.first(20), input);
+        auto const prk = hash::hkdf_extract<Hmac, Backend>(message_input.first(20), message_input);
         BOOST_TEST(prk.has_value());
         if (!prk) {
             return;
         }
         auto const expanded = hash::hkdf_expand<Hmac, Backend>(
-            okm, std::span<std::uint8_t const>(prk->data(), prk->size()), input.last(10));
+            okm, std::span<std::uint8_t const>(prk->data(), prk->size()), message_input.last(10));
         BOOST_TEST(expanded.has_value());
     });
     allocates_nothing(name, [&] {
-        auto const refused = hash::hkdf_expand<Hmac, Backend>(okm, input.first(3), {});
+        auto const refused = hash::hkdf_expand<Hmac, Backend>(okm, message_input.first(3), {});
         BOOST_TEST(!refused.has_value());
     });
     allocates_nothing(name, [&] {
-        auto const refused = hash::hkdf_expand<Hmac, Backend>(okm, input.first(3), long_info);
+        auto const refused =
+            hash::hkdf_expand<Hmac, Backend>(okm, message_input.first(3), long_info);
         BOOST_TEST(!refused.has_value());
     });
 }
@@ -185,17 +186,20 @@ void hkdf_allocates_nothing(char const* name) {
     static std::array<std::uint8_t, hash::hkdf_max_info_size + 1> const long_buffer{};
     std::span<std::uint8_t const> const long_info(long_buffer);
     allocates_nothing(name, [&] {
-        auto const full = hash::hkdf<Hmac, Backend>(okm, input.first(20), input, input.last(10));
+        auto const full = hash::hkdf<Hmac, Backend>(okm, message_input.first(20), message_input,
+                                                    message_input.last(10));
         auto const empty = hash::hkdf<Hmac, Backend>(okm, {}, {}, {});
         BOOST_TEST(full.has_value());
         BOOST_TEST(empty.has_value());
     });
     allocates_nothing(name, [&] {
-        auto const refused = hash::hkdf<Hmac, Backend>(no_output, input, input, input);
+        auto const refused =
+            hash::hkdf<Hmac, Backend>(no_output, message_input, message_input, message_input);
         BOOST_TEST(!refused.has_value());
     });
     allocates_nothing(name, [&] {
-        auto const refused = hash::hkdf<Hmac, Backend>(okm, input, input, long_info);
+        auto const refused =
+            hash::hkdf<Hmac, Backend>(okm, message_input, message_input, long_info);
         BOOST_TEST(!refused.has_value());
     });
     if constexpr (split) {
@@ -208,12 +212,13 @@ template <class Hmac, class Backend>
 void pbkdf2_allocates_nothing(char const* name) {
     allocates_nothing(name, [] {
         std::array<std::uint8_t, 70> key{};
-        auto const done = hash::pbkdf2<Hmac, Backend>(key, input.first(20), input.last(16), 3);
+        auto const done =
+            hash::pbkdf2<Hmac, Backend>(key, message_input.first(20), message_input.last(16), 3);
         BOOST_TEST(done.has_value());
     });
     allocates_nothing(name, [] {
         std::array<std::uint8_t, 70> key{};
-        auto const refused = hash::pbkdf2<Hmac, Backend>(key, input, input, 0);
+        auto const refused = hash::pbkdf2<Hmac, Backend>(key, message_input, message_input, 0);
         BOOST_TEST(!refused.has_value());
     });
 }
@@ -407,7 +412,8 @@ void blake3() {
 void sodium_first_call() {
     std::array<std::uint8_t, 32> okm{};
     window const w;
-    auto const done = hash::hkdf<hash::hmac_sha2_256, hash::backends::sodium>(okm, {}, input, {});
+    auto const done =
+        hash::hkdf<hash::hmac_sha2_256, hash::backends::sodium>(okm, {}, message_input, {});
     BOOST_TEST(done.has_value());
     BOOST_TEST_EQ(w.news(), 0U);
     std::printf("record operation=sodium_init backend=sodium target=%s new=%zu c=%zu counted=%d\n",
@@ -423,16 +429,16 @@ void sodium_memory_hard() {
     std::array<std::uint8_t, 32> out{};
     std::array<std::uint8_t, 16> salt{};
     window const argon;
-    auto const argon_done =
-        hash::argon2id<backends::sodium>(out, input.first(20), salt, {.passes = 1, .memory = 8192});
+    auto const argon_done = hash::argon2id<backends::sodium>(out, message_input.first(20), salt,
+                                                             {.passes = 1, .memory = 8192});
     BOOST_TEST(argon_done.has_value());
     BOOST_TEST_EQ(argon.news(), 0U);
     std::printf("record operation=argon2id backend=sodium target=%s new=%zu c=%zu counted=%d\n",
                 webcpp::test::target_name, argon.news(), argon.cs(),
                 webcpp::test::c_allocations_counted ? 1 : 0);
     window const scr;
-    auto const scrypt_done =
-        hash::scrypt<backends::sodium>(out, input.first(20), salt, {.n = 1024, .r = 8, .p = 1});
+    auto const scrypt_done = hash::scrypt<backends::sodium>(out, message_input.first(20), salt,
+                                                            {.n = 1024, .r = 8, .p = 1});
     BOOST_TEST(scrypt_done.has_value());
     BOOST_TEST_EQ(scr.news(), 0U);
     std::printf("record operation=scrypt backend=sodium target=%s new=%zu c=%zu counted=%d\n",
@@ -540,12 +546,12 @@ void family_digest_hashes() {
     std::array<std::uint8_t, 64> streamed_bytes{};
     std::span<std::uint8_t> const output(output_bytes.data(), family_output_size<Tag>(options));
     std::span<std::uint8_t> const streamed(streamed_bytes.data(), family_output_size<Tag>(xof));
-    BOOST_TEST((hash::digest_of<Tag, Backend>(output, input, options).has_value()));
+    BOOST_TEST((hash::digest_of<Tag, Backend>(output, message_input, options).has_value()));
     auto hashing = hash::hasher<Tag, Backend>::make(xof);
     BOOST_TEST(hashing.has_value());
     if (hashing) {
-        BOOST_TEST(hashing->update(input.first(7)).has_value());
-        BOOST_TEST(hashing->update(input.subspan(7)).has_value());
+        BOOST_TEST(hashing->update(message_input.first(7)).has_value());
+        BOOST_TEST(hashing->update(message_input.subspan(7)).has_value());
         BOOST_TEST(hashing->finish(streamed).has_value());
     }
 }
@@ -556,7 +562,7 @@ void family_digest_refuses() {
     auto const options = family_options<Tag>();
     std::array<std::uint8_t, 64> output_bytes{};
     std::span<std::uint8_t> const output(output_bytes.data(), family_output_size<Tag>(options));
-    BOOST_TEST(!(hash::digest_of<Tag, Backend>(std::span<std::uint8_t>{}, input, options)));
+    BOOST_TEST(!(hash::digest_of<Tag, Backend>(std::span<std::uint8_t>{}, message_input, options)));
     auto hashing = hash::hasher<Tag, Backend>::make(options);
     BOOST_TEST(hashing.has_value());
     if (hashing) {
@@ -595,15 +601,16 @@ void family_mac_allocates_nothing(char const* name) {
         options.customisation = label;
     }
     allocates_nothing(name, [&] {
-        BOOST_TEST((hash::mac<Tag, Backend>(output, key, input, options).has_value()));
+        BOOST_TEST((hash::mac<Tag, Backend>(output, key, message_input, options).has_value()));
         if constexpr (requires { options.xof; }) {
             auto xof = options;
             xof.xof = true;
-            BOOST_TEST((hash::mac<Tag, Backend>(output, key, input, xof).has_value()));
+            BOOST_TEST((hash::mac<Tag, Backend>(output, key, message_input, xof).has_value()));
         }
     });
     allocates_nothing(name, [&] {
-        BOOST_TEST(!(hash::mac<Tag, Backend>(std::span<std::uint8_t>{}, key, input, options)));
+        BOOST_TEST(
+            !(hash::mac<Tag, Backend>(std::span<std::uint8_t>{}, key, message_input, options)));
     });
 }
 
@@ -635,9 +642,9 @@ void families_on_defaults(std::size_t expected_calls) {
             auto const options = family_options<Tag>();
             std::vector<std::uint8_t> output(family_output_size<Tag>(options));
             allocates_nothing("default digest", [&] {
-                BOOST_TEST((hash::digest_of<Tag>(output, input, options).has_value()));
+                BOOST_TEST((hash::digest_of<Tag>(output, message_input, options).has_value()));
                 auto hashing = hash::hasher<Tag>::make(options);
-                BOOST_TEST(hashing && hashing->update(input) && hashing->finish(output));
+                BOOST_TEST(hashing && hashing->update(message_input) && hashing->finish(output));
             });
         }
     });
@@ -647,7 +654,7 @@ void families_on_defaults(std::size_t expected_calls) {
             std::vector<std::uint8_t> output(family_tag_size<Tag>());
             std::vector<std::uint8_t> const key(traits::min_key, 0x0b);
             allocates_nothing("default mac", [&] {
-                BOOST_TEST((hash::mac<Tag>(output, key, input).has_value()));
+                BOOST_TEST((hash::mac<Tag>(output, key, message_input).has_value()));
             });
         }
     });
@@ -663,14 +670,15 @@ void blake2b_subkey_allocates_nothing() {
     std::array<std::uint8_t, 32> subkey{};
     std::array<std::uint8_t, 8> const context{'w', 'e', 'b', 'c', 'p', 'p', 'a', 't'};
     allocates_nothing("blake2b_subkey", [&] {
-        BOOST_TEST(hash::blake2b_subkey<hash::backends::sodium>(subkey, input.first(32), 1, context)
+        BOOST_TEST(hash::blake2b_subkey<hash::backends::sodium>(subkey, message_input.first(32), 1,
+                                                                context)
                        .has_value());
     });
     allocates_nothing("blake2b_subkey", [&] {
-        BOOST_TEST(hash::blake2b_subkey(subkey, input.first(32), 2, context).has_value());
+        BOOST_TEST(hash::blake2b_subkey(subkey, message_input.first(32), 2, context).has_value());
     });
     allocates_nothing("blake2b_subkey", [&] {
-        BOOST_TEST(!hash::blake2b_subkey(subkey, input.first(31), 1, context));
+        BOOST_TEST(!hash::blake2b_subkey(subkey, message_input.first(31), 1, context));
     });
     BOOST_TEST_EQ(calls_made - before, 3U);
 }
@@ -686,9 +694,10 @@ void argon2_family_on_sodium(char const* name, std::uint32_t passes) {
     // Each call in its own window; the two counts are libsodium's, printed one after the other.
     for (bool const by_default : {false, true}) {
         window const w;
-        auto const done = by_default ? hash::argon2<Variant>(out, input.first(20), salt, cheapest)
-                                     : hash::argon2<Variant, hash::backends::sodium>(
-                                           out, input.first(20), salt, cheapest);
+        auto const done = by_default
+                              ? hash::argon2<Variant>(out, message_input.first(20), salt, cheapest)
+                              : hash::argon2<Variant, hash::backends::sodium>(
+                                    out, message_input.first(20), salt, cheapest);
         BOOST_TEST(done.has_value());
         BOOST_TEST_EQ(w.news(), 0U);
         std::printf(
@@ -697,7 +706,7 @@ void argon2_family_on_sodium(char const* name, std::uint32_t passes) {
             name, by_default ? "default" : "named", webcpp::test::target_name, w.news(), w.cs());
     }
     allocates_nothing(name, [&] {
-        BOOST_TEST(!(hash::argon2<Variant>(out, input.first(20), salt,
+        BOOST_TEST(!(hash::argon2<Variant>(out, message_input.first(20), salt,
                                            {.passes = passes, .memory_kib = 32, .lanes = 4})));
     });
 }
@@ -794,30 +803,34 @@ void async_cheap() {
     auto const executor = context.get_executor();
     std::array<std::uint8_t, 32> out{};
     std::span<std::uint8_t> const none{};
-    hash::async_digest<hash::digests::sha2_256>(executor, out, input,
+    hash::async_digest<hash::digests::sha2_256>(executor, out, message_input,
                                                 [](boost::system::error_code) {});
     context.run();  // lint-run: the context's first run, outside the windows
     boost::system::error_code const fine;
     boost::system::error_code const refused = hash::error::invalid_output_size;
     async_allocates_nothing("async_digest", context, fine, [&](auto handler) {
-        hash::async_digest<hash::digests::sha2_256>(executor, out, input, std::move(handler));
+        hash::async_digest<hash::digests::sha2_256>(executor, out, message_input,
+                                                    std::move(handler));
     });
     async_allocates_nothing("async_digest refused", context, refused, [&](auto handler) {
-        hash::async_digest<hash::digests::sha2_256>(executor, none, input, std::move(handler));
+        hash::async_digest<hash::digests::sha2_256>(executor, none, message_input,
+                                                    std::move(handler));
     });
     async_allocates_nothing("async_hmac", context, fine, [&](auto handler) {
-        hash::async_hmac<hash::hmac_sha2_256>(executor, out, input.first(16), input,
+        hash::async_hmac<hash::hmac_sha2_256>(executor, out, message_input.first(16), message_input,
                                               std::move(handler));
     });
     async_allocates_nothing("async_hmac refused", context, refused, [&](auto handler) {
-        hash::async_hmac<hash::hmac_sha2_256>(executor, none, input.first(16), input,
-                                              std::move(handler));
+        hash::async_hmac<hash::hmac_sha2_256>(executor, none, message_input.first(16),
+                                              message_input, std::move(handler));
     });
     async_allocates_nothing("async_hkdf", context, fine, [&](auto handler) {
-        hash::async_hkdf<hash::hmac_sha2_256>(executor, out, {}, input, {}, std::move(handler));
+        hash::async_hkdf<hash::hmac_sha2_256>(executor, out, {}, message_input, {},
+                                              std::move(handler));
     });
     async_allocates_nothing("async_hkdf refused", context, refused, [&](auto handler) {
-        hash::async_hkdf<hash::hmac_sha2_256>(executor, none, {}, input, {}, std::move(handler));
+        hash::async_hkdf<hash::hmac_sha2_256>(executor, none, {}, message_input, {},
+                                              std::move(handler));
     });
     BOOST_TEST_EQ(calls_made - before, 6U);
 }
@@ -839,10 +852,11 @@ void async_webcrypto() {
     auto const executor = context.get_executor();
     std::array<std::uint8_t, 32> out{};
     std::span<std::uint8_t> const none{};
-    hash::async_digest<hash::digests::sha2_256, webcrypto>(executor, out, input,
+    hash::async_digest<hash::digests::sha2_256, webcrypto>(executor, out, message_input,
                                                            [](boost::system::error_code) {});
-    hash::async_pbkdf2<hash::hmac_sha2_256, webcrypto>(
-        executor, out, input.first(20), input.first(16), 2, [](boost::system::error_code) {});
+    hash::async_pbkdf2<hash::hmac_sha2_256, webcrypto>(executor, out, message_input.first(20),
+                                                       message_input.first(16), 2,
+                                                       [](boost::system::error_code) {});
     context.run();  // lint-run: the context's first run, outside the windows
     window const bare;
     asio::browser::async_await(
@@ -860,46 +874,48 @@ void async_webcrypto() {
     async_allocates_nothing(
         "async_digest webcrypto", context, fine,
         [&](auto handler) {
-            hash::async_digest<hash::digests::sha2_256, webcrypto>(executor, out, input,
+            hash::async_digest<hash::digests::sha2_256, webcrypto>(executor, out, message_input,
                                                                    std::move(handler));
         },
         per_promise);
     async_allocates_nothing("async_digest webcrypto refused", context, refused, [&](auto handler) {
-        hash::async_digest<hash::digests::sha2_256, webcrypto>(executor, none, input,
+        hash::async_digest<hash::digests::sha2_256, webcrypto>(executor, none, message_input,
                                                                std::move(handler));
     });
     async_allocates_nothing(
         "async_hmac webcrypto", context, fine,
         [&](auto handler) {
-            hash::async_hmac<hash::hmac_sha2_256, webcrypto>(executor, out, input.first(16), input,
-                                                             std::move(handler));
+            hash::async_hmac<hash::hmac_sha2_256, webcrypto>(executor, out, message_input.first(16),
+                                                             message_input, std::move(handler));
         },
         2 * per_promise);
     async_allocates_nothing("async_hmac webcrypto refused", context, refused, [&](auto handler) {
-        hash::async_hmac<hash::hmac_sha2_256, webcrypto>(executor, none, input.first(16), input,
-                                                         std::move(handler));
+        hash::async_hmac<hash::hmac_sha2_256, webcrypto>(executor, none, message_input.first(16),
+                                                         message_input, std::move(handler));
     });
     async_allocates_nothing(
         "async_hkdf webcrypto", context, fine,
         [&](auto handler) {
-            hash::async_hkdf<hash::hmac_sha2_256, webcrypto>(executor, out, {}, input, {},
+            hash::async_hkdf<hash::hmac_sha2_256, webcrypto>(executor, out, {}, message_input, {},
                                                              std::move(handler));
         },
         2 * per_promise);
     async_allocates_nothing("async_hkdf webcrypto refused", context, refused, [&](auto handler) {
-        hash::async_hkdf<hash::hmac_sha2_256, webcrypto>(executor, none, {}, input, {},
+        hash::async_hkdf<hash::hmac_sha2_256, webcrypto>(executor, none, {}, message_input, {},
                                                          std::move(handler));
     });
     async_allocates_nothing(
         "async_pbkdf2 webcrypto", context, fine,
         [&](auto handler) {
             hash::async_pbkdf2<hash::hmac_sha2_256, webcrypto>(
-                executor, out, input.first(20), input.first(16), 2, std::move(handler));
+                executor, out, message_input.first(20), message_input.first(16), 2,
+                std::move(handler));
         },
         2 * per_promise);
     async_allocates_nothing("async_pbkdf2 webcrypto refused", context, refused, [&](auto handler) {
-        hash::async_pbkdf2<hash::hmac_sha2_256, webcrypto>(executor, none, input.first(20),
-                                                           input.first(16), 2, std::move(handler));
+        hash::async_pbkdf2<hash::hmac_sha2_256, webcrypto>(executor, none, message_input.first(20),
+                                                           message_input.first(16), 2,
+                                                           std::move(handler));
     });
     BOOST_TEST_EQ(calls_made - before, 8U);
 }
@@ -957,10 +973,10 @@ void async_heavy() {
     auto const work = pool.get_executor();
     std::array<std::uint8_t, 32> out{};
     std::array<std::uint8_t, hash::argon2id_salt_size> const salt{};
-    auto const password = input.first(20);
+    auto const password = message_input.first(20);
     heavy_allocates_nothing("async_pbkdf2", context, [&](auto handler) {
         hash::async_pbkdf2<hash::hmac_sha2_256, hash::backends::hash2>(
-            work, out, password, input.first(16), 2, std::move(handler));
+            work, out, password, message_input.first(16), 2, std::move(handler));
     });
     heavy_allocates_nothing("async_argon2id", context, [&](auto handler) {
         hash::async_argon2id(work, out, password, salt, {.passes = 1, .memory = 8192},
