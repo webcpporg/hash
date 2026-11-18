@@ -936,8 +936,8 @@ struct argon2id_engine<backends::sodium> {
 };
 
 /**
- Argon2 of one variant on backends::sodium, for the family `argon2` (the engine's interface:
- @ref argon2_engine): libsodium's `crypto_pwhash_argon2i` or `crypto_pwhash_argon2id`, version
+ Argon2 of one variant on backends::sodium, for the family `argon2` (the engine's interface is
+ @ref argon2_engine), over libsodium's `crypto_pwhash_argon2i` or `crypto_pwhash_argon2id`, version
  0x13, which take one lane, no secret, no associated data, a 16-byte salt and a tag of 16 bytes or
  more; `argon2` answers every other value with `error::unsupported_by_backend` before the call.
 
