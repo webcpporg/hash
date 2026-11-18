@@ -329,9 +329,10 @@ hash-run agreement_pbkdf2 : agreement_pbkdf2_test.cpp
     <library>/webcpp/hash//openssl : native wasip2 wasip3 ;
 hash-run agreement_pbkdf2_emscripten : agreement_pbkdf2_test.cpp
   : <library>/third_party//sodium <library>/third_party//bearssl : emscripten ;
-# The digests and MACs of every tag backends::openssl has, through the
-# families, against every other linked backend that has the tag (1,000 seeded
-# cases per tag; increment 4's pairs).
+# The families across increments: every tag two backends or more have, and
+# every tag of backends::openssl, through digest_of, hasher, mac and argon2,
+# on seeded cases (1,000 per digest and MAC, 100 per Argon2 variant), against
+# every other backend of its row, a partial cell held to what it serves.
 hash-run agreement_families : agreement_families_test.cpp
   : <library>/third_party//xkcp <library>/third_party//blake3
     <library>/third_party//sodium <library>/third_party//bearssl

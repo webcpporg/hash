@@ -8,8 +8,9 @@
 // asynchronous family (spec 11, Emscripten only). The published cases through each function, each
 // with a callback, use_awaitable and use_future: SHA-256 of "abc", RFC 4231's case 1, RFC 5869's
 // A.1, RFC 6070's case 1 and RFC 7914 section 11's first case. Then 100 random cases per function
-// against backends::hash2, over SHA-1, SHA-256, SHA-384 and SHA-512 in turn, the empty inputs among
-// them (an empty HMAC key is passed to WebCrypto as one zero byte, the same key by RFC 2104's
+// against the synchronous default backend, the call naming none (backends::hash2 for each, as the
+// static_asserts below state), over SHA-1, SHA-256, SHA-384 and SHA-512 in turn, the empty inputs
+// among them (an empty HMAC key is passed to WebCrypto as one zero byte, the same key by RFC 2104's
 // padding: ruling R74). The guards complete through the event loop, never inside the call, the
 // output untouched; WebCrypto's own limits (ruling R74) and an executor whose context is not an
 // io_context (ruling R73) refuse likewise; the executor's accepted forms, its tracked ones among
@@ -72,6 +73,7 @@
 #include <string>
 #include <string_view>
 #include <tuple>
+#include <type_traits>
 #include <utility>
 #include <vector>
 
@@ -249,12 +251,13 @@ void for_each_case(On on) {
     }
 }
 
-// The comparison of a random case: WebCrypto's completion and output against hash2's result.
+// The comparison of a random case: WebCrypto's completion and output against the synchronous
+// default's result.
 void compare(std::string_view function, std::size_t index, boost::system::error_code code,
              std::span<std::uint8_t const> webcrypto_output,
-             std::span<std::uint8_t const> hash2_output) {
+             std::span<std::uint8_t const> default_output) {
     bool const same =
-        BOOST_TEST(!code) && BOOST_TEST_EQ(to_hex(webcrypto_output), to_hex(hash2_output));
+        BOOST_TEST(!code) && BOOST_TEST_EQ(to_hex(webcrypto_output), to_hex(default_output));
     if (!same) {
         std::cerr << "  " << function << ", random case " << index << " (seed "
                   << webcpp::test::agreement_seed << "): " << code.message() << '\n';
@@ -274,14 +277,21 @@ std::size_t case_size(webcpp::test::random_source& rnd, std::size_t index, std::
     return rnd.between(least, most);
 }
 
+// The synchronous default of every function compared: Boost.Hash2's (design D34, ruling R76).
+static_assert(
+    std::is_same_v<hash::default_backend<hash::digests::sha2_256>, hash::backends::hash2>);
+static_assert(std::is_same_v<hash::default_backend<hash::macs::hmac<hash::digests::sha2_256>>,
+                             hash::backends::hash2>);
+static_assert(std::is_same_v<hash::default_backend<hash::kdfs::hkdf>, hash::backends::hash2>);
+static_assert(std::is_same_v<hash::default_backend<hash::kdfs::pbkdf2>, hash::backends::hash2>);
+
 void check_random_digests(asio::io_context& context) {
     webcpp::test::random_source rnd(webcpp::test::agreement_seed);
     auto const executor = context.get_executor();
     for_each_case([&]<class Hash>(std::size_t index) {
         auto const input = rnd.bytes(index < 4 ? 0 : rnd.between(1, 300));
         std::vector<std::uint8_t> expected(Hash::size);
-        BOOST_TEST((hash::digest_of<typename Hash::digest, hash::backends::hash2>(expected, input)
-                        .has_value()));
+        BOOST_TEST((hash::digest_of<typename Hash::digest>(expected, input).has_value()));
         std::vector<std::uint8_t> output(Hash::size);
         auto const code = complete_by_callback(context, [&](auto token) {
             hash::async_digest<typename Hash::digest, webcrypto>(executor, output, input,
@@ -301,9 +311,8 @@ void check_random_hmacs(asio::io_context& context) {
         auto const input = rnd.bytes(rnd.between(0, 300));
         std::size_t const size = index % 5 == 4 ? rnd.between(10, Hash::size) : Hash::size;
         std::vector<std::uint8_t> expected(size);
-        BOOST_TEST((hash::mac<hash::macs::hmac<typename Hash::digest>, hash::backends::hash2>(
-                        expected, key, input)
-                        .has_value()));
+        BOOST_TEST(
+            (hash::mac<hash::macs::hmac<typename Hash::digest>>(expected, key, input).has_value()));
         std::vector<std::uint8_t> output(size);
         auto const code = complete_by_callback(context, [&](auto token) {
             hash::async_hmac<typename Hash::hmac, webcrypto>(executor, output, key, input,
@@ -326,9 +335,7 @@ void check_random_hkdfs(asio::io_context& context) {
         auto const info = rnd.bytes(case_size(rnd, index, 1024, 0, 1024));
         std::size_t const size = longest ? 255 * Hash::size : rnd.between(1, 3 * Hash::size);
         std::vector<std::uint8_t> expected(size);
-        BOOST_TEST(
-            (hash::hkdf<typename Hash::hmac, hash::backends::hash2>(expected, salt, ikm, info)
-                 .has_value()));
+        BOOST_TEST((hash::hkdf<typename Hash::hmac>(expected, salt, ikm, info).has_value()));
         std::vector<std::uint8_t> output(size);
         auto const code = complete_by_callback(context, [&](auto token) {
             hash::async_hkdf<typename Hash::hmac, webcrypto>(executor, output, salt, ikm, info,
@@ -348,9 +355,8 @@ void check_random_pbkdf2s(asio::io_context& context) {
         std::uint64_t const iterations = rnd.between(1, 500);
         std::size_t const size = rnd.between(1, 3 * Hash::size);
         std::vector<std::uint8_t> expected(size);
-        BOOST_TEST((hash::pbkdf2<typename Hash::hmac, hash::backends::hash2>(expected, password,
-                                                                             salt, iterations)
-                        .has_value()));
+        BOOST_TEST(
+            (hash::pbkdf2<typename Hash::hmac>(expected, password, salt, iterations).has_value()));
         std::vector<std::uint8_t> output(size);
         auto const code = complete_by_callback(context, [&](auto token) {
             hash::async_pbkdf2<typename Hash::hmac, webcrypto>(executor, output, password, salt,
