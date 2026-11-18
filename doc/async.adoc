@@ -124,7 +124,9 @@ cannot be interrupted), then the output is zeroed and the completion is
 is a side effect. The completion runs on the handler's associated executor,
 and the signal is emitted there too, as Asio's slots require: bind the loop's
 executor with `bind_executor` and emit from the loop, never from another
-thread.
+thread. The signal must outlive the call until its handler is called or
+destroyed: the operation clears its slot then, so declare the signal before
+the `io_context` and the pool, which are then destroyed first.
 * *A call that never completes destroys its handler.* A pool destroyed with
 the work still queued, or an event loop destroyed with the completion queued,
 destroys the handler without calling it and gives its storage back, as Asio

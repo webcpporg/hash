@@ -783,7 +783,8 @@ void check_never_completed(asio::io_context& context) {
             std::this_thread::yield();
         }
         std::array<std::uint8_t, 32> output{};
-        // The signal outlives the context, as a slot must outlive what it is connected to.
+        // The signal outlives the context: a signal must outlive the operation connected to its
+        // slot, which clears the slot when its handler is destroyed.
         asio::cancellation_signal signal;
         {
             asio::io_context elsewhere;
