@@ -92,7 +92,7 @@ keeps its process-wide choice of implementations.
 
 | `bearssl`
 | hash wipes BearSSL's HKDF, HMAC and hash contexts before each call returns,
-and a `hasher`'s context when it ends. BearSSL's own temporaries on its stack,
+and the context of a `hasher` when it ends. BearSSL's own temporaries on its stack,
 the pseudorandom key of `br_hkdf_flip`, the padded keys of its HMAC and the
 inner digest of `br_hmac_out`, are not wiped: they stay in the stack memory of
 the call until it is reused. BearSSL allocates nothing.

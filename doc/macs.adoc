@@ -223,7 +223,7 @@ function's output, and its first 8 bytes are not SipHash-2-4's tag: a program
 that must agree with another names the same tag.
 * *The tag is written little-endian.* `mac` writes SipHash-2-4's 64-bit result
 as 8 bytes, least significant first, as the reference implementation and
-libsodium do; `siphash_64`'s `result()` is the number itself.
+libsodium do; the `result()` of `siphash_64` is the number itself.
 
 [#hash-hmac-sodium]
 === HMAC on libsodium
