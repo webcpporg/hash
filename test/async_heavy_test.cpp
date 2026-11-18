@@ -696,7 +696,6 @@ void check_cancellation_races(asio::io_context& context) {
 // operation holds nothing of the handler's allocator. A sentinel the handler owns tells that it was
 // destroyed.
 struct unrun_handler {
-    holding* counts;
     std::shared_ptr<int> sentinel;
     bool* called;
 
@@ -726,7 +725,7 @@ void destroy_pool_with_job_queued(holding& counts, std::weak_ptr<int>& alive, bo
         pool.get_executor(), output, bytes_of("password"), bytes_of("salt"), 1,
         bind(asio::bind_allocator(
             holding_allocator<char>(&counts),
-            unrun_handler{.counts = &counts, .sentinel = std::move(sentinel), .called = &called})));
+            unrun_handler{.sentinel = std::move(sentinel), .called = &called})));
     pool.stop();
     release.set_value();
     pool.join();
@@ -797,7 +796,6 @@ void check_never_completed(asio::io_context& context) {
                     asio::bind_executor(elsewhere.get_executor(),
                                         asio::bind_allocator(holding_allocator<char>(&counts),
                                                              unrun_handler{
-                                                                 .counts = &counts,
                                                                  .sentinel = std::move(sentinel),
                                                                  .called = &called,
                                                              }))));
