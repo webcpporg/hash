@@ -22,22 +22,23 @@
 #ifdef __cplusplus
 namespace webcpp::hash::detail {
 #endif
+/** The number of 64-bit words of webcpp's storage for each XKCP instance kind. */
 enum webcpp_hash_xkcp_storage_words {
-    /* KeccakWidth1600_SpongeInstance: 216 bytes. */
+    /** The words of a `KeccakWidth1600_SpongeInstance`: 216 bytes. */
     webcpp_hash_xkcp_sponge_words = 27,
-    /* Keccak_HashInstance: 224 bytes. */
+    /** The words of a `Keccak_HashInstance`: 224 bytes. */
     webcpp_hash_xkcp_keccak_hash_words = 28,
-    /* TurboSHAKE_Instance: 216 bytes. */
+    /** The words of a `TurboSHAKE_Instance`: 216 bytes. */
     webcpp_hash_xkcp_turboshake_words = 27,
-    /* KangarooTwelve_Instance: 464 bytes natively, 456 on wasm32. */
+    /** The words of a `KangarooTwelve_Instance`: 464 bytes natively, 456 on wasm32. */
     webcpp_hash_xkcp_kangarootwelve_words = 58,
-    /* cSHAKE_Instance: 240 bytes. */
+    /** The words of a `cSHAKE_Instance`: 240 bytes. */
     webcpp_hash_xkcp_cshake_words = 30,
-    /* KMAC_Instance: 248 bytes. */
+    /** The words of a `KMAC_Instance`: 248 bytes. */
     webcpp_hash_xkcp_kmac_words = 31,
-    /* TupleHash_Instance: 248 bytes. */
+    /** The words of a `TupleHash_Instance`: 248 bytes. */
     webcpp_hash_xkcp_tuplehash_words = 31,
-    /* ParallelHash_Instance: 472 bytes natively, 456 on wasm32. */
+    /** The words of a `ParallelHash_Instance`: 472 bytes natively, 456 on wasm32. */
     webcpp_hash_xkcp_parallelhash_words = 59
 };
 #ifdef __cplusplus
