@@ -1,10 +1,10 @@
 {
     "about": "webcpp::hash's capability table (spec section 3.5): which library implements each public name, over which hmacs, on which targets, what upstream states about constant time, and the backend a call that names none uses. backend_has_v is the same table for the key derivations and the families: test/capabilities_test.cpp compares them cell by cell, checks each type row against the code, each default against default_backend and each refusal text against its row. The documentation renders from it. The default rule (design D34): a key derivation of increment 1 runs on hash2, argon2id and scrypt on sodium; a tag of the families defaults to the first of hash2, xkcp, blake3 and sodium that has it fully once increments 2 to 7 have landed, else the first of them with a partial cell, else none (null: the call names its backend); bearssl, openssl, botan and webcrypto are never a default. A default never changes; one whose backend's cell lands in a later increment is written already, and its row lists it before the cell.",
-    "version": 4,
+    "version": 5,
     "layout": {
         "schema": "This description. The version of the layout is \"version\"; a change of layout raises it.",
         "targets": "The targets webcpp builds for.",
-        "backends[]": "Each library a function runs on: name (as cells name it), tag (its webcpp::hash::backends type), macro (the word of WEBCPP_HASH_HAS_<macro>, null for a backend that links no library of its own), library (name and pin), licence, jamfile (the target a program names), targets (where it builds), asynchronous_only (present and true on a backend that only the asynchronous family of async.hpp takes, backends::webcrypto: its cells are the asynchronous functions', async_digest, async_hmac, async_hkdf and async_pbkdf2, never the synchronous ones, and it is never a default).",
+        "backends[]": "Each library a function runs on: name (as cells name it), tag (its webcpp::hash::backends type), macro (the word of WEBCPP_HASH_HAS_<macro>, null for a backend that links no library of its own), library (name and pin), licence, jamfile (the target a program names), targets (where it builds), asynchronous_only (present and true on a backend that only the asynchronous family of async.hpp takes, backends::webcrypto: its cells are the asynchronous functions', async_digest, async_hmac, async_hkdf and async_pbkdf2, never the synchronous ones, and it is never a default), and optionally omitted[] ({names, reason}: what the library has and hash does not expose or does not load, each with its upstream names and why).",
         "hmacs": "The hmac columns of a function over an hmac: the aliases of <webcpp/hash/hmac.hpp>, and \"other\", hmac<H> over any other Boost.Hash2 hash whose result is a digest.",
         "algorithms[]": "One row group of spec 3.5: name, macro (the algorithm's word in upper case), tag (its kdfs:: type, or null), chapter (the documentation's chapter: digests, macs, kdfs, password_hashing, non-cryptographic), standard, functions.",
         "functions[]": "One public name: name (a type's or function's own name; a family's row is named by its qualified tag, as digests::sha2_256 or macs::hmac<digests::sha2_256>), kind (\"type\": a Boost.Hash2-form type; \"function\": a function template with a Backend parameter; \"digest\": a tag of digest_of and hasher; \"mac\": a tag of mac; \"kdf\": a variant of argon2), header, default (for a function or a family's tag, the backend default_backend names when the call names none, null for a tag with no default (detail::no_default) and for a type; a family's default may be a backend whose cell lands in a later increment), backends.",
@@ -98,6 +98,43 @@
                 "native",
                 "wasip2",
                 "wasip3"
+            ],
+            "omitted": [
+                {
+                    "names": [
+                        "SHA2-256/192"
+                    ],
+                    "reason": "in the default provider, not exposed: no tag of digests names it; it is SHA-256's first 24 bytes (NIST SP 800-208), which digests::sha2_256 gives."
+                },
+                {
+                    "names": [
+                        "KECCAK-KMAC-128",
+                        "KECCAK-KMAC-256"
+                    ],
+                    "reason": "in the default provider, not exposed: KMAC's internal hash (Keccak with KMAC's padding byte 0x04), no tag of digests; KMAC itself is macs::kmac_128 and macs::kmac_256."
+                },
+                {
+                    "names": [
+                        "NULL"
+                    ],
+                    "reason": "in the default provider, not exposed: an empty output, not a hash."
+                },
+                {
+                    "names": [
+                        "WHIRLPOOL",
+                        "MD4",
+                        "MDC2"
+                    ],
+                    "reason": "in the legacy provider alone, which no-module compiles into libcrypto and webcpp never loads: loading a provider changes the process's default library context for every OpenSSL user in the program. digests::whirlpool is not in backends::openssl."
+                },
+                {
+                    "names": [
+                        "CMAC",
+                        "GMAC",
+                        "POLY1305"
+                    ],
+                    "reason": "in the default provider, not exposed: MACs over a block cipher (CMAC, GMAC) or a one-time key (Poly1305), outside hash's hash-based primitives."
+                }
             ]
         },
         {
@@ -289,6 +326,14 @@
                                 "value": "not stated",
                                 "source": "BearSSL at webcpp::crypto's pin: bearssl_hash.h states constant time for its GHASH implementations alone, not for br_md5_*, br_sha1_*, br_sha224_* to br_sha512_* or br_md5sha1_*."
                             }
+                        },
+                        "openssl": {
+                            "since": 4,
+                            "hmacs": null,
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "OpenSSL 3.5.9: doc/man7/EVP_MD-*.pod, doc/man3/EVP_DigestInit.pod and providers/implementations/digests/ state no constant-time property."
+                            }
                         }
                     }
                 },
@@ -312,6 +357,14 @@
                             "constant_time": {
                                 "value": "not stated",
                                 "source": "BearSSL at webcpp::crypto's pin: bearssl_hash.h states constant time for its GHASH implementations alone, not for br_md5_*, br_sha1_*, br_sha224_* to br_sha512_* or br_md5sha1_*."
+                            }
+                        },
+                        "openssl": {
+                            "since": 4,
+                            "hmacs": null,
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "OpenSSL 3.5.9: doc/man7/EVP_MD-*.pod, doc/man3/EVP_DigestInit.pod and providers/implementations/digests/ state no constant-time property."
                             }
                         },
                         "webcrypto": {
@@ -344,6 +397,14 @@
                             "constant_time": {
                                 "value": "not stated",
                                 "source": "BearSSL at webcpp::crypto's pin: bearssl_hash.h states constant time for its GHASH implementations alone, not for br_md5_*, br_sha1_*, br_sha224_* to br_sha512_* or br_md5sha1_*."
+                            }
+                        },
+                        "openssl": {
+                            "since": 4,
+                            "hmacs": null,
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "OpenSSL 3.5.9: doc/man7/EVP_MD-*.pod, doc/man3/EVP_DigestInit.pod and providers/implementations/digests/ state no constant-time property."
                             }
                         }
                     }
@@ -378,6 +439,14 @@
                                 "source": "BearSSL at webcpp::crypto's pin: bearssl_hash.h states constant time for its GHASH implementations alone, not for br_md5_*, br_sha1_*, br_sha224_* to br_sha512_* or br_md5sha1_*."
                             }
                         },
+                        "openssl": {
+                            "since": 4,
+                            "hmacs": null,
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "OpenSSL 3.5.9: doc/man7/EVP_MD-*.pod, doc/man3/EVP_DigestInit.pod and providers/implementations/digests/ state no constant-time property."
+                            }
+                        },
                         "webcrypto": {
                             "since": 7,
                             "hmacs": null,
@@ -408,6 +477,14 @@
                             "constant_time": {
                                 "value": "not stated",
                                 "source": "BearSSL at webcpp::crypto's pin: bearssl_hash.h states constant time for its GHASH implementations alone, not for br_md5_*, br_sha1_*, br_sha224_* to br_sha512_* or br_md5sha1_*."
+                            }
+                        },
+                        "openssl": {
+                            "since": 4,
+                            "hmacs": null,
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "OpenSSL 3.5.9: doc/man7/EVP_MD-*.pod, doc/man3/EVP_DigestInit.pod and providers/implementations/digests/ state no constant-time property."
                             }
                         },
                         "webcrypto": {
@@ -450,6 +527,14 @@
                                 "source": "BearSSL at webcpp::crypto's pin: bearssl_hash.h states constant time for its GHASH implementations alone, not for br_md5_*, br_sha1_*, br_sha224_* to br_sha512_* or br_md5sha1_*."
                             }
                         },
+                        "openssl": {
+                            "since": 4,
+                            "hmacs": null,
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "OpenSSL 3.5.9: doc/man7/EVP_MD-*.pod, doc/man3/EVP_DigestInit.pod and providers/implementations/digests/ state no constant-time property."
+                            }
+                        },
                         "webcrypto": {
                             "since": 7,
                             "hmacs": null,
@@ -473,6 +558,14 @@
                                 "value": "not stated",
                                 "source": "Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property."
                             }
+                        },
+                        "openssl": {
+                            "since": 4,
+                            "hmacs": null,
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "OpenSSL 3.5.9: doc/man7/EVP_MD-*.pod, doc/man3/EVP_DigestInit.pod and providers/implementations/digests/ state no constant-time property."
+                            }
                         }
                     }
                 },
@@ -489,6 +582,14 @@
                                 "value": "not stated",
                                 "source": "Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property."
                             }
+                        },
+                        "openssl": {
+                            "since": 4,
+                            "hmacs": null,
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "OpenSSL 3.5.9: doc/man7/EVP_MD-*.pod, doc/man3/EVP_DigestInit.pod and providers/implementations/digests/ state no constant-time property."
+                            }
                         }
                     }
                 },
@@ -504,6 +605,14 @@
                             "constant_time": {
                                 "value": "not stated",
                                 "source": "BearSSL at webcpp::crypto's pin: bearssl_hash.h states constant time for its GHASH implementations alone, not for br_md5_*, br_sha1_*, br_sha224_* to br_sha512_* or br_md5sha1_*."
+                            }
+                        },
+                        "openssl": {
+                            "since": 4,
+                            "hmacs": null,
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "OpenSSL 3.5.9: doc/man7/EVP_MD-*.pod, doc/man3/EVP_DigestInit.pod and providers/implementations/digests/ state no constant-time property."
                             }
                         }
                     }
@@ -634,6 +743,14 @@
                                 "value": "not stated",
                                 "source": "XKCP at d20c8fc: README.markdown, lib/low/KeccakP-1600 and lib/high/Keccak (KeccakSponge, FIPS202/KeccakHash) state no constant-time property."
                             }
+                        },
+                        "openssl": {
+                            "since": 4,
+                            "hmacs": null,
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "OpenSSL 3.5.9: doc/man7/EVP_MD-*.pod, doc/man3/EVP_DigestInit.pod and providers/implementations/digests/ state no constant-time property."
+                            }
                         }
                     }
                 },
@@ -666,6 +783,14 @@
                                 "value": "not stated",
                                 "source": "libsodium 1.0.22: its headers state constant time for comparisons (sodium/utils.h) alone, not for its hashing, MAC, key derivation and password hashing functions (crypto_hash_*, crypto_xof_*, crypto_generichash_*, crypto_shorthash_*, crypto_auth_*, crypto_kdf_*, crypto_pwhash_*)."
                             }
+                        },
+                        "openssl": {
+                            "since": 4,
+                            "hmacs": null,
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "OpenSSL 3.5.9: doc/man7/EVP_MD-*.pod, doc/man3/EVP_DigestInit.pod and providers/implementations/digests/ state no constant-time property."
+                            }
                         }
                     }
                 },
@@ -689,6 +814,14 @@
                             "constant_time": {
                                 "value": "not stated",
                                 "source": "XKCP at d20c8fc: README.markdown, lib/low/KeccakP-1600 and lib/high/Keccak (KeccakSponge, FIPS202/KeccakHash) state no constant-time property."
+                            }
+                        },
+                        "openssl": {
+                            "since": 4,
+                            "hmacs": null,
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "OpenSSL 3.5.9: doc/man7/EVP_MD-*.pod, doc/man3/EVP_DigestInit.pod and providers/implementations/digests/ state no constant-time property."
                             }
                         }
                     }
@@ -721,6 +854,14 @@
                             "constant_time": {
                                 "value": "not stated",
                                 "source": "libsodium 1.0.22: its headers state constant time for comparisons (sodium/utils.h) alone, not for its hashing, MAC, key derivation and password hashing functions (crypto_hash_*, crypto_xof_*, crypto_generichash_*, crypto_shorthash_*, crypto_auth_*, crypto_kdf_*, crypto_pwhash_*)."
+                            }
+                        },
+                        "openssl": {
+                            "since": 4,
+                            "hmacs": null,
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "OpenSSL 3.5.9: doc/man7/EVP_MD-*.pod, doc/man3/EVP_DigestInit.pod and providers/implementations/digests/ state no constant-time property."
                             }
                         }
                     }
@@ -762,6 +903,14 @@
                                 "value": "not stated",
                                 "source": "BearSSL at webcpp::crypto's pin: bearssl_kdf.h states no constant-time property for br_shake_*."
                             }
+                        },
+                        "openssl": {
+                            "since": 4,
+                            "hmacs": null,
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "OpenSSL 3.5.9: doc/man7/EVP_MD-*.pod, doc/man3/EVP_DigestInit.pod and providers/implementations/digests/ state no constant-time property."
+                            }
                         }
                     }
                 },
@@ -801,6 +950,14 @@
                             "constant_time": {
                                 "value": "not stated",
                                 "source": "BearSSL at webcpp::crypto's pin: bearssl_kdf.h states no constant-time property for br_shake_*."
+                            }
+                        },
+                        "openssl": {
+                            "since": 4,
+                            "hmacs": null,
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "OpenSSL 3.5.9: doc/man7/EVP_MD-*.pod, doc/man3/EVP_DigestInit.pod and providers/implementations/digests/ state no constant-time property."
                             }
                         }
                     }
@@ -900,6 +1057,14 @@
                                 "value": "not stated",
                                 "source": "XKCP at d20c8fc: README.markdown, lib/low/KeccakP-1600 and lib/high/Keccak (KeccakSponge, FIPS202/KeccakHash) state no constant-time property."
                             }
+                        },
+                        "openssl": {
+                            "since": 4,
+                            "hmacs": null,
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "OpenSSL 3.5.9: doc/man7/EVP_MD-*.pod, doc/man3/EVP_DigestInit.pod and providers/implementations/digests/ state no constant-time property."
+                            }
                         }
                     }
                 },
@@ -915,6 +1080,14 @@
                             "constant_time": {
                                 "value": "not stated",
                                 "source": "XKCP at d20c8fc: README.markdown, lib/low/KeccakP-1600 and lib/high/Keccak (KeccakSponge, FIPS202/KeccakHash) state no constant-time property."
+                            }
+                        },
+                        "openssl": {
+                            "since": 4,
+                            "hmacs": null,
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "OpenSSL 3.5.9: doc/man7/EVP_MD-*.pod, doc/man3/EVP_DigestInit.pod and providers/implementations/digests/ state no constant-time property."
                             }
                         }
                     }
@@ -932,6 +1105,14 @@
                                 "value": "not stated",
                                 "source": "XKCP at d20c8fc: README.markdown, lib/low/KeccakP-1600 and lib/high/Keccak (KeccakSponge, FIPS202/KeccakHash) state no constant-time property."
                             }
+                        },
+                        "openssl": {
+                            "since": 4,
+                            "hmacs": null,
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "OpenSSL 3.5.9: doc/man7/EVP_MD-*.pod, doc/man3/EVP_DigestInit.pod and providers/implementations/digests/ state no constant-time property."
+                            }
                         }
                     }
                 },
@@ -947,6 +1128,14 @@
                             "constant_time": {
                                 "value": "not stated",
                                 "source": "XKCP at d20c8fc: README.markdown, lib/low/KeccakP-1600 and lib/high/Keccak (KeccakSponge, FIPS202/KeccakHash) state no constant-time property."
+                            }
+                        },
+                        "openssl": {
+                            "since": 4,
+                            "hmacs": null,
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "OpenSSL 3.5.9: doc/man7/EVP_MD-*.pod, doc/man3/EVP_DigestInit.pod and providers/implementations/digests/ state no constant-time property."
                             }
                         }
                     }
@@ -1162,6 +1351,15 @@
                                 "value": "not stated",
                                 "source": "libsodium 1.0.22: its headers state constant time for comparisons (sodium/utils.h) alone, not for its hashing, MAC, key derivation and password hashing functions (crypto_hash_*, crypto_xof_*, crypto_generichash_*, crypto_shorthash_*, crypto_auth_*, crypto_kdf_*, crypto_pwhash_*)."
                             }
+                        },
+                        "openssl": {
+                            "since": 4,
+                            "hmacs": null,
+                            "partial": "a key, a salt or a personalisation: OpenSSL's BLAKE2B-512 digest is unkeyed BLAKE2b of 1 to 64 bytes (its parameter size), and its keyed BLAKE2b is the MAC BLAKE2BMAC",
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "OpenSSL 3.5.9: doc/man7/EVP_MD-*.pod, doc/man3/EVP_DigestInit.pod and providers/implementations/digests/ state no constant-time property."
+                            }
                         }
                     }
                 },
@@ -1177,6 +1375,30 @@
                             "constant_time": {
                                 "value": "not stated",
                                 "source": "Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property."
+                            }
+                        },
+                        "openssl": {
+                            "since": 4,
+                            "hmacs": null,
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "OpenSSL 3.5.9: doc/man7/EVP_MD-*.pod, doc/man3/EVP_DigestInit.pod and providers/implementations/digests/ state no constant-time property."
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "macs::blake2b_mac",
+                    "kind": "mac",
+                    "header": "webcpp/hash/mac.hpp",
+                    "default": "sodium",
+                    "backends": {
+                        "openssl": {
+                            "since": 4,
+                            "hmacs": null,
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "OpenSSL 3.5.9: doc/man3/EVP_MAC.pod, doc/man7/EVP_MAC-HMAC.pod, EVP_MAC-KMAC.pod, EVP_MAC-BLAKE2.pod, EVP_MAC-Siphash.pod and providers/implementations/macs/ state no constant-time property."
                             }
                         }
                     }
@@ -1194,6 +1416,14 @@
                             "constant_time": {
                                 "value": "not stated",
                                 "source": "Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property."
+                            }
+                        },
+                        "openssl": {
+                            "since": 4,
+                            "hmacs": null,
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "OpenSSL 3.5.9: doc/man3/EVP_MAC.pod, doc/man7/EVP_MAC-HMAC.pod, EVP_MAC-KMAC.pod, EVP_MAC-BLAKE2.pod, EVP_MAC-Siphash.pod and providers/implementations/macs/ state no constant-time property."
                             }
                         }
                     }
@@ -1293,6 +1523,39 @@
                                 "value": "not stated",
                                 "source": "Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property."
                             }
+                        },
+                        "openssl": {
+                            "since": 4,
+                            "hmacs": null,
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "OpenSSL 3.5.9: doc/man7/EVP_MD-*.pod, doc/man3/EVP_DigestInit.pod and providers/implementations/digests/ state no constant-time property."
+                            }
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "sm3",
+            "macro": "SM3",
+            "tag": null,
+            "chapter": "digests",
+            "standard": "GB/T 32905-2016 (ISO/IEC 10118-3:2018)",
+            "functions": [
+                {
+                    "name": "digests::sm3",
+                    "kind": "digest",
+                    "header": "webcpp/hash/digest.hpp",
+                    "default": null,
+                    "backends": {
+                        "openssl": {
+                            "since": 4,
+                            "hmacs": null,
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "OpenSSL 3.5.9: doc/man7/EVP_MD-*.pod, doc/man3/EVP_DigestInit.pod and providers/implementations/digests/ state no constant-time property."
+                            }
                         }
                     }
                 }
@@ -1358,6 +1621,14 @@
                                 "value": "not stated",
                                 "source": "libsodium 1.0.22: its headers state constant time for comparisons (sodium/utils.h) alone, not for its hashing, MAC, key derivation and password hashing functions (crypto_hash_*, crypto_xof_*, crypto_generichash_*, crypto_shorthash_*, crypto_auth_*, crypto_kdf_*, crypto_pwhash_*)."
                             }
+                        },
+                        "openssl": {
+                            "since": 4,
+                            "hmacs": null,
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "OpenSSL 3.5.9: doc/man3/EVP_MAC.pod, doc/man7/EVP_MAC-HMAC.pod, EVP_MAC-KMAC.pod, EVP_MAC-BLAKE2.pod, EVP_MAC-Siphash.pod and providers/implementations/macs/ state no constant-time property."
+                            }
                         }
                     }
                 },
@@ -1373,6 +1644,14 @@
                             "constant_time": {
                                 "value": "not stated",
                                 "source": "libsodium 1.0.22: its headers state constant time for comparisons (sodium/utils.h) alone, not for its hashing, MAC, key derivation and password hashing functions (crypto_hash_*, crypto_xof_*, crypto_generichash_*, crypto_shorthash_*, crypto_auth_*, crypto_kdf_*, crypto_pwhash_*)."
+                            }
+                        },
+                        "openssl": {
+                            "since": 4,
+                            "hmacs": null,
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "OpenSSL 3.5.9: doc/man3/EVP_MAC.pod, doc/man7/EVP_MAC-HMAC.pod, EVP_MAC-KMAC.pod, EVP_MAC-BLAKE2.pod, EVP_MAC-Siphash.pod and providers/implementations/macs/ state no constant-time property."
                             }
                         }
                     }
@@ -1399,6 +1678,15 @@
                                 "value": "not stated",
                                 "source": "XKCP at d20c8fc: README.markdown, lib/low/KeccakP-1600 and lib/high/Keccak (KeccakSponge, FIPS202/KeccakHash, SP800-185) state no constant-time property."
                             }
+                        },
+                        "openssl": {
+                            "since": 4,
+                            "hmacs": null,
+                            "partial": "a key under 4 or over 512 bytes, a customisation over 512 bytes, or a tag over 2,097,151 bytes: OpenSSL's KMAC limits (kmac_prov.c)",
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "OpenSSL 3.5.9: doc/man3/EVP_MAC.pod, doc/man7/EVP_MAC-HMAC.pod, EVP_MAC-KMAC.pod, EVP_MAC-BLAKE2.pod, EVP_MAC-Siphash.pod and providers/implementations/macs/ state no constant-time property."
+                            }
                         }
                     }
                 },
@@ -1414,6 +1702,15 @@
                             "constant_time": {
                                 "value": "not stated",
                                 "source": "XKCP at d20c8fc: README.markdown, lib/low/KeccakP-1600 and lib/high/Keccak (KeccakSponge, FIPS202/KeccakHash, SP800-185) state no constant-time property."
+                            }
+                        },
+                        "openssl": {
+                            "since": 4,
+                            "hmacs": null,
+                            "partial": "a key under 4 or over 512 bytes, a customisation over 512 bytes, or a tag over 2,097,151 bytes: OpenSSL's KMAC limits (kmac_prov.c)",
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "OpenSSL 3.5.9: doc/man3/EVP_MAC.pod, doc/man7/EVP_MAC-HMAC.pod, EVP_MAC-KMAC.pod, EVP_MAC-BLAKE2.pod, EVP_MAC-Siphash.pod and providers/implementations/macs/ state no constant-time property."
                             }
                         }
                     }
@@ -1720,6 +2017,15 @@
                                 "value": "not stated",
                                 "source": "BearSSL at webcpp::crypto's pin: bearssl_hmac.h states constant time for br_hmac_outCT alone; mac calls br_hmac_out."
                             }
+                        },
+                        "openssl": {
+                            "since": 4,
+                            "hmacs": null,
+                            "partial": "a key of more than INT_MAX bytes: OpenSSL takes HMAC's key length as an int (HMAC_Init_ex)",
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "OpenSSL 3.5.9: doc/man3/EVP_MAC.pod, doc/man7/EVP_MAC-HMAC.pod, EVP_MAC-KMAC.pod, EVP_MAC-BLAKE2.pod, EVP_MAC-Siphash.pod and providers/implementations/macs/ state no constant-time property."
+                            }
                         }
                     }
                 },
@@ -1743,6 +2049,15 @@
                             "constant_time": {
                                 "value": "not stated",
                                 "source": "BearSSL at webcpp::crypto's pin: bearssl_hmac.h states constant time for br_hmac_outCT alone; mac calls br_hmac_out."
+                            }
+                        },
+                        "openssl": {
+                            "since": 4,
+                            "hmacs": null,
+                            "partial": "a key of more than INT_MAX bytes: OpenSSL takes HMAC's key length as an int (HMAC_Init_ex)",
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "OpenSSL 3.5.9: doc/man3/EVP_MAC.pod, doc/man7/EVP_MAC-HMAC.pod, EVP_MAC-KMAC.pod, EVP_MAC-BLAKE2.pod, EVP_MAC-Siphash.pod and providers/implementations/macs/ state no constant-time property."
                             }
                         },
                         "webcrypto": {
@@ -1775,6 +2090,15 @@
                             "constant_time": {
                                 "value": "not stated",
                                 "source": "BearSSL at webcpp::crypto's pin: bearssl_hmac.h states constant time for br_hmac_outCT alone; mac calls br_hmac_out."
+                            }
+                        },
+                        "openssl": {
+                            "since": 4,
+                            "hmacs": null,
+                            "partial": "a key of more than INT_MAX bytes: OpenSSL takes HMAC's key length as an int (HMAC_Init_ex)",
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "OpenSSL 3.5.9: doc/man3/EVP_MAC.pod, doc/man7/EVP_MAC-HMAC.pod, EVP_MAC-KMAC.pod, EVP_MAC-BLAKE2.pod, EVP_MAC-Siphash.pod and providers/implementations/macs/ state no constant-time property."
                             }
                         }
                     }
@@ -1809,6 +2133,15 @@
                                 "source": "BearSSL at webcpp::crypto's pin: bearssl_hmac.h states constant time for br_hmac_outCT alone; mac calls br_hmac_out."
                             }
                         },
+                        "openssl": {
+                            "since": 4,
+                            "hmacs": null,
+                            "partial": "a key of more than INT_MAX bytes: OpenSSL takes HMAC's key length as an int (HMAC_Init_ex)",
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "OpenSSL 3.5.9: doc/man3/EVP_MAC.pod, doc/man7/EVP_MAC-HMAC.pod, EVP_MAC-KMAC.pod, EVP_MAC-BLAKE2.pod, EVP_MAC-Siphash.pod and providers/implementations/macs/ state no constant-time property."
+                            }
+                        },
                         "webcrypto": {
                             "since": 7,
                             "hmacs": null,
@@ -1839,6 +2172,15 @@
                             "constant_time": {
                                 "value": "not stated",
                                 "source": "BearSSL at webcpp::crypto's pin: bearssl_hmac.h states constant time for br_hmac_outCT alone; mac calls br_hmac_out."
+                            }
+                        },
+                        "openssl": {
+                            "since": 4,
+                            "hmacs": null,
+                            "partial": "a key of more than INT_MAX bytes: OpenSSL takes HMAC's key length as an int (HMAC_Init_ex)",
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "OpenSSL 3.5.9: doc/man3/EVP_MAC.pod, doc/man7/EVP_MAC-HMAC.pod, EVP_MAC-KMAC.pod, EVP_MAC-BLAKE2.pod, EVP_MAC-Siphash.pod and providers/implementations/macs/ state no constant-time property."
                             }
                         },
                         "webcrypto": {
@@ -1881,6 +2223,15 @@
                                 "source": "BearSSL at webcpp::crypto's pin: bearssl_hmac.h states constant time for br_hmac_outCT alone; mac calls br_hmac_out."
                             }
                         },
+                        "openssl": {
+                            "since": 4,
+                            "hmacs": null,
+                            "partial": "a key of more than INT_MAX bytes: OpenSSL takes HMAC's key length as an int (HMAC_Init_ex)",
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "OpenSSL 3.5.9: doc/man3/EVP_MAC.pod, doc/man7/EVP_MAC-HMAC.pod, EVP_MAC-KMAC.pod, EVP_MAC-BLAKE2.pod, EVP_MAC-Siphash.pod and providers/implementations/macs/ state no constant-time property."
+                            }
+                        },
                         "webcrypto": {
                             "since": 7,
                             "hmacs": null,
@@ -1904,6 +2255,15 @@
                                 "value": "not stated",
                                 "source": "Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property."
                             }
+                        },
+                        "openssl": {
+                            "since": 4,
+                            "hmacs": null,
+                            "partial": "a key of more than INT_MAX bytes: OpenSSL takes HMAC's key length as an int (HMAC_Init_ex)",
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "OpenSSL 3.5.9: doc/man3/EVP_MAC.pod, doc/man7/EVP_MAC-HMAC.pod, EVP_MAC-KMAC.pod, EVP_MAC-BLAKE2.pod, EVP_MAC-Siphash.pod and providers/implementations/macs/ state no constant-time property."
+                            }
                         }
                     }
                 },
@@ -1919,6 +2279,15 @@
                             "constant_time": {
                                 "value": "not stated",
                                 "source": "Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property."
+                            }
+                        },
+                        "openssl": {
+                            "since": 4,
+                            "hmacs": null,
+                            "partial": "a key of more than INT_MAX bytes: OpenSSL takes HMAC's key length as an int (HMAC_Init_ex)",
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "OpenSSL 3.5.9: doc/man3/EVP_MAC.pod, doc/man7/EVP_MAC-HMAC.pod, EVP_MAC-KMAC.pod, EVP_MAC-BLAKE2.pod, EVP_MAC-Siphash.pod and providers/implementations/macs/ state no constant-time property."
                             }
                         }
                     }
@@ -1936,6 +2305,15 @@
                                 "value": "not stated",
                                 "source": "Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property."
                             }
+                        },
+                        "openssl": {
+                            "since": 4,
+                            "hmacs": null,
+                            "partial": "a key of more than INT_MAX bytes: OpenSSL takes HMAC's key length as an int (HMAC_Init_ex)",
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "OpenSSL 3.5.9: doc/man3/EVP_MAC.pod, doc/man7/EVP_MAC-HMAC.pod, EVP_MAC-KMAC.pod, EVP_MAC-BLAKE2.pod, EVP_MAC-Siphash.pod and providers/implementations/macs/ state no constant-time property."
+                            }
                         }
                     }
                 },
@@ -1951,6 +2329,15 @@
                             "constant_time": {
                                 "value": "not stated",
                                 "source": "Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property."
+                            }
+                        },
+                        "openssl": {
+                            "since": 4,
+                            "hmacs": null,
+                            "partial": "a key of more than INT_MAX bytes: OpenSSL takes HMAC's key length as an int (HMAC_Init_ex)",
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "OpenSSL 3.5.9: doc/man3/EVP_MAC.pod, doc/man7/EVP_MAC-HMAC.pod, EVP_MAC-KMAC.pod, EVP_MAC-BLAKE2.pod, EVP_MAC-Siphash.pod and providers/implementations/macs/ state no constant-time property."
                             }
                         }
                     }
@@ -1968,6 +2355,15 @@
                                 "value": "not stated",
                                 "source": "Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property."
                             }
+                        },
+                        "openssl": {
+                            "since": 4,
+                            "hmacs": null,
+                            "partial": "a key of more than INT_MAX bytes: OpenSSL takes HMAC's key length as an int (HMAC_Init_ex)",
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "OpenSSL 3.5.9: doc/man3/EVP_MAC.pod, doc/man7/EVP_MAC-HMAC.pod, EVP_MAC-KMAC.pod, EVP_MAC-BLAKE2.pod, EVP_MAC-Siphash.pod and providers/implementations/macs/ state no constant-time property."
+                            }
                         }
                     }
                 },
@@ -1983,6 +2379,15 @@
                             "constant_time": {
                                 "value": "not stated",
                                 "source": "Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property."
+                            }
+                        },
+                        "openssl": {
+                            "since": 4,
+                            "hmacs": null,
+                            "partial": "a key of more than INT_MAX bytes: OpenSSL takes HMAC's key length as an int (HMAC_Init_ex)",
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "OpenSSL 3.5.9: doc/man3/EVP_MAC.pod, doc/man7/EVP_MAC-HMAC.pod, EVP_MAC-KMAC.pod, EVP_MAC-BLAKE2.pod, EVP_MAC-Siphash.pod and providers/implementations/macs/ state no constant-time property."
                             }
                         }
                     }
@@ -2000,6 +2405,15 @@
                                 "value": "not stated",
                                 "source": "Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property."
                             }
+                        },
+                        "openssl": {
+                            "since": 4,
+                            "hmacs": null,
+                            "partial": "a key of more than INT_MAX bytes: OpenSSL takes HMAC's key length as an int (HMAC_Init_ex)",
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "OpenSSL 3.5.9: doc/man3/EVP_MAC.pod, doc/man7/EVP_MAC-HMAC.pod, EVP_MAC-KMAC.pod, EVP_MAC-BLAKE2.pod, EVP_MAC-Siphash.pod and providers/implementations/macs/ state no constant-time property."
+                            }
                         }
                     }
                 },
@@ -2016,6 +2430,15 @@
                                 "value": "not stated",
                                 "source": "Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property."
                             }
+                        },
+                        "openssl": {
+                            "since": 4,
+                            "hmacs": null,
+                            "partial": "a key of more than INT_MAX bytes: OpenSSL takes HMAC's key length as an int (HMAC_Init_ex)",
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "OpenSSL 3.5.9: doc/man3/EVP_MAC.pod, doc/man7/EVP_MAC-HMAC.pod, EVP_MAC-KMAC.pod, EVP_MAC-BLAKE2.pod, EVP_MAC-Siphash.pod and providers/implementations/macs/ state no constant-time property."
+                            }
                         }
                     }
                 },
@@ -2031,6 +2454,100 @@
                             "constant_time": {
                                 "value": "not stated",
                                 "source": "Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property."
+                            }
+                        },
+                        "openssl": {
+                            "since": 4,
+                            "hmacs": null,
+                            "partial": "a key of more than INT_MAX bytes: OpenSSL takes HMAC's key length as an int (HMAC_Init_ex)",
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "OpenSSL 3.5.9: doc/man3/EVP_MAC.pod, doc/man7/EVP_MAC-HMAC.pod, EVP_MAC-KMAC.pod, EVP_MAC-BLAKE2.pod, EVP_MAC-Siphash.pod and providers/implementations/macs/ state no constant-time property."
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "macs::hmac<digests::keccak_224>",
+                    "kind": "mac",
+                    "header": "webcpp/hash/mac.hpp",
+                    "default": null,
+                    "backends": {
+                        "openssl": {
+                            "since": 4,
+                            "hmacs": null,
+                            "partial": "a key of more than INT_MAX bytes: OpenSSL takes HMAC's key length as an int (HMAC_Init_ex)",
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "OpenSSL 3.5.9: doc/man3/EVP_MAC.pod, doc/man7/EVP_MAC-HMAC.pod, EVP_MAC-KMAC.pod, EVP_MAC-BLAKE2.pod, EVP_MAC-Siphash.pod and providers/implementations/macs/ state no constant-time property."
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "macs::hmac<digests::keccak_256>",
+                    "kind": "mac",
+                    "header": "webcpp/hash/mac.hpp",
+                    "default": null,
+                    "backends": {
+                        "openssl": {
+                            "since": 4,
+                            "hmacs": null,
+                            "partial": "a key of more than INT_MAX bytes: OpenSSL takes HMAC's key length as an int (HMAC_Init_ex)",
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "OpenSSL 3.5.9: doc/man3/EVP_MAC.pod, doc/man7/EVP_MAC-HMAC.pod, EVP_MAC-KMAC.pod, EVP_MAC-BLAKE2.pod, EVP_MAC-Siphash.pod and providers/implementations/macs/ state no constant-time property."
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "macs::hmac<digests::keccak_384>",
+                    "kind": "mac",
+                    "header": "webcpp/hash/mac.hpp",
+                    "default": null,
+                    "backends": {
+                        "openssl": {
+                            "since": 4,
+                            "hmacs": null,
+                            "partial": "a key of more than INT_MAX bytes: OpenSSL takes HMAC's key length as an int (HMAC_Init_ex)",
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "OpenSSL 3.5.9: doc/man3/EVP_MAC.pod, doc/man7/EVP_MAC-HMAC.pod, EVP_MAC-KMAC.pod, EVP_MAC-BLAKE2.pod, EVP_MAC-Siphash.pod and providers/implementations/macs/ state no constant-time property."
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "macs::hmac<digests::keccak_512>",
+                    "kind": "mac",
+                    "header": "webcpp/hash/mac.hpp",
+                    "default": null,
+                    "backends": {
+                        "openssl": {
+                            "since": 4,
+                            "hmacs": null,
+                            "partial": "a key of more than INT_MAX bytes: OpenSSL takes HMAC's key length as an int (HMAC_Init_ex)",
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "OpenSSL 3.5.9: doc/man3/EVP_MAC.pod, doc/man7/EVP_MAC-HMAC.pod, EVP_MAC-KMAC.pod, EVP_MAC-BLAKE2.pod, EVP_MAC-Siphash.pod and providers/implementations/macs/ state no constant-time property."
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "macs::hmac<digests::sm3>",
+                    "kind": "mac",
+                    "header": "webcpp/hash/mac.hpp",
+                    "default": null,
+                    "backends": {
+                        "openssl": {
+                            "since": 4,
+                            "hmacs": null,
+                            "partial": "a key of more than INT_MAX bytes: OpenSSL takes HMAC's key length as an int (HMAC_Init_ex)",
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "OpenSSL 3.5.9: doc/man3/EVP_MAC.pod, doc/man7/EVP_MAC-HMAC.pod, EVP_MAC-KMAC.pod, EVP_MAC-BLAKE2.pod, EVP_MAC-Siphash.pod and providers/implementations/macs/ state no constant-time property."
                             }
                         }
                     }
@@ -2529,6 +3046,103 @@
             ]
         },
         {
+            "name": "kbkdf",
+            "macro": "KBKDF",
+            "tag": "kdfs::kbkdf_hmac",
+            "chapter": "kdfs",
+            "standard": "NIST SP 800-108r1, counter mode over HMAC",
+            "functions": [
+                {
+                    "name": "kbkdf",
+                    "kind": "function",
+                    "tag": "kdfs::kbkdf_hmac",
+                    "header": "webcpp/hash/kdf_standards.hpp",
+                    "default": null,
+                    "backends": {
+                        "openssl": {
+                            "since": 4,
+                            "hmacs": [
+                                "hmac_md5_128",
+                                "hmac_sha1_160",
+                                "hmac_sha2_224",
+                                "hmac_sha2_256",
+                                "hmac_sha2_384",
+                                "hmac_sha2_512",
+                                "hmac_sha2_512_224",
+                                "hmac_sha2_512_256",
+                                "hmac_sha3_224",
+                                "hmac_sha3_256",
+                                "hmac_sha3_384",
+                                "hmac_sha3_512",
+                                "hmac_ripemd_160",
+                                "hmac_blake2b_512",
+                                "hmac_blake2s_256"
+                            ],
+                            "partial": "a key of more than INT_MAX bytes: OpenSSL takes HMAC's key length as an int (HMAC_Init_ex)",
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "OpenSSL 3.5.9: doc/man7/EVP_KDF-KB.pod states no constant-time property."
+                            }
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "sskdf",
+            "macro": "SSKDF",
+            "tag": "kdfs::sskdf",
+            "chapter": "kdfs",
+            "standard": "NIST SP 800-56C Rev. 2, one-step KDF over a hash function (SHA-1, SHA-2, SHA-3)",
+            "functions": [
+                {
+                    "name": "sskdf",
+                    "kind": "function",
+                    "tag": "kdfs::sskdf",
+                    "header": "webcpp/hash/kdf_standards.hpp",
+                    "default": null,
+                    "backends": {
+                        "openssl": {
+                            "since": 4,
+                            "hmacs": null,
+                            "partial": "a secret, an info or an output of more than 2^30 bytes: OpenSSL's SSKDF_MAX_INLEN (providers/implementations/kdfs/sskdf.c)",
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "OpenSSL 3.5.9: doc/man7/EVP_KDF-SS.pod states no constant-time property."
+                            }
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "x963kdf",
+            "macro": "X963KDF",
+            "tag": "kdfs::x963kdf",
+            "chapter": "kdfs",
+            "standard": "ANSI X9.63-2011 and SEC 1 v2, over SHA-1, SHA-224, SHA-256, SHA-384 or SHA-512 (SEC 1 v2, section 3.5)",
+            "functions": [
+                {
+                    "name": "x963kdf",
+                    "kind": "function",
+                    "tag": "kdfs::x963kdf",
+                    "header": "webcpp/hash/kdf_standards.hpp",
+                    "default": null,
+                    "backends": {
+                        "openssl": {
+                            "since": 4,
+                            "hmacs": null,
+                            "partial": "a secret, an info or an output of more than 2^30 bytes: OpenSSL's SSKDF_MAX_INLEN (providers/implementations/kdfs/sskdf.c)",
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "OpenSSL 3.5.9: doc/man7/EVP_KDF-X963.pod states no constant-time property."
+                            }
+                        }
+                    }
+                }
+            ]
+        },
+        {
             "name": "argon2id",
             "macro": "ARGON2ID",
             "tag": "kdfs::argon2id",
@@ -2549,6 +3163,14 @@
                                 "value": "not stated",
                                 "source": "libsodium 1.0.22: its headers state constant time for comparisons (sodium/utils.h) alone, not for its hashing, MAC, key derivation and password hashing functions (crypto_hash_*, crypto_xof_*, crypto_generichash_*, crypto_shorthash_*, crypto_auth_*, crypto_kdf_*, crypto_pwhash_*)."
                             }
+                        },
+                        "openssl": {
+                            "since": 4,
+                            "hmacs": null,
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "OpenSSL 3.5.9: doc/man7/EVP_KDF-ARGON2.pod states that Argon2i's memory accesses are independent of the data and Argon2d's depend on it, and states no constant-time property."
+                            }
                         }
                     }
                 }
@@ -2559,8 +3181,25 @@
             "macro": "ARGON2",
             "tag": null,
             "chapter": "password_hashing",
-            "standard": "RFC 9106",
+            "standard": "RFC 9106, every parameter",
             "functions": [
+                {
+                    "name": "kdfs::argon2d",
+                    "kind": "kdf",
+                    "header": "webcpp/hash/argon2.hpp",
+                    "default": null,
+                    "backends": {
+                        "openssl": {
+                            "since": 4,
+                            "hmacs": null,
+                            "partial": "m above 4,194,303 KiB on wasm32: OpenSSL sizes Argon2's memory, m blocks of 1 KiB, in a size_t",
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "OpenSSL 3.5.9: doc/man7/EVP_KDF-ARGON2.pod states that Argon2i's memory accesses are independent of the data and Argon2d's depend on it, and states no constant-time property."
+                            }
+                        }
+                    }
+                },
                 {
                     "name": "kdfs::argon2i",
                     "kind": "kdf",
@@ -2574,6 +3213,15 @@
                             "constant_time": {
                                 "value": "not stated",
                                 "source": "libsodium 1.0.22: its headers state constant time for comparisons (sodium/utils.h) alone, not for its hashing, MAC, key derivation and password hashing functions (crypto_hash_*, crypto_xof_*, crypto_generichash_*, crypto_shorthash_*, crypto_auth_*, crypto_kdf_*, crypto_pwhash_*)."
+                            }
+                        },
+                        "openssl": {
+                            "since": 4,
+                            "hmacs": null,
+                            "partial": "m above 4,194,303 KiB on wasm32: OpenSSL sizes Argon2's memory, m blocks of 1 KiB, in a size_t",
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "OpenSSL 3.5.9: doc/man7/EVP_KDF-ARGON2.pod states that Argon2i's memory accesses are independent of the data and Argon2d's depend on it, and states no constant-time property."
                             }
                         }
                     }
@@ -2591,6 +3239,15 @@
                             "constant_time": {
                                 "value": "not stated",
                                 "source": "libsodium 1.0.22: its headers state constant time for comparisons (sodium/utils.h) alone, not for its hashing, MAC, key derivation and password hashing functions (crypto_hash_*, crypto_xof_*, crypto_generichash_*, crypto_shorthash_*, crypto_auth_*, crypto_kdf_*, crypto_pwhash_*)."
+                            }
+                        },
+                        "openssl": {
+                            "since": 4,
+                            "hmacs": null,
+                            "partial": "m above 4,194,303 KiB on wasm32: OpenSSL sizes Argon2's memory, m blocks of 1 KiB, in a size_t",
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "OpenSSL 3.5.9: doc/man7/EVP_KDF-ARGON2.pod states that Argon2i's memory accesses are independent of the data and Argon2d's depend on it, and states no constant-time property."
                             }
                         }
                     }
@@ -2617,6 +3274,15 @@
                             "constant_time": {
                                 "value": "not stated",
                                 "source": "libsodium 1.0.22: its headers state constant time for comparisons (sodium/utils.h) alone, not for its hashing, MAC, key derivation and password hashing functions (crypto_hash_*, crypto_xof_*, crypto_generichash_*, crypto_shorthash_*, crypto_auth_*, crypto_kdf_*, crypto_pwhash_*)."
+                            }
+                        },
+                        "openssl": {
+                            "since": 4,
+                            "hmacs": null,
+                            "partial": "r p of 2^24 or more, or a password, salt or output of more than INT_MAX bytes: OpenSSL passes them to PBKDF2, whose lengths are ints",
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "OpenSSL 3.5.9: doc/man7/EVP_KDF-SCRYPT.pod states no constant-time property."
                             }
                         }
                     }

@@ -54,7 +54,7 @@ int recorded_calls = 0;
 
 template <>
 struct webcpp::hash::detail::scrypt_engine<test_backends::failing> {
-    static constexpr scrypt_limits limits{0xffffffffULL};
+    static constexpr scrypt_limits limits{.n = 0xffffffffULL};
 
     static boost::system::result<void> derive(std::span<std::uint8_t> output,
                                               std::span<std::uint8_t const> /*password*/,
@@ -68,7 +68,7 @@ struct webcpp::hash::detail::scrypt_engine<test_backends::failing> {
 
 template <>
 struct webcpp::hash::detail::scrypt_engine<test_backends::recording> {
-    static constexpr scrypt_limits limits{std::numeric_limits<std::uint64_t>::max()};
+    static constexpr scrypt_limits limits{.n = std::numeric_limits<std::uint64_t>::max()};
 
     static boost::system::result<void> derive(std::span<std::uint8_t> /*output*/,
                                               std::span<std::uint8_t const> /*password*/,

@@ -41,10 +41,24 @@
 | -
 | not stated
 
+| `macs::siphash_2_4`
+| `openssl`
+| `/webcpp/hash//openssl`
+| native, wasip2, wasip3
+| -
+| not stated
+
 | `macs::siphash_2_4x`
 | `sodium`
 | `/third_party//sodium`
 | native, wasip2, wasip3, emscripten
+| -
+| not stated
+
+| `macs::siphash_2_4x`
+| `openssl`
+| `/webcpp/hash//openssl`
+| native, wasip2, wasip3
 | -
 | not stated
 |===
@@ -52,8 +66,9 @@
 What each backend states on constant time, as the capability table read it:
 
 * `hash2`: Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property.
+* `openssl`: OpenSSL 3.5.9: doc/man3/EVP_MAC.pod, doc/man7/EVP_MAC-HMAC.pod, EVP_MAC-KMAC.pod, EVP_MAC-BLAKE2.pod, EVP_MAC-Siphash.pod and providers/implementations/macs/ state no constant-time property.
 * `sodium`: libsodium 1.0.22: its headers state constant time for comparisons (sodium/utils.h) alone, not for its hashing, MAC, key derivation and password hashing functions (crypto_hash_*, crypto_xof_*, crypto_generichash_*, crypto_shorthash_*, crypto_auth_*, crypto_kdf_*, crypto_pwhash_*).
 
-The default of `macs::siphash_2_4`: `hash2` on every target, whatever the program links; `sodium` only where the call names it, as its second template argument (<<hash-default-backend>>).
+The default of `macs::siphash_2_4`: `hash2` on every target, whatever the program links; `openssl`, `sodium` only where the call names it, as its second template argument (<<hash-default-backend>>).
 
-The default of `macs::siphash_2_4x`: `sodium` on every target, whatever the program links (<<hash-default-backend>>).
+The default of `macs::siphash_2_4x`: `sodium` on every target, whatever the program links; `openssl` only where the call names it, as its second template argument (<<hash-default-backend>>).

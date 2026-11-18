@@ -27,6 +27,8 @@ webcpp.example turboshake.cpp : <library>/third_party//sodium ;
 webcpp.example blake3.cpp : <library>/third_party//blake3 ;
 webcpp.example ripemd160.cpp ;
 webcpp.example md5_sha1.cpp : <library>/third_party//bearssl ;
+# OpenSSL is built for native, wasip2 and wasip3, never for Emscripten.
+webcpp.example sm3.cpp : <library>/webcpp/hash//openssl : native wasip2 wasip3 ;
 webcpp.example digest_family.cpp ;
 
 # Message authentication: a MAC is compared with webcpp::crypto::equal, and a
@@ -39,6 +41,7 @@ webcpp.example hmac_sodium.cpp : <library>/third_party//sodium
   <library>/webcpp/crypto//crypto ;
 webcpp.example kmac.cpp : <library>/webcpp/crypto//crypto
   <library>/third_party//xkcp ;
+webcpp.example macs_openssl.cpp : <library>/webcpp/hash//openssl : native wasip2 wasip3 ;
 
 # Key derivation.
 webcpp.example hkdf.cpp ;
@@ -46,11 +49,18 @@ webcpp.example hkdf_backends.cpp : <library>/third_party//sodium
   <library>/third_party//bearssl ;
 webcpp.example pbkdf2.cpp ;
 webcpp.example blake2b_subkey.cpp : <library>/third_party//sodium ;
+webcpp.example kbkdf.cpp : <library>/webcpp/hash//openssl : native wasip2 wasip3 ;
+webcpp.example sskdf.cpp : <library>/webcpp/hash//openssl : native wasip2 wasip3 ;
+webcpp.example x963kdf.cpp : <library>/webcpp/hash//openssl : native wasip2 wasip3 ;
 
 # Password hashing.
 webcpp.example argon2id.cpp : <library>/third_party//sodium ;
 webcpp.example argon2_family.cpp : <library>/third_party//sodium ;
 webcpp.example scrypt.cpp : <library>/third_party//sodium ;
+webcpp.example argon2_openssl.cpp : <library>/webcpp/hash//openssl
+  : native wasip2 wasip3 ;
+webcpp.example scrypt_openssl.cpp : <library>/webcpp/hash//openssl
+  : native wasip2 wasip3 ;
 
 # Asynchronous calls, over webcpp::asio's event loop: a cheap function on every
 # target; a heavy one on a thread pool where the program has threads,

@@ -132,6 +132,12 @@ states about its constant time. The backends:
 | not stated
 | native, wasip2, wasip3, emscripten
 
+| digests::md5
+| openssl
+| -
+| not stated
+| native, wasip2, wasip3
+
 | digests::sha1
 | hash2
 | -
@@ -143,6 +149,12 @@ states about its constant time. The backends:
 | -
 | not stated
 | native, wasip2, wasip3, emscripten
+
+| digests::sha1
+| openssl
+| -
+| not stated
+| native, wasip2, wasip3
 
 | digests::sha1
 | webcrypto (asynchronous family only)
@@ -161,6 +173,12 @@ states about its constant time. The backends:
 | -
 | not stated
 | native, wasip2, wasip3, emscripten
+
+| digests::sha2_224
+| openssl
+| -
+| not stated
+| native, wasip2, wasip3
 
 | digests::sha2_256
 | hash2
@@ -181,6 +199,12 @@ states about its constant time. The backends:
 | native, wasip2, wasip3, emscripten
 
 | digests::sha2_256
+| openssl
+| -
+| not stated
+| native, wasip2, wasip3
+
+| digests::sha2_256
 | webcrypto (asynchronous family only)
 | -
 | not stated
@@ -197,6 +221,12 @@ states about its constant time. The backends:
 | -
 | not stated
 | native, wasip2, wasip3, emscripten
+
+| digests::sha2_384
+| openssl
+| -
+| not stated
+| native, wasip2, wasip3
 
 | digests::sha2_384
 | webcrypto (asynchronous family only)
@@ -221,6 +251,12 @@ states about its constant time. The backends:
 | -
 | not stated
 | native, wasip2, wasip3, emscripten
+
+| digests::sha2_512
+| openssl
+| -
+| not stated
+| native, wasip2, wasip3
 
 | digests::sha2_512
 | webcrypto (asynchronous family only)
@@ -234,17 +270,35 @@ states about its constant time. The backends:
 | not stated
 | native, wasip2, wasip3, emscripten
 
+| digests::sha2_512_224
+| openssl
+| -
+| not stated
+| native, wasip2, wasip3
+
 | digests::sha2_512_256
 | hash2
 | -
 | not stated
 | native, wasip2, wasip3, emscripten
 
+| digests::sha2_512_256
+| openssl
+| -
+| not stated
+| native, wasip2, wasip3
+
 | digests::md5_sha1
 | bearssl
 | -
 | not stated
 | native, wasip2, wasip3, emscripten
+
+| digests::md5_sha1
+| openssl
+| -
+| not stated
+| native, wasip2, wasip3
 
 | sha3_224
 | hash2
@@ -294,6 +348,12 @@ states about its constant time. The backends:
 | not stated
 | native, wasip2, wasip3, emscripten
 
+| digests::sha3_224
+| openssl
+| -
+| not stated
+| native, wasip2, wasip3
+
 | digests::sha3_256
 | hash2
 | -
@@ -312,6 +372,12 @@ states about its constant time. The backends:
 | not stated
 | native, wasip2, wasip3, emscripten
 
+| digests::sha3_256
+| openssl
+| -
+| not stated
+| native, wasip2, wasip3
+
 | digests::sha3_384
 | hash2
 | -
@@ -323,6 +389,12 @@ states about its constant time. The backends:
 | -
 | not stated
 | native, wasip2, wasip3, emscripten
+
+| digests::sha3_384
+| openssl
+| -
+| not stated
+| native, wasip2, wasip3
 
 | digests::sha3_512
 | hash2
@@ -341,6 +413,12 @@ states about its constant time. The backends:
 | -
 | not stated
 | native, wasip2, wasip3, emscripten
+
+| digests::sha3_512
+| openssl
+| -
+| not stated
+| native, wasip2, wasip3
 
 | digests::shake_128
 | hash2
@@ -366,6 +444,12 @@ states about its constant time. The backends:
 | not stated
 | native, wasip2, wasip3, emscripten
 
+| digests::shake_128
+| openssl
+| -
+| not stated
+| native, wasip2, wasip3
+
 | digests::shake_256
 | hash2
 | -
@@ -389,6 +473,12 @@ states about its constant time. The backends:
 | -
 | not stated
 | native, wasip2, wasip3, emscripten
+
+| digests::shake_256
+| openssl
+| -
+| not stated
+| native, wasip2, wasip3
 
 | digests::turboshake_128
 | xkcp
@@ -426,11 +516,23 @@ states about its constant time. The backends:
 | not stated
 | native, wasip2, wasip3, emscripten
 
+| digests::keccak_224
+| openssl
+| -
+| not stated
+| native, wasip2, wasip3
+
 | digests::keccak_256
 | xkcp
 | -
 | not stated
 | native, wasip2, wasip3, emscripten
+
+| digests::keccak_256
+| openssl
+| -
+| not stated
+| native, wasip2, wasip3
 
 | digests::keccak_384
 | xkcp
@@ -438,11 +540,23 @@ states about its constant time. The backends:
 | not stated
 | native, wasip2, wasip3, emscripten
 
+| digests::keccak_384
+| openssl
+| -
+| not stated
+| native, wasip2, wasip3
+
 | digests::keccak_512
 | xkcp
 | -
 | not stated
 | native, wasip2, wasip3, emscripten
+
+| digests::keccak_512
+| openssl
+| -
+| not stated
+| native, wasip2, wasip3
 
 | digests::cshake_128
 | xkcp
@@ -516,17 +630,41 @@ states about its constant time. The backends:
 | not stated
 | native, wasip2, wasip3, emscripten
 
+| digests::blake2b
+| openssl (partial: a key, a salt or a personalisation: OpenSSL's BLAKE2B-512 digest is unkeyed BLAKE2b of 1 to 64 bytes (its parameter size), and its keyed BLAKE2b is the MAC BLAKE2BMAC)
+| -
+| not stated
+| native, wasip2, wasip3
+
 | digests::blake2s_256
 | hash2
 | -
 | not stated
 | native, wasip2, wasip3, emscripten
 
+| digests::blake2s_256
+| openssl
+| -
+| not stated
+| native, wasip2, wasip3
+
+| macs::blake2b_mac
+| openssl
+| -
+| not stated
+| native, wasip2, wasip3
+
 | macs::blake2s_mac
 | hash2 (partial: a tag under 32 bytes: BLAKE2s's output size is a parameter of the hash, and Boost.Hash2's keyed blake2s_256 has 32 bytes alone)
 | -
 | not stated
 | native, wasip2, wasip3, emscripten
+
+| macs::blake2s_mac
+| openssl
+| -
+| not stated
+| native, wasip2, wasip3
 
 | blake3
 | blake3
@@ -557,6 +695,18 @@ states about its constant time. The backends:
 | -
 | not stated
 | native, wasip2, wasip3, emscripten
+
+| digests::ripemd_160
+| openssl
+| -
+| not stated
+| native, wasip2, wasip3
+
+| digests::sm3
+| openssl
+| -
+| not stated
+| native, wasip2, wasip3
 |===
 
 === Macs
@@ -589,11 +739,23 @@ states about its constant time. The backends:
 | not stated
 | native, wasip2, wasip3, emscripten
 
+| macs::siphash_2_4
+| openssl
+| -
+| not stated
+| native, wasip2, wasip3
+
 | macs::siphash_2_4x
 | sodium
 | -
 | not stated
 | native, wasip2, wasip3, emscripten
+
+| macs::siphash_2_4x
+| openssl
+| -
+| not stated
+| native, wasip2, wasip3
 
 | macs::kmac_128
 | xkcp
@@ -601,11 +763,23 @@ states about its constant time. The backends:
 | not stated
 | native, wasip2, wasip3, emscripten
 
+| macs::kmac_128
+| openssl (partial: a key under 4 or over 512 bytes, a customisation over 512 bytes, or a tag over 2,097,151 bytes: OpenSSL's KMAC limits (kmac_prov.c))
+| -
+| not stated
+| native, wasip2, wasip3
+
 | macs::kmac_256
 | xkcp
 | -
 | not stated
 | native, wasip2, wasip3, emscripten
+
+| macs::kmac_256
+| openssl (partial: a key under 4 or over 512 bytes, a customisation over 512 bytes, or a tag over 2,097,151 bytes: OpenSSL's KMAC limits (kmac_prov.c))
+| -
+| not stated
+| native, wasip2, wasip3
 
 | hmac
 | hash2
@@ -721,6 +895,12 @@ states about its constant time. The backends:
 | not stated
 | native, wasip2, wasip3, emscripten
 
+| macs::hmac<digests::md5>
+| openssl (partial: a key of more than INT_MAX bytes: OpenSSL takes HMAC's key length as an int (HMAC_Init_ex))
+| -
+| not stated
+| native, wasip2, wasip3
+
 | macs::hmac<digests::sha1>
 | hash2
 | -
@@ -732,6 +912,12 @@ states about its constant time. The backends:
 | -
 | not stated
 | native, wasip2, wasip3, emscripten
+
+| macs::hmac<digests::sha1>
+| openssl (partial: a key of more than INT_MAX bytes: OpenSSL takes HMAC's key length as an int (HMAC_Init_ex))
+| -
+| not stated
+| native, wasip2, wasip3
 
 | macs::hmac<digests::sha1>
 | webcrypto (asynchronous family only)
@@ -750,6 +936,12 @@ states about its constant time. The backends:
 | -
 | not stated
 | native, wasip2, wasip3, emscripten
+
+| macs::hmac<digests::sha2_224>
+| openssl (partial: a key of more than INT_MAX bytes: OpenSSL takes HMAC's key length as an int (HMAC_Init_ex))
+| -
+| not stated
+| native, wasip2, wasip3
 
 | macs::hmac<digests::sha2_256>
 | hash2
@@ -770,6 +962,12 @@ states about its constant time. The backends:
 | native, wasip2, wasip3, emscripten
 
 | macs::hmac<digests::sha2_256>
+| openssl (partial: a key of more than INT_MAX bytes: OpenSSL takes HMAC's key length as an int (HMAC_Init_ex))
+| -
+| not stated
+| native, wasip2, wasip3
+
+| macs::hmac<digests::sha2_256>
 | webcrypto (asynchronous family only)
 | -
 | not stated
@@ -786,6 +984,12 @@ states about its constant time. The backends:
 | -
 | not stated
 | native, wasip2, wasip3, emscripten
+
+| macs::hmac<digests::sha2_384>
+| openssl (partial: a key of more than INT_MAX bytes: OpenSSL takes HMAC's key length as an int (HMAC_Init_ex))
+| -
+| not stated
+| native, wasip2, wasip3
 
 | macs::hmac<digests::sha2_384>
 | webcrypto (asynchronous family only)
@@ -810,6 +1014,12 @@ states about its constant time. The backends:
 | -
 | not stated
 | native, wasip2, wasip3, emscripten
+
+| macs::hmac<digests::sha2_512>
+| openssl (partial: a key of more than INT_MAX bytes: OpenSSL takes HMAC's key length as an int (HMAC_Init_ex))
+| -
+| not stated
+| native, wasip2, wasip3
 
 | macs::hmac<digests::sha2_512>
 | webcrypto (asynchronous family only)
@@ -823,11 +1033,23 @@ states about its constant time. The backends:
 | not stated
 | native, wasip2, wasip3, emscripten
 
+| macs::hmac<digests::sha2_512_224>
+| openssl (partial: a key of more than INT_MAX bytes: OpenSSL takes HMAC's key length as an int (HMAC_Init_ex))
+| -
+| not stated
+| native, wasip2, wasip3
+
 | macs::hmac<digests::sha2_512_256>
 | hash2
 | -
 | not stated
 | native, wasip2, wasip3, emscripten
+
+| macs::hmac<digests::sha2_512_256>
+| openssl (partial: a key of more than INT_MAX bytes: OpenSSL takes HMAC's key length as an int (HMAC_Init_ex))
+| -
+| not stated
+| native, wasip2, wasip3
 
 | macs::hmac<digests::sha3_224>
 | hash2
@@ -835,11 +1057,23 @@ states about its constant time. The backends:
 | not stated
 | native, wasip2, wasip3, emscripten
 
+| macs::hmac<digests::sha3_224>
+| openssl (partial: a key of more than INT_MAX bytes: OpenSSL takes HMAC's key length as an int (HMAC_Init_ex))
+| -
+| not stated
+| native, wasip2, wasip3
+
 | macs::hmac<digests::sha3_256>
 | hash2
 | -
 | not stated
 | native, wasip2, wasip3, emscripten
+
+| macs::hmac<digests::sha3_256>
+| openssl (partial: a key of more than INT_MAX bytes: OpenSSL takes HMAC's key length as an int (HMAC_Init_ex))
+| -
+| not stated
+| native, wasip2, wasip3
 
 | macs::hmac<digests::sha3_384>
 | hash2
@@ -847,11 +1081,23 @@ states about its constant time. The backends:
 | not stated
 | native, wasip2, wasip3, emscripten
 
+| macs::hmac<digests::sha3_384>
+| openssl (partial: a key of more than INT_MAX bytes: OpenSSL takes HMAC's key length as an int (HMAC_Init_ex))
+| -
+| not stated
+| native, wasip2, wasip3
+
 | macs::hmac<digests::sha3_512>
 | hash2
 | -
 | not stated
 | native, wasip2, wasip3, emscripten
+
+| macs::hmac<digests::sha3_512>
+| openssl (partial: a key of more than INT_MAX bytes: OpenSSL takes HMAC's key length as an int (HMAC_Init_ex))
+| -
+| not stated
+| native, wasip2, wasip3
 
 | macs::hmac<digests::ripemd_160>
 | hash2
@@ -859,17 +1105,65 @@ states about its constant time. The backends:
 | not stated
 | native, wasip2, wasip3, emscripten
 
+| macs::hmac<digests::ripemd_160>
+| openssl (partial: a key of more than INT_MAX bytes: OpenSSL takes HMAC's key length as an int (HMAC_Init_ex))
+| -
+| not stated
+| native, wasip2, wasip3
+
 | macs::hmac<digests::blake2b>
 | hash2
 | -
 | not stated
 | native, wasip2, wasip3, emscripten
 
+| macs::hmac<digests::blake2b>
+| openssl (partial: a key of more than INT_MAX bytes: OpenSSL takes HMAC's key length as an int (HMAC_Init_ex))
+| -
+| not stated
+| native, wasip2, wasip3
+
 | macs::hmac<digests::blake2s_256>
 | hash2
 | -
 | not stated
 | native, wasip2, wasip3, emscripten
+
+| macs::hmac<digests::blake2s_256>
+| openssl (partial: a key of more than INT_MAX bytes: OpenSSL takes HMAC's key length as an int (HMAC_Init_ex))
+| -
+| not stated
+| native, wasip2, wasip3
+
+| macs::hmac<digests::keccak_224>
+| openssl (partial: a key of more than INT_MAX bytes: OpenSSL takes HMAC's key length as an int (HMAC_Init_ex))
+| -
+| not stated
+| native, wasip2, wasip3
+
+| macs::hmac<digests::keccak_256>
+| openssl (partial: a key of more than INT_MAX bytes: OpenSSL takes HMAC's key length as an int (HMAC_Init_ex))
+| -
+| not stated
+| native, wasip2, wasip3
+
+| macs::hmac<digests::keccak_384>
+| openssl (partial: a key of more than INT_MAX bytes: OpenSSL takes HMAC's key length as an int (HMAC_Init_ex))
+| -
+| not stated
+| native, wasip2, wasip3
+
+| macs::hmac<digests::keccak_512>
+| openssl (partial: a key of more than INT_MAX bytes: OpenSSL takes HMAC's key length as an int (HMAC_Init_ex))
+| -
+| not stated
+| native, wasip2, wasip3
+
+| macs::hmac<digests::sm3>
+| openssl (partial: a key of more than INT_MAX bytes: OpenSSL takes HMAC's key length as an int (HMAC_Init_ex))
+| -
+| not stated
+| native, wasip2, wasip3
 |===
 
 === Non-cryptographic
@@ -1022,6 +1316,24 @@ states about its constant time. The backends:
 | -
 | not stated
 | native, wasip2, wasip3, emscripten
+
+| kbkdf
+| openssl (partial: a key of more than INT_MAX bytes: OpenSSL takes HMAC's key length as an int (HMAC_Init_ex))
+| hmac_md5_128, hmac_sha1_160, hmac_sha2_224, hmac_sha2_256, hmac_sha2_384, hmac_sha2_512, hmac_sha2_512_224, hmac_sha2_512_256, hmac_sha3_224, hmac_sha3_256, hmac_sha3_384, hmac_sha3_512, hmac_ripemd_160, hmac_blake2b_512, hmac_blake2s_256
+| not stated
+| native, wasip2, wasip3
+
+| sskdf
+| openssl (partial: a secret, an info or an output of more than 2^30 bytes: OpenSSL's SSKDF_MAX_INLEN (providers/implementations/kdfs/sskdf.c))
+| -
+| not stated
+| native, wasip2, wasip3
+
+| x963kdf
+| openssl (partial: a secret, an info or an output of more than 2^30 bytes: OpenSSL's SSKDF_MAX_INLEN (providers/implementations/kdfs/sskdf.c))
+| -
+| not stated
+| native, wasip2, wasip3
 |===
 
 === Password hashing
@@ -1036,11 +1348,29 @@ states about its constant time. The backends:
 | not stated
 | native, wasip2, wasip3, emscripten
 
+| argon2id
+| openssl
+| -
+| not stated
+| native, wasip2, wasip3
+
+| kdfs::argon2d
+| openssl (partial: m above 4,194,303 KiB on wasm32: OpenSSL sizes Argon2's memory, m blocks of 1 KiB, in a size_t)
+| -
+| not stated
+| native, wasip2, wasip3
+
 | kdfs::argon2i
 | sodium (partial: fewer than 3 passes, more than one lane, a secret, associated data, a salt other than 16 bytes or a tag under 16 bytes: libsodium's crypto_pwhash_argon2i takes none of them)
 | -
 | not stated
 | native, wasip2, wasip3, emscripten
+
+| kdfs::argon2i
+| openssl (partial: m above 4,194,303 KiB on wasm32: OpenSSL sizes Argon2's memory, m blocks of 1 KiB, in a size_t)
+| -
+| not stated
+| native, wasip2, wasip3
 
 | kdfs::argon2id
 | sodium (partial: more than one lane, a secret, associated data, a salt other than 16 bytes or a tag under 16 bytes: libsodium's crypto_pwhash_argon2id takes none of them)
@@ -1048,11 +1378,23 @@ states about its constant time. The backends:
 | not stated
 | native, wasip2, wasip3, emscripten
 
+| kdfs::argon2id
+| openssl (partial: m above 4,194,303 KiB on wasm32: OpenSSL sizes Argon2's memory, m blocks of 1 KiB, in a size_t)
+| -
+| not stated
+| native, wasip2, wasip3
+
 | scrypt
 | sodium
 | -
 | not stated
 | native, wasip2, wasip3, emscripten
+
+| scrypt
+| openssl (partial: r p of 2^24 or more, or a password, salt or output of more than INT_MAX bytes: OpenSSL passes them to PBKDF2, whose lengths are ints)
+| -
+| not stated
+| native, wasip2, wasip3
 |===
 
 === The default backends
@@ -1156,6 +1498,9 @@ The backend a call that names none uses, on every target, whatever the program l
 | digests::blake2s_256
 | hash2
 
+| macs::blake2b_mac
+| sodium
+
 | macs::blake2s_mac
 | hash2
 
@@ -1164,6 +1509,9 @@ The backend a call that names none uses, on every target, whatever the program l
 
 | digests::ripemd_160
 | hash2
+
+| digests::sm3
+| none: the call names its backend
 
 | macs::siphash_2_4
 | hash2
@@ -1222,6 +1570,21 @@ The backend a call that names none uses, on every target, whatever the program l
 | macs::hmac<digests::blake2s_256>
 | hash2
 
+| macs::hmac<digests::keccak_224>
+| none: the call names its backend
+
+| macs::hmac<digests::keccak_256>
+| none: the call names its backend
+
+| macs::hmac<digests::keccak_384>
+| none: the call names its backend
+
+| macs::hmac<digests::keccak_512>
+| none: the call names its backend
+
+| macs::hmac<digests::sm3>
+| none: the call names its backend
+
 | hkdf_extract
 | hash2
 
@@ -1239,6 +1602,9 @@ The backend a call that names none uses, on every target, whatever the program l
 
 | argon2id
 | sodium
+
+| kdfs::argon2d
+| none: the call names its backend
 
 | kdfs::argon2i
 | sodium
@@ -1264,5 +1630,12 @@ What each backend's upstream states, and where:
 * bearssl: not stated. BearSSL at webcpp::crypto's pin: bearssl_kdf.h states no constant-time property for br_shake_*.
 * bearssl: not stated. BearSSL at webcpp::crypto's pin: bearssl_hmac.h states constant time for br_hmac_outCT alone; mac calls br_hmac_out.
 * bearssl: not stated. BearSSL at webcpp::crypto's pin: bearssl_hmac.h states constant time for br_hmac_outCT alone; br_hkdf_* (src/kdf/hkdf.c) calls br_hmac_out.
+* openssl: not stated. OpenSSL 3.5.9: doc/man7/EVP_MD-*.pod, doc/man3/EVP_DigestInit.pod and providers/implementations/digests/ state no constant-time property.
+* openssl: not stated. OpenSSL 3.5.9: doc/man3/EVP_MAC.pod, doc/man7/EVP_MAC-HMAC.pod, EVP_MAC-KMAC.pod, EVP_MAC-BLAKE2.pod, EVP_MAC-Siphash.pod and providers/implementations/macs/ state no constant-time property.
 * openssl: not stated. OpenSSL 3.5.9: doc/man7/EVP_KDF-HKDF.pod and EVP_KDF-PBKDF2.pod state no constant-time property.
+* openssl: not stated. OpenSSL 3.5.9: doc/man7/EVP_KDF-KB.pod states no constant-time property.
+* openssl: not stated. OpenSSL 3.5.9: doc/man7/EVP_KDF-SS.pod states no constant-time property.
+* openssl: not stated. OpenSSL 3.5.9: doc/man7/EVP_KDF-X963.pod states no constant-time property.
+* openssl: not stated. OpenSSL 3.5.9: doc/man7/EVP_KDF-ARGON2.pod states that Argon2i's memory accesses are independent of the data and Argon2d's depend on it, and states no constant-time property.
+* openssl: not stated. OpenSSL 3.5.9: doc/man7/EVP_KDF-SCRYPT.pod states no constant-time property.
 * webcrypto: not stated. The Web Cryptography API (W3C Recommendation, 2017) states no constant-time property of digest, sign or deriveBits; each JavaScript runtime's implementation decides, and webcpp reads none.

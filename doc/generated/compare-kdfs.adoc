@@ -47,6 +47,27 @@
 | libsodium's crypto_kdf: keyed BLAKE2b (RFC 7693) with the subkey's id as the salt and the context as the personalisation
 | recommended
 | no
+
+| <<hash-kbkdf,`kbkdf`>>
+| 1 byte to 2^r - 1 digests (at most 2^29 - 1 bytes with L)
+| that of the HMAC and of the key-derivation key, which must be a key, not a password
+| NIST SP 800-108r1, counter mode over HMAC
+| recommended
+| no
+
+| <<hash-sskdf,`sskdf`>>
+| 1 byte to 2^32 - 1 digests (backends::openssl: at most 2^30 bytes)
+| that of the digest and of the shared secret
+| NIST SP 800-56C Rev. 2, one-step KDF over a hash function (SHA-1, SHA-2, SHA-3)
+| recommended
+| no
+
+| <<hash-x963kdf,`x963kdf`>>
+| 1 byte to 2^32 - 1 digests less 1 byte (backends::openssl: at most 2^30 bytes)
+| that of the digest and of the shared secret
+| ANSI X9.63-2011 and SEC 1 v2, over SHA-1, SHA-224, SHA-256, SHA-384 or SHA-512 (SEC 1 v2, section 3.5)
+| recommended
+| no
 |===
 
 [#hash-kdfs-choose]
@@ -84,6 +105,24 @@
 | -
 | link:https://doc.libsodium.org/key_derivation[libsodium's key derivation, crypto_kdf_derive_from_key]
 | To derive the keys a libsodium program derives from the same master key, or keys numbered by id from one random master key; hkdf for a secret that is not uniformly random.
+
+| <<hash-kbkdf,`kbkdf`>>
+| -
+| -
+| link:https://www.rfc-editor.org/rfc/rfc8009[Kerberos's AES-SHA2 encryption types derive their keys with it (RFC 8009's KDF-HMAC-SHA2)]; link:https://doi.org/10.6028/NIST.SP.800-108r1-upd1[NIST's approved key derivation from a key, SP 800-108r1]
+| When a standard, a protocol or a smart card names SP 800-108's counter mode; hkdf for a new design.
+
+| <<hash-sskdf,`sskdf`>>
+| -
+| -
+| link:https://www.rfc-editor.org/rfc/rfc7518#section-4.6.2[JOSE's ECDH-ES key agreement (JWE), its Concat KDF]; link:https://www.rfc-editor.org/rfc/rfc8636[Kerberos's PKINIT key derivation]
+| To derive the key JOSE's ECDH-ES, PKINIT or another SP 800-56C protocol derives; hkdf for a new design.
+
+| <<hash-x963kdf,`x963kdf`>>
+| -
+| -
+| link:https://www.secg.org/sec1-v2.pdf[ECIES, the elliptic-curve integrated encryption scheme of SEC 1]; link:https://developer.apple.com/documentation/security/seckeyalgorithm/eciesencryptionstandardx963sha256aesgcm[Apple's ECIES algorithms of its Security framework, as their names say (X963SHA256)]
+| To derive the keys ECIES or a smart card's key agreement derives by ANSI X9.63; hkdf for a new design.
 |===
 
 The measured columns are doc/measurements.json's, a reference measured on 2026-11-16 on Apple M5 Max that decides nothing: the native throughput over 1 MiB, or the time of one derivation over `hmac_sha2_256`, of the fastest backend, and the smallest Emscripten program that calls the function; <<hash-measurements>> has every backend on every target.

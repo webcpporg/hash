@@ -39,6 +39,7 @@ webcpp.headers-alone hash : ../include :
     hash/hkdf.hpp
     hash/hmac.hpp
     hash/kdf.hpp
+    hash/kdf_standards.hpp
     hash/mac.hpp
     hash/pbkdf2.hpp
     hash/scrypt.hpp ;
@@ -278,6 +279,32 @@ hash-run openssl_failure : openssl_failure_test.cpp
   : <library>/webcpp/hash//openssl
     <define>"\"WEBCPP_HASH_DETAIL_TEST_OPENSSL_DIGEST=\\\"NO-SUCH-DIGEST\\\"\""
   : native wasip2 wasip3 ;
+# The digests of backends::openssl (OpenSSL 3.5.9's EVP_MD), through digest_of
+# and hasher: Boost.Hash2's digests, Keccak-224 to Keccak-512 and SHAKE against
+# Boost.Hash2, Keccak-256 against backends::xkcp, BLAKE2b against
+# backends::sodium, the published Keccak and SM3 (GB/T 32905) values, and the
+# hasher's EVP_MD_CTX freed, counted through CRYPTO_set_mem_functions.
+hash-run digests_openssl : digests_openssl_test.cpp
+  : <library>/webcpp/hash//openssl <library>/third_party//xkcp
+    <library>/third_party//sodium
+  : native wasip2 wasip3 ;
+# The MACs of backends::openssl (OpenSSL 3.5.9's EVP_MAC), through mac: HMAC
+# over every digest against Boost.Hash2's hmac<H> and Wycheproof; KMAC against
+# NIST's samples (evpmac_common.txt), Wycheproof and a second implementation
+# over Hash2's Keccak; keyed BLAKE2 against BLAKE2's KAT, evpmac_blake.txt,
+# libsodium and Hash2; SipHash against Wycheproof, evpmac_siphash.txt, Hash2
+# and libsodium.
+hash-run macs_openssl : macs_openssl_test.cpp
+  : <library>/webcpp/hash//openssl <library>/third_party//sodium
+    <library>/third_party//wycheproof <library>/third_party//openssl_evp_data
+    <library>/third_party//blake2_vectors <library>/webcpp//boost_json
+  : native wasip2 wasip3 ;
+# OpenSSL out of memory: each allocation of a call of backends::openssl (mac,
+# digest_of, hasher::make, argon2, argon2id, scrypt) made to fail in turn,
+# through CRYPTO_set_mem_functions; the answer, the output zeroed, every block
+# freed and the error queue empty.
+hash-run openssl_out_of_memory : openssl_out_of_memory_test.cpp
+  : <library>/webcpp/hash//openssl : native wasip2 wasip3 ;
 # backends::openssl's limits (OpenSSL holds some lengths in an int), natively:
 # spans of INT_MAX + 1 bytes over a few, which the guards refuse before
 # anything reads them.
@@ -302,6 +329,16 @@ hash-run agreement_pbkdf2 : agreement_pbkdf2_test.cpp
     <library>/webcpp/hash//openssl : native wasip2 wasip3 ;
 hash-run agreement_pbkdf2_emscripten : agreement_pbkdf2_test.cpp
   : <library>/third_party//sodium <library>/third_party//bearssl : emscripten ;
+# The digests and MACs of every tag backends::openssl has, through the
+# families, against every other linked backend that has the tag (1,000 seeded
+# cases per tag; increment 4's pairs).
+hash-run agreement_families : agreement_families_test.cpp
+  : <library>/third_party//xkcp <library>/third_party//blake3
+    <library>/third_party//sodium <library>/third_party//bearssl
+    <library>/webcpp/hash//openssl : native wasip2 wasip3 ;
+hash-run agreement_families_emscripten : agreement_families_test.cpp
+  : <library>/third_party//xkcp <library>/third_party//blake3
+    <library>/third_party//sodium <library>/third_party//bearssl : emscripten ;
 # Naming the alias refuses an Emscripten program, by the forced include (its
 # message is a fixture of tools/test/hash_jamfiles_test.py). The source is
 # one that builds and runs on Emscripten without the alias (hkdf_hash2), so
@@ -393,6 +430,34 @@ hash-run scrypt : scrypt_test.cpp : <library>/third_party//sodium ;
 hash-run scrypt_rfc7914_large : scrypt_rfc7914_large_test.cpp
   : <library>/third_party//sodium ;
 
+# Argon2 and scrypt on backends::openssl (OpenSSL 3.5.9's EVP_KDFs ARGON2D,
+# ARGON2I, ARGON2ID and SCRYPT, one thread), where webcpp builds OpenSSL:
+# RFC 9106's three cases, every case of OpenSSL's evpkdf_argon2.txt, argon2_ctx
+# on random cases and libsodium at one lane; RFC 7914's first three cases,
+# libsodium's scrypt and OpenSSL's narrower r p; RFC 7914's fourth case and a
+# case past OpenSSL's default memory limit (1.125 GiB) in a program of its own,
+# about 3.25 GiB of scrypt: unoptimised it took 15 s natively (2.1 GiB
+# resident at its peak, macOS) and 16 s on wasip2 (wasmtime 47.0.3).
+hash-run argon2_openssl : argon2_openssl_test.cpp
+  : <library>/webcpp/hash//openssl <library>/third_party//sodium
+    <library>/third_party//sodium-test-config
+    <library>/third_party//openssl_evp_data
+  : native wasip2 wasip3 ;
+# KBKDF (SP 800-108), SSKDF (SP 800-56C) and the X9.63 KDF on backends::openssl
+# (OpenSSL 3.5.9's EVP_KDFs), where webcpp builds OpenSSL: every HMAC case of
+# OpenSSL's evpkdf_kbkdf_counter.txt (NIST CAVP's), every hash-form case of
+# evpkdf_ss.txt and every case of evpkdf_x963.txt, read at run time; a second
+# implementation over Boost.Hash2 on random cases; the standards' guards.
+hash-run kdf_standards_openssl : kdf_standards_openssl_test.cpp
+  : <library>/webcpp/hash//openssl <library>/third_party//openssl_evp_data
+  : native wasip2 wasip3 ;
+hash-run scrypt_openssl : scrypt_openssl_test.cpp
+  : <library>/webcpp/hash//openssl <library>/third_party//sodium
+  : native wasip2 wasip3 ;
+hash-run scrypt_openssl_large : scrypt_openssl_large_test.cpp
+  : <library>/webcpp/hash//openssl <library>/third_party//sodium
+  : native wasip2 wasip3 ;
+
 # The default backends (spec 4.1): backends::hash2 for every key derivation,
 # backends::sodium for argon2id and scrypt, whatever the program links and
 # defines. With every library the target has (libsodium and BearSSL
@@ -468,8 +533,10 @@ hash-run allocation : allocation_test.cpp
     <library>/third_party//xkcp <library>/third_party//blake3
     <library>/third_party//sodium <library>/third_party//bearssl
     <target-os>wasi:<linkflags>-Wl,--wrap=malloc,--wrap=calloc,--wrap=realloc,--wrap=aligned_alloc,--wrap=posix_memalign ;
-# OpenSSL's own allocations per call, measured through
-# CRYPTO_set_mem_functions and printed, never bounded; operator new zero.
+# OpenSSL's own allocations per call of every entry point backends::openssl
+# has (its digests, MACs and key derivations), measured through
+# CRYPTO_set_mem_functions and printed, never bounded; operator new zero, and
+# no allocation at all for a refusal by a guard.
 hash-run allocation_openssl : allocation_openssl_test.cpp
   : <library>/webcpp/hash//openssl
     <target-os>wasi:<linkflags>-Wl,--wrap=malloc,--wrap=calloc,--wrap=realloc,--wrap=aligned_alloc,--wrap=posix_memalign

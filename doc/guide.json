@@ -707,6 +707,45 @@
             ],
             "choose": "To derive the keys a libsodium program derives from the same master key, or keys numbered by id from one random master key; hkdf for a secret that is not uniformly random."
         },
+        "kbkdf": {
+            "summary": "KBKDF, NIST SP 800-108's key derivation in counter mode over HMAC: keys from a key-derivation key, a label and a context.",
+            "output": "1 byte to 2^r - 1 digests (at most 2^29 - 1 bytes with L)",
+            "security": "that of the HMAC and of the key-derivation key, which must be a key, not a password",
+            "status": "recommended",
+            "webcrypto": null,
+            "anchor": "hash-kbkdf",
+            "uses": [
+                {"text": "Kerberos's AES-SHA2 encryption types derive their keys with it (RFC 8009's KDF-HMAC-SHA2)", "source": "https://www.rfc-editor.org/rfc/rfc8009"},
+                {"text": "NIST's approved key derivation from a key, SP 800-108r1", "source": "https://doi.org/10.6028/NIST.SP.800-108r1-upd1"}
+            ],
+            "choose": "When a standard, a protocol or a smart card names SP 800-108's counter mode; hkdf for a new design."
+        },
+        "sskdf": {
+            "summary": "The one-step KDF of NIST SP 800-56C over a hash (the Concat KDF): keys from a key-agreement's shared secret and its fixed info.",
+            "output": "1 byte to 2^32 - 1 digests (backends::openssl: at most 2^30 bytes)",
+            "security": "that of the digest and of the shared secret",
+            "status": "recommended",
+            "webcrypto": null,
+            "anchor": "hash-sskdf",
+            "uses": [
+                {"text": "JOSE's ECDH-ES key agreement (JWE), its Concat KDF", "source": "https://www.rfc-editor.org/rfc/rfc7518#section-4.6.2"},
+                {"text": "Kerberos's PKINIT key derivation", "source": "https://www.rfc-editor.org/rfc/rfc8636"}
+            ],
+            "choose": "To derive the key JOSE's ECDH-ES, PKINIT or another SP 800-56C protocol derives; hkdf for a new design."
+        },
+        "x963kdf": {
+            "summary": "The KDF of ANSI X9.63 (SEC 1): keys from an elliptic-curve shared secret and shared info, the counter after the secret.",
+            "output": "1 byte to 2^32 - 1 digests less 1 byte (backends::openssl: at most 2^30 bytes)",
+            "security": "that of the digest and of the shared secret",
+            "status": "recommended",
+            "webcrypto": null,
+            "anchor": "hash-x963kdf",
+            "uses": [
+                {"text": "ECIES, the elliptic-curve integrated encryption scheme of SEC 1", "source": "https://www.secg.org/sec1-v2.pdf"},
+                {"text": "Apple's ECIES algorithms of its Security framework, as their names say (X963SHA256)", "source": "https://developer.apple.com/documentation/security/seckeyalgorithm/eciesencryptionstandardx963sha256aesgcm"}
+            ],
+            "choose": "To derive the keys ECIES or a smart card's key agreement derives by ANSI X9.63; hkdf for a new design."
+        },
         "argon2id": {
             "summary": "Argon2id: the recommended password hash, memory-hard, winner of the Password Hashing Competition.",
             "output": "16 to 2^32 - 1 bytes",
@@ -720,6 +759,44 @@
                 {"text": "Bitwarden's vault key, as an option", "source": "https://bitwarden.com/help/kdf-algorithms/"}
             ],
             "choose": "Storing passwords and deriving keys from them."
+        },
+        "kdfs::argon2id": {
+            "summary": "Argon2id (RFC 9106) as the tag of argon2: the passes, the memory in KiB, the lanes, a secret (a pepper) and associated data, on any backend that has them; on libsodium the same tag as the function argon2id.",
+            "output": "4 to 2^32 - 1 bytes (16 or more on libsodium)",
+            "security": "each guess costs its memory and passes, on a GPU too",
+            "status": "recommended",
+            "webcrypto": null,
+            "anchor": "hash-argon2-family",
+            "uses": [
+                {"text": "RFC 9106's first recommendation for password hashing", "source": "https://www.rfc-editor.org/rfc/rfc9106#section-4"},
+                {"text": "OWASP's first choice for password storage", "source": "https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html"}
+            ],
+            "choose": "Storing passwords and deriving keys from them where a parameter beyond the function argon2id's is needed (lanes, a pepper, associated data); argon2id otherwise."
+        },
+        "kdfs::argon2i": {
+            "summary": "Argon2i (RFC 9106), Argon2's variant whose memory access does not depend on the password, as the tag of argon2: the passes, the memory, the lanes, a secret and associated data, on any backend that has them.",
+            "output": "4 to 2^32 - 1 bytes (16 or more on libsodium)",
+            "security": "each guess costs its memory and passes, but with few passes an attacker trades memory for time more cheaply than against Argon2id",
+            "status": "legacy",
+            "webcrypto": null,
+            "anchor": "hash-argon2-family",
+            "uses": [
+                {"text": "libsodium's crypto_pwhash_argon2i, its password hash before Argon2id", "source": "https://github.com/jedisct1/libsodium/blob/master/src/libsodium/include/sodium/crypto_pwhash_argon2i.h"},
+                {"text": "RFC 9106's variant for memory access independent of the secret, which it recommends only through Argon2id", "source": "https://www.rfc-editor.org/rfc/rfc9106#section-4"}
+            ],
+            "choose": "Only to check tags a system already stored with Argon2i; Argon2id for anything new."
+        },
+        "kdfs::argon2d": {
+            "summary": "Argon2d with every parameter of RFC 9106, the tag of argon2: memory accesses that depend on the password, on a backend the call names (it has no default).",
+            "output": "4 to 2^32 - 1 bytes",
+            "security": "the strongest against trade-offs, open to side channels on a shared machine",
+            "status": "where no attacker shares the machine",
+            "webcrypto": null,
+            "anchor": "hash-argon2-family",
+            "uses": [
+                {"text": "RFC 9106's variant where no attacker shares the machine, such as proof of work", "source": "https://www.rfc-editor.org/rfc/rfc9106"}
+            ],
+            "choose": "Never for passwords; only where a format names Argon2d and no attacker shares the machine."
         },
         "scrypt": {
             "summary": "scrypt: a memory-hard password hash, older than Argon2id.",
@@ -846,7 +923,7 @@
         },
         "digests::md5_sha1": {
             "standard": "RFC 2246",
-            "summary": "MD5-SHA1, TLS 1.0's 36-byte digest: MD5 of the data followed by SHA-1 of it, as the tag of digest_of and hasher, on backends::bearssl named in the call (it has no default).",
+            "summary": "MD5-SHA1, TLS 1.0's 36-byte digest: MD5 of the data followed by SHA-1 of it, as the tag of digest_of and hasher, on backends::bearssl or backends::openssl named in the call (it has no default).",
             "output": "288 bits",
             "security": "legacy: a collision of the pair costs little more than one of SHA-1 (Joux's multicollisions), far below its 288 bits; SLOTH (2016) turned it into attacks on TLS",
             "status": "legacy",
@@ -857,7 +934,7 @@
                 {"text": "SLOTH's collision attacks on it (2016)", "source": "https://www.mitls.org/pages/attacks/SLOTH"},
                 {"text": "TLS 1.0 and 1.1 deprecated by RFC 8996 (2021)", "source": "https://www.rfc-editor.org/rfc/rfc8996"}
             ],
-            "choose": "Only to read or check TLS 1.0 and 1.1 data, naming backends::bearssl; never for anything new: SHA-256 instead."
+            "choose": "Only to read or check TLS 1.0 and 1.1 data, naming backends::bearssl or backends::openssl; never for anything new: SHA-256 instead."
         },
         "digests::sha3_224": {
             "summary": "SHA3-224, the SHA-3 standard's 224-bit digest, as the tag of digest_of and hasher: one call, or pieces with one final result, on any backend that has it.",
@@ -957,19 +1034,6 @@
             ],
             "choose": "For an extendable output faster than SHAKE256 with the same security claim, or for several functions from one primitive told apart by the domain byte; shake_256 where a standard names SHAKE."
         },
-        "digests::keccak_256": {
-            "summary": "Keccak-256 with the original padding, Ethereum's hash; not SHA3-256, as the tag of digest_of and hasher: one call, or pieces with one final result, on any backend that has it.",
-            "output": "256 bits",
-            "security": "128-bit collision resistance",
-            "status": "recommended",
-            "webcrypto": null,
-            "anchor": "hash-digest-family",
-            "uses": [
-                {"text": "Ethereum's addresses, transaction ids and state", "source": "https://ethereum.github.io/yellowpaper/paper.pdf"},
-                {"text": "EIP-55's checksummed addresses", "source": "https://eips.ethereum.org/EIPS/eip-55"}
-            ],
-            "choose": "To name the backend in the call, or to hash in pieces with a result that cannot be taken twice; keccak_256 itself for hash_append and Boost.Hash2's other functions."
-        },
         "digests::keccak_224": {
             "standard": "Keccak (the SHA-3 submission's padding)",
             "summary": "Keccak-224 with the original padding, the SHA-3 submission's 224-bit hash; not SHA3-224, as the tag of digest_of and hasher: one call, or pieces with one final result, on any backend that has it.",
@@ -982,6 +1046,19 @@
                 {"text": "The Keccak team's final SHA-3 submission, before FIPS 202 changed the padding", "source": "https://keccak.team/files/Keccak-reference-3.0.pdf"}
             ],
             "choose": "Only where a format names Keccak-224, the padding before FIPS 202; SHA3-224 for anything new."
+        },
+        "digests::keccak_256": {
+            "summary": "Keccak-256 with the original padding, Ethereum's hash; not SHA3-256, as the tag of digest_of and hasher: one call, or pieces with one final result, on any backend that has it.",
+            "output": "256 bits",
+            "security": "128-bit collision resistance",
+            "status": "recommended",
+            "webcrypto": null,
+            "anchor": "hash-digest-family",
+            "uses": [
+                {"text": "Ethereum's addresses, transaction ids and state", "source": "https://ethereum.github.io/yellowpaper/paper.pdf"},
+                {"text": "EIP-55's checksummed addresses", "source": "https://eips.ethereum.org/EIPS/eip-55"}
+            ],
+            "choose": "To name the backend in the call, or to hash in pieces with a result that cannot be taken twice; keccak_256 itself for hash_append and Boost.Hash2's other functions."
         },
         "digests::keccak_384": {
             "standard": "Keccak (the SHA-3 submission's padding)",
@@ -1161,6 +1238,19 @@
                 {"text": "Bitcoin's hash160 (P2PKH, P2WPKH)", "source": "https://github.com/bitcoin/bips/blob/master/bip-0141.mediawiki"}
             ],
             "choose": "To name the backend in the call, or to hash in pieces with a result that cannot be taken twice; ripemd_160 itself for hash_append and Boost.Hash2's other functions."
+        },
+        "digests::sm3": {
+            "summary": "SM3, China's national 256-bit digest (GB/T 32905-2016, also ISO/IEC 10118-3), as the tag of digest_of and hasher, on a backend the call names (it has no default).",
+            "output": "256 bits",
+            "security": "128-bit collision resistance",
+            "status": "recommended",
+            "webcrypto": null,
+            "anchor": "hash-sm3",
+            "uses": [
+                {"text": "RFC 8998, ShangMi cipher suites for TLS 1.3", "source": "https://www.rfc-editor.org/rfc/rfc8998"},
+                {"text": "ISO/IEC 10118-3:2018, dedicated hash functions", "source": "https://www.iso.org/standard/67116.html"}
+            ],
+            "choose": "Where a Chinese standard or a regulator requires it (SM2 signatures, the ShangMi suites of TLS 1.3), naming backends::openssl; SHA-256 everywhere else."
         },
         "macs::hmac<digests::md5>": {
             "summary": "HMAC over MD5, legacy, as the tag of mac: the tag of a message under a key in one call, cut to 10 bytes or more if needed, on any backend that has it.",
@@ -1344,6 +1434,67 @@
             ],
             "choose": "To compute a tag in one call, on a backend named in the call; hmac_blake2s_256 itself to feed the message in pieces."
         },
+        "macs::hmac<digests::keccak_224>": {
+            "summary": "HMAC over Keccak-224 with the original padding, not SHA3-224, as the tag of mac: the tag of a message under a key in one call, cut to 10 bytes or more if needed, on a backend the call names (it has no default).",
+            "output": "224 bits",
+            "security": "112 bits and more",
+            "status": "legacy",
+            "webcrypto": null,
+            "anchor": "hash-macs-openssl",
+            "uses": [
+                {"text": "The Keccak team's final SHA-3 submission, before FIPS 202 changed the padding", "source": "https://keccak.team/files/Keccak-reference-3.0.pdf"}
+            ],
+            "choose": "Only where a format names HMAC over Keccak-224; HMAC over SHA3-224 for anything new."
+        },
+        "macs::hmac<digests::keccak_256>": {
+            "summary": "HMAC over Keccak-256 with the original padding, not SHA3-256, as the tag of mac: the tag of a message under a key in one call, cut to 10 bytes or more if needed, on a backend the call names (it has no default).",
+            "output": "256 bits",
+            "security": "128 bits and more",
+            "status": "legacy",
+            "webcrypto": null,
+            "anchor": "hash-macs-openssl",
+            "uses": [
+                {"text": "The Keccak team's final SHA-3 submission, before FIPS 202 changed the padding", "source": "https://keccak.team/files/Keccak-reference-3.0.pdf"}
+            ],
+            "choose": "Only where a format names HMAC over Keccak-256; HMAC over SHA3-256 for anything new."
+        },
+        "macs::hmac<digests::keccak_384>": {
+            "summary": "HMAC over Keccak-384 with the original padding, not SHA3-384, as the tag of mac: the tag of a message under a key in one call, cut to 10 bytes or more if needed, on a backend the call names (it has no default).",
+            "output": "384 bits",
+            "security": "192 bits and more",
+            "status": "legacy",
+            "webcrypto": null,
+            "anchor": "hash-macs-openssl",
+            "uses": [
+                {"text": "The Keccak team's final SHA-3 submission, before FIPS 202 changed the padding", "source": "https://keccak.team/files/Keccak-reference-3.0.pdf"}
+            ],
+            "choose": "Only where a format names HMAC over Keccak-384; HMAC over SHA3-384 for anything new."
+        },
+        "macs::hmac<digests::keccak_512>": {
+            "summary": "HMAC over Keccak-512 with the original padding, not SHA3-512, as the tag of mac: the tag of a message under a key in one call, cut to 10 bytes or more if needed, on a backend the call names (it has no default).",
+            "output": "512 bits",
+            "security": "256 bits and more",
+            "status": "legacy",
+            "webcrypto": null,
+            "anchor": "hash-macs-openssl",
+            "uses": [
+                {"text": "The Keccak team's final SHA-3 submission, before FIPS 202 changed the padding", "source": "https://keccak.team/files/Keccak-reference-3.0.pdf"}
+            ],
+            "choose": "Only where a format names HMAC over Keccak-512; HMAC over SHA3-512 for anything new."
+        },
+        "macs::hmac<digests::sm3>": {
+            "summary": "HMAC over SM3, China's national 256-bit digest, as the tag of mac: the tag of a message under a key in one call, cut to 10 bytes or more if needed, on a backend the call names (it has no default).",
+            "output": "256 bits",
+            "security": "128 bits and more",
+            "status": "recommended",
+            "webcrypto": null,
+            "anchor": "hash-macs-openssl",
+            "uses": [
+                {"text": "RFC 8998, ShangMi cipher suites for TLS 1.3, whose HKDF runs HMAC-SM3", "source": "https://www.rfc-editor.org/rfc/rfc8998"},
+                {"text": "GM/T 0042-2015's HMAC-SM3 test cases, in OpenSSL's evpmac_sm3.txt", "source": "https://github.com/openssl/openssl/blob/openssl-3.5.9/test/recipes/30-test_evp_data/evpmac_sm3.txt"}
+            ],
+            "choose": "Where a Chinese standard or a regulator requires SM3, naming backends::openssl; HMAC-SHA-256 everywhere else."
+        },
         "macs::siphash_2_4": {
             "standard": "SipHash-2-4 (Aumasson, Bernstein)",
             "summary": "SipHash-2-4, a keyed 64-bit hash with a 16-byte key, as the tag of mac: the tag of a message under a key in one call, on any backend that has it.",
@@ -1397,6 +1548,19 @@
             ],
             "choose": "As KMAC128, where a format asks for 256-bit security."
         },
+        "macs::blake2b_mac": {
+            "summary": "BLAKE2b keyed with a key of 1 to 64 bytes (RFC 7693), as the tag of mac: the tag of a message under a key in one call, on any backend that has it.",
+            "output": "1 to 64 bytes",
+            "security": "up to 256 bits, bounded by the key's and the tag's sizes",
+            "status": "recommended",
+            "webcrypto": null,
+            "anchor": "hash-macs-openssl",
+            "uses": [
+                {"text": "RFC 7693's keyed BLAKE2b, a MAC without HMAC's two passes", "source": "https://www.rfc-editor.org/rfc/rfc7693#section-2.5"},
+                {"text": "libsodium's keyed generic hash, crypto_generichash with a key", "source": "https://doc.libsodium.org/hashing/generic_hashing"}
+            ],
+            "choose": "A fast keyed tag on 64-bit machines, of any size from 1 to 64 bytes; HMAC-SHA-256 where a format or WebCrypto must agree."
+        },
         "macs::blake2s_mac": {
             "summary": "BLAKE2s keyed with a key of 1 to 32 bytes (RFC 7693), as the tag of mac: the tag of a message under a key in one call, on any backend that has it.",
             "output": "1 to 32 bytes",
@@ -1408,32 +1572,6 @@
                 {"text": "WireGuard's MAC", "source": "https://www.wireguard.com/protocol/"}
             ],
             "choose": "A fast keyed tag on 32-bit and small machines, without HMAC's two passes."
-        },
-        "kdfs::argon2i": {
-            "summary": "Argon2i (RFC 9106), Argon2's variant whose memory access does not depend on the password, as the tag of argon2: the passes, the memory, the lanes, a secret and associated data, on any backend that has them.",
-            "output": "4 to 2^32 - 1 bytes (16 or more on libsodium)",
-            "security": "each guess costs its memory and passes, but with few passes an attacker trades memory for time more cheaply than against Argon2id",
-            "status": "legacy",
-            "webcrypto": null,
-            "anchor": "hash-argon2-family",
-            "uses": [
-                {"text": "libsodium's crypto_pwhash_argon2i, its password hash before Argon2id", "source": "https://github.com/jedisct1/libsodium/blob/master/src/libsodium/include/sodium/crypto_pwhash_argon2i.h"},
-                {"text": "RFC 9106's variant for memory access independent of the secret, which it recommends only through Argon2id", "source": "https://www.rfc-editor.org/rfc/rfc9106#section-4"}
-            ],
-            "choose": "Only to check tags a system already stored with Argon2i; Argon2id for anything new."
-        },
-        "kdfs::argon2id": {
-            "summary": "Argon2id (RFC 9106) as the tag of argon2: the passes, the memory in KiB, the lanes, a secret (a pepper) and associated data, on any backend that has them; on libsodium the same tag as the function argon2id.",
-            "output": "4 to 2^32 - 1 bytes (16 or more on libsodium)",
-            "security": "each guess costs its memory and passes, on a GPU too",
-            "status": "recommended",
-            "webcrypto": null,
-            "anchor": "hash-argon2-family",
-            "uses": [
-                {"text": "RFC 9106's first recommendation for password hashing", "source": "https://www.rfc-editor.org/rfc/rfc9106#section-4"},
-                {"text": "OWASP's first choice for password storage", "source": "https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html"}
-            ],
-            "choose": "Storing passwords and deriving keys from them where a parameter beyond the function argon2id's is needed (lanes, a pepper, associated data); argon2id otherwise."
         }
     },
     "use_cases": [
@@ -1443,6 +1581,9 @@
         {"need": "store users' passwords for a login", "use": "argon2id with argon2id_interactive or stronger, a random 16-byte salt per user", "function": "argon2id", "backend": "link /third_party//sodium", "example": "password_storage.cpp", "anchor": "hash-privacy-passwords"},
         {"need": "turn a password into an encryption key (a password manager, an encrypted backup)", "use": "argon2id with argon2id_moderate or argon2id_sensitive, then hkdf for each purpose", "function": "argon2id", "backend": "link /third_party//sodium", "example": "argon2id.cpp", "anchor": "hash-argon2id"},
         {"need": "turn a shared secret (an ECDH result) into keys", "use": "hkdf over hmac_sha2_256, one info label per key", "function": "hkdf", "backend": "the default; name a backend only to match another program's", "example": "hkdf.cpp", "anchor": "hash-hkdf"},
+        {"need": "derive the key JOSE's ECDH-ES (a JWE) or another NIST SP 800-56C protocol derives from a shared secret", "use": "sskdf over digests::sha2_256, the fixed info as the protocol writes it", "function": "sskdf", "backend": "name backends::openssl and link /webcpp/hash//openssl", "example": "sskdf.cpp", "anchor": "hash-sskdf"},
+        {"need": "derive the keys of ECIES or of a smart card's key agreement (ANSI X9.63)", "use": "x963kdf over digests::sha2_256, the shared info as the scheme writes it", "function": "x963kdf", "backend": "name backends::openssl and link /webcpp/hash//openssl", "example": "x963kdf.cpp", "anchor": "hash-x963kdf"},
+        {"need": "derive keys from a key as NIST SP 800-108 or Kerberos does (a label and a context)", "use": "kbkdf over hmac_sha2_256 with the label and the context", "function": "kbkdf", "backend": "name backends::openssl and link /webcpp/hash//openssl", "example": "kbkdf.cpp", "anchor": "hash-kbkdf"},
         {"need": "derive many keys from one master key, one per purpose", "use": "hkdf_expand (or hkdf) with distinct info labels, blake2b_subkey (libsodium's crypto_kdf) by id, or blake3::derive_key with a context string", "function": "hkdf_expand", "backend": "the default", "example": "subkeys.cpp", "anchor": "hash-privacy-subkeys"},
         {"need": "build a hash table, set or Bloom filter whose keys come from the network", "use": "siphash_64 keyed with 16 random bytes per process", "function": "siphash_64", "backend": "none: one backend", "example": "siphash.cpp", "anchor": "hash-siphash"},
         {"need": "build a hash table of my own trusted keys, or a fast checksum", "use": "xxh3_128 or fnv1a_64", "function": "xxh3_128", "backend": "none: one backend", "example": "checksums.cpp", "anchor": "hash-non-cryptographic-functions"},

@@ -9,7 +9,10 @@
 
 A digest has one implementation, Boost.Hash2's or a C library's. A key
 derivation has several, its backends: the same function, giving the same
-bytes, in code of different size, speed and pedigree. A call that names no
+bytes, in code of different size, speed and pedigree. A tag of the families
+(`digest_of`, `hasher`, `mac`, `argon2`) has a backend per cell of its row,
+and the tests compute each case on every backend that has it, pair by pair,
+on a thousand random inputs per tag. A call that names no
 backend takes the default, which is fixed: no measurement, link or define
 changes it. This chapter says what the default is and why, how a program
 names another backend, what each backend does with secrets and memory, and,
@@ -101,11 +104,33 @@ the call until it is reused. BearSSL allocates nothing.
 | OpenSSL allocates a KDF and a context in every call, through its own
 allocator, and frees both before the call returns. It clears the key (HKDF's
 IKM or PRK, PBKDF2's password) and the info when it frees the context; it
-frees the salt without clearing it. Its first call reads OpenSSL's
-configuration file. It holds some lengths in an `int`, so hash refuses, before
-OpenSSL is called, a PBKDF2 output (`invalid_output_size`), a PBKDF2 password
-or salt, or an HKDF salt (`input_too_long`) of more than `INT_MAX` bytes. It
-is not built for Emscripten.
+frees the salt without clearing it. A digest allocates an `EVP_MD_CTX` and
+the digest's own context: `digest_of` frees both before it returns, a
+`hasher` owns them from `make` until it finishes, is destroyed or is moved
+from. A MAC allocates an `EVP_MAC_CTX` and the MAC's context, which `mac`
+frees before it returns. OpenSSL documents that it cleans up and frees these
+contexts, not that it clears them; its HMAC, KMAC and BLAKE2 MACs clear their
+copy of the key, and its SipHash frees its keyed state without clearing it.
+Its Argon2 and scrypt allocate the memory their costs name from OpenSSL's
+allocator, the C heap, and free it before the call returns; Argon2 clears its
+copies of the password, salt, secret and associated data, scrypt its copy of
+the password but not of the salt. Its scrypt takes r p below 2^24^ and a
+password, salt and output of at most `INT_MAX` bytes (`invalid_parameters`,
+`input_too_long`, `invalid_output_size` otherwise). Its Argon2 sizes the memory
+in a `size_t`: the family `argon2` takes at most 4,194,303 KiB on wasm32
+(`unsupported_by_backend`), and `argon2id` at most 4 TiB less 1 KiB natively
+(`invalid_parameters`).
+Its KMAC takes a key of 4 to 512 bytes, a customisation of at most 512 and a
+tag of at most 2,097,151, and its HMAC a key of at most `INT_MAX` bytes:
+`mac` answers others `unsupported_by_backend`. Its KBKDF clears its copies of
+the key, the label and the context when it frees its context, its one-step
+and X9.63 KDFs their copies of the secret and the info; `kbkdf` answers a key
+of more than `INT_MAX` bytes, `sskdf` and `x963kdf` a secret, an info or an
+output of more than 2^30^ bytes, `unsupported_by_backend`. Its first call
+reads OpenSSL's configuration file. It holds some lengths in an `int`, so hash
+refuses, before OpenSSL is called, a PBKDF2 output (`invalid_output_size`), a
+PBKDF2 password or salt, or an HKDF salt (`input_too_long`) of more than
+`INT_MAX` bytes. It is not built for Emscripten.
 
 | `xkcp`
 | Allocates nothing. KMAC's keyed state and every hash's state live on the

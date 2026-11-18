@@ -19,12 +19,16 @@ of its input into a pseudorandom key, then expands it into independent keys,
 one per label. BLAKE2b subkeys, libsodium's `crypto_kdf`, split a master key
 that is already uniformly random into keys numbered by id. PBKDF2 is the older
 answer to another problem, a key from a password, which Argon2id now answers
-better (<<hash-password-hashing>>).
+better (<<hash-password-hashing>>). Standards and formats that predate HKDF,
+or were written for NIST's validations, name their own derivations: Kerberos
+and NIST SP 800-108's KBKDF, JOSE's ECDH-ES and NIST SP 800-56C's one-step KDF,
+ECIES and ANSI X9.63's KDF (<<hash-kdf-standards>>).
 
 The key derivations are the functions of hash that run on a backend, a C
 library or Boost.Hash2, that the program names or leaves to the default,
 `backends::hash2` (<<hash-default-backend>>); BLAKE2b subkeys run on libsodium
-alone. Each backend gives the same bytes for the same inputs: the
+alone, and the key derivations of standards on OpenSSL alone, which is never a
+default: the call names it. Each backend gives the same bytes for the same inputs: the
 tests check them against each other on random inputs on every target.
 
 include::generated/compare-kdfs.adoc[]
@@ -196,3 +200,145 @@ hash. Lengths of 16 to 64 bytes are accepted, others are
 `invalid_output_size`.
 
 include::generated/backends-blake2b-subkey.adoc[]
+
+[#hash-kdf-standards]
+=== Key derivations of standards
+
+Three key derivations are here because a standard, a protocol or a device
+names them, and a program that talks to it must derive the same bytes: a
+Kerberos client, a JSON Web Encryption library, an ECIES implementation, a
+smart card's secure channel. Each repeats a hash or an HMAC with a counter,
+block after block, over the secret and a description of the key, as HKDF's
+expand step does; none of them extracts first, so the secret must already be
+a key or a key agreement's shared secret, never a password. For a new design
+HKDF is the better choice (<<hash-hkdf>>): it is as fast, it extracts, and
+WebCrypto and every library have it.
+
+They run on `backends::openssl` alone (OpenSSL 3.5.9's `EVP_KDF`s "KBKDF",
+"SSKDF" and "X963KDF"), so a program names it in the call and links
+`/webcpp/hash//openssl`, on native, wasip2 and wasip3; none of them has a
+default backend (<<hash-default-backend>>), and a call that names none stops
+the build with "... has no default backend. Name one of: backends::openssl.".
+The tests check each against OpenSSL's own test files, NIST's validation
+vectors among them, and against a second implementation over Boost.Hash2.
+
+[#hash-kbkdf]
+==== KBKDF (NIST SP 800-108)
+
+`kbkdf` is NIST SP 800-108's key-based key derivation in counter mode over an
+HMAC: from a key-derivation key K~IN~, each block of output is
+`HMAC(K_IN, [i] || Label || 0x00 || Context || [L])`, the counter i written in
+r bits (32 by default), L the output's length in bits. The *label* names what
+the derived key is for and the *context* who or what it belongs to (the
+parties, a session). Kerberos's AES-SHA2 encryption types (RFC 8009) derive
+their keys this way, and so do validated modules that must use an approved
+derivation from a key. `kbkdf_options` sets the label and the context, and
+can leave out the separator, L or both and narrow the counter to 8, 16 or 24
+bits, for a format that fixes another form of the fixed input; NIST's
+validation vectors pass their whole fixed input as the context, with neither.
+
+[source]
+----
+include::{examples}/kbkdf.cpp[tag=example,indent=0]
+----
+
+[listing]
+----
+include::{examples}/kbkdf.expected[]
+----
+
+*Pitfalls.*
+
+* *Match every knob of the other side.* The counter's width, the separator and
+L change every byte of the output: a key derived with L is not the key
+derived without it. Read the format's definition, and check one of its test
+vectors, as the example does with RFC 8009's.
+* *The output's length is part of the key* when L is in the fixed input (the
+default): 16 bytes are not the first half of 32.
+* *The key is a key.* A password goes through Argon2id first
+(<<hash-argon2id>>); `kbkdf` adds no work per guess. An empty key is
+`invalid_key_size`.
+* *Approval is the hash's.* SP 800-108 approves HMAC over SHA-1, SHA-2 or
+SHA-3. `kbkdf` also takes HMAC over MD5, RIPEMD-160 or BLAKE2, for the formats
+that use them, and does not stop the build as `sskdf` and `x963kdf` do: where
+an approved derivation is required, pick SHA-2 or SHA-3.
+* *Its limits:* at most 2^r^ - 1 blocks, and with L at most 536,870,911 bytes
+(L counts bits in 32 of them), `invalid_output_size` otherwise; a counter of
+another width than 8, 16, 24 or 32 bits is `invalid_parameters`; OpenSSL takes
+an HMAC key of at most `INT_MAX` bytes (`unsupported_by_backend`).
+
+include::generated/backends-kbkdf.adoc[]
+
+[#hash-sskdf]
+==== One-step KDF (NIST SP 800-56C)
+
+`sskdf` is the one-step key derivation of NIST SP 800-56C over a hash, the
+"Concat KDF" of SP 800-56A: each block is `H(counter || Z || FixedInfo)`, the
+counter 32 bits from 1, Z the shared secret of a key agreement (an ECDH
+result) and FixedInfo the description of the key both parties write the same
+way. JOSE's ECDH-ES, the key agreement of JSON Web Encryption (RFC 7518), and
+Kerberos's PKINIT (RFC 8636) derive their keys with it. It takes SHA-1, a
+SHA-2 or a SHA-3 (`digests::sha1` to `digests::sha3_512`), the hash functions
+SP 800-56C approves; another digest stops the build.
+
+[source]
+----
+include::{examples}/sskdf.cpp[tag=example,indent=0]
+----
+
+[listing]
+----
+include::{examples}/sskdf.expected[]
+----
+
+*Pitfalls.*
+
+* *FixedInfo is the protocol's, byte for byte.* JOSE writes each field as its
+length in 4 bytes and its bytes, and ends with the key's length in bits: the
+same fields in another form give another key. Check one of the protocol's
+examples, as this one does with RFC 7518's.
+* *Z is the raw shared secret,* the x-coordinate of the ECDH result, not a
+hash of it: an empty one is `invalid_key_size`.
+* *Its limits:* at most 2^32^ - 1 blocks (`invalid_output_size`) and the input
+the hash takes (`input_too_long`, past 2^61^ bytes for SHA-1 and SHA-256);
+OpenSSL takes a secret, a FixedInfo and an output of at most 2^30^ bytes each
+(`unsupported_by_backend`).
+
+include::generated/backends-sskdf.adoc[]
+
+[#hash-x963kdf]
+==== X9.63 KDF (ANSI X9.63, SEC 1)
+
+`x963kdf` is the key derivation of ANSI X9.63, which SEC 1 specifies for
+ECIES and for elliptic-curve key agreement: each block is
+`H(Z || counter || SharedInfo)`, the same as SP 800-56C's but with the
+counter after the shared secret, so the two never give the same bytes. An
+ECIES implementation derives the encryption key and the MAC key of a message
+from the ECDH result with it, in one derivation cut in two; smart cards and
+the key agreements of BSI TR-03111 use it too. It takes SHA-1, SHA-224,
+SHA-256, SHA-384 or SHA-512, the hash functions SEC 1 lists (section 3.5) and
+NIST SP 800-135 approves for it (FIPS 180-3's); SHA-512/224, SHA-512/256,
+SHA-3 or another digest stops the build.
+
+[source]
+----
+include::{examples}/x963kdf.cpp[tag=example,indent=0]
+----
+
+[listing]
+----
+include::{examples}/x963kdf.expected[]
+----
+
+*Pitfalls.*
+
+* *SharedInfo is the scheme's.* ECIES variants differ in what they put there
+(nothing, the ephemeral public key, a label): read the variant's definition.
+* *Not interchangeable with `sskdf`:* the counter's place differs, and so does
+every byte.
+* *Its limits:* fewer bytes than 2^32^ - 1 blocks (`invalid_output_size`) and
+the input the hash takes (`input_too_long`); OpenSSL takes a secret, a
+SharedInfo and an output of at most 2^30^ bytes each
+(`unsupported_by_backend`). An empty secret is `invalid_key_size`.
+
+include::generated/backends-x963kdf.adoc[]

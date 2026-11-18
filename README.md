@@ -3,15 +3,17 @@
 hash is one entry point for hashing and key derivation in a C++20 program, on every target
 [webcpp](https://github.com/webcpporg/webcpp) has: native (Linux, macOS, Windows with MSVC),
 wasip2, wasip3 and Emscripten. Boost.Hash2's algorithms and `hmac` are re-exported by alias;
-Keccak-256, BLAKE3, Argon2id and scrypt run on C libraries; HKDF and PBKDF2 run on a backend of
-the program's choice. Every function is synchronous, reports failure as a value and allocates
+Keccak-256, BLAKE3, Argon2id, scrypt and the key derivations of NIST SP 800-108, SP 800-56C and
+ANSI X9.63 run on C libraries; HKDF and PBKDF2 run on a backend of the program's choice. Every function is synchronous, reports failure as a value and allocates
 nothing in webcpp's own code.
 
 The guide (`doc/hash.adoc`) teaches each family of functions with two comparison tables, an example
 program of `example/` per section and its pitfalls, then three applications from end to end; its
 tables and `doc/llms.txt` are generated from `doc/capabilities.json` and the measured data by
-`tools/hash/doc_tables.py`. Every key derivation runs on `backends::hash2` unless the call names
-another backend; Argon2id and scrypt run on `backends::sodium`, their only backend. The measured
+`tools/hash/doc_tables.py`. HKDF and PBKDF2 run on `backends::hash2` unless the call names
+another backend; Argon2id and scrypt run on `backends::sodium` unless the call names
+`backends::openssl`; `kbkdf`, `sskdf` and `x963kdf` have no default and run on
+`backends::openssl`, named in the call. The measured
 table, `doc/measurements.json`, is a reference measured on 2026-11-16 that decides nothing. `NOTICE.md` keeps the notice of the documentation it adapts.
 
 ## Building and testing

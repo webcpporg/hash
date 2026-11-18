@@ -34,7 +34,11 @@ the library's, outside the user's allocator, and hash does not hide them.
   `sodium_init` rows.
 * OpenSSL allocates a key-derivation context and its digests through its own allocator on
   every call; test `allocation_openssl` replaces that allocator with
-  `CRYPTO_set_mem_functions` before anything else and counts each call through it. The
+  `CRYPTO_set_mem_functions` before anything else and counts each call through it. A digest
+  on `backends::openssl` allocates an `EVP_MD_CTX` (`EVP_MD_CTX_new`) and the digest's
+  context, in each `digest_of` and in each `hasher`'s `make`, and a MAC an `EVP_MAC_CTX`
+  (`EVP_MAC_CTX_new`) and the MAC's context in each `mac`; the test prints those counts
+  too, and the table below holds the key derivations' alone. The
   counts are those of OpenSSL 3.5.9 as webcpp builds it, are measured and never bounded,
   and change with the version.
 

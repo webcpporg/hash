@@ -8,7 +8,7 @@
 
 
 [#hash-backends-of-hmac]
-.Who implements `hmac` to `macs::hmac<digests::blake2s_256>`, 32 names (RFC 2104)
+.Who implements `hmac` to `macs::hmac<digests::sm3>`, 37 names (RFC 2104)
 [cols="2,1,2,2,3,1",options="header"]
 |===
 | Function | Backend | The program's Jamfile names | Targets | Hmacs | Constant time
@@ -146,6 +146,13 @@
 | -
 | not stated
 
+| `macs::hmac<digests::md5>`
+| `openssl` (partial: a key of more than INT_MAX bytes: OpenSSL takes HMAC's key length as an int (HMAC_Init_ex))
+| `/webcpp/hash//openssl`
+| native, wasip2, wasip3
+| -
+| not stated
+
 | `macs::hmac<digests::sha1>`
 | `hash2`
 | `/webcpp/hash//hash`
@@ -157,6 +164,13 @@
 | `bearssl`
 | `/third_party//bearssl`
 | native, wasip2, wasip3, emscripten
+| -
+| not stated
+
+| `macs::hmac<digests::sha1>`
+| `openssl` (partial: a key of more than INT_MAX bytes: OpenSSL takes HMAC's key length as an int (HMAC_Init_ex))
+| `/webcpp/hash//openssl`
+| native, wasip2, wasip3
 | -
 | not stated
 
@@ -178,6 +192,13 @@
 | `bearssl`
 | `/third_party//bearssl`
 | native, wasip2, wasip3, emscripten
+| -
+| not stated
+
+| `macs::hmac<digests::sha2_224>`
+| `openssl` (partial: a key of more than INT_MAX bytes: OpenSSL takes HMAC's key length as an int (HMAC_Init_ex))
+| `/webcpp/hash//openssl`
+| native, wasip2, wasip3
 | -
 | not stated
 
@@ -203,6 +224,13 @@
 | not stated
 
 | `macs::hmac<digests::sha2_256>`
+| `openssl` (partial: a key of more than INT_MAX bytes: OpenSSL takes HMAC's key length as an int (HMAC_Init_ex))
+| `/webcpp/hash//openssl`
+| native, wasip2, wasip3
+| -
+| not stated
+
+| `macs::hmac<digests::sha2_256>`
 | `webcrypto` (asynchronous family only)
 | `/webcpp/asio//asio`
 | emscripten
@@ -220,6 +248,13 @@
 | `bearssl`
 | `/third_party//bearssl`
 | native, wasip2, wasip3, emscripten
+| -
+| not stated
+
+| `macs::hmac<digests::sha2_384>`
+| `openssl` (partial: a key of more than INT_MAX bytes: OpenSSL takes HMAC's key length as an int (HMAC_Init_ex))
+| `/webcpp/hash//openssl`
+| native, wasip2, wasip3
 | -
 | not stated
 
@@ -248,6 +283,13 @@
 | `bearssl`
 | `/third_party//bearssl`
 | native, wasip2, wasip3, emscripten
+| -
+| not stated
+
+| `macs::hmac<digests::sha2_512>`
+| `openssl` (partial: a key of more than INT_MAX bytes: OpenSSL takes HMAC's key length as an int (HMAC_Init_ex))
+| `/webcpp/hash//openssl`
+| native, wasip2, wasip3
 | -
 | not stated
 
@@ -265,10 +307,24 @@
 | -
 | not stated
 
+| `macs::hmac<digests::sha2_512_224>`
+| `openssl` (partial: a key of more than INT_MAX bytes: OpenSSL takes HMAC's key length as an int (HMAC_Init_ex))
+| `/webcpp/hash//openssl`
+| native, wasip2, wasip3
+| -
+| not stated
+
 | `macs::hmac<digests::sha2_512_256>`
 | `hash2`
 | `/webcpp/hash//hash`
 | native, wasip2, wasip3, emscripten
+| -
+| not stated
+
+| `macs::hmac<digests::sha2_512_256>`
+| `openssl` (partial: a key of more than INT_MAX bytes: OpenSSL takes HMAC's key length as an int (HMAC_Init_ex))
+| `/webcpp/hash//openssl`
+| native, wasip2, wasip3
 | -
 | not stated
 
@@ -279,10 +335,24 @@
 | -
 | not stated
 
+| `macs::hmac<digests::sha3_224>`
+| `openssl` (partial: a key of more than INT_MAX bytes: OpenSSL takes HMAC's key length as an int (HMAC_Init_ex))
+| `/webcpp/hash//openssl`
+| native, wasip2, wasip3
+| -
+| not stated
+
 | `macs::hmac<digests::sha3_256>`
 | `hash2`
 | `/webcpp/hash//hash`
 | native, wasip2, wasip3, emscripten
+| -
+| not stated
+
+| `macs::hmac<digests::sha3_256>`
+| `openssl` (partial: a key of more than INT_MAX bytes: OpenSSL takes HMAC's key length as an int (HMAC_Init_ex))
+| `/webcpp/hash//openssl`
+| native, wasip2, wasip3
 | -
 | not stated
 
@@ -293,10 +363,24 @@
 | -
 | not stated
 
+| `macs::hmac<digests::sha3_384>`
+| `openssl` (partial: a key of more than INT_MAX bytes: OpenSSL takes HMAC's key length as an int (HMAC_Init_ex))
+| `/webcpp/hash//openssl`
+| native, wasip2, wasip3
+| -
+| not stated
+
 | `macs::hmac<digests::sha3_512>`
 | `hash2`
 | `/webcpp/hash//hash`
 | native, wasip2, wasip3, emscripten
+| -
+| not stated
+
+| `macs::hmac<digests::sha3_512>`
+| `openssl` (partial: a key of more than INT_MAX bytes: OpenSSL takes HMAC's key length as an int (HMAC_Init_ex))
+| `/webcpp/hash//openssl`
+| native, wasip2, wasip3
 | -
 | not stated
 
@@ -307,10 +391,24 @@
 | -
 | not stated
 
+| `macs::hmac<digests::ripemd_160>`
+| `openssl` (partial: a key of more than INT_MAX bytes: OpenSSL takes HMAC's key length as an int (HMAC_Init_ex))
+| `/webcpp/hash//openssl`
+| native, wasip2, wasip3
+| -
+| not stated
+
 | `macs::hmac<digests::blake2b>`
 | `hash2`
 | `/webcpp/hash//hash`
 | native, wasip2, wasip3, emscripten
+| -
+| not stated
+
+| `macs::hmac<digests::blake2b>`
+| `openssl` (partial: a key of more than INT_MAX bytes: OpenSSL takes HMAC's key length as an int (HMAC_Init_ex))
+| `/webcpp/hash//openssl`
+| native, wasip2, wasip3
 | -
 | not stated
 
@@ -320,15 +418,72 @@
 | native, wasip2, wasip3, emscripten
 | -
 | not stated
+
+| `macs::hmac<digests::blake2s_256>`
+| `openssl` (partial: a key of more than INT_MAX bytes: OpenSSL takes HMAC's key length as an int (HMAC_Init_ex))
+| `/webcpp/hash//openssl`
+| native, wasip2, wasip3
+| -
+| not stated
+
+| `macs::hmac<digests::keccak_224>`
+| `openssl` (partial: a key of more than INT_MAX bytes: OpenSSL takes HMAC's key length as an int (HMAC_Init_ex))
+| `/webcpp/hash//openssl`
+| native, wasip2, wasip3
+| -
+| not stated
+
+| `macs::hmac<digests::keccak_256>`
+| `openssl` (partial: a key of more than INT_MAX bytes: OpenSSL takes HMAC's key length as an int (HMAC_Init_ex))
+| `/webcpp/hash//openssl`
+| native, wasip2, wasip3
+| -
+| not stated
+
+| `macs::hmac<digests::keccak_384>`
+| `openssl` (partial: a key of more than INT_MAX bytes: OpenSSL takes HMAC's key length as an int (HMAC_Init_ex))
+| `/webcpp/hash//openssl`
+| native, wasip2, wasip3
+| -
+| not stated
+
+| `macs::hmac<digests::keccak_512>`
+| `openssl` (partial: a key of more than INT_MAX bytes: OpenSSL takes HMAC's key length as an int (HMAC_Init_ex))
+| `/webcpp/hash//openssl`
+| native, wasip2, wasip3
+| -
+| not stated
+
+| `macs::hmac<digests::sm3>`
+| `openssl` (partial: a key of more than INT_MAX bytes: OpenSSL takes HMAC's key length as an int (HMAC_Init_ex))
+| `/webcpp/hash//openssl`
+| native, wasip2, wasip3
+| -
+| not stated
 |===
 
 What each backend states on constant time, as the capability table read it:
 
 * `bearssl`: BearSSL at webcpp::crypto's pin: bearssl_hmac.h states constant time for br_hmac_outCT alone; mac calls br_hmac_out.
 * `hash2`: Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property.
+* `openssl`: OpenSSL 3.5.9: doc/man3/EVP_MAC.pod, doc/man7/EVP_MAC-HMAC.pod, EVP_MAC-KMAC.pod, EVP_MAC-BLAKE2.pod, EVP_MAC-Siphash.pod and providers/implementations/macs/ state no constant-time property.
 * `sodium`: libsodium 1.0.22: its headers state constant time for comparisons (sodium/utils.h) alone, not for its hashing, MAC, key derivation and password hashing functions (crypto_hash_*, crypto_xof_*, crypto_generichash_*, crypto_shorthash_*, crypto_auth_*, crypto_kdf_*, crypto_pwhash_*).
 * `webcrypto`: The Web Cryptography API (W3C Recommendation, 2017) states no constant-time property of digest, sign or deriveBits; each JavaScript runtime's implementation decides, and webcpp reads none.
 
-The default of `macs::hmac<digests::md5>`, `macs::hmac<digests::sha1>`, `macs::hmac<digests::sha2_224>`, `macs::hmac<digests::sha2_256>`, `macs::hmac<digests::sha2_384>`, `macs::hmac<digests::sha2_512>`, `macs::hmac<digests::sha2_512_224>`, `macs::hmac<digests::sha2_512_256>`, `macs::hmac<digests::sha3_224>`, `macs::hmac<digests::sha3_256>`, `macs::hmac<digests::sha3_384>`, `macs::hmac<digests::sha3_512>`, `macs::hmac<digests::ripemd_160>`, `macs::hmac<digests::blake2b>` and `macs::hmac<digests::blake2s_256>`: `hash2` on every target, whatever the program links; `bearssl`, `sodium` only where the call names it, as its second template argument (<<hash-default-backend>>).
+`macs::hmac<digests::keccak_224>` has no default backend: the call names one of its backends (<<hash-default-backend>>).
+
+`macs::hmac<digests::keccak_256>` has no default backend: the call names one of its backends (<<hash-default-backend>>).
+
+`macs::hmac<digests::keccak_384>` has no default backend: the call names one of its backends (<<hash-default-backend>>).
+
+`macs::hmac<digests::keccak_512>` has no default backend: the call names one of its backends (<<hash-default-backend>>).
+
+`macs::hmac<digests::sm3>` has no default backend: the call names one of its backends (<<hash-default-backend>>).
+
+The default of `macs::hmac<digests::md5>`, `macs::hmac<digests::sha1>`, `macs::hmac<digests::sha2_224>` and `macs::hmac<digests::sha2_384>`: `hash2` on every target, whatever the program links; `bearssl`, `openssl` only where the call names it, as its second template argument (<<hash-default-backend>>).
+
+The default of `macs::hmac<digests::sha2_256>` and `macs::hmac<digests::sha2_512>`: `hash2` on every target, whatever the program links; `bearssl`, `openssl`, `sodium` only where the call names it, as its second template argument (<<hash-default-backend>>).
+
+The default of `macs::hmac<digests::sha2_512_224>`, `macs::hmac<digests::sha2_512_256>`, `macs::hmac<digests::sha3_224>`, `macs::hmac<digests::sha3_256>`, `macs::hmac<digests::sha3_384>`, `macs::hmac<digests::sha3_512>`, `macs::hmac<digests::ripemd_160>`, `macs::hmac<digests::blake2b>` and `macs::hmac<digests::blake2s_256>`: `hash2` on every target, whatever the program links; `openssl` only where the call names it, as its second template argument (<<hash-default-backend>>).
 
 `webcrypto` serves the asynchronous family alone, on Emscripten, where the type of its asynchronous call names it (<<hash-async-webcrypto>>).

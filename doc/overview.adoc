@@ -64,6 +64,10 @@ TupleHash and ParallelHash; RFC 9861's KangarooTwelve and TurboSHAKE
 
 | TurboSHAKE128 and TurboSHAKE256 (RFC 9861)
 | libsodium's `crypto_xof_turboshake128` and `crypto_xof_turboshake256`
+
+| KBKDF (NIST SP 800-108), the one-step KDF (NIST SP 800-56C), the X9.63 KDF
+(ANSI X9.63)
+| OpenSSL's `EVP_KDF`s, on `backends::openssl` named in the call
 |===
 
 Every function is synchronous, reports failure as a value

@@ -123,6 +123,8 @@ too. Like TupleHash, it has a fixed-length form, which encodes the tag's
 length, and an XOF form, KMACXOF, which does not. `macs::kmac_128` and
 `macs::kmac_256` are tags of `mac` (<<hash-mac-family>>), on
 `backends::xkcp`, their default; a program links `/third_party//xkcp`.
+`backends::openssl` has them too, named in the call, within OpenSSL's narrower
+limits (<<hash-macs-openssl>>).
 
 [source]
 ----
@@ -260,3 +262,53 @@ tags.
 * *A key of any size.* libsodium's one-call functions take a 32-byte key
 alone; `mac` on `backends::sodium` takes a key of any size, hashed first when
 it is longer than the block, as RFC 2104 says and as every other backend does.
+
+[#hash-macs-openssl]
+=== The MACs of OpenSSL: KMAC, keyed BLAKE2, SipHash and HMAC
+
+`backends::openssl` computes every tag of `webcpp::hash::macs` through
+OpenSSL 3.5.9's `EVP_MAC`, on native, wasip2 and wasip3. It is never a
+default (design D34): a call names it. Its tags are HMAC over every digest of
+a fixed size it has but MD5-SHA1, over which no standard defines an HMAC,
+`macs::hmac<digests::keccak_256>` and `macs::hmac<digests::sm3>` among them,
+which no other backend has; KMAC128 and KMAC256 (NIST SP 800-185, section 4),
+`macs::kmac_128` and `macs::kmac_256`, in their fixed-length and XOF forms,
+with a customisation string; keyed BLAKE2b and BLAKE2s (RFC 7693),
+`macs::blake2b_mac` and `macs::blake2s_mac`, at every tag size; and SipHash-2-4
+with an 8-byte or a 16-byte tag. KMAC encodes the tag's length in its
+fixed-length form, so that two tags of different sizes are unrelated; its XOF
+form (`.xof = true`) encodes none, and a shorter tag is the start of a longer.
+
+[source]
+----
+include::{examples}/macs_openssl.cpp[tag=example,indent=0]
+----
+
+[listing]
+----
+include::{examples}/macs_openssl.expected[]
+----
+
+*Pitfalls.*
+
+* *OpenSSL's KMAC is narrower than SP 800-185.* It takes a key of 4 to 512
+bytes, a customisation of at most 512 bytes and a tag of at most 2,097,151
+bytes, in either form; `mac` answers any other `unsupported_by_backend` before
+OpenSSL is called. A tag under 4 bytes is `invalid_output_size` on every
+backend: SP 800-185, section 8.4.2, forbids a MAC of fewer than 32 bits.
+* *The customisation separates applications, the key keeps the secret.* Two
+programs that share a key and differ in their customisation string get
+unrelated tags; the string itself is not secret.
+* *Keyed BLAKE2 takes a key of at least one byte.* An empty key is
+`invalid_key_size` (RFC 7693's keyed mode has a key of 1 to 64 bytes, 1 to 32
+for BLAKE2s); unkeyed BLAKE2 is a digest (<<hash-blake2b-options>>).
+* *Each call allocates through OpenSSL.* The MAC and its context are fetched,
+made and freed in the call (`EVP_MAC_CTX_new`), as for every function of this
+backend (<<hash-allocation>>); OpenSSL documents that it frees them, not that
+it clears them. Its HMAC, KMAC and BLAKE2 MACs clear their copy of the key
+when freed; its SipHash frees its keyed state without clearing it.
+* *An HMAC key is at most `INT_MAX` bytes on OpenSSL,* which takes its length
+as an `int`; a longer one is `unsupported_by_backend`.
+
+The backends of each tag are in the tables of <<hash-kmac>>, <<hash-blake2>>,
+<<hash-siphash>> and <<hash-hmac>>.

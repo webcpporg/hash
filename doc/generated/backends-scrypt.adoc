@@ -19,10 +19,18 @@
 | native, wasip2, wasip3, emscripten
 | -
 | not stated
+
+| `scrypt`
+| `openssl` (partial: r p of 2^24 or more, or a password, salt or output of more than INT_MAX bytes: OpenSSL passes them to PBKDF2, whose lengths are ints)
+| `/webcpp/hash//openssl`
+| native, wasip2, wasip3
+| -
+| not stated
 |===
 
 What each backend states on constant time, as the capability table read it:
 
+* `openssl`: OpenSSL 3.5.9: doc/man7/EVP_KDF-SCRYPT.pod states no constant-time property.
 * `sodium`: libsodium 1.0.22: its headers state constant time for comparisons (sodium/utils.h) alone, not for its hashing, MAC, key derivation and password hashing functions (crypto_hash_*, crypto_xof_*, crypto_generichash_*, crypto_shorthash_*, crypto_auth_*, crypto_kdf_*, crypto_pwhash_*).
 
-The default of `scrypt`: `sodium` on every target, whatever the program links (<<hash-default-backend>>).
+The default of `scrypt`: `sodium` on every target, whatever the program links; `openssl` only where the call names it, as its second template argument (<<hash-default-backend>>).

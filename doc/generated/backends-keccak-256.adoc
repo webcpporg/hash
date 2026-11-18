@@ -27,10 +27,24 @@
 | -
 | not stated
 
+| `digests::keccak_224`
+| `openssl`
+| `/webcpp/hash//openssl`
+| native, wasip2, wasip3
+| -
+| not stated
+
 | `digests::keccak_256`
 | `xkcp`
 | `/third_party//xkcp`
 | native, wasip2, wasip3, emscripten
+| -
+| not stated
+
+| `digests::keccak_256`
+| `openssl`
+| `/webcpp/hash//openssl`
+| native, wasip2, wasip3
 | -
 | not stated
 
@@ -41,16 +55,31 @@
 | -
 | not stated
 
+| `digests::keccak_384`
+| `openssl`
+| `/webcpp/hash//openssl`
+| native, wasip2, wasip3
+| -
+| not stated
+
 | `digests::keccak_512`
 | `xkcp`
 | `/third_party//xkcp`
 | native, wasip2, wasip3, emscripten
 | -
 | not stated
+
+| `digests::keccak_512`
+| `openssl`
+| `/webcpp/hash//openssl`
+| native, wasip2, wasip3
+| -
+| not stated
 |===
 
 What each backend states on constant time, as the capability table read it:
 
+* `openssl`: OpenSSL 3.5.9: doc/man7/EVP_MD-*.pod, doc/man3/EVP_DigestInit.pod and providers/implementations/digests/ state no constant-time property.
 * `xkcp`: XKCP at d20c8fc: README.markdown, lib/low/KeccakP-1600 and lib/high/Keccak (KeccakSponge, FIPS202/KeccakHash) state no constant-time property.
 
-The default of `digests::keccak_224`, `digests::keccak_256`, `digests::keccak_384` and `digests::keccak_512`: `xkcp` on every target, whatever the program links (<<hash-default-backend>>).
+The default of `digests::keccak_224`, `digests::keccak_256`, `digests::keccak_384` and `digests::keccak_512`: `xkcp` on every target, whatever the program links; `openssl` only where the call names it, as its second template argument (<<hash-default-backend>>).

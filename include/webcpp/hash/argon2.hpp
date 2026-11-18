@@ -6,13 +6,13 @@
 
 /**
  Argon2id, RFC 9106: `argon2id`, version 0x13 with one lane, no secret and no associated data, on
- `backends::sodium` (libsodium's `crypto_pwhash_argon2id`), with libsodium's three presets; and the
- family `argon2` (spec 2.15): Argon2d, Argon2i and Argon2id with every parameter of RFC 9106, on the
- backends that have each (from increment 2, Argon2i on libsodium with one lane; from increment 4,
- every parameter on OpenSSL).
+ `backends::sodium` (libsodium's `crypto_pwhash_argon2id`, the default) and `backends::openssl`
+ (OpenSSL's "ARGON2ID"), with libsodium's three presets; and the family `argon2` (spec 2.15):
+ Argon2d, Argon2i and Argon2id with every parameter of RFC 9106, on the backends that have each
+ (Argon2i on libsodium with one lane; every variant and every parameter on OpenSSL).
 
  Every guard runs before any work, and a guard's refusal leaves the output as it was; a backend's
- failure zeroes it. libsodium allocates the memory the costs name.
+ failure zeroes it. The backend allocates the memory the costs name.
 
  @code
  // password: std::span<std::uint8_t const>; salt: 16 random bytes, stored with the tag
@@ -140,9 +140,11 @@ template <class Backend>
  `output_bytes` from `password_bytes` and `salt_bytes`.
 
  @tparam Backend The backend; by default @ref default_backend of `kdfs::argon2id` (spec 4.1),
- `backends::sodium`, the only one that has it.
+ `backends::sodium`; or `backends::openssl`, named.
  @param output_bytes The tag, 16 to 4,294,967,295 bytes; it must not overlap `password_bytes` or
  `salt_bytes` (libsodium zeroes it before it reads them).
+ @note On `backends::openssl` the memory is at most 4 TiB less 1 KiB, 4 GiB less 1 KiB on wasm32
+ (libsodium's: the same natively, 2 GiB on wasm32); a larger one is `invalid_parameters`.
  @param password_bytes The password, at most 4,294,967,295 bytes.
  @param salt_bytes The salt, of `argon2id_salt_size` bytes.
  @param cost_parameters The costs.
@@ -176,7 +178,8 @@ template <class Backend = default_backend<kdfs::argon2id>>
  bytes (the 268,435,456 bytes of `argon2id_moderate` are 262,144 KiB).
 
  A backend that lacks a parameter's value answers `unsupported_by_backend` (libsodium: one lane, no
- secret, no associated data, at least 3 passes for Argon2i).
+ secret, no associated data, at least 3 passes for Argon2i; OpenSSL: every value, but m of at most
+ 4,194,303 KiB on wasm32, where the memory is a `size_t`).
 */
 struct argon2_parameters {
     /** The number of passes over the memory, t: at least 1. */
@@ -268,7 +271,8 @@ template <class Variant, class Backend>
 
  @tparam Variant `kdfs::argon2id` (recommended for passwords), `kdfs::argon2i` or `kdfs::argon2d`.
  @tparam Backend The backend; by default @ref default_backend of `Variant` (spec 4.1):
- `backends::sodium` for Argon2id and Argon2i, none for Argon2d, which names its backend.
+ `backends::sodium` for Argon2id and Argon2i, none for Argon2d, which names its backend
+ (`backends::openssl`, which has every variant with every parameter).
  @param output The tag, 4 to 4,294,967,295 bytes; it must not overlap the inputs.
  @param password The password, at most 4,294,967,295 bytes.
  @param salt The salt, 8 to 4,294,967,295 bytes (16 random bytes are the usual choice).
@@ -299,9 +303,12 @@ template <class Variant, class Backend = default_backend<Variant>>
 
 // backends::sodium when the program links libsodium, after the presets, which its header checks
 // against libsodium's macros: a program that includes only this header gets argon2id's default
-// backend complete here.
+// backend complete here; and backends::openssl when it links OpenSSL.
 #ifdef WEBCPP_HASH_HAS_SODIUM
 #include <webcpp/hash/backends/sodium.hpp>
+#endif
+#ifdef WEBCPP_HASH_HAS_OPENSSL
+#include <webcpp/hash/backends/openssl.hpp>
 #endif
 
 #endif  // WEBCPP_HASH_ARGON2_HPP

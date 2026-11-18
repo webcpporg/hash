@@ -75,9 +75,19 @@ using backend_tags =
     std::tuple<hash::backends::hash2, hash::backends::xkcp, hash::backends::blake3,
                hash::backends::sodium, hash::backends::bearssl, hash::backends::openssl>;
 
-// The functions with a Backend parameter: those over an hmac, and those over none.
-using hmac_functions = test::kdf_operations;
-using plain_functions = std::tuple<kdfs::argon2id, kdfs::scrypt, kdfs::blake2b_subkey>;
+// The functions with a Backend parameter: those over an hmac (increment 1's and kbkdf), and those
+// over none (sskdf and x963kdf take a digest, which no column of the table names).
+template <class First, class Second>
+struct joined;
+
+template <class... First, class... Second>
+struct joined<std::tuple<First...>, std::tuple<Second...>> {
+    using type = std::tuple<First..., Second...>;
+};
+
+using hmac_functions = joined<test::kdf_operations, std::tuple<kdfs::kbkdf_hmac>>::type;
+using plain_functions =
+    std::tuple<kdfs::argon2id, kdfs::scrypt, kdfs::blake2b_subkey, kdfs::sskdf, kdfs::x963kdf>;
 
 template <class Function>
 constexpr std::string_view function_name() {
@@ -87,6 +97,12 @@ constexpr std::string_view function_name() {
         return "scrypt";
     } else if constexpr (std::is_same_v<Function, kdfs::blake2b_subkey>) {
         return "blake2b_subkey";
+    } else if constexpr (std::is_same_v<Function, kdfs::kbkdf_hmac>) {
+        return "kbkdf";
+    } else if constexpr (std::is_same_v<Function, kdfs::sskdf>) {
+        return "sskdf";
+    } else if constexpr (std::is_same_v<Function, kdfs::x963kdf>) {
+        return "x963kdf";
     } else {
         return test::name_of_operation<Function>();
     }
@@ -309,14 +325,18 @@ void check_backend_fields(json::object const& table) {
     check_cell_fields(table, tagged);
 }
 
-// Each function's default, the backend default_backend names for its tag; a type row has none.
-// The asynchronous family's default is the same (ruling R76, the owner's decision O2): the table
-// has no column of its own for it.
+// Each function's default, the backend default_backend names for its tag, null for a function
+// without one (detail::no_default); a type row has none. The asynchronous family's default is the
+// same (ruling R76, the owner's decision O2): the table has no column of its own for it.
 template <class Function>
 void check_default(json::object const& table) {
     auto const& listed = function_row(table, function_name<Function>()).at("default");
-    std::string_view const chosen = test::name_of<hash::default_backend<Function>>();
-    if (!BOOST_TEST(listed.is_string() && listed.as_string() == chosen)) {
+    using chosen_backend = hash::default_backend<Function>;
+    std::string_view const chosen = test::name_of<chosen_backend>();
+    bool const agrees = std::is_same_v<chosen_backend, hash::detail::no_default>
+                            ? listed.is_null()
+                            : listed.is_string() && listed.as_string() == chosen;
+    if (!BOOST_TEST(agrees)) {
         std::cerr << "  default of " << function_name<Function>() << '\n';
     }
     BOOST_TEST(
@@ -366,7 +386,7 @@ void check_cell_fields(json::object const& table, names const& tagged) {
 }
 
 // Every tag of the families (spec 2.15), with its qualified name: a row of the file has it as its
-// name. `macs::hmac` over keccak_256 and sm3 stand for the hmacs no backend has yet.
+// name. `macs::hmac` over whirlpool stands for the hmacs no backend has yet.
 using digest_tags =
     std::tuple<digests::md5, digests::sha1, digests::sha2_224, digests::sha2_256, digests::sha2_384,
                digests::sha2_512, digests::sha2_512_224, digests::sha2_512_256, digests::sha3_224,
@@ -424,10 +444,12 @@ using mac_tags = std::tuple<
     macs::hmac<digests::sha2_512_224>, macs::hmac<digests::sha2_512_256>,
     macs::hmac<digests::sha3_224>, macs::hmac<digests::sha3_256>, macs::hmac<digests::sha3_384>,
     macs::hmac<digests::sha3_512>, macs::hmac<digests::ripemd_160>, macs::hmac<digests::blake2b>,
-    macs::hmac<digests::blake2s_256>, macs::hmac<digests::keccak_256>, macs::hmac<digests::sm3>,
-    macs::kmac_128, macs::kmac_256, macs::siphash_2_4, macs::siphash_2_4x, macs::blake2b_mac,
-    macs::blake2s_mac>;
-constexpr std::array<std::string_view, 23> mac_names{
+    macs::hmac<digests::blake2s_256>, macs::hmac<digests::keccak_224>,
+    macs::hmac<digests::keccak_256>, macs::hmac<digests::keccak_384>,
+    macs::hmac<digests::keccak_512>, macs::hmac<digests::md5_sha1>, macs::hmac<digests::sm3>,
+    macs::hmac<digests::whirlpool>, macs::kmac_128, macs::kmac_256, macs::siphash_2_4,
+    macs::siphash_2_4x, macs::blake2b_mac, macs::blake2s_mac>;
+constexpr std::array<std::string_view, 28> mac_names{
     "macs::hmac<digests::md5>",
     "macs::hmac<digests::sha1>",
     "macs::hmac<digests::sha2_224>",
@@ -443,8 +465,13 @@ constexpr std::array<std::string_view, 23> mac_names{
     "macs::hmac<digests::ripemd_160>",
     "macs::hmac<digests::blake2b>",
     "macs::hmac<digests::blake2s_256>",
+    "macs::hmac<digests::keccak_224>",
     "macs::hmac<digests::keccak_256>",
+    "macs::hmac<digests::keccak_384>",
+    "macs::hmac<digests::keccak_512>",
+    "macs::hmac<digests::md5_sha1>",
     "macs::hmac<digests::sm3>",
+    "macs::hmac<digests::whirlpool>",
     "macs::kmac_128",
     "macs::kmac_256",
     "macs::siphash_2_4",
@@ -528,13 +555,19 @@ void call_digest(std::string_view name) {
 }
 
 // Where Backend has the MAC and the program links it, mac compiles and runs on it, with its
-// longest tag (at most 64 bytes) and its shortest key.
+// longest tag (at most 64 bytes) and its shortest key that the backend takes.
 template <class Tag, class Backend>
 void call_mac(std::string_view name) {
     if constexpr (hash::backend_has_v<Backend, Tag, void> && hash::detail::linked_v<Backend>) {
         using traits = hash::detail::mac_traits<Tag>;
+        using engine = hash::detail::mac_engine<Backend, Tag>;
         std::vector<std::uint8_t> output(std::min(traits::max_output, std::uint64_t{64}));
-        std::vector<std::uint8_t> const key(traits::min_key, 0x0b);
+        auto key_size = static_cast<std::size_t>(traits::min_key);
+        while (!engine::accepts(hash::mac_options<Tag>{}, key_size, output.size()) &&
+               key_size < 64) {
+            ++key_size;
+        }
+        std::vector<std::uint8_t> const key(key_size, 0x0b);
         std::array<std::uint8_t, 3> const input{0x61, 0x62, 0x63};
         if (!BOOST_TEST((hash::mac<Tag, Backend>(output, key, input).has_value()))) {
             std::cerr << "  " << name << " on " << test::name_of<Backend>() << '\n';
@@ -588,7 +621,8 @@ void check_names(json::object const& table) {
         }
     }
     names known_functions{
-        "hkdf_extract", "hkdf_expand", "hkdf", "pbkdf2", "argon2id", "scrypt", "blake2b_subkey",
+        "hkdf_extract", "hkdf_expand",    "hkdf",  "pbkdf2", "argon2id",
+        "scrypt",       "blake2b_subkey", "kbkdf", "sskdf",  "x963kdf",
     };
     for (auto const& row : type_rows()) {
         known_functions.emplace(row.name);
@@ -719,23 +753,25 @@ std::vector<refusal> const& refusals() {
             .functions = {"pbkdf2"},
             .hmacs = {"*"},
         },
+        // A library's text, as the other backends' below: it names argon2id and scrypt as the
+        // functions whose default backend is libsodium's, not as the functions only libsodium has.
         {
             .header = "detail/engines.hpp",
             .start = "backends::sodium, argon2id, scrypt and blake2b_subkey need libsodium.",
             .backend = "sodium",
-            .functions = {"argon2id", "scrypt", "blake2b_subkey"},
+            .functions = {},
             .hmacs = {},
         },
         {
             .header = "detail/engines.hpp",
-            .start = "argon2id is in backends::sodium alone.",
+            .start = "argon2id is in backends::sodium and backends::openssl alone.",
             .backend = "",
             .functions = {"argon2id"},
             .hmacs = {},
         },
         {
             .header = "detail/engines.hpp",
-            .start = "scrypt is in backends::sodium alone.",
+            .start = "scrypt is in backends::sodium and backends::openssl alone.",
             .backend = "",
             .functions = {"scrypt"},
             .hmacs = {},
@@ -929,6 +965,27 @@ std::vector<refusal> const& refusals() {
             .functions = {"hkdf", "pbkdf2"},
             .hmacs = {"other"},
         },
+        {
+            .header = "backends/openssl.hpp",
+            .start = "backends::openssl has kbkdf over the hmacs of hmac.hpp alone",
+            .backend = "openssl",
+            .functions = {"kbkdf"},
+            .hmacs = {"lacks"},
+        },
+        {
+            .header = "kdf_standards.hpp",
+            .start = "sskdf takes a digest of SP 800-56C",
+            .backend = "",
+            .functions = {},
+            .hmacs = {},
+        },
+        {
+            .header = "kdf_standards.hpp",
+            .start = "x963kdf takes a hash function of SEC 1 v2",
+            .backend = "",
+            .functions = {},
+            .hmacs = {},
+        },
     };
     return all;
 }
@@ -992,15 +1049,31 @@ std::string_view family_tag_of(std::string_view text) {
     return qualified ? tag : std::string_view{};
 }
 
-// A family tag's refusal names exactly the backends of the tag's row, none when it has no row.
-// Returns whether the text is a family tag's.
+// The row of a function whose tag is `tag` (kbkdf's is kdfs::kbkdf_hmac), or null when none is.
+json::object const* row_of_tag(json::object const& table, std::string_view tag) {
+    for (auto const* function : functions_of(table)) {
+        auto const* const listed = function->if_contains("tag");
+        if (listed != nullptr && listed->is_string() && listed->as_string() == tag) {
+            return function;
+        }
+    }
+    return nullptr;
+}
+
+// A family tag's refusal names exactly the backends of the tag's row (a family's row, named by
+// the tag, or a function's, which names it as its tag), none when it has no row. Returns whether
+// the text is a family tag's.
 bool check_family_refusal(json::object const& table, std::string const& text) {
     std::string_view const tag = family_tag_of(text);
     if (tag.empty()) {
         return false;
     }
     names row;
-    if (auto const* const found = find_row(table, tag); found != nullptr) {
+    auto const* found = find_row(table, tag);
+    if (found == nullptr) {
+        found = row_of_tag(table, tag);
+    }
+    if (found != nullptr) {
         for (auto const& backend : found->at("backends").as_object()) {
             if (!asynchronous_backends(table).contains(backend.key())) {
                 row.emplace(backend.key());

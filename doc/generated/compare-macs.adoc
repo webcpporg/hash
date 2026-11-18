@@ -278,6 +278,41 @@
 | RFC 2104
 | recommended
 | no
+
+| <<hash-macs-openssl,`macs::hmac<digests::keccak_224>`>>
+| 224 bits
+| 112 bits and more
+| RFC 2104
+| legacy
+| no
+
+| <<hash-macs-openssl,`macs::hmac<digests::keccak_256>`>>
+| 256 bits
+| 128 bits and more
+| RFC 2104
+| legacy
+| no
+
+| <<hash-macs-openssl,`macs::hmac<digests::keccak_384>`>>
+| 384 bits
+| 192 bits and more
+| RFC 2104
+| legacy
+| no
+
+| <<hash-macs-openssl,`macs::hmac<digests::keccak_512>`>>
+| 512 bits
+| 256 bits and more
+| RFC 2104
+| legacy
+| no
+
+| <<hash-macs-openssl,`macs::hmac<digests::sm3>`>>
+| 256 bits
+| 128 bits and more
+| RFC 2104
+| recommended
+| no
 |===
 
 [#hash-macs-choose]
@@ -513,6 +548,36 @@
 | -
 | link:https://www.wireguard.com/protocol/[WireGuard's HKDF]
 | To compute a tag in one call, on a backend named in the call; hmac_blake2s_256 itself to feed the message in pieces.
+
+| <<hash-macs-openssl,`macs::hmac<digests::keccak_224>`>>
+| -
+| -
+| link:https://keccak.team/files/Keccak-reference-3.0.pdf[The Keccak team's final SHA-3 submission, before FIPS 202 changed the padding]
+| Only where a format names HMAC over Keccak-224; HMAC over SHA3-224 for anything new.
+
+| <<hash-macs-openssl,`macs::hmac<digests::keccak_256>`>>
+| -
+| -
+| link:https://keccak.team/files/Keccak-reference-3.0.pdf[The Keccak team's final SHA-3 submission, before FIPS 202 changed the padding]
+| Only where a format names HMAC over Keccak-256; HMAC over SHA3-256 for anything new.
+
+| <<hash-macs-openssl,`macs::hmac<digests::keccak_384>`>>
+| -
+| -
+| link:https://keccak.team/files/Keccak-reference-3.0.pdf[The Keccak team's final SHA-3 submission, before FIPS 202 changed the padding]
+| Only where a format names HMAC over Keccak-384; HMAC over SHA3-384 for anything new.
+
+| <<hash-macs-openssl,`macs::hmac<digests::keccak_512>`>>
+| -
+| -
+| link:https://keccak.team/files/Keccak-reference-3.0.pdf[The Keccak team's final SHA-3 submission, before FIPS 202 changed the padding]
+| Only where a format names HMAC over Keccak-512; HMAC over SHA3-512 for anything new.
+
+| <<hash-macs-openssl,`macs::hmac<digests::sm3>`>>
+| -
+| -
+| link:https://www.rfc-editor.org/rfc/rfc8998[RFC 8998, ShangMi cipher suites for TLS 1.3, whose HKDF runs HMAC-SM3]; link:https://github.com/openssl/openssl/blob/openssl-3.5.9/test/recipes/30-test_evp_data/evpmac_sm3.txt[GM/T 0042-2015's HMAC-SM3 test cases, in OpenSSL's evpmac_sm3.txt]
+| Where a Chinese standard or a regulator requires SM3, naming backends::openssl; HMAC-SHA-256 everywhere else.
 |===
 
 The measured columns are doc/measurements.json's, a reference measured on 2026-11-16 on Apple M5 Max that decides nothing: the native throughput over 1 MiB, or the time of one derivation over `hmac_sha2_256`, of the fastest backend, and the smallest Emscripten program that calls the function; <<hash-measurements>> has every backend on every target.

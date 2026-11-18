@@ -5,8 +5,8 @@
 // https://www.boost.org/LICENSE_1_0.txt)
 
 // Argon2i and Argon2id by libsodium's private core, argon2_ctx, which takes what crypto_pwhash_*
-// does not: lanes, a secret and associated data. The tests reach it through
-// /third_party//sodium-test-config, whose include directories hold crypto_pwhash/argon2.
+// does not: lanes, a secret and associated data (libsodium has no Argon2d). The tests reach it
+// through /third_party//sodium-test-config, whose include directories hold crypto_pwhash/argon2.
 
 #ifndef WEBCPP_TEST_HASH_SUPPORT_ARGON2_REFERENCE_HPP
 #define WEBCPP_TEST_HASH_SUPPORT_ARGON2_REFERENCE_HPP
