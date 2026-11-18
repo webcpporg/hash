@@ -552,10 +552,11 @@ void check_blake2s_kat() {
     std::size_t run = 0;
     for (auto const& entry : doc.as_array()) {
         auto const& vector = entry.as_object();
-        if (vector.at("hash").as_string() != "blake2s" || vector.at("key").as_string().empty()) {
+        auto const& key_hex = vector.at("key").as_string();
+        if (vector.at("hash").as_string() != "blake2s" || key_hex.empty()) {
             continue;
         }
-        auto const key = test::from_hex(vector.at("key").as_string());
+        auto const key = test::from_hex(key_hex);
         auto const input = test::from_hex(vector.at("in").as_string());
         bytes tag(32);
         BOOST_TEST((hash::mac<macs::blake2s_mac, openssl>(tag, key, input)));
