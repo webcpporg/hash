@@ -14,21 +14,25 @@
 #ifndef WEBCPP_HASH_DETAIL_XKCP_STORAGE_H
 #define WEBCPP_HASH_DETAIL_XKCP_STORAGE_H
 
-/* KeccakWidth1600_SpongeInstance: 216 bytes. */
-#define WEBCPP_HASH_XKCP_SPONGE_WORDS 27
-/* Keccak_HashInstance: 224 bytes. */
-#define WEBCPP_HASH_XKCP_KECCAK_HASH_WORDS 28
-/* TurboSHAKE_Instance: 216 bytes. */
-#define WEBCPP_HASH_XKCP_TURBOSHAKE_WORDS 27
-/* KangarooTwelve_Instance: 464 bytes natively, 456 on wasm32. */
-#define WEBCPP_HASH_XKCP_KANGAROOTWELVE_WORDS 58
-/* cSHAKE_Instance: 240 bytes. */
-#define WEBCPP_HASH_XKCP_CSHAKE_WORDS 30
-/* KMAC_Instance: 248 bytes. */
-#define WEBCPP_HASH_XKCP_KMAC_WORDS 31
-/* TupleHash_Instance: 248 bytes. */
-#define WEBCPP_HASH_XKCP_TUPLEHASH_WORDS 31
-/* ParallelHash_Instance: 472 bytes natively, 456 on wasm32. */
-#define WEBCPP_HASH_XKCP_PARALLELHASH_WORDS 59
+/* One enumeration, a constant expression in C and in C++ alike (a C++ template argument, a C
+ * static assertion), and not a macro, so that no macro of a number reaches a program. */
+enum webcpp_hash_xkcp_storage_words {
+    /* KeccakWidth1600_SpongeInstance: 216 bytes. */
+    WEBCPP_HASH_XKCP_SPONGE_WORDS = 27,
+    /* Keccak_HashInstance: 224 bytes. */
+    WEBCPP_HASH_XKCP_KECCAK_HASH_WORDS = 28,
+    /* TurboSHAKE_Instance: 216 bytes. */
+    WEBCPP_HASH_XKCP_TURBOSHAKE_WORDS = 27,
+    /* KangarooTwelve_Instance: 464 bytes natively, 456 on wasm32. */
+    WEBCPP_HASH_XKCP_KANGAROOTWELVE_WORDS = 58,
+    /* cSHAKE_Instance: 240 bytes. */
+    WEBCPP_HASH_XKCP_CSHAKE_WORDS = 30,
+    /* KMAC_Instance: 248 bytes. */
+    WEBCPP_HASH_XKCP_KMAC_WORDS = 31,
+    /* TupleHash_Instance: 248 bytes. */
+    WEBCPP_HASH_XKCP_TUPLEHASH_WORDS = 31,
+    /* ParallelHash_Instance: 472 bytes natively, 456 on wasm32. */
+    WEBCPP_HASH_XKCP_PARALLELHASH_WORDS = 59,
+};
 
 #endif
