@@ -270,8 +270,8 @@ Keyed BLAKE2b (RFC 7693, section 2.5) is a MAC by itself: the key goes into
 the hash's first block, so it needs neither HMAC's second pass nor its
 construction. `mac<macs::blake2b_mac>` computes it on `backends::sodium`, its
 default (libsodium's keyed `crypto_generichash_blake2b`), with a key of 1 to
-64 bytes and a tag of 1 to 64 bytes; a program links `/third_party//sodium`, on every target.
-`backends::openssl` gives the same tags, named in the call
+64 bytes and a tag of 1 to 64 bytes; a program links `/third_party//sodium`,
+on every target. `backends::openssl` gives the same tags, named in the call
 (<<hash-macs-openssl>>).
 
 [source]
@@ -349,5 +349,5 @@ keyed state without clearing it.
 * *An HMAC key is at most `INT_MAX` bytes on OpenSSL,* which takes its length
 as an `int`; a longer one is `unsupported_by_backend`.
 
-The backends of each tag are in the tables of <<hash-kmac>>, <<hash-blake2b-mac-sodium>>,
-<<hash-siphash>> and <<hash-hmac>>.
+The backends of each tag are in the tables of <<hash-kmac>>,
+<<hash-blake2b-mac-sodium>>, <<hash-siphash>> and <<hash-hmac>>.
