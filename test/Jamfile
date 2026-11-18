@@ -378,8 +378,8 @@ hash-run capabilities_emscripten : capabilities_test.cpp
 # the target counts it, the C library's allocator are called zero times by
 # every public function and backend, the families included, on every target
 # (a control moves the counter). Argon2 and scrypt allocate inside libsodium
-# and are asserted free of operator new only. Each library's functions are exercised where it
-# is linked.
+# and are asserted free of operator new only. Each library's functions are
+# exercised where it is linked.
 # On WASI the C allocator is counted through the linker's --wrap
 # (support/counting.hpp), for the references of this program and its libraries.
 hash-run allocation : allocation_test.cpp
