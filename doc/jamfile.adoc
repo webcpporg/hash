@@ -20,7 +20,8 @@ sources, for the program's target:
 | nothing more
 | every target
 
-| `keccak_256`
+| `keccak_256`, or a tag on `backends::xkcp` (Keccak, SHA-3, SHAKE, SP 800-185,
+KMAC, KangarooTwelve, TurboSHAKE)
 | `/third_party//xkcp`
 | every target
 
@@ -28,15 +29,17 @@ sources, for the program's target:
 | `/third_party//blake3`
 | every target
 
-| `argon2id`, `scrypt`, or HKDF on `backends::sodium`
+| `argon2id`, `scrypt`, `blake2b_subkey`, or HKDF, BLAKE2b, SipHash, SHA-2,
+SHA-3, SHAKE, TurboSHAKE, HMAC and `argon2` on `backends::sodium`
 | `/third_party//sodium`
 | every target
 
-| HKDF on `backends::bearssl`
+| HKDF, a digest or HMAC on `backends::bearssl`
 | `/third_party//bearssl`
 | every target
 
-| HKDF and PBKDF2 on `backends::openssl`
+| HKDF, PBKDF2, scrypt, Argon2, KBKDF, the one-step KDF, the X9.63 KDF, a
+digest or a MAC on `backends::openssl`
 | `/webcpp/hash//openssl`
 | native, wasip2, wasip3
 |===
@@ -76,8 +79,8 @@ messages, by what causes them:
 |===
 | Cause | What to change
 
-| `keccak_256`, `blake3`, `argon2id`, `scrypt` or a backend used without its
-library
+| `keccak_256`, `blake3`, `argon2id`, `scrypt`, a backend, or a tag whose
+default is a backend, used without its library
 | The message is "... needs XKCP" (or BLAKE3's C implementation, libsodium,
 BearSSL, OpenSSL) and gives the whole Jamfile line, as
 `exe app : app.cpp /webcpp/hash//hash /third_party//xkcp ;`: add that library.
@@ -102,17 +105,74 @@ one asked for.
 | `hmac_ripemd_128` on `backends::openssl`
 | OpenSSL 3.5 has no RIPEMD-128: name `backends::hash2`.
 
-| `argon2id` or `scrypt` on another backend than `backends::sodium`
+| `kbkdf` over an hmac `backends::openssl` does not have
+| No backend has it: use an hmac of `hmac.hpp` but `hmac_ripemd_128`.
+
+| `sskdf` or `x963kdf` over a digest its standard does not take
+| The message lists the digests the standard takes (SP 800-56C: SHA-1, SHA-2,
+SHA-3; ANSI X9.63: SHA-1, SHA-224 to SHA-512): name one.
+
+| `argon2id` or `scrypt` on another backend than `backends::sodium` or
+`backends::openssl`
+| Name one of them and add `/third_party//sodium` or `/webcpp/hash//openssl`.
+
+| `blake2b_subkey` on another backend than `backends::sodium`
 | Name `backends::sodium` and add `/third_party//sodium`.
 
 | A key derivation over a type that is not a Boost.Hash2 hmac of a digest
 | Pass an hmac, as `hmac_sha2_256`.
 
+| `digest_of`, `hasher`, `mac` or `argon2` over a tag a backend does not have
+| The message names the backends that have it, as "digests::blake3 is not in
+this backend. Name one of: backends::blake3.": name one of them.
+
+| A tag with no default backend, called without a backend
+| The message is "... has no default backend. Name one of: ...": name one of
+the backends it lists as the second template argument.
+
+| `digest_of`, `hasher`, `mac` or `argon2` over a type that is not a tag
+| Pass a tag of `digests`, `macs`, or `kdfs::argon2id` (`argon2i`,
+`argon2d`).
+
+| `backends::webcrypto` named in a synchronous function (`hkdf`, `pbkdf2`,
+`digest_of`, `mac`, ...)
+| WebCrypto is asynchronous: call `async_hkdf` (or `async_pbkdf2`,
+`async_digest`, `async_hmac`) with a completion token, or name a synchronous
+backend (<<hash-async>>).
+
+| `backends::webcrypto` named in an asynchronous function off Emscripten
+| It exists only on Emscripten: name a synchronous backend, or leave the
+default.
+
+| `async_argon2id`, `async_argon2`, `async_scrypt` or `async_pbkdf2` (on a
+synchronous backend) in a build without threads
+| They run on another thread: natively remove `WEBCPP_HASH_NO_THREADS`; on
+Emscripten link with `-pthread` (b2's `threading=multi`); on WASI call the
+synchronous function the message names.
+
+| `async_digest`, `async_hmac` or `async_hkdf` over an algorithm WebCrypto
+lacks
+| They take SHA-1, SHA-256, SHA-384 and SHA-512 (and HMAC and HKDF over them):
+call the synchronous function the message names.
+
+| `backends::webcrypto` given the executor of a `thread_pool` (or of another
+context than an `io_context`)
+| WebCrypto's promise settles in the JavaScript event loop, to which only the
+`run` of an `io_context` returns: pass the executor of the `io_context` run on
+the calling thread (<<hash-async-webcrypto>>). Behind `any_io_executor` the same
+mistake completes with `invalid_parameters`.
+
+| `async_pbkdf2` on `backends::webcrypto` over an hmac WebCrypto lacks
+| WebCrypto's PBKDF2 is over SHA-1 and SHA-2 alone: name a synchronous backend
+for the others.
+
 |===
 
 Every message is tested: each is a test of `test/messages/`, which compiles a
 program that makes the mistake and checks the compiler prints the whole
-text, on every target where the mistake is possible.
+text, on every target where the mistake is possible; on Emscripten, where
+the messages of `backends::webcrypto` alone arise, the same program is a case
+of the superproject's `tools/test/hash_jamfiles_test.py`.
 
 [#hash-exceptions]
 == Exceptions
@@ -139,17 +199,20 @@ started zeroes the output, so that half a key is never used.
 |===
 |Value |Name |Raised when
 
-|1 |`invalid_output_size` |The output is empty or longer than the function produces (HKDF: 255 times the digest; Argon2id: under 16 bytes).
-|2 |`invalid_key_size` |The pseudorandom key given to `hkdf_expand` is not of the hmac's digest size.
+|1 |`invalid_output_size` |The output is not of a size the function produces: empty, not a fixed-size digest's size, or past the function's limits (HKDF: past 255 times the digest; Argon2id: under 16 bytes; HMAC: under 10 bytes).
+|2 |`invalid_key_size` |A key is not of a size the function takes: the pseudorandom key given to `hkdf_expand` is not of the hmac's digest size; a MAC's key is outside the MAC's sizes (SipHash: 16 bytes; keyed BLAKE2b: 1 to 64 bytes; keyed BLAKE2s: 1 to 32 bytes; KMAC: at most `SIZE_MAX / 8` bytes); the key option of the BLAKE2b digest is longer than 64 bytes; the master key of `blake2b_subkey` is not of 32 bytes; the secret or key of `kbkdf`, `sskdf` or `x963kdf` is empty.
 |3 |`invalid_salt_size` |The salt is not of a size the function accepts (Argon2id: 16 bytes).
-|4 |`invalid_iterations` |PBKDF2's iteration count is zero.
-|5 |`invalid_parameters` |A cost is outside the function's limits (Argon2id's passes or memory, scrypt's N, r and p).
+|4 |`invalid_iterations` |PBKDF2's iteration count is zero, or more than the backend takes (`backend_limits<Backend>::pbkdf2_iterations`: 2^32 - 1 on `backends::webcrypto`).
+|5 |`invalid_parameters` |A parameter is outside the function's limits: a cost (Argon2id's passes or memory, Argon2's passes, lanes or memory, scrypt's N, r and p); an option (BLAKE2b's personalisation not of 16 bytes, TurboSHAKE's domain byte outside 0x01 to 0x7F, ParallelHash's block size of zero, the counter width of `kbkdf` other than 8, 16, 24 or 32 bits); the context of `blake2b_subkey` not of 8 bytes; an executor that `backends::webcrypto` cannot complete on.
 |6 |`input_too_long` |An input is longer than the function or the backend accepts (HKDF's info past 32,768 bytes; OpenSSL's `int` lengths).
 |7 |`backend_failure` |A backend failed where its contract says it does not.
 |8 |`unsupported_by_backend` |A parameter the chosen backend does not take.
+|9 |`invalid_state` |A `hasher` is used after its `finish`, once moved from, or after a backend failure spent it.
 |===
 
-Argon2id and scrypt also return `errc::not_enough_memory` of the generic
-category when the memory their costs name cannot be allocated. A value that
-`error` does not define has the message "unknown webcpp.hash error"; the value
-9 is reserved for a later version.
+`argon2id`, `argon2` and `scrypt` on every backend, `kbkdf`, `sskdf` and
+`x963kdf`, and every call on `backends::openssl` (a digest, a hasher, a MAC, a
+key derivation) also return `errc::not_enough_memory` of the generic category
+when the memory they need cannot be allocated: a program that handles the
+errors of hash checks that value too. A value that
+`error` does not define has the message "unknown webcpp.hash error".

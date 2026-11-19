@@ -8,7 +8,7 @@
 
 
 [#hash-backends-of-md5-sha1-sha2]
-.Who implements `md5_128` to `sha2_512_256`, 8 names (RFC 1321, RFC 3174, FIPS 180-4)
+.Who implements `md5_128` to `digests::md5_sha1`, 17 names (RFC 1321, RFC 3174, FIPS 180-4)
 [cols="2,1,2,2,3,1",options="header"]
 |===
 | Function | Backend | The program's Jamfile names | Targets | Hmacs | Constant time
@@ -68,10 +68,232 @@
 | native, wasip2, wasip3, emscripten
 | -
 | not stated
+
+| `digests::md5`
+| `hash2`
+| `/webcpp/hash//hash`
+| native, wasip2, wasip3, emscripten
+| -
+| not stated
+
+| `digests::md5`
+| `bearssl`
+| `/third_party//bearssl`
+| native, wasip2, wasip3, emscripten
+| -
+| not stated
+
+| `digests::md5`
+| `openssl`
+| `/webcpp/hash//openssl`
+| native, wasip2, wasip3
+| -
+| not stated
+
+| `digests::sha1`
+| `hash2`
+| `/webcpp/hash//hash`
+| native, wasip2, wasip3, emscripten
+| -
+| not stated
+
+| `digests::sha1`
+| `bearssl`
+| `/third_party//bearssl`
+| native, wasip2, wasip3, emscripten
+| -
+| not stated
+
+| `digests::sha1`
+| `openssl`
+| `/webcpp/hash//openssl`
+| native, wasip2, wasip3
+| -
+| not stated
+
+| `digests::sha1`
+| `webcrypto` (asynchronous family only)
+| `/webcpp/asio//asio`
+| emscripten
+| -
+| not stated
+
+| `digests::sha2_224`
+| `hash2`
+| `/webcpp/hash//hash`
+| native, wasip2, wasip3, emscripten
+| -
+| not stated
+
+| `digests::sha2_224`
+| `bearssl`
+| `/third_party//bearssl`
+| native, wasip2, wasip3, emscripten
+| -
+| not stated
+
+| `digests::sha2_224`
+| `openssl`
+| `/webcpp/hash//openssl`
+| native, wasip2, wasip3
+| -
+| not stated
+
+| `digests::sha2_256`
+| `hash2`
+| `/webcpp/hash//hash`
+| native, wasip2, wasip3, emscripten
+| -
+| not stated
+
+| `digests::sha2_256`
+| `sodium`
+| `/third_party//sodium`
+| native, wasip2, wasip3, emscripten
+| -
+| not stated
+
+| `digests::sha2_256`
+| `bearssl`
+| `/third_party//bearssl`
+| native, wasip2, wasip3, emscripten
+| -
+| not stated
+
+| `digests::sha2_256`
+| `openssl`
+| `/webcpp/hash//openssl`
+| native, wasip2, wasip3
+| -
+| not stated
+
+| `digests::sha2_256`
+| `webcrypto` (asynchronous family only)
+| `/webcpp/asio//asio`
+| emscripten
+| -
+| not stated
+
+| `digests::sha2_384`
+| `hash2`
+| `/webcpp/hash//hash`
+| native, wasip2, wasip3, emscripten
+| -
+| not stated
+
+| `digests::sha2_384`
+| `bearssl`
+| `/third_party//bearssl`
+| native, wasip2, wasip3, emscripten
+| -
+| not stated
+
+| `digests::sha2_384`
+| `openssl`
+| `/webcpp/hash//openssl`
+| native, wasip2, wasip3
+| -
+| not stated
+
+| `digests::sha2_384`
+| `webcrypto` (asynchronous family only)
+| `/webcpp/asio//asio`
+| emscripten
+| -
+| not stated
+
+| `digests::sha2_512`
+| `hash2`
+| `/webcpp/hash//hash`
+| native, wasip2, wasip3, emscripten
+| -
+| not stated
+
+| `digests::sha2_512`
+| `sodium`
+| `/third_party//sodium`
+| native, wasip2, wasip3, emscripten
+| -
+| not stated
+
+| `digests::sha2_512`
+| `bearssl`
+| `/third_party//bearssl`
+| native, wasip2, wasip3, emscripten
+| -
+| not stated
+
+| `digests::sha2_512`
+| `openssl`
+| `/webcpp/hash//openssl`
+| native, wasip2, wasip3
+| -
+| not stated
+
+| `digests::sha2_512`
+| `webcrypto` (asynchronous family only)
+| `/webcpp/asio//asio`
+| emscripten
+| -
+| not stated
+
+| `digests::sha2_512_224`
+| `hash2`
+| `/webcpp/hash//hash`
+| native, wasip2, wasip3, emscripten
+| -
+| not stated
+
+| `digests::sha2_512_224`
+| `openssl`
+| `/webcpp/hash//openssl`
+| native, wasip2, wasip3
+| -
+| not stated
+
+| `digests::sha2_512_256`
+| `hash2`
+| `/webcpp/hash//hash`
+| native, wasip2, wasip3, emscripten
+| -
+| not stated
+
+| `digests::sha2_512_256`
+| `openssl`
+| `/webcpp/hash//openssl`
+| native, wasip2, wasip3
+| -
+| not stated
+
+| `digests::md5_sha1`
+| `bearssl`
+| `/third_party//bearssl`
+| native, wasip2, wasip3, emscripten
+| -
+| not stated
+
+| `digests::md5_sha1`
+| `openssl`
+| `/webcpp/hash//openssl`
+| native, wasip2, wasip3
+| -
+| not stated
 |===
 
 What each backend states on constant time, as the capability table read it:
 
+* `bearssl`: BearSSL at 7bea48e (v0.6-39): bearssl_hash.h states constant time for its GHASH implementations alone, not for br_md5_*, br_sha1_*, br_sha224_* to br_sha512_* or br_md5sha1_*.
 * `hash2`: Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property.
+* `openssl`: OpenSSL 3.5.9: doc/man7/EVP_MD-*.pod, doc/man3/EVP_DigestInit.pod and providers/implementations/digests/ state no constant-time property.
+* `sodium`: libsodium 1.0.22: its headers state constant time for comparisons (sodium/utils.h) alone, not for its hashing, MAC, key derivation and password hashing functions (crypto_hash_*, crypto_xof_*, crypto_generichash_*, crypto_shorthash_*, crypto_auth_*, crypto_kdf_*, crypto_pwhash_*).
+* `webcrypto`: The Web Cryptography API (W3C Recommendation, 2017) states no constant-time property of digest, sign or deriveBits; each JavaScript runtime's implementation decides, and webcpp reads none.
 
-One backend, `hash2`: the types take no backend.
+`digests::md5_sha1` has no default backend: the call names one of its backends, as its second template argument (<<hash-default-backend>>).
+
+The default of `digests::md5`, `digests::sha1`, `digests::sha2_224` and `digests::sha2_384`: `hash2` on every target, whatever the program links; `bearssl`, `openssl` only where the call names it, as its second template argument (<<hash-default-backend>>).
+
+The default of `digests::sha2_256` and `digests::sha2_512`: `hash2` on every target, whatever the program links; `bearssl`, `openssl`, `sodium` only where the call names it, as its second template argument (<<hash-default-backend>>).
+
+The default of `digests::sha2_512_224` and `digests::sha2_512_256`: `hash2` on every target, whatever the program links; `openssl` only where the call names it, as its second template argument (<<hash-default-backend>>).
+
+`webcrypto` serves the asynchronous family alone, on Emscripten, where the type of its asynchronous call names it (<<hash-async-webcrypto>>).

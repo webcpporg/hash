@@ -63,6 +63,10 @@ constexpr std::string_view name_of() {
         return "bearssl";
     } else if constexpr (std::is_same_v<Backend, backends::openssl>) {
         return "openssl";
+    } else if constexpr (std::is_same_v<Backend, backends::xkcp>) {
+        return "xkcp";
+    } else if constexpr (std::is_same_v<Backend, backends::blake3>) {
+        return "blake3";
     } else {
         return "?";
     }
@@ -78,6 +82,10 @@ constexpr std::string_view name_of_macro() {
         return "BEARSSL";
     } else if constexpr (std::is_same_v<Backend, backends::openssl>) {
         return "OPENSSL";
+    } else if constexpr (std::is_same_v<Backend, backends::xkcp>) {
+        return "XKCP";
+    } else if constexpr (std::is_same_v<Backend, backends::blake3>) {
+        return "BLAKE3";
     } else {
         return "?";
     }
@@ -141,6 +149,16 @@ inline constexpr bool openssl_linked = true;
 #else
 inline constexpr bool openssl_linked = false;
 #endif
+#ifdef WEBCPP_HASH_HAS_XKCP
+inline constexpr bool xkcp_linked = true;
+#else
+inline constexpr bool xkcp_linked = false;
+#endif
+#ifdef WEBCPP_HASH_HAS_BLAKE3
+inline constexpr bool blake3_linked = true;
+#else
+inline constexpr bool blake3_linked = false;
+#endif
 
 // Whether the program links Backend.
 template <class Backend>
@@ -148,7 +166,9 @@ constexpr bool linked() {
     return std::is_same_v<Backend, backends::hash2> ||
            (std::is_same_v<Backend, backends::sodium> && sodium_linked) ||
            (std::is_same_v<Backend, backends::bearssl> && bearssl_linked) ||
-           (std::is_same_v<Backend, backends::openssl> && openssl_linked);
+           (std::is_same_v<Backend, backends::openssl> && openssl_linked) ||
+           (std::is_same_v<Backend, backends::xkcp> && xkcp_linked) ||
+           (std::is_same_v<Backend, backends::blake3> && blake3_linked);
 }
 
 // Calls check.template operator()<Operation, Hmac>() for every cell of the key derivations.

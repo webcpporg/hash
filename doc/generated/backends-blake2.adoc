@@ -8,7 +8,7 @@
 
 
 [#hash-backends-of-blake2]
-.Who implements `blake2b_512`, `blake2s_256` (RFC 7693)
+.Who implements `blake2b_512` to `digests::blake2s_256`, 4 names (RFC 7693)
 [cols="2,1,2,2,3,1",options="header"]
 |===
 | Function | Backend | The program's Jamfile names | Targets | Hmacs | Constant time
@@ -26,10 +26,49 @@
 | native, wasip2, wasip3, emscripten
 | -
 | not stated
+
+| `digests::blake2b`
+| `hash2` (partial: an output under 64 bytes, a key, a salt or a personalisation: BLAKE2b's output size is a parameter of the hash, and Boost.Hash2's blake2b_512 has 64 bytes and no option alone)
+| `/webcpp/hash//hash`
+| native, wasip2, wasip3, emscripten
+| -
+| not stated
+
+| `digests::blake2b`
+| `sodium`
+| `/third_party//sodium`
+| native, wasip2, wasip3, emscripten
+| -
+| not stated
+
+| `digests::blake2b`
+| `openssl` (partial: a key, a salt or a personalisation: OpenSSL's BLAKE2B-512 digest is unkeyed BLAKE2b of 1 to 64 bytes (its parameter size), and its keyed BLAKE2b is the MAC BLAKE2BMAC)
+| `/webcpp/hash//openssl`
+| native, wasip2, wasip3
+| -
+| not stated
+
+| `digests::blake2s_256`
+| `hash2`
+| `/webcpp/hash//hash`
+| native, wasip2, wasip3, emscripten
+| -
+| not stated
+
+| `digests::blake2s_256`
+| `openssl`
+| `/webcpp/hash//openssl`
+| native, wasip2, wasip3
+| -
+| not stated
 |===
 
 What each backend states on constant time, as the capability table read it:
 
 * `hash2`: Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property.
+* `openssl`: OpenSSL 3.5.9: doc/man7/EVP_MD-*.pod, doc/man3/EVP_DigestInit.pod and providers/implementations/digests/ state no constant-time property.
+* `sodium`: libsodium 1.0.22: its headers state constant time for comparisons (sodium/utils.h) alone, not for its hashing, MAC, key derivation and password hashing functions (crypto_hash_*, crypto_xof_*, crypto_generichash_*, crypto_shorthash_*, crypto_auth_*, crypto_kdf_*, crypto_pwhash_*).
 
-One backend, `hash2`: the types take no backend.
+The default of `digests::blake2b`: `sodium` on every target, whatever the program links; `hash2`, `openssl` only where the call names it, as its second template argument (<<hash-default-backend>>).
+
+The default of `digests::blake2s_256`: `hash2` on every target, whatever the program links; `openssl` only where the call names it, as its second template argument (<<hash-default-backend>>).

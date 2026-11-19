@@ -18,24 +18,63 @@ webcpp.targets native wasip2 wasip3 emscripten ;
 webcpp.example sha256.cpp ;
 webcpp.example sha3_shake.cpp ;
 webcpp.example keccak_256.cpp : <library>/third_party//xkcp ;
+webcpp.example keccak_family.cpp : <library>/third_party//xkcp ;
+webcpp.example sp800_185.cpp : <library>/third_party//xkcp ;
+webcpp.example kangarootwelve.cpp : <library>/third_party//xkcp ;
 webcpp.example blake2b.cpp ;
+webcpp.example blake2b_options.cpp : <library>/third_party//sodium ;
+webcpp.example turboshake.cpp : <library>/third_party//sodium ;
 webcpp.example blake3.cpp : <library>/third_party//blake3 ;
 webcpp.example ripemd160.cpp ;
+webcpp.example md5_sha1.cpp : <library>/third_party//bearssl ;
+# OpenSSL is built for native, wasip2 and wasip3, never for Emscripten.
+webcpp.example sm3.cpp : <library>/webcpp/hash//openssl : native wasip2 wasip3 ;
+webcpp.example digest_family.cpp ;
 
 # Message authentication: a MAC is compared with webcpp::crypto::equal, and a
 # hash table's key comes from webcpp::crypto::random_device.
 webcpp.example hmac_sha256.cpp : <library>/webcpp/crypto//crypto ;
 webcpp.example siphash.cpp : <library>/webcpp/crypto//crypto ;
+webcpp.example mac_family.cpp : <library>/webcpp/crypto//crypto ;
+webcpp.example siphash_sodium.cpp : <library>/third_party//sodium ;
+webcpp.example hmac_sodium.cpp : <library>/third_party//sodium
+  <library>/webcpp/crypto//crypto ;
+webcpp.example blake2b_mac_sodium.cpp : <library>/third_party//sodium
+  <library>/webcpp/crypto//crypto ;
+webcpp.example kmac.cpp : <library>/webcpp/crypto//crypto
+  <library>/third_party//xkcp ;
+webcpp.example macs_openssl.cpp : <library>/webcpp/hash//openssl : native wasip2 wasip3 ;
 
 # Key derivation.
 webcpp.example hkdf.cpp ;
 webcpp.example hkdf_backends.cpp : <library>/third_party//sodium
   <library>/third_party//bearssl ;
 webcpp.example pbkdf2.cpp ;
+webcpp.example blake2b_subkey.cpp : <library>/third_party//sodium ;
+webcpp.example kbkdf.cpp : <library>/webcpp/hash//openssl : native wasip2 wasip3 ;
+webcpp.example sskdf.cpp : <library>/webcpp/hash//openssl : native wasip2 wasip3 ;
+webcpp.example x963kdf.cpp : <library>/webcpp/hash//openssl : native wasip2 wasip3 ;
 
 # Password hashing.
 webcpp.example argon2id.cpp : <library>/third_party//sodium ;
+webcpp.example argon2_family.cpp : <library>/third_party//sodium ;
 webcpp.example scrypt.cpp : <library>/third_party//sodium ;
+webcpp.example argon2_openssl.cpp : <library>/webcpp/hash//openssl
+  : native wasip2 wasip3 ;
+webcpp.example scrypt_openssl.cpp : <library>/webcpp/hash//openssl
+  : native wasip2 wasip3 ;
+
+# Asynchronous calls, over webcpp::asio's event loop: a cheap function on every
+# target; a heavy one on a thread pool where the program has threads,
+# natively and on Emscripten with -pthread, whose worker starts before main
+# blocks in the loop (PTHREAD_POOL_SIZE).
+webcpp.example async_hkdf.cpp : <library>/webcpp/asio//asio ;
+webcpp.example async_argon2id.cpp : <library>/webcpp/asio//asio
+  <library>/third_party//sodium <threading>multi
+  <toolset>emscripten:<linkflags>-sPTHREAD_POOL_SIZE=1
+  : native emscripten ;
+# backends::webcrypto, the browser's WebCrypto, on Emscripten alone.
+webcpp.example async_webcrypto.cpp : <library>/webcpp/asio//asio : emscripten ;
 
 # Hashes that are not cryptographic.
 webcpp.example checksums.cpp ;
@@ -51,4 +90,4 @@ webcpp.example bitcoin_hash160.cpp ;
 webcpp.example ethereum_address.cpp : <library>/third_party//xkcp ;
 webcpp.example password_storage.cpp : <library>/third_party//sodium
   <library>/webcpp/crypto//crypto ;
-webcpp.example subkeys.cpp ;
+webcpp.example subkeys.cpp : <library>/third_party//sodium ;

@@ -6,8 +6,10 @@
 
 project : requirements <library>/webcpp/hash//hash ;
 
+import feature ;
 import regex ;
 import webcpp ;
+import webcpp-target ;
 
 webcpp.targets native wasip2 wasip3 emscripten ;
 
@@ -26,24 +28,40 @@ webcpp.headers-alone hash : ../include :
     hash/algorithms.hpp
     hash/argon2.hpp
     hash/backends/hash2.hpp
+    hash/blake2b_subkey.hpp
     hash/config.hpp
     hash/detail/engines.hpp
     hash/detail/limits.hpp
     hash/detail/wipe.hpp
     hash/detail/xkcp.hpp
+    hash/digest.hpp
     hash/error.hpp
     hash/hkdf.hpp
     hash/hmac.hpp
     hash/kdf.hpp
+    hash/kdf_standards.hpp
+    hash/mac.hpp
     hash/pbkdf2.hpp
     hash/scrypt.hpp ;
 # keccak.hpp compiles alone only with XKCP, whose target defines
 # WEBCPP_HASH_HAS_XKCP (without it, it stops with its message).
 webcpp.headers-alone hash : ../include : hash/keccak.hpp : <library>/third_party//xkcp ;
+webcpp.headers-alone hash : ../include : hash/backends/xkcp.hpp
+  : <library>/third_party//xkcp ;
 # blake3.hpp compiles alone only with BLAKE3's library, which defines
 # WEBCPP_HASH_HAS_BLAKE3 (without it, it stops with its message).
 webcpp.headers-alone hash : ../include : hash/blake3.hpp
   : <library>/third_party//blake3 ;
+webcpp.headers-alone hash : ../include : hash/backends/blake3.hpp
+  : <library>/third_party//blake3 ;
+# async.hpp compiles alone only with webcpp::asio, which hash.hpp does not
+# bring (spec 11.2).
+webcpp.headers-alone hash : ../include : hash/async.hpp
+  : <library>/webcpp/asio//asio ;
+# backends/webcrypto.hpp, which async.hpp includes, likewise: its engine on
+# Emscripten, its limits on every target.
+webcpp.headers-alone hash : ../include : hash/backends/webcrypto.hpp
+  : <library>/webcpp/asio//asio ;
 # backends/bearssl.hpp compiles alone only with BearSSL, whose target defines
 # WEBCPP_HASH_HAS_BEARSSL (without it, it stops with its message).
 webcpp.headers-alone hash : ../include : hash/backends/bearssl.hpp
@@ -56,13 +74,13 @@ webcpp.headers-alone hash : ../include : hash/backends/sodium.hpp
 
 # backends/openssl.hpp compiles alone only with /webcpp/hash//openssl, which
 # defines WEBCPP_HASH_HAS_OPENSSL, on the targets where webcpp builds OpenSSL.
-# Every other C library is linked too, so that every public header compiles
-# with these options (the lint's aggregate translation unit,
+# Every other C library is linked too, and webcpp::asio, so that every public
+# header compiles with these options (the lint's aggregate translation unit,
 # tools/lint/compile_commands.py).
 webcpp.headers-alone hash : ../include : hash/backends/openssl.hpp
   : <library>/webcpp/hash//openssl <library>/third_party//xkcp
     <library>/third_party//blake3 <library>/third_party//bearssl
-    <library>/third_party//sodium
+    <library>/third_party//sodium <library>/webcpp/asio//asio
   : native wasip2 wasip3 ;
 
 # config.hpp defines WEBCPP_HASH_NO_EXCEPTIONS exactly when webcpp has no
@@ -75,6 +93,21 @@ webcpp.compile config_all_off : config_test.cpp
 webcpp.compile config_developer_defined : config_test.cpp
   : <define>WEBCPP_HASH_NO_EXCEPTIONS <define>WEBCPP_TEST_HASH_DEVELOPER_DEFINED ;
 
+# config.hpp defines WEBCPP_HASH_HAS_THREADS natively (BOOST_HAS_THREADS, in
+# every native build) and on Emscripten with -pthread, never on WASI, and never
+# with WEBCPP_HASH_NO_THREADS (spec 11.5, ruling R70): as the build asks; with
+# threading=multi natively and on Emscripten (b2 adds -pthread); on wasip3's
+# cooperative sysroot, which takes threading=multi without exceptions alone;
+# and with the developer's WEBCPP_HASH_NO_THREADS.
+webcpp.compile config_single : config_threads_test.cpp ;
+webcpp.compile config_threads : config_threads_test.cpp
+  : <threading>multi <define>WEBCPP_TEST_HASH_MULTI : native emscripten ;
+webcpp.compile config_threads_wasip3 : config_threads_test.cpp
+  : <threading>multi <exception-handling>off <define>WEBCPP_TEST_HASH_MULTI
+  : wasip3 ;
+webcpp.compile config_no_threads : config_threads_test.cpp
+  : <define>WEBCPP_HASH_NO_THREADS ;
+
 hash-run error : error_test.cpp ;
 
 # Boost.Hash2's algorithms and HMAC are webcpp::hash's names for them.
@@ -86,6 +119,34 @@ hash-run keccak : keccak_test.cpp : <library>/third_party//xkcp ;
 # public keccak_224 to keccak_512, their published digests, and keccak_256's
 # agreement with webcpp's.
 hash-run upstream_keccak : upstream_keccak_test.cpp : <library>/third_party//xkcp ;
+# The adapter's functions over XKCP's high-level interfaces, in webcpp's
+# storage, against FIPS 202's, SP 800-185's and RFC 9861's values
+# (detail/xkcp.hpp).
+hash-run xkcp_adapter : xkcp_adapter_test.cpp : <library>/third_party//xkcp ;
+# Keccak-224 to -512, SHA-3 and SHAKE on backends::xkcp through digest_of and
+# hasher, against XKCP's ShortMsgKAT files, the Keccak team's digests and
+# Boost.Hash2.
+hash-run xkcp_fips202 : xkcp_fips202_test.cpp
+  : <library>/third_party//xkcp <library>/third_party//xkcp_vectors ;
+# SP 800-185 on backends::xkcp: cSHAKE, TupleHash and ParallelHash through
+# digest_of and hasher, KMAC through mac, against NIST's samples and values
+# of an implementation independent of XKCP; their options and guards. Then
+# the guards of SP 800-185's lengths in bits, the limit lowered to 16 bytes
+# through the seam WEBCPP_HASH_DETAIL_TEST_SP800_185_MAX_BYTES.
+hash-run xkcp_sp800_185 : xkcp_sp800_185_test.cpp
+  : <library>/third_party//xkcp ;
+hash-run xkcp_sp800_185_limits : xkcp_sp800_185_limits_test.cpp
+  : <library>/third_party//xkcp
+    <define>WEBCPP_HASH_DETAIL_TEST_SP800_185_MAX_BYTES=16 ;
+# RFC 9861's KT128, KT256, TurboSHAKE128 and TurboSHAKE256 on XKCP: every
+# vector of the RFC, in one call and in pieces; the domain byte's guard. Then
+# the guard of XKCP's count of KangarooTwelve's chunks, the limit lowered to
+# 16 bytes through the seam WEBCPP_HASH_DETAIL_TEST_KANGAROOTWELVE_MAX_BYTES.
+hash-run xkcp_kangarootwelve : xkcp_kangarootwelve_test.cpp
+  : <library>/third_party//xkcp ;
+hash-run xkcp_kangarootwelve_limits : xkcp_kangarootwelve_limits_test.cpp
+  : <library>/third_party//xkcp
+    <define>WEBCPP_HASH_DETAIL_TEST_KANGAROOTWELVE_MAX_BYTES=16 ;
 # hash.hpp's branch for XKCP.
 webcpp.compile hash_keccak : hash_keccak_test.cpp : <library>/third_party//xkcp ;
 # keccak_256's read of the canary survives optimisation: with the library it
@@ -103,12 +164,74 @@ hash-run blake3_vectors : blake3_vectors_test.cpp
   : <library>/third_party//blake3 <library>/third_party//blake3_vectors
     <library>/webcpp//boost_json ;
 
+# The families of spec 2.15, digest_of, hasher, mac and argon2: their guards
+# and failures on the mock backend (support/mock_backend.hpp); Boost.Hash2's
+# digests and HMACs on backends::hash2, keccak_256 on backends::xkcp and
+# BLAKE3's extendable output on backends::blake3 against the Hash2-form types;
+# every tag's default backend. hasher's state machine, and its wipes reported
+# through the seam WEBCPP_HASH_DETAIL_TEST_WIPE_RECORD.
+hash-run families : families_test.cpp
+  : <library>/third_party//xkcp <library>/third_party//blake3 ;
+hash-run hasher_state : hasher_state_test.cpp
+  : <define>WEBCPP_HASH_DETAIL_TEST_WIPE_RECORD ;
+# SHAKE128 and SHAKE256 on backends::hash2, a whole extendable output, against
+# the SHAKE cases of OpenSSL's evpmd_sha.txt, read at run time: FIPS 202's
+# examples squeezed past several blocks, and NIST's shorter cases.
+hash-run hash2_shake_vectors : hash2_shake_vectors_test.cpp
+  : <library>/third_party//openssl_evp_data ;
+# SipHash-2-4 and keyed BLAKE2s on backends::hash2 against published vectors
+# read at run time: Wycheproof's siphash_2_4_test.json and the keyed BLAKE2s
+# cases of OpenSSL's evpmac_blake.txt.
+hash-run hash2_mac_vectors : hash2_mac_vectors_test.cpp
+  : <library>/third_party//wycheproof <library>/third_party//openssl_evp_data
+    <library>/webcpp//boost_json ;
+
 # HKDF (RFC 5869) on backends::hash2: the RFC's seven cases and three more
 # computed by Python's hmac; the guards at their limits; the wipes, each one
 # reported through the seam WEBCPP_HASH_DETAIL_TEST_WIPE_RECORD.
 hash-run hkdf_hash2 : hkdf_hash2_test.cpp ;
 hash-run hkdf_guards : hkdf_guards_test.cpp ;
 hash-run wipe : wipe_test.cpp : <define>WEBCPP_HASH_DETAIL_TEST_WIPE_RECORD ;
+
+# digests::blake2b on backends::sodium, libsodium's crypto_generichash_blake2b
+# with key, salt, personalisation and output size: BLAKE2's keyed and unkeyed
+# vectors and libsodium's generichash3.exp, read at run time; the guards.
+hash-run blake2b_sodium : blake2b_sodium_test.cpp
+  : <library>/third_party//sodium <library>/third_party//blake2_vectors
+    <library>/third_party//sodium_vectors <library>/webcpp//boost_json ;
+
+# macs::siphash_2_4 and macs::siphash_2_4x on backends::sodium, libsodium's
+# crypto_shorthash_siphash24 and crypto_shorthash_siphashx24: the SipHash
+# paper's vectors (libsodium's shorthash.exp), which backends::hash2 and
+# siphash_64 also give, and siphashx24.exp, read at run time; the guards.
+hash-run siphash_sodium : siphash_sodium_test.cpp
+  : <library>/third_party//sodium <library>/third_party//sodium_vectors ;
+
+# macs::blake2b_mac on backends::sodium, its default, libsodium's keyed
+# crypto_generichash_blake2b: BLAKE2's keyed KAT read at run time, Boost.Hash2's
+# keyed blake2b_512 and digests::blake2b on random cases, every key and tag
+# size, the guards, and the wipe of libsodium's state, reported through the
+# seam WEBCPP_HASH_DETAIL_TEST_WIPE_RECORD.
+hash-run blake2b_mac_sodium : blake2b_mac_sodium_test.cpp
+  : <library>/third_party//sodium <library>/third_party//blake2_vectors
+    <define>WEBCPP_HASH_DETAIL_TEST_WIPE_RECORD ;
+
+# blake2b_subkey on backends::sodium, libsodium's
+# crypto_kdf_blake2b_derive_from_key: kdf.exp read at run time, the
+# construction through digest_of, ids past 32 bits, the guards.
+hash-run kdf_blake2b_sodium : kdf_blake2b_sodium_test.cpp
+  : <library>/third_party//sodium <library>/third_party//sodium_vectors ;
+
+# SHAKE128/256 and TurboSHAKE128/256 on backends::sodium, libsodium's
+# crypto_xof_*: RFC 9861's TurboSHAKE vectors, FIPS 202's SHAKE examples,
+# Boost.Hash2's SHAKE past one rate block, TurboSHAKE's domain byte.
+hash-run xof_sodium : xof_sodium_test.cpp : <library>/third_party//sodium ;
+
+# SHA-256, SHA-512, SHA3-256, SHA3-512 and HMAC over SHA-256 and SHA-512 on
+# backends::sodium: Boost.Hash2 on random inputs, RFC 4231, and libsodium's
+# HMAC-SHA-512-256 as HMAC-SHA-512 cut to 32 bytes.
+hash-run digests_sodium : digests_sodium_test.cpp
+  : <library>/third_party//sodium ;
 
 # HKDF on backends::sodium, over libsodium's crypto_kdf_hkdf_sha256 and
 # crypto_kdf_hkdf_sha512: RFC 5869's A.1 to A.3, a SHA-512 case that
@@ -144,6 +267,11 @@ hash-run hkdf_bearssl_canary : hkdf_bearssl_canary_test.cpp
 webcpp.link-fail hkdf_bearssl_canary_other_commit : hkdf_bearssl_canary_test.cpp
   : <library>/third_party//bearssl <optimization>speed
     <define>WEBCPP_HASH_BEARSSL_CANARY_COMMIT=0000000 ;
+# The families on backends::bearssl: MD5, SHA-1, SHA-2, MD5-SHA1 and SHAKE
+# through digest_of and hasher, HMAC through mac, against Boost.Hash2 on random
+# inputs, RFC 4231 and RFC 2202, and the wipe of BearSSL's contexts.
+hash-run families_bearssl : families_bearssl_test.cpp
+  : <library>/third_party//bearssl <define>WEBCPP_HASH_DETAIL_TEST_WIPE_RECORD ;
 
 # HKDF and PBKDF2 on backends::openssl (OpenSSL 3.5.9's EVP_KDF), on the
 # targets where webcpp builds OpenSSL: the RFCs' cases and backends::hash2's
@@ -160,6 +288,32 @@ hash-run openssl_failure : openssl_failure_test.cpp
   : <library>/webcpp/hash//openssl
     <define>"\"WEBCPP_HASH_DETAIL_TEST_OPENSSL_DIGEST=\\\"NO-SUCH-DIGEST\\\"\""
   : native wasip2 wasip3 ;
+# The digests of backends::openssl (OpenSSL 3.5.9's EVP_MD), through digest_of
+# and hasher: Boost.Hash2's digests, Keccak-224 to Keccak-512 and SHAKE against
+# Boost.Hash2, Keccak-256 against backends::xkcp, BLAKE2b against
+# backends::sodium, the published Keccak and SM3 (GB/T 32905) values, and the
+# hasher's EVP_MD_CTX freed, counted through CRYPTO_set_mem_functions.
+hash-run digests_openssl : digests_openssl_test.cpp
+  : <library>/webcpp/hash//openssl <library>/third_party//xkcp
+    <library>/third_party//sodium
+  : native wasip2 wasip3 ;
+# The MACs of backends::openssl (OpenSSL 3.5.9's EVP_MAC), through mac: HMAC
+# over every digest against Boost.Hash2's hmac<H> and Wycheproof; KMAC against
+# NIST's samples (evpmac_common.txt), Wycheproof and a second implementation
+# over Hash2's Keccak; keyed BLAKE2 against BLAKE2's KAT, evpmac_blake.txt,
+# libsodium and Hash2; SipHash against Wycheproof, evpmac_siphash.txt, Hash2
+# and libsodium.
+hash-run macs_openssl : macs_openssl_test.cpp
+  : <library>/webcpp/hash//openssl <library>/third_party//sodium
+    <library>/third_party//wycheproof <library>/third_party//openssl_evp_data
+    <library>/third_party//blake2_vectors <library>/webcpp//boost_json
+  : native wasip2 wasip3 ;
+# OpenSSL out of memory: each allocation of a call of backends::openssl (mac,
+# digest_of, hasher::make, argon2, argon2id, scrypt) made to fail in turn,
+# through CRYPTO_set_mem_functions; the answer, the output zeroed, every block
+# freed and the error queue empty.
+hash-run openssl_out_of_memory : openssl_out_of_memory_test.cpp
+  : <library>/webcpp/hash//openssl : native wasip2 wasip3 ;
 # backends::openssl's limits (OpenSSL holds some lengths in an int), natively:
 # spans of INT_MAX + 1 bytes over a few, which the guards refuse before
 # anything reads them.
@@ -184,6 +338,17 @@ hash-run agreement_pbkdf2 : agreement_pbkdf2_test.cpp
     <library>/webcpp/hash//openssl : native wasip2 wasip3 ;
 hash-run agreement_pbkdf2_emscripten : agreement_pbkdf2_test.cpp
   : <library>/third_party//sodium <library>/third_party//bearssl : emscripten ;
+# The families across increments: every tag two backends or more have, and
+# every tag of backends::openssl, through digest_of, hasher, mac and argon2,
+# on seeded cases (1,000 per digest and MAC, 100 per Argon2 variant), against
+# every other backend of its row, a partial cell held to what it serves.
+hash-run agreement_families : agreement_families_test.cpp
+  : <library>/third_party//xkcp <library>/third_party//blake3
+    <library>/third_party//sodium <library>/third_party//bearssl
+    <library>/webcpp/hash//openssl : native wasip2 wasip3 ;
+hash-run agreement_families_emscripten : agreement_families_test.cpp
+  : <library>/third_party//xkcp <library>/third_party//blake3
+    <library>/third_party//sodium <library>/third_party//bearssl : emscripten ;
 # Naming the alias refuses an Emscripten program, by the forced include (its
 # message is a fixture of tools/test/hash_jamfiles_test.py). The source is
 # one that builds and runs on Emscripten without the alias (hkdf_hash2), so
@@ -199,6 +364,49 @@ hash-run webcrypto_oracle : webcrypto_oracle_test.cpp
   : <library>/third_party//sodium <library>/third_party//bearssl
     <linkflags>-sJSPI : emscripten ;
 
+# The asynchronous family (spec 11). The cheap functions on a synchronous
+# backend, their default and backends::hash2 named, complete through a post,
+# never inside the call, on every target. The heavy functions run on a
+# thread_pool's thread where the build has threads: natively and on Emscripten
+# with -pthread (threading=multi), whose pools' three workers start before
+# main blocks in run (PTHREAD_POOL_SIZE).
+hash-run async_post : async_post_test.cpp : <library>/webcpp/asio//asio ;
+# backends::webcrypto, node's crypto.subtle through webcpp::asio's promise
+# bridge (Emscripten only, asio's JSPI link): the published cases with three
+# completion tokens, 100 random cases per function against backends::hash2,
+# the guards and WebCrypto's limits, an executor of another context, a
+# cancellation and the handler's allocator.
+hash-run async_webcrypto : async_webcrypto_test.cpp
+  : <library>/webcpp/asio//asio : emscripten ;
+hash-run async_heavy : async_heavy_test.cpp
+  : <library>/webcpp/asio//asio <library>/third_party//sodium <threading>multi
+    <toolset>emscripten:<linkflags>-sPTHREAD_POOL_SIZE=3
+  : native emscripten ;
+# co_await in Cobalt (webcpp::cobalt's use_op), on every target: the cheap
+# functions, natively a heavy one on a pool, on Emscripten backends::webcrypto.
+# Boost.Cobalt's promise has no unhandled_exception in a build without
+# exceptions, which clang warns of natively: the warning is Boost.Cobalt's,
+# which hash cannot change, so that one warning is suppressed in that twin
+# alone (libs/cobalt/test/Jamfile only keeps it from being an error).
+rule cobalt-native-no-exceptions ( properties * )
+{
+    if [ webcpp-target.target-of $(properties) ] = native
+      && <exception-handling>off in $(properties)
+      && [ feature.get-values <toolset> : $(properties) ] = clang
+    {
+        return <cxxflags>-Wno-coroutine-missing-unhandled-exception ;
+    }
+}
+hash-run async_cobalt : async_cobalt_test.cpp
+  : <library>/webcpp/cobalt//core <conditional>@cobalt-native-no-exceptions ;
+# The browser's model on Emscripten with pthreads under node: an Argon2id of
+# 64 MiB on a pool of Web Workers, completing on main_thread_context's
+# executor while the main thread's timer keeps firing.
+hash-run async_main_thread : async_main_thread_test.cpp
+  : <library>/webcpp/asio//asio <library>/third_party//sodium <threading>multi
+    <linkflags>-sPTHREAD_POOL_SIZE=2
+  : emscripten ;
+
 # Argon2id on backends::sodium: RFC 9106's case through libsodium's core
 # argon2_ctx (four lanes, a secret, associated data); three cases of
 # libsodium's own table, argon2id against argon2_ctx on 20 random cases, the
@@ -210,6 +418,21 @@ hash-run argon2id : argon2id_test.cpp
 hash-run argon2id_interactive : argon2id_interactive_test.cpp
   : <library>/third_party//sodium <library>/third_party//sodium-test-config ;
 
+# The family argon2 on backends::sodium (Argon2i and Argon2id, one lane):
+# three cases of libsodium's Argon2i table, read from pwhash_argon2i.exp, both
+# variants against argon2_ctx, and the values libsodium does not take.
+hash-run argon2_sodium : argon2_sodium_test.cpp
+  : <library>/third_party//sodium <library>/third_party//sodium-test-config
+    <library>/third_party//sodium_vectors ;
+
+# backends::sodium on a second thread after the first has used it, natively
+# and on Emscripten with -pthread, whose worker starts before main blocks in
+# join (PTHREAD_POOL_SIZE): libsodium's JavaScript random source is per thread.
+hash-run sodium_threads : sodium_threads_test.cpp
+  : <library>/third_party//sodium <threading>multi
+    <toolset>emscripten:<linkflags>-sPTHREAD_POOL_SIZE=1
+  : native emscripten ;
+
 # scrypt on backends::sodium: RFC 7914's first three cases and the guards.
 hash-run scrypt : scrypt_test.cpp : <library>/third_party//sodium ;
 # RFC 7914's fourth case (1 GiB), on every target: it passed natively and on
@@ -217,6 +440,34 @@ hash-run scrypt : scrypt_test.cpp : <library>/third_party//sodium ;
 # each in 5 to 25 seconds unoptimised (wasmtime 47.0.3, node 26.13).
 hash-run scrypt_rfc7914_large : scrypt_rfc7914_large_test.cpp
   : <library>/third_party//sodium ;
+
+# Argon2 and scrypt on backends::openssl (OpenSSL 3.5.9's EVP_KDFs ARGON2D,
+# ARGON2I, ARGON2ID and SCRYPT, one thread), where webcpp builds OpenSSL:
+# RFC 9106's three cases, every case of OpenSSL's evpkdf_argon2.txt, argon2_ctx
+# on random cases and libsodium at one lane; RFC 7914's first three cases,
+# libsodium's scrypt and OpenSSL's narrower r p; RFC 7914's fourth case and a
+# case past OpenSSL's default memory limit (1.125 GiB) in a program of its own,
+# about 3.25 GiB of scrypt: unoptimised it took 15 s natively (2.1 GiB
+# resident at its peak, macOS) and 16 s on wasip2 (wasmtime 47.0.3).
+hash-run argon2_openssl : argon2_openssl_test.cpp
+  : <library>/webcpp/hash//openssl <library>/third_party//sodium
+    <library>/third_party//sodium-test-config
+    <library>/third_party//openssl_evp_data
+  : native wasip2 wasip3 ;
+# KBKDF (SP 800-108), SSKDF (SP 800-56C) and the X9.63 KDF on backends::openssl
+# (OpenSSL 3.5.9's EVP_KDFs), where webcpp builds OpenSSL: every HMAC case of
+# OpenSSL's evpkdf_kbkdf_counter.txt (NIST CAVP's), every hash-form case of
+# evpkdf_ss.txt and every case of evpkdf_x963.txt, read at run time; a second
+# implementation over Boost.Hash2 on random cases; the standards' guards.
+hash-run kdf_standards_openssl : kdf_standards_openssl_test.cpp
+  : <library>/webcpp/hash//openssl <library>/third_party//openssl_evp_data
+  : native wasip2 wasip3 ;
+hash-run scrypt_openssl : scrypt_openssl_test.cpp
+  : <library>/webcpp/hash//openssl <library>/third_party//sodium
+  : native wasip2 wasip3 ;
+hash-run scrypt_openssl_large : scrypt_openssl_large_test.cpp
+  : <library>/webcpp/hash//openssl <library>/third_party//sodium
+  : native wasip2 wasip3 ;
 
 # The default backends (spec 4.1): backends::hash2 for every key derivation,
 # backends::sodium for argon2id and scrypt, whatever the program links and
@@ -244,7 +495,8 @@ hash-default default_backend_former_defines : default_backend_test.cpp
     <define>WEBCPP_HASH_DEFAULT_BACKEND_PBKDF2_BEARSSL ;
 
 # doc/capabilities.json against backend_has_v cell by cell, its defaults
-# against default_backend, and the refusal texts of the headers against its
+# against default_backend and default_async_backend (async.hpp, which needs
+# webcpp::asio), and the refusal texts of the headers against its
 # rows. Read at run time from the directories the defines give, quoted as
 # wycheproof's are, with forward slashes, and preopened on WASI.
 path-constant HASH_TEST_DOC : ../doc ;
@@ -257,35 +509,45 @@ path-constant HASH_TEST_INCLUDE : ../include ;
     <define>"\"WEBCPP_TEST_HASH_INCLUDE=\\\"$(.hash-include)\\\"\""
     [ webcpp.data $(HASH_TEST_DOC) $(HASH_TEST_INCLUDE) ]
     <dependency>../doc/capabilities.json
+    <dependency>../include/webcpp/hash/async.hpp
+    <dependency>../include/webcpp/hash/detail/engines.hpp
+    <dependency>../include/webcpp/hash/kdf.hpp
     <dependency>../include/webcpp/hash/backends/bearssl.hpp
     <dependency>../include/webcpp/hash/backends/openssl.hpp
-    <dependency>../include/webcpp/hash/backends/sodium.hpp ;
+    <dependency>../include/webcpp/hash/backends/sodium.hpp
+    <dependency>../include/webcpp/hash/backends/webcrypto.hpp ;
 # capabilities links every library its target has, so that a backend's targets
 # in the table can be checked against what links here.
 hash-run capabilities : capabilities_test.cpp
-  : $(.hash-tables) <library>/third_party//xkcp <library>/third_party//blake3
+  : $(.hash-tables) <library>/webcpp/asio//asio
+    <library>/third_party//xkcp <library>/third_party//blake3
     <library>/third_party//sodium <library>/third_party//bearssl
     <library>/webcpp/hash//openssl
   : native wasip2 wasip3 ;
 hash-run capabilities_emscripten : capabilities_test.cpp
-  : $(.hash-tables) <library>/third_party//xkcp <library>/third_party//blake3
+  : $(.hash-tables) <library>/webcpp/asio//asio
+    <library>/third_party//xkcp <library>/third_party//blake3
     <library>/third_party//sodium <library>/third_party//bearssl
   : emscripten ;
 
 # No allocation in webcpp's code (spec section 7.7): operator new and, where
 # the target counts it, the C library's allocator are called zero times by
-# every public function and backend, on every target (a control moves the
-# counter). Argon2id and scrypt allocate inside libsodium and are asserted
-# free of operator new only. Each library's functions are exercised where it
-# is linked.
+# every public function and backend, the families and the asynchronous family
+# included, on every target (a control moves the counter). Argon2 and scrypt
+# allocate inside libsodium and are asserted free of operator new only. Each
+# library's functions are exercised where it is linked; the asynchronous
+# family's storage is the handler's allocator's.
 # On WASI the C allocator is counted through the linker's --wrap
 # (support/counting.hpp), for the references of this program and its libraries.
 hash-run allocation : allocation_test.cpp
-  : <library>/third_party//xkcp <library>/third_party//blake3
+  : <library>/webcpp/asio//asio
+    <library>/third_party//xkcp <library>/third_party//blake3
     <library>/third_party//sodium <library>/third_party//bearssl
     <target-os>wasi:<linkflags>-Wl,--wrap=malloc,--wrap=calloc,--wrap=realloc,--wrap=aligned_alloc,--wrap=posix_memalign ;
-# OpenSSL's own allocations per call, measured through
-# CRYPTO_set_mem_functions and printed, never bounded; operator new zero.
+# OpenSSL's own allocations per call of every entry point backends::openssl
+# has (its digests, MACs and key derivations), measured through
+# CRYPTO_set_mem_functions and printed, never bounded; operator new zero, and
+# no allocation at all for a refusal by a guard.
 hash-run allocation_openssl : allocation_openssl_test.cpp
   : <library>/webcpp/hash//openssl
     <target-os>wasi:<linkflags>-Wl,--wrap=malloc,--wrap=calloc,--wrap=realloc,--wrap=aligned_alloc,--wrap=posix_memalign

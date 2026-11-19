@@ -1,0 +1,6 @@
+kmac_128 3b1fba963cd8b0b59e8c1a6d71888b7143651af8ba0a7070c0979e2811324aa5
+kmacxof_128 16 bytes are the start of 32: yes
+hmac sm3 2e87f1d16862e6d964b50a5200bf2b10b764faa9680a296a2405f24bec39f882
+blake2b_mac d63a32d3e44738d7907f964316c241adaba0abfeabc32349677578a15a203f7f
+siphash_2_4x a3817f04ba25a8e66df67214c7550293
+3-byte KMAC key: the backend does not take this parameter; name a backend that does

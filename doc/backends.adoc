@@ -12,45 +12,58 @@
 Which backend implements each function, over which hmacs, on which targets, and what upstream
 states about its constant time. The backends:
 
-[cols="1,3,1,2,3",options="header"]
+[cols="1,3,1,2,2,2",options="header"]
 |===
-| Backend | Library | Licence | Jamfile | Targets
+| Backend | Library | Licence | Jamfile | Targets | Called by
 
 | hash2
 | Boost.Hash2 1.92, and webcpp's own HKDF and PBKDF2 over its hmac<H>
 | BSL-1.0
 | `/webcpp/hash//hash`
 | native, wasip2, wasip3, emscripten
+| every function of its cells
 
 | xkcp
-| XKCP's Keccak-p[1600] at d20c8fc
+| XKCP at d20c8fc: its Keccak-p[1600], FIPS 202's Keccak_Hash, SP 800-185's functions, KangarooTwelve and TurboSHAKE
 | CC0-1.0
 | `/third_party//xkcp`
 | native, wasip2, wasip3, emscripten
+| every function of its cells
 
 | blake3
 | BLAKE3's C implementation 1.8.7
 | CC0-1.0 or Apache-2.0
 | `/third_party//blake3`
 | native, wasip2, wasip3, emscripten
+| every function of its cells
 
 | sodium
 | libsodium 1.0.22
 | ISC
 | `/third_party//sodium`
 | native, wasip2, wasip3, emscripten
+| every function of its cells
 
 | bearssl
-| BearSSL at webcpp::crypto's pin
+| BearSSL at 7bea48e (v0.6-39)
 | MIT
 | `/third_party//bearssl`
 | native, wasip2, wasip3, emscripten
+| every function of its cells
 
 | openssl
 | OpenSSL 3.5.9
 | Apache-2.0
 | `/webcpp/hash//openssl`
 | native, wasip2, wasip3
+| every function of its cells
+
+| webcrypto
+| the JavaScript runtime's Web Cryptography API (crypto.subtle): the browser's, or node's
+| none (an API of the JavaScript runtime, linked by nothing)
+| `/webcpp/asio//asio`
+| emscripten
+| asynchronous family only (async.hpp)
 |===
 
 === Digests
@@ -107,6 +120,186 @@ states about its constant time. The backends:
 | not stated
 | native, wasip2, wasip3, emscripten
 
+| digests::md5
+| hash2
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| digests::md5
+| bearssl
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| digests::md5
+| openssl
+| -
+| not stated
+| native, wasip2, wasip3
+
+| digests::sha1
+| hash2
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| digests::sha1
+| bearssl
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| digests::sha1
+| openssl
+| -
+| not stated
+| native, wasip2, wasip3
+
+| digests::sha1
+| webcrypto (asynchronous family only)
+| -
+| not stated
+| emscripten
+
+| digests::sha2_224
+| hash2
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| digests::sha2_224
+| bearssl
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| digests::sha2_224
+| openssl
+| -
+| not stated
+| native, wasip2, wasip3
+
+| digests::sha2_256
+| hash2
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| digests::sha2_256
+| sodium
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| digests::sha2_256
+| bearssl
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| digests::sha2_256
+| openssl
+| -
+| not stated
+| native, wasip2, wasip3
+
+| digests::sha2_256
+| webcrypto (asynchronous family only)
+| -
+| not stated
+| emscripten
+
+| digests::sha2_384
+| hash2
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| digests::sha2_384
+| bearssl
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| digests::sha2_384
+| openssl
+| -
+| not stated
+| native, wasip2, wasip3
+
+| digests::sha2_384
+| webcrypto (asynchronous family only)
+| -
+| not stated
+| emscripten
+
+| digests::sha2_512
+| hash2
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| digests::sha2_512
+| sodium
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| digests::sha2_512
+| bearssl
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| digests::sha2_512
+| openssl
+| -
+| not stated
+| native, wasip2, wasip3
+
+| digests::sha2_512
+| webcrypto (asynchronous family only)
+| -
+| not stated
+| emscripten
+
+| digests::sha2_512_224
+| hash2
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| digests::sha2_512_224
+| openssl
+| -
+| not stated
+| native, wasip2, wasip3
+
+| digests::sha2_512_256
+| hash2
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| digests::sha2_512_256
+| openssl
+| -
+| not stated
+| native, wasip2, wasip3
+
+| digests::md5_sha1
+| bearssl
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| digests::md5_sha1
+| openssl
+| -
+| not stated
+| native, wasip2, wasip3
+
 | sha3_224
 | hash2
 | -
@@ -143,7 +336,271 @@ states about its constant time. The backends:
 | not stated
 | native, wasip2, wasip3, emscripten
 
+| digests::sha3_224
+| hash2
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| digests::sha3_224
+| xkcp
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| digests::sha3_224
+| openssl
+| -
+| not stated
+| native, wasip2, wasip3
+
+| digests::sha3_256
+| hash2
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| digests::sha3_256
+| xkcp
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| digests::sha3_256
+| sodium
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| digests::sha3_256
+| openssl
+| -
+| not stated
+| native, wasip2, wasip3
+
+| digests::sha3_384
+| hash2
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| digests::sha3_384
+| xkcp
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| digests::sha3_384
+| openssl
+| -
+| not stated
+| native, wasip2, wasip3
+
+| digests::sha3_512
+| hash2
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| digests::sha3_512
+| xkcp
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| digests::sha3_512
+| sodium
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| digests::sha3_512
+| openssl
+| -
+| not stated
+| native, wasip2, wasip3
+
+| digests::shake_128
+| hash2
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| digests::shake_128
+| xkcp
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| digests::shake_128
+| sodium
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| digests::shake_128
+| bearssl
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| digests::shake_128
+| openssl
+| -
+| not stated
+| native, wasip2, wasip3
+
+| digests::shake_256
+| hash2
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| digests::shake_256
+| xkcp
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| digests::shake_256
+| sodium
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| digests::shake_256
+| bearssl
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| digests::shake_256
+| openssl
+| -
+| not stated
+| native, wasip2, wasip3
+
+| digests::turboshake_128
+| xkcp
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| digests::turboshake_128
+| sodium
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| digests::turboshake_256
+| xkcp
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| digests::turboshake_256
+| sodium
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
 | keccak_256
+| xkcp
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| digests::keccak_224
+| xkcp
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| digests::keccak_224
+| openssl
+| -
+| not stated
+| native, wasip2, wasip3
+
+| digests::keccak_256
+| xkcp
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| digests::keccak_256
+| openssl
+| -
+| not stated
+| native, wasip2, wasip3
+
+| digests::keccak_384
+| xkcp
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| digests::keccak_384
+| openssl
+| -
+| not stated
+| native, wasip2, wasip3
+
+| digests::keccak_512
+| xkcp
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| digests::keccak_512
+| openssl
+| -
+| not stated
+| native, wasip2, wasip3
+
+| digests::cshake_128
+| xkcp
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| digests::cshake_256
+| xkcp
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| digests::tuplehash_128
+| xkcp
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| digests::tuplehash_256
+| xkcp
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| digests::parallelhash_128
+| xkcp (partial: a block size that is not a power of two of at least 8 bytes; SP 800-185 takes any from 1)
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| digests::parallelhash_256
+| xkcp (partial: a block size that is not a power of two of at least 8 bytes; SP 800-185 takes any from 1)
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| digests::kt128
+| xkcp
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| digests::kt256
 | xkcp
 | -
 | not stated
@@ -161,7 +618,43 @@ states about its constant time. The backends:
 | not stated
 | native, wasip2, wasip3, emscripten
 
+| digests::blake2b
+| hash2 (partial: an output under 64 bytes, a key, a salt or a personalisation: BLAKE2b's output size is a parameter of the hash, and Boost.Hash2's blake2b_512 has 64 bytes and no option alone)
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| digests::blake2b
+| sodium
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| digests::blake2b
+| openssl (partial: a key, a salt or a personalisation: OpenSSL's BLAKE2B-512 digest is unkeyed BLAKE2b of 1 to 64 bytes (its parameter size), and its keyed BLAKE2b is the MAC BLAKE2BMAC)
+| -
+| not stated
+| native, wasip2, wasip3
+
+| digests::blake2s_256
+| hash2
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| digests::blake2s_256
+| openssl
+| -
+| not stated
+| native, wasip2, wasip3
+
 | blake3
+| blake3
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| digests::blake3
 | blake3
 | -
 | not stated
@@ -178,6 +671,24 @@ states about its constant time. The backends:
 | -
 | not stated
 | native, wasip2, wasip3, emscripten
+
+| digests::ripemd_160
+| hash2
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| digests::ripemd_160
+| openssl
+| -
+| not stated
+| native, wasip2, wasip3
+
+| digests::sm3
+| openssl
+| -
+| not stated
+| native, wasip2, wasip3
 |===
 
 === Macs
@@ -197,6 +708,84 @@ states about its constant time. The backends:
 | -
 | not stated
 | native, wasip2, wasip3, emscripten
+
+| macs::siphash_2_4
+| hash2
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| macs::siphash_2_4
+| sodium
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| macs::siphash_2_4
+| openssl
+| -
+| not stated
+| native, wasip2, wasip3
+
+| macs::siphash_2_4x
+| sodium
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| macs::siphash_2_4x
+| openssl
+| -
+| not stated
+| native, wasip2, wasip3
+
+| macs::kmac_128
+| xkcp
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| macs::kmac_128
+| openssl (partial: a key under 4 or over 512 bytes, a customisation over 512 bytes, or a tag over 2,097,151 bytes: OpenSSL's KMAC limits (kmac_prov.c))
+| -
+| not stated
+| native, wasip2, wasip3
+
+| macs::kmac_256
+| xkcp
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| macs::kmac_256
+| openssl (partial: a key under 4 or over 512 bytes, a customisation over 512 bytes, or a tag over 2,097,151 bytes: OpenSSL's KMAC limits (kmac_prov.c))
+| -
+| not stated
+| native, wasip2, wasip3
+
+| macs::blake2b_mac
+| sodium
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| macs::blake2b_mac
+| openssl
+| -
+| not stated
+| native, wasip2, wasip3
+
+| macs::blake2s_mac
+| hash2 (partial: a tag under 32 bytes: BLAKE2s's output size is a parameter of the hash, and Boost.Hash2's keyed blake2s_256 has 32 bytes alone)
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| macs::blake2s_mac
+| openssl
+| -
+| not stated
+| native, wasip2, wasip3
 
 | hmac
 | hash2
@@ -299,6 +888,288 @@ states about its constant time. The backends:
 | -
 | not stated
 | native, wasip2, wasip3, emscripten
+
+| macs::hmac<digests::md5>
+| hash2
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| macs::hmac<digests::md5>
+| bearssl
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| macs::hmac<digests::md5>
+| openssl (partial: a key of more than INT_MAX bytes: OpenSSL takes HMAC's key length as an int (HMAC_Init_ex))
+| -
+| not stated
+| native, wasip2, wasip3
+
+| macs::hmac<digests::sha1>
+| hash2
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| macs::hmac<digests::sha1>
+| bearssl
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| macs::hmac<digests::sha1>
+| openssl (partial: a key of more than INT_MAX bytes: OpenSSL takes HMAC's key length as an int (HMAC_Init_ex))
+| -
+| not stated
+| native, wasip2, wasip3
+
+| macs::hmac<digests::sha1>
+| webcrypto (asynchronous family only)
+| -
+| not stated
+| emscripten
+
+| macs::hmac<digests::sha2_224>
+| hash2
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| macs::hmac<digests::sha2_224>
+| bearssl
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| macs::hmac<digests::sha2_224>
+| openssl (partial: a key of more than INT_MAX bytes: OpenSSL takes HMAC's key length as an int (HMAC_Init_ex))
+| -
+| not stated
+| native, wasip2, wasip3
+
+| macs::hmac<digests::sha2_256>
+| hash2
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| macs::hmac<digests::sha2_256>
+| sodium
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| macs::hmac<digests::sha2_256>
+| bearssl
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| macs::hmac<digests::sha2_256>
+| openssl (partial: a key of more than INT_MAX bytes: OpenSSL takes HMAC's key length as an int (HMAC_Init_ex))
+| -
+| not stated
+| native, wasip2, wasip3
+
+| macs::hmac<digests::sha2_256>
+| webcrypto (asynchronous family only)
+| -
+| not stated
+| emscripten
+
+| macs::hmac<digests::sha2_384>
+| hash2
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| macs::hmac<digests::sha2_384>
+| bearssl
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| macs::hmac<digests::sha2_384>
+| openssl (partial: a key of more than INT_MAX bytes: OpenSSL takes HMAC's key length as an int (HMAC_Init_ex))
+| -
+| not stated
+| native, wasip2, wasip3
+
+| macs::hmac<digests::sha2_384>
+| webcrypto (asynchronous family only)
+| -
+| not stated
+| emscripten
+
+| macs::hmac<digests::sha2_512>
+| hash2
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| macs::hmac<digests::sha2_512>
+| sodium
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| macs::hmac<digests::sha2_512>
+| bearssl
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| macs::hmac<digests::sha2_512>
+| openssl (partial: a key of more than INT_MAX bytes: OpenSSL takes HMAC's key length as an int (HMAC_Init_ex))
+| -
+| not stated
+| native, wasip2, wasip3
+
+| macs::hmac<digests::sha2_512>
+| webcrypto (asynchronous family only)
+| -
+| not stated
+| emscripten
+
+| macs::hmac<digests::sha2_512_224>
+| hash2
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| macs::hmac<digests::sha2_512_224>
+| openssl (partial: a key of more than INT_MAX bytes: OpenSSL takes HMAC's key length as an int (HMAC_Init_ex))
+| -
+| not stated
+| native, wasip2, wasip3
+
+| macs::hmac<digests::sha2_512_256>
+| hash2
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| macs::hmac<digests::sha2_512_256>
+| openssl (partial: a key of more than INT_MAX bytes: OpenSSL takes HMAC's key length as an int (HMAC_Init_ex))
+| -
+| not stated
+| native, wasip2, wasip3
+
+| macs::hmac<digests::sha3_224>
+| hash2
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| macs::hmac<digests::sha3_224>
+| openssl (partial: a key of more than INT_MAX bytes: OpenSSL takes HMAC's key length as an int (HMAC_Init_ex))
+| -
+| not stated
+| native, wasip2, wasip3
+
+| macs::hmac<digests::sha3_256>
+| hash2
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| macs::hmac<digests::sha3_256>
+| openssl (partial: a key of more than INT_MAX bytes: OpenSSL takes HMAC's key length as an int (HMAC_Init_ex))
+| -
+| not stated
+| native, wasip2, wasip3
+
+| macs::hmac<digests::sha3_384>
+| hash2
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| macs::hmac<digests::sha3_384>
+| openssl (partial: a key of more than INT_MAX bytes: OpenSSL takes HMAC's key length as an int (HMAC_Init_ex))
+| -
+| not stated
+| native, wasip2, wasip3
+
+| macs::hmac<digests::sha3_512>
+| hash2
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| macs::hmac<digests::sha3_512>
+| openssl (partial: a key of more than INT_MAX bytes: OpenSSL takes HMAC's key length as an int (HMAC_Init_ex))
+| -
+| not stated
+| native, wasip2, wasip3
+
+| macs::hmac<digests::ripemd_160>
+| hash2
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| macs::hmac<digests::ripemd_160>
+| openssl (partial: a key of more than INT_MAX bytes: OpenSSL takes HMAC's key length as an int (HMAC_Init_ex))
+| -
+| not stated
+| native, wasip2, wasip3
+
+| macs::hmac<digests::blake2b>
+| hash2
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| macs::hmac<digests::blake2b>
+| openssl (partial: a key of more than INT_MAX bytes: OpenSSL takes HMAC's key length as an int (HMAC_Init_ex))
+| -
+| not stated
+| native, wasip2, wasip3
+
+| macs::hmac<digests::blake2s_256>
+| hash2
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| macs::hmac<digests::blake2s_256>
+| openssl (partial: a key of more than INT_MAX bytes: OpenSSL takes HMAC's key length as an int (HMAC_Init_ex))
+| -
+| not stated
+| native, wasip2, wasip3
+
+| macs::hmac<digests::keccak_224>
+| openssl (partial: a key of more than INT_MAX bytes: OpenSSL takes HMAC's key length as an int (HMAC_Init_ex))
+| -
+| not stated
+| native, wasip2, wasip3
+
+| macs::hmac<digests::keccak_256>
+| openssl (partial: a key of more than INT_MAX bytes: OpenSSL takes HMAC's key length as an int (HMAC_Init_ex))
+| -
+| not stated
+| native, wasip2, wasip3
+
+| macs::hmac<digests::keccak_384>
+| openssl (partial: a key of more than INT_MAX bytes: OpenSSL takes HMAC's key length as an int (HMAC_Init_ex))
+| -
+| not stated
+| native, wasip2, wasip3
+
+| macs::hmac<digests::keccak_512>
+| openssl (partial: a key of more than INT_MAX bytes: OpenSSL takes HMAC's key length as an int (HMAC_Init_ex))
+| -
+| not stated
+| native, wasip2, wasip3
+
+| macs::hmac<digests::sm3>
+| openssl (partial: a key of more than INT_MAX bytes: OpenSSL takes HMAC's key length as an int (HMAC_Init_ex))
+| -
+| not stated
+| native, wasip2, wasip3
 |===
 
 === Non-cryptographic
@@ -422,6 +1293,12 @@ states about its constant time. The backends:
 | not stated
 | native, wasip2, wasip3
 
+| hkdf
+| webcrypto (asynchronous family only) (partial: an info longer than 1,024 bytes, which completes with input_too_long: WebCrypto's limit as node has it, where the other backends take 32,768)
+| hmac_sha1_160, hmac_sha2_256, hmac_sha2_384, hmac_sha2_512
+| not stated
+| emscripten
+
 | pbkdf2
 | hash2
 | hmac_md5_128, hmac_sha1_160, hmac_sha2_224, hmac_sha2_256, hmac_sha2_384, hmac_sha2_512, hmac_sha2_512_224, hmac_sha2_512_256, hmac_sha3_224, hmac_sha3_256, hmac_sha3_384, hmac_sha3_512, hmac_ripemd_128, hmac_ripemd_160, hmac_blake2b_512, hmac_blake2s_256, other
@@ -431,6 +1308,36 @@ states about its constant time. The backends:
 | pbkdf2
 | openssl
 | hmac_md5_128, hmac_sha1_160, hmac_sha2_224, hmac_sha2_256, hmac_sha2_384, hmac_sha2_512, hmac_sha2_512_224, hmac_sha2_512_256, hmac_sha3_224, hmac_sha3_256, hmac_sha3_384, hmac_sha3_512, hmac_ripemd_160, hmac_blake2b_512, hmac_blake2s_256
+| not stated
+| native, wasip2, wasip3
+
+| pbkdf2
+| webcrypto (asynchronous family only) (partial: an iteration count above 2^32 - 1 (invalid_iterations) and an output longer than (2^32 - 1) / 8 bytes (invalid_output_size): WebCrypto's deriveBits counts iterations and bits in 32 bits)
+| hmac_sha1_160, hmac_sha2_256, hmac_sha2_384, hmac_sha2_512
+| not stated
+| emscripten
+
+| blake2b_subkey
+| sodium
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| kbkdf
+| openssl (partial: a key of more than INT_MAX bytes: OpenSSL takes HMAC's key length as an int (HMAC_Init_ex))
+| hmac_md5_128, hmac_sha1_160, hmac_sha2_224, hmac_sha2_256, hmac_sha2_384, hmac_sha2_512, hmac_sha2_512_224, hmac_sha2_512_256, hmac_sha3_224, hmac_sha3_256, hmac_sha3_384, hmac_sha3_512, hmac_ripemd_160, hmac_blake2b_512, hmac_blake2s_256
+| not stated
+| native, wasip2, wasip3
+
+| sskdf
+| openssl (partial: a secret, an info or an output of more than 2^30 bytes: OpenSSL's SSKDF_MAX_INLEN (providers/implementations/kdfs/sskdf.c))
+| -
+| not stated
+| native, wasip2, wasip3
+
+| x963kdf
+| openssl (partial: a secret, an info or an output of more than 2^30 bytes: OpenSSL's SSKDF_MAX_INLEN (providers/implementations/kdfs/sskdf.c))
+| -
 | not stated
 | native, wasip2, wasip3
 |===
@@ -447,11 +1354,53 @@ states about its constant time. The backends:
 | not stated
 | native, wasip2, wasip3, emscripten
 
+| argon2id
+| openssl
+| -
+| not stated
+| native, wasip2, wasip3
+
+| kdfs::argon2d
+| openssl (partial: m above 4,194,303 KiB on wasm32: OpenSSL sizes Argon2's memory, m blocks of 1 KiB, in a size_t)
+| -
+| not stated
+| native, wasip2, wasip3
+
+| kdfs::argon2i
+| sodium (partial: fewer than 3 passes, more than one lane, a secret, associated data, a salt other than 16 bytes or a tag under 16 bytes: libsodium's crypto_pwhash_argon2i takes none of them)
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| kdfs::argon2i
+| openssl (partial: m above 4,194,303 KiB on wasm32: OpenSSL sizes Argon2's memory, m blocks of 1 KiB, in a size_t)
+| -
+| not stated
+| native, wasip2, wasip3
+
+| kdfs::argon2id
+| sodium (partial: more than one lane, a secret, associated data, a salt other than 16 bytes or a tag under 16 bytes: libsodium's crypto_pwhash_argon2id takes none of them)
+| -
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| kdfs::argon2id
+| openssl (partial: m above 4,194,303 KiB on wasm32: OpenSSL sizes Argon2's memory, m blocks of 1 KiB, in a size_t)
+| -
+| not stated
+| native, wasip2, wasip3
+
 | scrypt
 | sodium
 | -
 | not stated
 | native, wasip2, wasip3, emscripten
+
+| scrypt
+| openssl (partial: r p of 2^24 or more, or a password, salt or output of more than INT_MAX bytes: OpenSSL passes them to PBKDF2, whose lengths are ints)
+| -
+| not stated
+| native, wasip2, wasip3
 |===
 
 === The default backends
@@ -461,6 +1410,186 @@ The backend a call that names none uses, on every target, whatever the program l
 [cols="2,1",options="header"]
 |===
 | Function | Default
+
+| digests::md5
+| hash2
+
+| digests::sha1
+| hash2
+
+| digests::sha2_224
+| hash2
+
+| digests::sha2_256
+| hash2
+
+| digests::sha2_384
+| hash2
+
+| digests::sha2_512
+| hash2
+
+| digests::sha2_512_224
+| hash2
+
+| digests::sha2_512_256
+| hash2
+
+| digests::md5_sha1
+| none: the call names its backend
+
+| digests::sha3_224
+| hash2
+
+| digests::sha3_256
+| hash2
+
+| digests::sha3_384
+| hash2
+
+| digests::sha3_512
+| hash2
+
+| digests::shake_128
+| hash2
+
+| digests::shake_256
+| hash2
+
+| digests::turboshake_128
+| xkcp
+
+| digests::turboshake_256
+| xkcp
+
+| digests::keccak_224
+| xkcp
+
+| digests::keccak_256
+| xkcp
+
+| digests::keccak_384
+| xkcp
+
+| digests::keccak_512
+| xkcp
+
+| digests::cshake_128
+| xkcp
+
+| digests::cshake_256
+| xkcp
+
+| digests::tuplehash_128
+| xkcp
+
+| digests::tuplehash_256
+| xkcp
+
+| digests::parallelhash_128
+| xkcp
+
+| digests::parallelhash_256
+| xkcp
+
+| digests::kt128
+| xkcp
+
+| digests::kt256
+| xkcp
+
+| digests::blake2b
+| sodium
+
+| digests::blake2s_256
+| hash2
+
+| digests::blake3
+| blake3
+
+| digests::ripemd_160
+| hash2
+
+| digests::sm3
+| none: the call names its backend
+
+| macs::siphash_2_4
+| hash2
+
+| macs::siphash_2_4x
+| sodium
+
+| macs::kmac_128
+| xkcp
+
+| macs::kmac_256
+| xkcp
+
+| macs::blake2b_mac
+| sodium
+
+| macs::blake2s_mac
+| hash2
+
+| macs::hmac<digests::md5>
+| hash2
+
+| macs::hmac<digests::sha1>
+| hash2
+
+| macs::hmac<digests::sha2_224>
+| hash2
+
+| macs::hmac<digests::sha2_256>
+| hash2
+
+| macs::hmac<digests::sha2_384>
+| hash2
+
+| macs::hmac<digests::sha2_512>
+| hash2
+
+| macs::hmac<digests::sha2_512_224>
+| hash2
+
+| macs::hmac<digests::sha2_512_256>
+| hash2
+
+| macs::hmac<digests::sha3_224>
+| hash2
+
+| macs::hmac<digests::sha3_256>
+| hash2
+
+| macs::hmac<digests::sha3_384>
+| hash2
+
+| macs::hmac<digests::sha3_512>
+| hash2
+
+| macs::hmac<digests::ripemd_160>
+| hash2
+
+| macs::hmac<digests::blake2b>
+| hash2
+
+| macs::hmac<digests::blake2s_256>
+| hash2
+
+| macs::hmac<digests::keccak_224>
+| none: the call names its backend
+
+| macs::hmac<digests::keccak_256>
+| none: the call names its backend
+
+| macs::hmac<digests::keccak_384>
+| none: the call names its backend
+
+| macs::hmac<digests::keccak_512>
+| none: the call names its backend
+
+| macs::hmac<digests::sm3>
+| none: the call names its backend
 
 | hkdf_extract
 | hash2
@@ -474,7 +1603,19 @@ The backend a call that names none uses, on every target, whatever the program l
 | pbkdf2
 | hash2
 
+| blake2b_subkey
+| sodium
+
 | argon2id
+| sodium
+
+| kdfs::argon2d
+| none: the call names its backend
+
+| kdfs::argon2i
+| sodium
+
+| kdfs::argon2id
 | sodium
 
 | scrypt
@@ -486,8 +1627,24 @@ The backend a call that names none uses, on every target, whatever the program l
 What each backend's upstream states, and where:
 
 * hash2: not stated. Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property.
-* xkcp: not stated. XKCP at d20c8fc: README.markdown and lib/low/KeccakP-1600 state no constant-time property.
+* xkcp: not stated.
+** XKCP at d20c8fc: README.markdown, lib/low/KeccakP-1600 and lib/high/Keccak (KeccakSponge, FIPS202/KeccakHash) state no constant-time property.
+** XKCP at d20c8fc: README.markdown, lib/low/KeccakP-1600 and lib/high (KangarooTwelve, TurboSHAKE, Keccak/KeccakSponge) state no constant-time property.
+** XKCP at d20c8fc: README.markdown, lib/low/KeccakP-1600 and lib/high/Keccak (KeccakSponge, FIPS202/KeccakHash, SP800-185) state no constant-time property.
 * blake3: not stated. BLAKE3 1.8.7: README.md and c/README.md state no constant-time property.
-* sodium: not stated. libsodium 1.0.22: its headers state constant time for comparisons (sodium/utils.h) alone, not for crypto_kdf_hkdf_* or crypto_pwhash_*.
-* openssl: not stated. OpenSSL 3.5.9: doc/man7/EVP_KDF-HKDF.pod and EVP_KDF-PBKDF2.pod state no constant-time property.
-* bearssl: not stated. BearSSL at webcpp::crypto's pin: bearssl_hmac.h states constant time for br_hmac_outCT alone; br_hkdf_* (src/kdf/hkdf.c) calls br_hmac_out.
+* sodium: not stated. libsodium 1.0.22: its headers state constant time for comparisons (sodium/utils.h) alone, not for its hashing, MAC, key derivation and password hashing functions (crypto_hash_*, crypto_xof_*, crypto_generichash_*, crypto_shorthash_*, crypto_auth_*, crypto_kdf_*, crypto_pwhash_*).
+* bearssl: not stated.
+** BearSSL at 7bea48e (v0.6-39): bearssl_hash.h states constant time for its GHASH implementations alone, not for br_md5_*, br_sha1_*, br_sha224_* to br_sha512_* or br_md5sha1_*.
+** BearSSL at 7bea48e (v0.6-39): bearssl_kdf.h states no constant-time property for br_shake_*.
+** BearSSL at 7bea48e (v0.6-39): bearssl_hmac.h states constant time for br_hmac_outCT alone; mac calls br_hmac_out.
+** BearSSL at 7bea48e (v0.6-39): bearssl_hmac.h states constant time for br_hmac_outCT alone; br_hkdf_* (src/kdf/hkdf.c) calls br_hmac_out.
+* openssl: not stated.
+** OpenSSL 3.5.9: doc/man7/EVP_MD-*.pod, doc/man3/EVP_DigestInit.pod and providers/implementations/digests/ state no constant-time property.
+** OpenSSL 3.5.9: doc/man3/EVP_MAC.pod, doc/man7/EVP_MAC-HMAC.pod, EVP_MAC-KMAC.pod, EVP_MAC-BLAKE2.pod, EVP_MAC-Siphash.pod and providers/implementations/macs/ state no constant-time property.
+** OpenSSL 3.5.9: doc/man7/EVP_KDF-HKDF.pod and EVP_KDF-PBKDF2.pod state no constant-time property.
+** OpenSSL 3.5.9: doc/man7/EVP_KDF-KB.pod states no constant-time property.
+** OpenSSL 3.5.9: doc/man7/EVP_KDF-SS.pod states no constant-time property.
+** OpenSSL 3.5.9: doc/man7/EVP_KDF-X963.pod states no constant-time property.
+** OpenSSL 3.5.9: doc/man7/EVP_KDF-ARGON2.pod states that Argon2i's memory accesses are independent of the data and Argon2d's depend on it, and states no constant-time property.
+** OpenSSL 3.5.9: doc/man7/EVP_KDF-SCRYPT.pod states no constant-time property.
+* webcrypto: not stated. The Web Cryptography API (W3C Recommendation, 2017) states no constant-time property of digest, sign or deriveBits; each JavaScript runtime's implementation decides, and webcpp reads none.

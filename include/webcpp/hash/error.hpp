@@ -33,15 +33,15 @@ namespace webcpp::hash {
  @see "Errors", in the guide.
 */
 enum class error : int {
-    /** An output that is empty or longer than the function produces. */
+    /** An output that is not of a size the function produces: empty, too short or too long. */
     invalid_output_size = 1,
-    /** A pseudorandom key that is not of the hmac's digest size. */
+    /** A key that is not of a size the function accepts: a MAC's, a derivation's, HKDF's PRK. */
     invalid_key_size = 2,
     /** A salt that is not of a size the function accepts. */
     invalid_salt_size = 3,
-    /** An iteration count of zero. */
+    /** An iteration count of zero, or above the backend's limit (`backend_limits`). */
     invalid_iterations = 4,
-    /** A cost that is outside the function's limits. */
+    /** A parameter that is outside the function's limits: a cost, a lane count, an option. */
     invalid_parameters = 5,
     /** An input that is longer than the function accepts. */
     input_too_long = 6,
@@ -49,7 +49,8 @@ enum class error : int {
     backend_failure = 7,
     /** A parameter the chosen backend does not take; name a backend that does. */
     unsupported_by_backend = 8,
-    // 9 comes with a later task, which declares it; never reused.
+    /** A `hasher` used after its `finish`, once moved from, or after a backend failure spent it. */
+    invalid_state = 9,
 };
 
 namespace detail {
@@ -57,17 +58,17 @@ namespace detail {
 /** The message of a value of @ref error, or the unknown message for a value it does not define. */
 inline const char* message_of(int error_value) noexcept {
     switch (static_cast<error>(error_value)) {
-        case error::invalid_output_size:
-            return "the output is empty or longer than the function produces";
-        case error::invalid_key_size:
-            return "the pseudorandom key is not of the hmac's digest size";
+        case error::invalid_output_size: return "the output is not of a size the function produces";
+        case error::invalid_key_size: return "the key is not of a size the function accepts";
         case error::invalid_salt_size: return "the salt is not of a size the function accepts";
-        case error::invalid_iterations: return "the iteration count is zero";
-        case error::invalid_parameters: return "a cost is outside the function's limits";
+        case error::invalid_iterations:
+            return "the iteration count is zero or more than the backend takes";
+        case error::invalid_parameters: return "a parameter is outside the function's limits";
         case error::input_too_long: return "an input is longer than the function accepts";
         case error::backend_failure: return "the backend failed where it should not";
         case error::unsupported_by_backend:
             return "the backend does not take this parameter; name a backend that does";
+        case error::invalid_state: return "the hasher was finished or moved from";
     }
     return "unknown webcpp.hash error";
 }

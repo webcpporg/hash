@@ -109,3 +109,245 @@ protects; a prime number of buckets, or a multiply-and-shift reduction, keeps
 them.
 
 include::generated/backends-siphash.adoc[]
+
+[#hash-kmac]
+=== KMAC
+
+KMAC (NIST SP 800-185, section 4) is a MAC built on cSHAKE, the SHA-3
+family's own: where HMAC wraps a hash twice around the key to protect it from
+the hash's structure, KMAC needs no wrapping, since SHA-3's sponge already
+keeps its state hidden. It takes a key, the message and a customisation
+string that separates one application's tags from another's under the same
+key, and gives a tag of any length; NIST's key derivation (SP 800-56C) uses it
+too. Like TupleHash, it has a fixed-length form, which encodes the tag's
+length, and an XOF form, KMACXOF, which does not. `macs::kmac_128` and
+`macs::kmac_256` are tags of `mac` (<<hash-mac-family>>), on
+`backends::xkcp`, their default; a program links `/third_party//xkcp`.
+`backends::openssl` has them too, named in the call, within OpenSSL's narrower
+limits (<<hash-macs-openssl>>).
+
+[source]
+----
+include::{examples}/kmac.cpp[tag=example,indent=0]
+----
+
+[listing]
+----
+include::{examples}/kmac.expected[]
+----
+
+*Pitfalls.*
+
+* *Compare with `webcpp::crypto::equal`.* As for every tag (<<hash-hmac>>).
+* *The key sets the strength.* SP 800-185 (section 8.4.1) forbids a key
+shorter than the security the application needs: 16 bytes for KMAC128, 32
+for KMAC256. `mac` takes any key, the empty one included, as the standard
+defines it; choose its size.
+* *At least 4 bytes of tag.* SP 800-185 (section 8.4.2) forbids a tag of
+fewer than 32 bits and asks for a careful analysis below 64; `mac` refuses a
+tag under 4 bytes with `invalid_output_size`. Prefer 16 bytes or more.
+* *The form is part of the tag.* KMAC128 and KMACXOF128 of the same inputs
+differ, and a fixed-length tag of 16 bytes is not the start of one of 32:
+the receiver uses the sender's form and length.
+
+include::generated/backends-kmac.adoc[]
+
+[#hash-mac-family]
+=== A MAC in one call: `mac`
+
+`mac` computes the tag of a message under a key in one call, through a tag of
+`webcpp::hash::macs`, as `macs::hmac<digests::sha2_256>`, HMAC over the digest
+`digests::sha2_256`, and a backend: the tag's default, or the one the call
+names. Its guards are the same on every backend: an HMAC tag is 10 bytes up to
+the digest's size, a shorter one being the digest cut (RFC 2104, section 5);
+a key of a size the MAC does not take is `invalid_key_size`. The Hash2 aliases
+of <<hash-hmac>> stay the way to feed a message in pieces.
+
+[source]
+----
+include::{examples}/mac_family.cpp[tag=example,indent=0]
+----
+
+[listing]
+----
+include::{examples}/mac_family.expected[]
+----
+
+*Pitfalls.*
+
+* *Compare with `webcpp::crypto::equal`.* As for every tag (<<hash-hmac>>).
+* *A cut tag is a weaker tag.* Ten bytes, 80 bits, is the shortest `mac`
+gives; keep the whole digest unless a protocol fixes a shorter tag.
+* *The tag's name is the digest's.* `macs::hmac<digests::sha2_512>` cut to 32
+bytes is not HMAC over SHA-512/256 (`macs::hmac<digests::sha2_512_256>`): the
+two give different tags.
+* *BearSSL's HMAC is reached by name.* `backends::bearssl` has HMAC over MD5,
+SHA-1 and the four SHA-2s it has, any key and any tag `mac` accepts, but is
+never a default: name it, as
+`mac<macs::hmac<digests::sha2_256>, backends::bearssl>`, and link
+`/third_party//bearssl`.
+* *Keyed BLAKE2s on `backends::hash2` is 32 bytes.* `macs::blake2s_mac` takes
+a tag of 1 to 32 bytes, but BLAKE2s's output size is a parameter of the hash,
+not a cut: `backends::hash2` (Boost.Hash2's keyed `blake2s_256`) answers
+`unsupported_by_backend` to a shorter tag. `macs::siphash_2_4` on it is
+SipHash-2-4 whole: a 16-byte key and an 8-byte tag.
+
+[#hash-siphash-sodium]
+=== SipHash on libsodium: `macs::siphash_2_4x`
+
+`mac` computes SipHash through two tags: `macs::siphash_2_4`, SipHash-2-4 with
+its 8-byte result, on `backends::hash2` (Boost.Hash2's `siphash_64`, the
+default) or on `backends::sodium` (libsodium's `crypto_shorthash_siphash24`),
+which give the same bytes; and `macs::siphash_2_4x`, the same rounds with a
+16-byte result (the SipHash reference implementation's 128-bit output,
+libsodium's `crypto_shorthash_siphashx24`), on `backends::sodium` alone, its
+default. Both take a 16-byte key. The 16-byte result makes collisions between
+honest keys rare enough for a table or a filter of billions of entries, or for
+a short identifier keyed against flooding, where 64 bits would collide; it is
+still a hash for tables, not a MAC for messages (<<hash-siphash>>).
+
+[source]
+----
+include::{examples}/siphash_sodium.cpp[tag=example,indent=0]
+----
+
+[listing]
+----
+include::{examples}/siphash_sodium.expected[]
+----
+
+*Pitfalls.*
+
+* *The pitfalls of <<hash-siphash>> hold:* a random key per process, and not
+a MAC for messages: use HMAC there.
+* *SipHash-2-4x is not two SipHash-2-4 tags.* Its 16 bytes are another
+function's output, and its first 8 bytes are not SipHash-2-4's tag: a program
+that must agree with another names the same tag.
+* *The tag is written little-endian.* `mac` writes SipHash-2-4's 64-bit result
+as 8 bytes, least significant first, as the reference implementation and
+libsodium do; the `result()` of `siphash_64` is the number itself.
+
+[#hash-hmac-sodium]
+=== HMAC on libsodium
+
+`mac` computes HMAC over SHA-256 and SHA-512 on `backends::sodium` too, with
+libsodium's `crypto_auth_hmacsha256` and `crypto_auth_hmacsha512` functions,
+named in the call: the same tags as the default, `backends::hash2`, for a
+program that already links libsodium or that wants its implementation.
+libsodium names a third HMAC, `crypto_auth_hmacsha512256`, "HMAC-SHA-512-256":
+it is HMAC-SHA-512 cut to 32 bytes, which `mac` over `digests::sha2_512` gives
+with a 32-byte output, and not HMAC over SHA-512/256
+(`macs::hmac<digests::sha2_512_256>`), a different function that libsodium
+does not have.
+
+[source]
+----
+include::{examples}/hmac_sodium.cpp[tag=example,indent=0]
+----
+
+[listing]
+----
+include::{examples}/hmac_sodium.expected[]
+----
+
+*Pitfalls.*
+
+* *The pitfalls of <<hash-hmac>> hold:* compare tags with
+`webcpp::crypto::equal`, and use a random key, not a password.
+* *"HMAC-SHA-512-256" has two meanings.* A program that must agree with
+libsodium's `crypto_auth_hmacsha512256` names `macs::hmac<digests::sha2_512>`
+and a 32-byte output; one that follows a standard naming HMAC over
+SHA-512/256 names `macs::hmac<digests::sha2_512_256>`. The two give different
+tags.
+* *A key of any size.* libsodium's one-call functions take a 32-byte key
+alone; `mac` on `backends::sodium` takes a key of any size, hashed first when
+it is longer than the block, as RFC 2104 says and as every other backend does.
+
+[#hash-blake2b-mac-sodium]
+=== Keyed BLAKE2b on libsodium: `macs::blake2b_mac`
+
+Keyed BLAKE2b (RFC 7693, section 2.5) is a MAC by itself: the key goes into
+the hash's first block, so it needs neither HMAC's second pass nor its
+construction. `mac<macs::blake2b_mac>` computes it on `backends::sodium`, its
+default (libsodium's keyed `crypto_generichash_blake2b`), with a key of 1 to
+64 bytes and a tag of 1 to 64 bytes; a program links `/third_party//sodium`,
+on every target. `backends::openssl` gives the same tags, named in the call
+(<<hash-macs-openssl>>).
+
+[source]
+----
+include::{examples}/blake2b_mac_sodium.cpp[tag=example,indent=0]
+----
+
+[listing]
+----
+include::{examples}/blake2b_mac_sodium.expected[]
+----
+
+*Pitfalls.*
+
+* *Compare with `webcpp::crypto::equal`.* As for every tag (<<hash-hmac>>).
+* *The length is a parameter, not a cut.* The tag's size goes into the hash:
+a 16-byte tag is not the first 16 bytes of a 32-byte one, and the receiver
+uses the sender's size.
+* *Draw a key of 32 random bytes.* `mac` takes every size RFC 7693 gives, from 1
+byte (libsodium's 16-byte minimums are advice its functions do not check),
+but the key sets the strength: draw 32 bytes from
+`webcpp::crypto::random_device`. An empty key is `invalid_key_size`: unkeyed
+BLAKE2b is a digest (<<hash-blake2b-options>>).
+* *libsodium's state is wiped.* `mac` keeps libsodium's BLAKE2b state, which
+holds the key, in its own frame and wipes it before it returns.
+
+include::generated/backends-blake2-mac.adoc[]
+
+[#hash-macs-openssl]
+=== The MACs of OpenSSL: KMAC, keyed BLAKE2, SipHash and HMAC
+
+`backends::openssl` computes every tag of `webcpp::hash::macs` through
+OpenSSL 3.5.9's `EVP_MAC`, on native, wasip2 and wasip3. It is never a
+default (design D34): a call names it. Its tags are HMAC over every digest of
+a fixed size it has but MD5-SHA1, over which no standard defines an HMAC,
+`macs::hmac<digests::keccak_256>` and `macs::hmac<digests::sm3>` among them,
+which no other backend has; KMAC128 and KMAC256 (NIST SP 800-185, section 4),
+`macs::kmac_128` and `macs::kmac_256`, in their fixed-length and XOF forms,
+with a customisation string; keyed BLAKE2b and BLAKE2s (RFC 7693),
+`macs::blake2b_mac` and `macs::blake2s_mac`, at every tag size; and SipHash-2-4
+with an 8-byte or a 16-byte tag. KMAC encodes the tag's length in its
+fixed-length form, so that two tags of different sizes are unrelated; its XOF
+form (`.xof = true`) encodes none, and a shorter tag is the start of a longer.
+
+[source]
+----
+include::{examples}/macs_openssl.cpp[tag=example,indent=0]
+----
+
+[listing]
+----
+include::{examples}/macs_openssl.expected[]
+----
+
+*Pitfalls.*
+
+* *OpenSSL's KMAC is narrower than SP 800-185.* It takes a key of 4 to 512
+bytes, a customisation of at most 512 bytes and a tag of at most 2,097,151
+bytes, in either form; `mac` answers any other `unsupported_by_backend` before
+OpenSSL is called. A tag under 4 bytes is `invalid_output_size` on every
+backend: SP 800-185, section 8.4.2, forbids a MAC of fewer than 32 bits.
+* *The customisation separates applications, the key keeps the secret.* Two
+programs that share a key and differ in their customisation string get
+unrelated tags; the string itself is not secret.
+* *Keyed BLAKE2 takes a key of at least one byte.* An empty key is
+`invalid_key_size` (RFC 7693's keyed mode has a key of 1 to 64 bytes, 1 to 32
+for BLAKE2s); unkeyed BLAKE2 is a digest (<<hash-blake2b-options>>).
+* *Each call allocates through OpenSSL.* The MAC and its context are fetched,
+made and freed in the call (`EVP_MAC_CTX_new`), as for every function of this
+backend (<<hash-allocation>>); OpenSSL documents that it frees them, not that
+it clears them. Its HMAC, KMAC and BLAKE2 MACs clear their copy of the key
+when freed (the BLAKE2 MACs' first block, which holds the key too, only once
+the tag is computed, not when a call fails before); its SipHash frees its
+keyed state without clearing it.
+* *An HMAC key is at most `INT_MAX` bytes on OpenSSL,* which takes its length
+as an `int`; a longer one is `unsupported_by_backend`.
+
+The backends of each tag are in the tables of <<hash-kmac>>,
+<<hash-blake2b-mac-sodium>>, <<hash-siphash>> and <<hash-hmac>>.

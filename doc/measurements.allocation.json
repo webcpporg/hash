@@ -1,6 +1,13 @@
 {
   "measurement": "allocations per call, native with the C allocator counted where it can be",
-  "date": "2026-11-15",
+  "date": "2026-11-17",
+  "build": "variant=release",
+  "toolsets": {
+    "native": "clang-darwin-21",
+    "wasip2": "clang-darwin-wasip2",
+    "wasip3": "clang-darwin-wasip3",
+    "emscripten": "emscripten-6.0.11"
+  },
   "machine": {
     "os": "macOS-27.0-arm64-arm-64bit-Mach-O",
     "cpu": "arm"

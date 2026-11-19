@@ -7,7 +7,10 @@
 /**
  Every public header of webcpp::hash: those that need no C library always, and
  each part over a C library when the program links that library (its target
- defines `WEBCPP_HASH_HAS_<NAME>`).
+ defines `WEBCPP_HASH_HAS_<NAME>`). It leaves out `<webcpp/hash/async.hpp>`, the
+ asynchronous family, and `<webcpp/hash/backends/webcrypto.hpp>`, its browser
+ backend, which bring webcpp::asio (`<library>/webcpp/asio//asio`): a program
+ that wants them includes one by itself.
 */
 #ifndef WEBCPP_HASH_HPP
 #define WEBCPP_HASH_HPP
@@ -15,21 +18,29 @@
 #include <webcpp/hash/config.hpp>
 
 #include <webcpp/hash/algorithms.hpp>
+#include <webcpp/hash/argon2.hpp>
 #include <webcpp/hash/backends/hash2.hpp>
+#include <webcpp/hash/blake2b_subkey.hpp>
+#include <webcpp/hash/digest.hpp>
 #include <webcpp/hash/error.hpp>
 #include <webcpp/hash/hkdf.hpp>
 #include <webcpp/hash/hmac.hpp>
 #include <webcpp/hash/kdf.hpp>
+#include <webcpp/hash/kdf_standards.hpp>
+#include <webcpp/hash/mac.hpp>
 #include <webcpp/hash/pbkdf2.hpp>
 
-// keccak_256 when the program links XKCP (/third_party//xkcp defines WEBCPP_HASH_HAS_XKCP).
+// keccak_256 and backends::xkcp when the program links XKCP (/third_party//xkcp defines
+// WEBCPP_HASH_HAS_XKCP).
 #ifdef WEBCPP_HASH_HAS_XKCP
+#include <webcpp/hash/backends/xkcp.hpp>
 #include <webcpp/hash/keccak.hpp>
 #endif
 
-// blake3 needs BLAKE3's C implementation, /third_party//blake3, which defines
-// WEBCPP_HASH_HAS_BLAKE3: a program that does not link it leaves blake3.hpp out.
+// blake3 and backends::blake3 need BLAKE3's C implementation, /third_party//blake3, which
+// defines WEBCPP_HASH_HAS_BLAKE3: a program that does not link it leaves their headers out.
 #ifdef WEBCPP_HASH_HAS_BLAKE3
+#include <webcpp/hash/backends/blake3.hpp>
 #include <webcpp/hash/blake3.hpp>
 #endif
 
@@ -52,10 +63,10 @@
 #include <webcpp/hash/backends/openssl.hpp>
 #endif
 
-// argon2id and scrypt, whose only backend is libsodium's: a program that does not
-// link it leaves them out.
-#ifdef WEBCPP_HASH_HAS_SODIUM
-#include <webcpp/hash/argon2.hpp>
+// scrypt, whose backends are libsodium's and OpenSSL's: a program that links neither leaves it
+// out. argon2.hpp and kdf_standards.hpp, above, need no library: their functions refuse at compile
+// time, with the Jamfile line to add, when they are called without one.
+#if defined(WEBCPP_HASH_HAS_SODIUM) || defined(WEBCPP_HASH_HAS_OPENSSL)
 #include <webcpp/hash/scrypt.hpp>
 #endif
 

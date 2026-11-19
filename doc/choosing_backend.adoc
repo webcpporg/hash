@@ -9,8 +9,12 @@
 
 A digest has one implementation, Boost.Hash2's or a C library's. A key
 derivation has several, its backends: the same function, giving the same
-bytes, in code of different size, speed and pedigree. A call that names no
-backend takes the default, which is fixed: no measurement, link or define
+bytes, in code of different size, speed and pedigree. A tag of the families
+(`digest_of`, `hasher`, `mac`, `argon2`) has a backend per cell of its row,
+and the tests compute each case on every backend that has it, pair by pair:
+a thousand random inputs per digest and MAC, a hundred per Argon2 variant,
+a partial cell refusing exactly what its row says it lacks. A call that names
+no backend takes the default, which is fixed: no measurement, link or define
 changes it. This chapter says what the default is and why, how a program
 names another backend, what each backend does with secrets and memory, and,
 from the committed data, which backend has which function on which target,
@@ -27,10 +31,28 @@ and what each cost and allocated when it was measured.
 | `hash2`
 | the one backend that has every hmac, every operation and every target
 
-| `argon2id`, `scrypt`
+| `argon2id`, `scrypt`, `blake2b_subkey`
 | `sodium`
-| the one backend that has them; a program links `/third_party//sodium`
+| the first of the order that has them (OpenSSL has `argon2id` and `scrypt`
+too, never a default); a program links `/third_party//sodium`
+
+| a tag of `digest_of`, `hasher`, `mac` and `argon2`
+| the first of `hash2`, `xkcp`, `blake3`, `sodium` that has it
+| one stated rule: the backend that has the whole of the tag, else in part;
+none when none of the four has it, and the call names its backend
 |===
+
+The families' defaults follow one rule and never change: the first of
+`backends::hash2`, `backends::xkcp`, `backends::blake3` and
+`backends::sodium` whose capability table, once increments 2 to 7 have
+landed, has the tag whole (every option and output size the family accepts),
+else the first of them that has it in part; `backends::bearssl`,
+`backends::openssl` and the later backends are never a default. SHA-2's
+and SHAKE's default is `hash2`, Keccak-256's `xkcp`, BLAKE3's `blake3`,
+BLAKE2b's `sodium`; a tag none of the four has (SM3, Whirlpool, Argon2d) has
+none, and its call names its backend. Every default has its engine: a program
+that does not link the default's library gets the message that names the line
+to add.
 
 The default is the same on every target, whatever the program links: linking
 libsodium, BearSSL or OpenSSL makes their backends available to a call that
@@ -72,27 +94,64 @@ the C heap, outside any allocator of the program; libsodium's `sodium_init`
 keeps its process-wide choice of implementations.
 
 | `bearssl`
-| hash wipes BearSSL's HKDF context before each call returns. BearSSL's own
-temporaries on its stack, the pseudorandom key of `br_hkdf_flip` and the
-padded keys of its HMAC, are not wiped: they stay in the stack memory of the
-call until it is reused. BearSSL allocates nothing.
+| hash wipes BearSSL's HKDF, HMAC and hash contexts before each call returns,
+and the context of a `hasher` when it ends. BearSSL's own temporaries on its stack,
+the pseudorandom key of `br_hkdf_flip`, the padded keys of its HMAC and the
+inner digest of `br_hmac_out`, are not wiped: they stay in the stack memory of
+the call until it is reused. BearSSL allocates nothing.
 
 | `openssl`
 | OpenSSL allocates a KDF and a context in every call, through its own
 allocator, and frees both before the call returns. It clears the key (HKDF's
 IKM or PRK, PBKDF2's password) and the info when it frees the context; it
-frees the salt without clearing it. Its first call reads OpenSSL's
-configuration file. It holds some lengths in an `int`, so hash refuses, before
-OpenSSL is called, a PBKDF2 output (`invalid_output_size`), a PBKDF2 password
-or salt, or an HKDF salt (`input_too_long`) of more than `INT_MAX` bytes. It
-is not built for Emscripten.
+frees the salt without clearing it. A digest allocates an `EVP_MD_CTX` and
+the digest's own context: `digest_of` frees both before it returns, a
+`hasher` owns them from `make` until it finishes, is destroyed or is moved
+from. A MAC allocates an `EVP_MAC_CTX` and the MAC's context, which `mac`
+frees before it returns. OpenSSL documents that it cleans up and frees these
+contexts, not that it clears them; its HMAC, KMAC and BLAKE2 MACs clear their
+copy of the key (the BLAKE2 MACs' first block, which holds it too, only once
+the tag is computed), and its SipHash frees its keyed state without clearing
+it.
+Its Argon2 and scrypt allocate the memory their costs name from OpenSSL's
+allocator, the C heap, and free it before the call returns; Argon2 clears its
+copies of the password, salt, secret and associated data, scrypt its copy of
+the password but not of the salt. Its scrypt takes r p below 2^24^ and a
+password, salt and output of at most `INT_MAX` bytes (`invalid_parameters`,
+`input_too_long`, `invalid_output_size` otherwise). Its Argon2 sizes the memory
+in a `size_t`: the family `argon2` takes at most 4,194,303 KiB on wasm32
+(`unsupported_by_backend`), and `argon2id` at most 4 TiB less 1 KiB natively
+(`invalid_parameters`).
+Its KMAC takes a key of 4 to 512 bytes, a customisation of at most 512 and a
+tag of at most 2,097,151, and its HMAC a key of at most `INT_MAX` bytes:
+`mac` answers others `unsupported_by_backend`. Its KBKDF clears its copies of
+the key, the label and the context when it frees its context, its one-step
+and X9.63 KDFs their copies of the secret and the info; `kbkdf` answers a key
+of more than `INT_MAX` bytes, `sskdf` and `x963kdf` a secret, an info or an
+output of more than 2^30^ bytes, `unsupported_by_backend`. Its first call
+reads OpenSSL's configuration file. It holds some lengths in an `int`, so hash
+refuses, before OpenSSL is called, a PBKDF2 output (`invalid_output_size`), a
+PBKDF2 password or salt, or an HKDF salt (`input_too_long`) of more than
+`INT_MAX` bytes. It is not built for Emscripten.
 
 | `xkcp`
-| Hashes without a secret of their own; it allocates nothing.
+| Allocates nothing. KMAC's keyed state and every hash's state live on the
+call's stack or in the hasher, and are wiped when the call or the hasher
+ends. A KangarooTwelve hasher keeps the span of its customisation string,
+not a copy, and reads it at `finish` (<<hash-kangarootwelve>>).
 
 | `blake3`
 | Allocates nothing. Its keyed and `derive_key` modes hold the key in the
 object's state until it is destroyed, without wiping it (<<hash-blake3>>).
+
+| `webcrypto`
+| The browser computes outside the program's memory, with the asynchronous
+family alone, on Emscripten (<<hash-async-webcrypto>>). Each input (the key,
+the password, the IKM) is handed to it as a JavaScript copy, and the result
+comes back as an `ArrayBuffer` copied into the output: neither copy can be
+wiped, and each stays in JavaScript's heap until its garbage collector frees
+it. The imported key is not extractable. The operation's storage is the
+handler's associated allocator's, given back before the handler runs.
 |===
 
 No backend states that its key derivations run in constant time; the

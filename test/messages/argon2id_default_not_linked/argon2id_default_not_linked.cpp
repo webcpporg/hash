@@ -10,7 +10,7 @@
 // clang's -verify reads a directive from one comment line: wrapped, it checks nothing, so the
 // whole text stays on one line.
 // clang-format off
-// expected-error@webcpp/hash/detail/engines.hpp:* {{webcpp::hash: backends::sodium, argon2id and scrypt need libsodium. Add /third_party//sodium to the program's Jamfile: exe app : app.cpp /webcpp/hash//hash /third_party//sodium ;}}
+// expected-error@webcpp/hash/detail/engines.hpp:* {{webcpp::hash: backends::sodium needs libsodium. Add /third_party//sodium to the program's Jamfile: exe app : app.cpp /webcpp/hash//hash /third_party//sodium ;}}
 // clang-format on
 #include <webcpp/hash/argon2.hpp>
 

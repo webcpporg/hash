@@ -8,7 +8,7 @@
 
 
 [#hash-backends-of-sha3-shake]
-.Who implements `sha3_224` to `shake_256`, 6 names (FIPS 202)
+.Who implements `sha3_224` to `digests::shake_256`, 12 names (FIPS 202)
 [cols="2,1,2,2,3,1",options="header"]
 |===
 | Function | Backend | The program's Jamfile names | Targets | Hmacs | Constant time
@@ -54,10 +54,186 @@
 | native, wasip2, wasip3, emscripten
 | -
 | not stated
+
+| `digests::sha3_224`
+| `hash2`
+| `/webcpp/hash//hash`
+| native, wasip2, wasip3, emscripten
+| -
+| not stated
+
+| `digests::sha3_224`
+| `xkcp`
+| `/third_party//xkcp`
+| native, wasip2, wasip3, emscripten
+| -
+| not stated
+
+| `digests::sha3_224`
+| `openssl`
+| `/webcpp/hash//openssl`
+| native, wasip2, wasip3
+| -
+| not stated
+
+| `digests::sha3_256`
+| `hash2`
+| `/webcpp/hash//hash`
+| native, wasip2, wasip3, emscripten
+| -
+| not stated
+
+| `digests::sha3_256`
+| `xkcp`
+| `/third_party//xkcp`
+| native, wasip2, wasip3, emscripten
+| -
+| not stated
+
+| `digests::sha3_256`
+| `sodium`
+| `/third_party//sodium`
+| native, wasip2, wasip3, emscripten
+| -
+| not stated
+
+| `digests::sha3_256`
+| `openssl`
+| `/webcpp/hash//openssl`
+| native, wasip2, wasip3
+| -
+| not stated
+
+| `digests::sha3_384`
+| `hash2`
+| `/webcpp/hash//hash`
+| native, wasip2, wasip3, emscripten
+| -
+| not stated
+
+| `digests::sha3_384`
+| `xkcp`
+| `/third_party//xkcp`
+| native, wasip2, wasip3, emscripten
+| -
+| not stated
+
+| `digests::sha3_384`
+| `openssl`
+| `/webcpp/hash//openssl`
+| native, wasip2, wasip3
+| -
+| not stated
+
+| `digests::sha3_512`
+| `hash2`
+| `/webcpp/hash//hash`
+| native, wasip2, wasip3, emscripten
+| -
+| not stated
+
+| `digests::sha3_512`
+| `xkcp`
+| `/third_party//xkcp`
+| native, wasip2, wasip3, emscripten
+| -
+| not stated
+
+| `digests::sha3_512`
+| `sodium`
+| `/third_party//sodium`
+| native, wasip2, wasip3, emscripten
+| -
+| not stated
+
+| `digests::sha3_512`
+| `openssl`
+| `/webcpp/hash//openssl`
+| native, wasip2, wasip3
+| -
+| not stated
+
+| `digests::shake_128`
+| `hash2`
+| `/webcpp/hash//hash`
+| native, wasip2, wasip3, emscripten
+| -
+| not stated
+
+| `digests::shake_128`
+| `xkcp`
+| `/third_party//xkcp`
+| native, wasip2, wasip3, emscripten
+| -
+| not stated
+
+| `digests::shake_128`
+| `sodium`
+| `/third_party//sodium`
+| native, wasip2, wasip3, emscripten
+| -
+| not stated
+
+| `digests::shake_128`
+| `bearssl`
+| `/third_party//bearssl`
+| native, wasip2, wasip3, emscripten
+| -
+| not stated
+
+| `digests::shake_128`
+| `openssl`
+| `/webcpp/hash//openssl`
+| native, wasip2, wasip3
+| -
+| not stated
+
+| `digests::shake_256`
+| `hash2`
+| `/webcpp/hash//hash`
+| native, wasip2, wasip3, emscripten
+| -
+| not stated
+
+| `digests::shake_256`
+| `xkcp`
+| `/third_party//xkcp`
+| native, wasip2, wasip3, emscripten
+| -
+| not stated
+
+| `digests::shake_256`
+| `sodium`
+| `/third_party//sodium`
+| native, wasip2, wasip3, emscripten
+| -
+| not stated
+
+| `digests::shake_256`
+| `bearssl`
+| `/third_party//bearssl`
+| native, wasip2, wasip3, emscripten
+| -
+| not stated
+
+| `digests::shake_256`
+| `openssl`
+| `/webcpp/hash//openssl`
+| native, wasip2, wasip3
+| -
+| not stated
 |===
 
 What each backend states on constant time, as the capability table read it:
 
+* `bearssl`: BearSSL at 7bea48e (v0.6-39): bearssl_kdf.h states no constant-time property for br_shake_*.
 * `hash2`: Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property.
+* `openssl`: OpenSSL 3.5.9: doc/man7/EVP_MD-*.pod, doc/man3/EVP_DigestInit.pod and providers/implementations/digests/ state no constant-time property.
+* `sodium`: libsodium 1.0.22: its headers state constant time for comparisons (sodium/utils.h) alone, not for its hashing, MAC, key derivation and password hashing functions (crypto_hash_*, crypto_xof_*, crypto_generichash_*, crypto_shorthash_*, crypto_auth_*, crypto_kdf_*, crypto_pwhash_*).
+* `xkcp`: XKCP at d20c8fc: README.markdown, lib/low/KeccakP-1600 and lib/high/Keccak (KeccakSponge, FIPS202/KeccakHash) state no constant-time property.
 
-One backend, `hash2`: the types take no backend.
+The default of `digests::sha3_224` and `digests::sha3_384`: `hash2` on every target, whatever the program links; `openssl`, `xkcp` only where the call names it, as its second template argument (<<hash-default-backend>>).
+
+The default of `digests::sha3_256` and `digests::sha3_512`: `hash2` on every target, whatever the program links; `openssl`, `sodium`, `xkcp` only where the call names it, as its second template argument (<<hash-default-backend>>).
+
+The default of `digests::shake_128` and `digests::shake_256`: `hash2` on every target, whatever the program links; `bearssl`, `openssl`, `sodium`, `xkcp` only where the call names it, as its second template argument (<<hash-default-backend>>).

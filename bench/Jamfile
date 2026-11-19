@@ -37,3 +37,20 @@ webcpp.run pbkdf2_sha512_key : pbkdf2_sha512.cpp : $(.requirements) ;
 # every lane of test/ (test/Jamfile builds this project).
 exe pbkdf2_sha512 : pbkdf2_sha512.cpp : $(.requirements) <variant>release ;
 explicit pbkdf2_sha512 ;
+
+# The allocation counts of doc/allocation.adoc (spec section 7.7), from release
+# builds only: the programs of test/allocation_test.cpp and
+# test/allocation_openssl_test.cpp built at variant=release, which
+# allocation_collect.py collects from b2's
+# bench/<name>.test/<toolset>/release/... and refuses anywhere else. The tests
+# of test/ keep the lane's variant; no lane builds these.
+.counting = <variant>release
+    <target-os>wasi:<linkflags>-Wl,--wrap=malloc,--wrap=calloc,--wrap=realloc
+    <target-os>wasi:<linkflags>-Wl,--wrap=aligned_alloc,--wrap=posix_memalign ;
+webcpp.run allocation_release : ../test/allocation_test.cpp
+  : <library>/webcpp/asio//asio
+    <library>/third_party//xkcp <library>/third_party//blake3
+    <library>/third_party//sodium <library>/third_party//bearssl $(.counting) ;
+webcpp.run allocation_openssl_release : ../test/allocation_openssl_test.cpp
+  : <library>/webcpp/hash//openssl $(.counting) : native wasip2 wasip3 ;
+explicit allocation_release allocation_openssl_release ;

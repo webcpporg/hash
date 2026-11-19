@@ -50,6 +50,8 @@ include::password_hashing.adoc[]
 
 include::non_cryptographic.adoc[]
 
+include::async.adoc[]
+
 include::use-cases/p2p.adoc[]
 
 include::use-cases/cryptocurrencies.adoc[]

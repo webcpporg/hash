@@ -9,17 +9,26 @@
 
 hash's own code allocates nothing: no function of `webcpp::hash` calls the global
 `operator new`, on any target, and none calls the C library's allocator on the targets
-where a program can count it. Test `allocation` proves it for Keccak-256, BLAKE3,
-Boost.Hash2's digests and hmacs, and HKDF and PBKDF2 on `backends::hash2`,
-`backends::sodium` and `backends::bearssl`, the failing calls (every guard's refusal)
-included. It counts every form of `operator new` and the C library's `malloc`, `calloc`,
-`realloc`, `aligned_alloc` and `posix_memalign` on glibc, macOS, Emscripten and WASI (on
-WASI through the linker's `--wrap`, which sees the calls of the program and of its
-libraries but not those wasi-libc's own functions make to one another); a program cannot
-count them on MSVC, where the proof is `operator new` alone. A control allocates once
-through every form and moves the counter, and the test asserts the exact number of calls
-made per backend, so a backend that silently dropped out fails. What the counter does
-not see is `mmap`, which the C libraries below use.
+where a program can count it. Test `allocation` proves that hash allocates nothing for
+Keccak-256, BLAKE3, Boost.Hash2's digests and hmacs, and HKDF and PBKDF2 on
+`backends::hash2`, `backends::sodium` and `backends::bearssl`, the failing calls (every
+guard's refusal) included. It counts every form of `operator new` and the C library's
+`malloc`, `calloc`, `realloc`, `aligned_alloc` and `posix_memalign` on glibc, macOS,
+Emscripten and WASI (on WASI through the linker's `--wrap`, which sees the calls of the
+program and of its libraries but not those wasi-libc's own functions make to one another);
+a program cannot count them on MSVC, where the proof is `operator new` alone. A control
+allocates once through every form and moves the counter, and the test asserts the exact
+number of calls made per backend, so a backend that silently dropped out fails. What the
+counter does not see is `mmap`, which the C libraries below use.
+
+One exception is not hash's own: on Emscripten, a call on `backends::webcrypto` awaits each
+of WebCrypto's promises through webcpp::asio's `browser::async_await`, whose bridge to
+JavaScript takes a block from the C library per promise awaited (one promise for
+`async_digest`, two for `async_hmac`, `async_hkdf` and `async_pbkdf2`, which import a key
+first). Test `allocation` counts a bare await's blocks, prints them as
+`record operation=async_await`, and checks that each WebCrypto call makes exactly that many
+per promise and nothing more. The table below leaves that block out: it lists the C
+libraries of hash's backends, and the block is webcpp::asio's.
 
 The C libraries are another matter, and the table says so plainly. Their allocations are
 the library's, outside the user's allocator, and hash does not hide them.
@@ -34,12 +43,20 @@ the library's, outside the user's allocator, and hash does not hide them.
   `sodium_init` rows.
 * OpenSSL allocates a key-derivation context and its digests through its own allocator on
   every call; test `allocation_openssl` replaces that allocator with
-  `CRYPTO_set_mem_functions` before anything else and counts each call through it. The
+  `CRYPTO_set_mem_functions` before anything else and counts each call through it. A digest
+  on `backends::openssl` allocates an `EVP_MD_CTX` (`EVP_MD_CTX_new`) and the digest's
+  context, in each `digest_of` and in each `make` of a `hasher`, and a MAC an `EVP_MAC_CTX`
+  (`EVP_MAC_CTX_new`) and the MAC's context in each `mac`; the test prints those counts
+  too, and the table below holds the key derivations' alone. The
   counts are those of OpenSSL 3.5.9 as webcpp builds it, are measured and never bounded,
   and change with the version.
 
 The table is generated from `measurements.allocation.json` by
-`bench/allocation_collect.py`; the figures are those of the machine the file records.
+`bench/allocation_collect.py`, and only from release builds: the counts are those of
+`allocation_release` and `allocation_openssl_release` of `bench/Jamfile`, the programs of the
+two tests built at `variant=release`, and the collector refuses an output of any other
+variant. The tests of the lanes keep the lane's variant. The figures are those of the machine
+the file records.
 
 // tag::table[]
 [cols="1,1,1,1,3",options="header"]

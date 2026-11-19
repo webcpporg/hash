@@ -8,7 +8,7 @@
 
 
 [#hash-backends-of-ripemd]
-.Who implements `ripemd_128`, `ripemd_160` (RIPEMD-128 and RIPEMD-160 (Dobbertin, Bosselaers, Preneel))
+.Who implements `ripemd_128`, `ripemd_160`, `digests::ripemd_160` (RIPEMD-128 and RIPEMD-160 (Dobbertin, Bosselaers, Preneel))
 [cols="2,1,2,2,3,1",options="header"]
 |===
 | Function | Backend | The program's Jamfile names | Targets | Hmacs | Constant time
@@ -26,10 +26,25 @@
 | native, wasip2, wasip3, emscripten
 | -
 | not stated
+
+| `digests::ripemd_160`
+| `hash2`
+| `/webcpp/hash//hash`
+| native, wasip2, wasip3, emscripten
+| -
+| not stated
+
+| `digests::ripemd_160`
+| `openssl`
+| `/webcpp/hash//openssl`
+| native, wasip2, wasip3
+| -
+| not stated
 |===
 
 What each backend states on constant time, as the capability table read it:
 
 * `hash2`: Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property.
+* `openssl`: OpenSSL 3.5.9: doc/man7/EVP_MD-*.pod, doc/man3/EVP_DigestInit.pod and providers/implementations/digests/ state no constant-time property.
 
-One backend, `hash2`: the types take no backend.
+The default of `digests::ripemd_160`: `hash2` on every target, whatever the program links; `openssl` only where the call names it, as its second template argument (<<hash-default-backend>>).

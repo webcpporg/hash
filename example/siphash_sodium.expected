@@ -1,0 +1,4 @@
+siphash_2_4 9737f8b03db06d4b
+the same on hash2: yes
+siphash_2_4x e0f98248d7904e01892c15a501078e28
+8-byte key: the key is not of a size the function accepts

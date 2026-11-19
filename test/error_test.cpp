@@ -26,17 +26,17 @@ struct expected_message {
     std::string_view text;
 };
 
-constexpr std::array<expected_message, 8> messages{
+constexpr std::array<expected_message, 9> messages{
     {
         {
             .value = hash::error::invalid_output_size,
             .number = 1,
-            .text = "the output is empty or longer than the function produces",
+            .text = "the output is not of a size the function produces",
         },
         {
             .value = hash::error::invalid_key_size,
             .number = 2,
-            .text = "the pseudorandom key is not of the hmac's digest size",
+            .text = "the key is not of a size the function accepts",
         },
         {
             .value = hash::error::invalid_salt_size,
@@ -46,12 +46,12 @@ constexpr std::array<expected_message, 8> messages{
         {
             .value = hash::error::invalid_iterations,
             .number = 4,
-            .text = "the iteration count is zero",
+            .text = "the iteration count is zero or more than the backend takes",
         },
         {
             .value = hash::error::invalid_parameters,
             .number = 5,
-            .text = "a cost is outside the function's limits",
+            .text = "a parameter is outside the function's limits",
         },
         {
             .value = hash::error::input_too_long,
@@ -68,6 +68,11 @@ constexpr std::array<expected_message, 8> messages{
             .number = 8,
             .text = "the backend does not take this parameter; name a backend that does",
         },
+        {
+            .value = hash::error::invalid_state,
+            .number = 9,
+            .text = "the hasher was finished or moved from",
+        },
     },
 };
 
@@ -83,6 +88,7 @@ void check_values_and_messages() {
         BOOST_TEST_EQ(std::strlen(small.data()), small.size() - 1);
     }
     BOOST_TEST_EQ(hash::category().message(0), std::string("unknown webcpp.hash error"));
+    BOOST_TEST_EQ(hash::category().message(10), std::string("unknown webcpp.hash error"));
 }
 
 void check_result() {

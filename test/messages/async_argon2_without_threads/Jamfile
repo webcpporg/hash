@@ -1,0 +1,15 @@
+# Copyright (c) 2026 WebCpp.org
+#
+# Distributed under the Boost Software License, Version 1.0. (See
+# accompanying file LICENSE_1_0.txt or copy at
+# https://www.boost.org/LICENSE_1_0.txt)
+
+project : requirements <library>/webcpp/hash//hash <library>/webcpp/asio//asio ;
+
+import webcpp ;
+
+# Natively every build has threads (BOOST_HAS_THREADS): the developer's
+# WEBCPP_HASH_NO_THREADS removes them. wasip2 and wasip3 have none.
+webcpp.compile-diagnostic async_argon2_without_threads : async_argon2_without_threads.cpp
+  : <define>WEBCPP_HASH_NO_THREADS : native ;
+webcpp.compile-diagnostic async_argon2_without_threads_wasi : async_argon2_without_threads.cpp : : wasip2 wasip3 ;
