@@ -57,6 +57,15 @@ std::span<std::uint8_t const> bytes_of(std::string_view text) {
     return {reinterpret_cast<std::uint8_t const*>(text.data()), text.size()};
 }
 
+// GCC 14 warns that each promise below, a coroutine, frees its frame with an operator delete that
+// does not pair with the operator new that made it (-Wmismatched-new-delete); the pair is
+// Boost.Cobalt's own, from its promise_memory_resource_base, and GCC 15 does not warn
+// (boostorg/cobalt#7).
+#if defined(__GNUC__) && !defined(__clang__) && __GNUC__ == 14
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmismatched-new-delete"
+#endif
+
 // The cheap functions, each awaited, against the synchronous function; and a refusal (an output of
 // 0 bytes) through as_tuple, and with exceptions through a throw.
 cobalt::promise<void> cheap() {
@@ -133,6 +142,10 @@ cobalt::promise<void> browser() {
     BOOST_TEST(!code);
     BOOST_TEST(digest == expected);
 }
+#endif
+
+#if defined(__GNUC__) && !defined(__clang__) && __GNUC__ == 14
+#pragma GCC diagnostic pop
 #endif
 
 // Runs the context until `done`, a promise started on it, is ready, and reads it.
