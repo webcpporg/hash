@@ -48,7 +48,10 @@ used only when the type names it, on Emscripten (<<hash-async-webcrypto>>).
 The program keeps a thread pool for the slow work, and binds the completion
 to its event loop with `bind_executor`, so that the handler runs on the
 loop's thread. Here a timer of 1 ms on the loop fires while an Argon2id of
-64 MiB runs on the pool:
+64 MiB is outstanding on the pool. The pool's only thread first waits for a
+latch that the timer's handler opens, and the derivation is queued behind that
+wait, so that the loop runs before the work does and the order is the
+program's, never the scheduler's:
 
 [source]
 ----
