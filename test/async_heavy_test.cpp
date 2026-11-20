@@ -12,14 +12,16 @@
 // engines run libsodium's and Hash2's and record the thread they run on, shows it. Each result
 // equals the synchronous function's; a guard's refusal completes through the executor, never inside
 // the call; a handler with no executor of its own completes on the pool; and a 10 ms timer on the
-// caller's io_context fires while an Argon2id of 64 MiB runs. Cancellation (spec 11.5): before the
-// work starts it completes at once, the work never run; after it starts, the work runs to its end
-// and only then the completion is operation_aborted, the output zeroed, while a `total` one is not
-// honoured; a second test backend, `gated`, holds its work until the test lets it go, and shows
-// that the work reads the caller's spans themselves, never a copy, so that they are the caller's
-// until the completion. The handler's associated allocator gets back every block before the handler
-// runs; and co_await in Asio (use_awaitable) completes on the caller's loop, an error read through
-// as_tuple without exceptions (ruling R71).
+// caller's io_context fires while an Argon2id of 64 MiB is in flight on the pool, which a test
+// backend, `latched`, keeps from completing until the timer's handler lets it, so that the order is
+// never the scheduler's. Cancellation (spec 11.5): before the work starts it completes at once, the
+// work never run; after it starts, the work runs to its end and only then the completion is
+// operation_aborted, the output zeroed, while a `total` one is not honoured; another test backend,
+// `gated`, holds its work until the test lets it go, and shows that the work reads the caller's
+// spans themselves, never a copy, so that they are the caller's until the completion. The handler's
+// associated allocator gets back every block before the handler runs; and co_await in Asio
+// (use_awaitable) completes on the caller's loop, an error read through as_tuple without exceptions
+// (ruling R71).
 
 #include <webcpp/hash/argon2.hpp>
 #include <webcpp/hash/async.hpp>
@@ -98,6 +100,13 @@ std::atomic<std::uint8_t const*> gated_password{nullptr};
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables): written by the pool's thread
 std::atomic<std::uint8_t*> gated_output{nullptr};
 
+// The latch of the `latched` backend: whether its work has started, and whether the test lets it
+// complete. Global, as the counters above.
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables): written by the pool's thread
+std::atomic<bool> latch_entered{false};
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables): set by the test
+std::atomic<bool> latch_open{false};
+
 void record_thread() {
     if (std::this_thread::get_id() == caller_thread) {
         ++runs_on_caller;
@@ -122,6 +131,10 @@ struct recording;
 // A backend of this test whose Argon2id waits for the test's gate, then fills the output with 0x11:
 // a work that has started and has not ended, for as long as the test needs.
 struct gated;
+
+// A backend of this test whose Argon2id is libsodium's, then, off the caller's thread, waits for
+// the test's latch before it returns: a heavy work that cannot complete before the test lets it.
+struct latched;
 
 }  // namespace webcpp::test
 
@@ -163,6 +176,32 @@ struct argon2id_engine<test::gated> {
         }
         std::ranges::fill(output, std::uint8_t{0x11});
         return {};
+    }
+};
+
+/**
+ Argon2id on `latched`: libsodium's, then, on any thread but the caller's, a wait until the test
+ opens the latch. On the caller's thread it does not wait, so that a work run there cannot hang the
+ test.
+*/
+template <>
+struct argon2id_engine<test::latched> {
+    static constexpr argon2id_limits limits = argon2id_engine<backends::sodium>::limits;
+
+    [[nodiscard]] static boost::system::result<void> derive(std::span<std::uint8_t> output,
+                                                            std::span<std::uint8_t const> password,
+                                                            std::span<std::uint8_t const> salt,
+                                                            std::uint64_t passes,
+                                                            std::size_t memory) noexcept {
+        latch_entered = true;
+        auto result =
+            argon2id_engine<backends::sodium>::derive(output, password, salt, passes, memory);
+        if (std::this_thread::get_id() != caller_thread) {
+            while (!latch_open) {
+                std::this_thread::yield();
+            }
+        }
+        return result;
     }
 };
 
@@ -222,6 +261,7 @@ struct argon2_engine<test::recording, kdfs::argon2id> {
 namespace {
 
 using webcpp::test::gated;
+using webcpp::test::latched;
 using webcpp::test::recording;
 
 // What a callback saw: whether it ran, whether the initiating call had returned when it did, on
@@ -870,8 +910,12 @@ void check_never_completed(asio::io_context& context) {
 #endif
 }
 
-// The caller's event loop stays responsive: a 10 ms timer on its io_context fires while an Argon2id
-// of 64 MiB (libsodium's interactive costs) runs on the pool.
+// The caller's event loop stays responsive while a heavy work runs on the pool: an Argon2id of
+// 64 MiB (libsodium's interactive costs) on `latched`, which cannot complete before the test lets
+// it, so that the order is the test's, never the scheduler's. Once the work has started on the
+// pool, a 10 ms timer on the caller's io_context fires while the work has not completed, and its
+// handler lets the work complete; the completion then arrives on the caller's loop, the result the
+// synchronous function's.
 void check_responsive(asio::io_context& context, asio::thread_pool& pool) {
     auto const password = bytes_of("correct horse battery staple");
     std::array<std::uint8_t, hash::argon2id_salt_size> const salt{};
@@ -879,17 +923,23 @@ void check_responsive(asio::io_context& context, asio::thread_pool& pool) {
     bool derived = false;
     bool timer_fired = false;
     bool timer_fired_first = false;
-    hash::async_argon2id(
+    latch_entered = false;
+    latch_open = false;
+    hash::async_argon2id<latched>(
         pool.get_executor(), output, password, salt, hash::argon2id_interactive,
         asio::bind_executor(context.get_executor(), [&](boost::system::error_code code) {
             BOOST_TEST(!code);
             derived = true;
         }));
+    while (!latch_entered) {
+        std::this_thread::yield();
+    }
     asio::steady_timer timer(context, std::chrono::milliseconds(10));
     timer.async_wait([&](boost::system::error_code code) {
         BOOST_TEST(!code);
         timer_fired = true;
         timer_fired_first = !derived;
+        latch_open = true;
     });
     context.restart();
     context.run();  // lint-run: the test's event loop
