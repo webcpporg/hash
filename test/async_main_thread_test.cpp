@@ -73,7 +73,8 @@ constexpr int required_ticks = 3;
 
 // Runs `start(handler)` with a handler bound to `main`'s executor while `loop`, the main thread's
 // io_context, fires a timer every 5 ms until the handler has run; returns what the handler saw.
-// When `gate` is not null, the timer opens it at its `required_ticks`th tick.
+// When `gate` is not null, the timer opens it, once, at its `required_ticks`th tick or when it
+// stops, whatever the error code.
 template <class Start>
 completion on_main_thread(asio::io_context& loop, asio::browser::main_thread_context& main,
                           int& ticks, std::latch* gate, Start start) {
@@ -93,12 +94,22 @@ completion on_main_thread(asio::io_context& loop, asio::browser::main_thread_con
     returned = true;
 
     asio::steady_timer timer(loop);
+    // Opens the gate once, on whichever path ends the ticking first, so that no thread of the pool
+    // stays blocked (a latch counted down past zero is undefined).
+    bool gate_opened = false;
+    auto open_gate = [&] {
+        if (gate != nullptr && !gate_opened) {
+            gate_opened = true;
+            gate->count_down();
+        }
+    };
     std::function<void(boost::system::error_code)> tick = [&](boost::system::error_code code) {
         if (code || seen.calls != 0) {
+            open_gate();
             return;
         }
-        if (++ticks == required_ticks && gate != nullptr) {
-            gate->count_down();
+        if (++ticks == required_ticks) {
+            open_gate();
         }
         timer.expires_after(std::chrono::milliseconds(5));
         timer.async_wait(tick);
