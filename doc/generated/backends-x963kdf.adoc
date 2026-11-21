@@ -19,10 +19,18 @@
 | native, wasip2, wasip3
 | -
 | not stated
+
+| `x963kdf`
+| `botan` (with exceptions only) (partial: an output of more than 2^32 - 2 digests, where ANSI X9.63 allows 2^32 - 1: Botan's KDF2 derives at most 2^32 - 2 blocks (kdf2.cpp))
+| `/third_party//botan`
+| native, emscripten
+| -
+| not stated
 |===
 
 What each backend states on constant time, as the capability table read it:
 
+* `botan`: Botan 3.14.1: doc/api_ref/kdf.rst states no constant-time property of its KDFs, and their source (src/lib/kdf/) none.
 * `openssl`: OpenSSL 3.5.9: doc/man7/EVP_KDF-X963.pod states no constant-time property.
 
 `x963kdf` has no default backend: the call names one of its backends, as its second template argument (<<hash-default-backend>>).

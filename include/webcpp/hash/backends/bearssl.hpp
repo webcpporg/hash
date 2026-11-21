@@ -359,8 +359,9 @@ struct bearssl_hash_class {
     static_assert(always_false<Hmac>,
                   "webcpp::hash: backends::bearssl has HKDF over hmac_md5_128, hmac_sha1_160, "
                   "hmac_sha2_224, hmac_sha2_256, hmac_sha2_384 and hmac_sha2_512 alone. Over "
-                  "this hmac, name backends::hash2 (every hmac) or backends::openssl (every hmac "
-                  "but hmac_ripemd_128).");
+                  "this hmac, name backends::hash2 (every hmac), backends::openssl (every hmac "
+                  "but hmac_ripemd_128) or backends::botan (every hmac but hmac_ripemd_128 and "
+                  "hmac_sha2_512_224).");
 
     /**
      No hash: declared so that the refusal is the only error.
@@ -407,7 +408,7 @@ struct hkdf_engine<backends::bearssl, Hmac> {
         static_assert(always_false<Hmac>,
                       "webcpp::hash: hkdf_extract and hkdf_expand are not in backends::bearssl, "
                       "whose HKDF does both steps together: call hkdf, or name backends::hash2, "
-                      "backends::sodium or backends::openssl.");
+                      "backends::sodium, backends::openssl or backends::botan.");
         return error::backend_failure;
     }
 
@@ -422,7 +423,7 @@ struct hkdf_engine<backends::bearssl, Hmac> {
         static_assert(always_false<Hmac>,
                       "webcpp::hash: hkdf_extract and hkdf_expand are not in backends::bearssl, "
                       "whose HKDF does both steps together: call hkdf, or name backends::hash2, "
-                      "backends::sodium or backends::openssl.");
+                      "backends::sodium, backends::openssl or backends::botan.");
         return error::backend_failure;
     }
 
@@ -466,8 +467,9 @@ template <class Hmac>
 struct pbkdf2_engine<backends::bearssl, Hmac> {
     static_assert(always_false<Hmac>,
                   "webcpp::hash: pbkdf2 is not in backends::bearssl: BearSSL has no PBKDF2. The "
-                  "backends that have pbkdf2: backends::hash2 (every hmac) and backends::openssl "
-                  "(every hmac but hmac_ripemd_128).");
+                  "backends that have pbkdf2: backends::hash2 (every hmac), backends::openssl "
+                  "(every hmac but hmac_ripemd_128) and backends::botan (every hmac but "
+                  "hmac_ripemd_128 and hmac_sha2_512_224).");
 
     /**
      Not in BearSSL: declared so that the refusal is the only error.

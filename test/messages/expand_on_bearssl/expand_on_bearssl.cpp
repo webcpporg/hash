@@ -8,7 +8,7 @@
 // spec section 3.3's text, and with no other error.
 
 // clang-format off
-// expected-error@webcpp/hash/backends/bearssl.hpp:* {{webcpp::hash: hkdf_extract and hkdf_expand are not in backends::bearssl, whose HKDF does both steps together: call hkdf, or name backends::hash2, backends::sodium or backends::openssl.}}
+// expected-error@webcpp/hash/backends/bearssl.hpp:* {{webcpp::hash: hkdf_extract and hkdf_expand are not in backends::bearssl, whose HKDF does both steps together: call hkdf, or name backends::hash2, backends::sodium, backends::openssl or backends::botan.}}
 // clang-format on
 #include <webcpp/hash/backends/bearssl.hpp>
 #include <webcpp/hash/hkdf.hpp>

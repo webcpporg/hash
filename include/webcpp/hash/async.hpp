@@ -14,11 +14,12 @@
    the algorithms the browser's WebCrypto has (SHA-1, SHA-256, SHA-384, SHA-512, and HMAC and HKDF
    over them). On a synchronous backend, their default, they run it at once and complete through a
    post on the handler's associated executor, never inside the initiating call.
- - The heavy functions, `async_argon2id`, `async_argon2`, `async_scrypt` and `async_pbkdf2` on a
-   synchronous backend, run on another thread: they check their guards, post the work to the
-   executor the caller gives (a `webcpp::asio::thread_pool`'s), and complete on the handler's
-   associated executor. They exist only where the build has threads (`WEBCPP_HASH_HAS_THREADS`);
-   elsewhere each name refuses at compile time.
+ - The heavy functions, `async_argon2id`, `async_argon2`, `async_scrypt`, `async_bcrypt`,
+   `async_bcrypt_pbkdf`, `async_bcrypt_verify` and `async_pbkdf2` on a synchronous backend, run on
+   another thread: they check their guards, post the work to the executor the caller gives (a
+   `webcpp::asio::thread_pool`'s), and complete on the handler's associated executor,
+   `async_bcrypt_verify` with `void(boost::system::error_code, bool)`. They exist only where the
+   build has threads (`WEBCPP_HASH_HAS_THREADS`); elsewhere each name refuses at compile time.
 
  The default backend of each is the synchronous function's, @ref webcpp::hash::default_backend,
  and `backends::webcrypto` is used only when the type names it, on Emscripten.
@@ -46,6 +47,7 @@
 
 #include <webcpp/hash/argon2.hpp>
 #include <webcpp/hash/backends/hash2.hpp>
+#include <webcpp/hash/bcrypt.hpp>
 #include <webcpp/hash/detail/engines.hpp>
 #include <webcpp/hash/detail/wipe.hpp>
 #include <webcpp/hash/digest.hpp>
@@ -79,6 +81,7 @@
 #include <new>
 #include <optional>
 #include <span>
+#include <string_view>
 #include <thread>  // lint-world: std::this_thread::yield, the state's spin lock
 #include <type_traits>
 #include <utility>
@@ -164,11 +167,57 @@ struct async_engine {
 /**
  The error code of a synchronous function's result.
 
+ @tparam Value The result's value: `void`, or `bool` for `bcrypt_verify`.
  @param done The result. @return Its error, or the empty code on success.
 */
-inline boost::system::error_code code_of(boost::system::result<void> const& done) noexcept {
+template <class Value>
+boost::system::error_code code_of(boost::system::result<Value> const& done) noexcept {
     return done ? boost::system::error_code{} : done.error();
 }
+
+/** The value a heavy operation carries to its handler beside its code: none for `void`. */
+template <class Value>
+struct heavy_value {
+    /** The value; `Value{}` (false) until the work gives one. */
+    Value value{};
+};
+
+/** No value: the completion's signature is `void(boost::system::error_code)`. */
+template <>
+struct heavy_value<void> {};
+
+/**
+ The completion signature of a heavy function whose synchronous function returns
+ `boost::system::result<Value>`: `void(boost::system::error_code)` for `void`, else
+ `void(boost::system::error_code, Value)` (`bcrypt_verify`'s `bool`).
+
+ @tparam Value The synchronous function's value.
+*/
+template <class Value>
+struct heavy_signature_of {
+    /** `void(boost::system::error_code, Value)`. */
+    using type = void(boost::system::error_code, Value);
+};
+
+/** No value: `void(boost::system::error_code)`. */
+template <>
+struct heavy_signature_of<void> {
+    /** `void(boost::system::error_code)`. */
+    using type = void(boost::system::error_code);
+};
+
+/** The completion signature of @ref heavy_signature_of. @tparam Value The value. */
+template <class Value>
+using heavy_signature = heavy_signature_of<Value>::type;
+
+/**
+ The value of the result of `Work`, a heavy function's synchronous function bound to its
+ arguments: `void`, or `bool`.
+
+ @tparam Work The bound function.
+*/
+template <class Work>
+using heavy_value_of = std::invoke_result_t<Work&>::value_type;
 
 /**
  The initiation of a cheap function on a synchronous backend: runs the function's work (its guards
@@ -241,6 +290,8 @@ class heavy_state {
 public:
     /** The handler's associated executor, `work` by default. */
     using executor_type = webcpp::asio::associated_executor_t<Handler, WorkExecutor>;
+    /** The value the handler receives beside its code: `void` (none), or `bcrypt_verify`'s bool. */
+    using value_type = heavy_value_of<Work>;
     /** The handler's associated allocator, rebound to the state. */
     using allocator_type = std::allocator_traits<
         webcpp::asio::associated_allocator_t<Handler>>::template rebind_alloc<heavy_state>;
@@ -264,7 +315,7 @@ public:
      @return The state.
     */
     static heavy_state* make(Handler handler, WorkExecutor const& work, Work run,
-                             std::span<std::uint8_t> output) {
+                             std::span<std::byte> output) {
         allocator_type allocator(webcpp::asio::get_associated_allocator(handler));
         auto* const storage = std::allocator_traits<allocator_type>::allocate(allocator, 1);
         try_construct(allocator, storage, std::move(handler), work, std::move(run), output);
@@ -301,10 +352,15 @@ public:
             complete_on_handler(webcpp::asio::error::operation_aborted);
             return;
         }
-        auto code = code_of(run_());
+        auto const outcome = run_();
+        auto code = code_of(outcome);
+        if constexpr (!std::is_void_v<value_type>) {
+            value_.value = outcome ? *outcome : value_type{};
+        }
         if (cancelled_.load(std::memory_order_acquire)) {
-            wipe(output_);
+            wipe(output_.data(), output_.size());
             code = webcpp::asio::error::operation_aborted;
+            value_ = {};
         }
         phase_.store(heavy_phase::finished, std::memory_order_release);
         complete_on_handler(code);
@@ -405,7 +461,7 @@ private:
         bool invoke_;
     };
 
-    heavy_state(Handler handler, WorkExecutor const& work, Work run, std::span<std::uint8_t> output)
+    heavy_state(Handler handler, WorkExecutor const& work, Work run, std::span<std::byte> output)
         : handler_work_(
               webcpp::asio::make_work_guard(webcpp::asio::get_associated_executor(handler, work))),
           handler_(std::in_place, std::move(handler)),
@@ -414,7 +470,7 @@ private:
 
     // Constructs the state in `storage`, which is given back if the construction throws.
     static void try_construct(allocator_type& allocator, heavy_state* storage, Handler handler,
-                              WorkExecutor const& work, Work run, std::span<std::uint8_t> output) {
+                              WorkExecutor const& work, Work run, std::span<std::byte> output) {
         struct give_back {
             allocator_type& allocator;
             heavy_state* storage;
@@ -460,8 +516,14 @@ private:
         Handler handler(std::move(*handler_));
         auto work = std::move(handler_work_);
         allocator_type allocator(webcpp::asio::get_associated_allocator(handler));
-        release_storage(allocator);
-        std::move(handler)(code);
+        if constexpr (std::is_void_v<value_type>) {
+            release_storage(allocator);
+            std::move(handler)(code);
+        } else {
+            value_type const value = value_.value;
+            release_storage(allocator);
+            std::move(handler)(code, value);
+        }
         work.reset();
     }
 
@@ -495,7 +557,8 @@ private:
     webcpp::asio::executor_work_guard<executor_type> handler_work_;
     std::optional<Handler> handler_;
     Work run_;
-    std::span<std::uint8_t> output_;
+    std::span<std::byte> output_;
+    heavy_value<value_type> value_{};
 };
 
 /**
@@ -576,13 +639,19 @@ struct heavy_initiation {
      @param run The synchronous function, bound to its arguments.
     */
     template <class Handler, class WorkExecutor, class Guards, class Work>
-    void operator()(Handler&& handler, WorkExecutor const& work, std::span<std::uint8_t> output,
+    void operator()(Handler&& handler, WorkExecutor const& work, std::span<std::byte> output,
                     Guards const& guards, Work run) const {
         auto const guarded = guards();
         if (!guarded) {
             auto const executor = webcpp::asio::get_associated_executor(handler, work);
-            webcpp::asio::post(
-                executor, webcpp::asio::append(std::forward<Handler>(handler), guarded.error()));
+            if constexpr (std::is_void_v<heavy_value_of<Work>>) {
+                webcpp::asio::post(executor, webcpp::asio::append(std::forward<Handler>(handler),
+                                                                  guarded.error()));
+            } else {
+                webcpp::asio::post(
+                    executor, webcpp::asio::append(std::forward<Handler>(handler), guarded.error(),
+                                                   heavy_value_of<Work>{}));
+            }
             return;
         }
         using state = heavy_state<std::decay_t<Handler>, WorkExecutor, Work>;
@@ -597,17 +666,20 @@ struct heavy_initiation {
 };
 
 /**
- Initiates a heavy function (spec 11.5).
+ Initiates a heavy function (spec 11.5), of the signature its synchronous function's value gives
+ (@ref heavy_signature).
 
- @param work The work executor. @param output The output.
+ @param work The work executor. @param output The output's bytes, zeroed after a cancellation
+ during the work; empty for `bcrypt_verify`, which has none.
  @param guards The guards, bound to the arguments. @param run The synchronous function, bound to
  its arguments. @param token The completion token.
  @return What the completion token's `async_result` gives.
 */
 template <class CompletionToken, class WorkExecutor, class Guards, class Work>
-auto run_on_work(WorkExecutor const& work, std::span<std::uint8_t> output, Guards guards, Work run,
+auto run_on_work(WorkExecutor const& work, std::span<std::byte> output, Guards guards, Work run,
                  CompletionToken& token) {
-    return webcpp::asio_backend::async_initiate<CompletionToken, void(boost::system::error_code)>(
+    return webcpp::asio_backend::async_initiate<CompletionToken,
+                                                heavy_signature<heavy_value_of<Work>>>(
         heavy_initiation{}, token, work, output, std::move(guards), std::move(run));
 }
 
@@ -801,7 +873,7 @@ auto async_pbkdf2(Executor const& executor, std::span<std::uint8_t> output,
     } else {
 #ifdef WEBCPP_HASH_HAS_THREADS
         return detail::run_on_work(
-            executor, output,
+            executor, std::as_writable_bytes(output),
             [output_size = output.size(), password_size = password.size(), salt_size = salt.size(),
              iterations] {
                 if constexpr (!detail::takes_hmac<Hmac>()) {
@@ -860,7 +932,7 @@ auto async_argon2id(WorkExecutor const& work, std::span<std::uint8_t> output,
                     std::span<std::uint8_t const> password, std::span<std::uint8_t const> salt,
                     argon2id_parameters const& parameters, CompletionToken&& token) {
     return detail::run_on_work(
-        work, output,
+        work, std::as_writable_bytes(output),
         [output_size = output.size(), password_size = password.size(), salt_size = salt.size(),
          parameters] {
             return detail::argon2id_guards<Backend>(output_size, password_size, salt_size,
@@ -895,7 +967,7 @@ auto async_argon2(WorkExecutor const& work, std::span<std::uint8_t> output,
                   std::span<std::uint8_t const> password, std::span<std::uint8_t const> salt,
                   argon2_parameters const& parameters, CompletionToken&& token) {
     return detail::run_on_work(
-        work, output,
+        work, std::as_writable_bytes(output),
         [output_size = output.size(), password_size = password.size(), salt_size = salt.size(),
          parameters] {
             return detail::argon2_guards<Variant, Backend>(output_size, password_size, salt_size,
@@ -926,7 +998,7 @@ auto async_scrypt(WorkExecutor const& work, std::span<std::uint8_t> output,
                   std::span<std::uint8_t const> password, std::span<std::uint8_t const> salt,
                   scrypt_parameters const& parameters, CompletionToken&& token) {
     return detail::run_on_work(
-        work, output,
+        work, std::as_writable_bytes(output),
         [output_size = output.size(), password_size = password.size(), salt_size = salt.size(),
          parameters] {
             return detail::scrypt_guards<Backend>(output_size, password_size, salt_size,
@@ -936,6 +1008,96 @@ auto async_scrypt(WorkExecutor const& work, std::span<std::uint8_t> output,
             return scrypt<Backend>(output, password, salt, parameters);
         },
         token);
+}
+
+/**
+ bcrypt on a thread of `work`'s context (spec 11.5), as @ref async_argon2id runs: the guards of
+ `bcrypt` first, whose refusal completes through a post, `output` untouched; then the work.
+
+ @tparam Backend The backend; @ref default_backend of `kdfs::bcrypt` has none: the call names
+ `backends::botan`.
+ @tparam WorkExecutor An Asio executor whose context runs on other threads.
+ @tparam CompletionToken An Asio completion token of signature `void(boost::system::error_code)`.
+ @param work The executor of the threads the work runs on.
+ @param output The string, exactly `bcrypt_hash_size` characters. @param password The password.
+ @param salt The salt, of `bcrypt_salt_size` bytes. The spans are the caller's until completion.
+ @param parameters The cost and the version, copied.
+ @param token The completion token, of signature `void(boost::system::error_code)`.
+ @return What the completion token's `async_result` gives. The completion's code is empty on
+ success, or `bcrypt`'s error, or `operation_aborted` (a cancellation during the work zeroes
+ `output`).
+*/
+template <class Backend = default_backend<kdfs::bcrypt>, class WorkExecutor, class CompletionToken>
+auto async_bcrypt(WorkExecutor const& work, std::span<char> output,
+                  std::span<std::uint8_t const> password, std::span<std::uint8_t const> salt,
+                  bcrypt_parameters const& parameters, CompletionToken&& token) {
+    return detail::run_on_work(
+        work, std::as_writable_bytes(output),
+        [output_size = output.size(), password, salt_size = salt.size(), parameters] {
+            return detail::bcrypt_guards<Backend>(output_size, password, salt_size, parameters);
+        },
+        [output, password, salt, parameters] {
+            return bcrypt<Backend>(output, password, salt, parameters);
+        },
+        token);
+}
+
+/**
+ OpenBSD's bcrypt_pbkdf on a thread of `work`'s context, as @ref async_argon2id runs.
+
+ @tparam Backend The backend; @ref default_backend of `kdfs::bcrypt_pbkdf` has none: the call
+ names `backends::botan`.
+ @tparam WorkExecutor An Asio executor whose context runs on other threads.
+ @tparam CompletionToken An Asio completion token of signature `void(boost::system::error_code)`.
+ @param work The executor of the threads the work runs on.
+ @param output The derived key, 1 to 1,024 bytes. @param password The password, 1 byte or more.
+ @param salt The salt, 1 to 1,048,576 bytes. The spans are the caller's until completion.
+ @param rounds The rounds, 1 or more.
+ @param token The completion token, of signature `void(boost::system::error_code)`.
+ @return What the completion token's `async_result` gives. The completion's code is empty on
+ success, or `bcrypt_pbkdf`'s error, or `operation_aborted`.
+*/
+template <class Backend = default_backend<kdfs::bcrypt_pbkdf>, class WorkExecutor,
+          class CompletionToken>
+auto async_bcrypt_pbkdf(WorkExecutor const& work, std::span<std::uint8_t> output,
+                        std::span<std::uint8_t const> password, std::span<std::uint8_t const> salt,
+                        std::uint32_t rounds, CompletionToken&& token) {
+    return detail::run_on_work(
+        work, std::as_writable_bytes(output),
+        [output_size = output.size(), password_size = password.size(), salt_size = salt.size(),
+         rounds] {
+            return detail::bcrypt_pbkdf_guards(output_size, password_size, salt_size, rounds);
+        },
+        [output, password, salt, rounds] {
+            return bcrypt_pbkdf<Backend>(output, password, salt, rounds);
+        },
+        token);
+}
+
+/**
+ `bcrypt_verify` on a thread of `work`'s context, as @ref async_argon2id runs, completing with
+ whether the password gives the string: it computes bcrypt in full, as slow as `bcrypt` (spec 11.5:
+ every deliberately slow function has its heavy variant).
+
+ @tparam Backend The backend; the call names `backends::botan`, as for @ref async_bcrypt.
+ @tparam WorkExecutor An Asio executor whose context runs on other threads.
+ @tparam CompletionToken An Asio completion token of signature
+ `void(boost::system::error_code, bool)`.
+ @param work The executor of the threads the work runs on.
+ @param password The password. @param hash The string, of bcrypt's form. Both are the caller's
+ until completion.
+ @param token The completion token, of signature `void(boost::system::error_code, bool)`.
+ @return What the completion token's `async_result` gives. The completion's code is empty on
+ success, its `bool` then whether the password gives the string; or `bcrypt_verify`'s error, or
+ `operation_aborted`, the `bool` false.
+*/
+template <class Backend = default_backend<kdfs::bcrypt>, class WorkExecutor, class CompletionToken>
+auto async_bcrypt_verify(WorkExecutor const& work, std::span<std::uint8_t const> password,
+                         std::string_view hash, CompletionToken&& token) {
+    return detail::run_on_work(
+        work, std::span<std::byte>{},
+        [password, hash] { return detail::bcrypt_verify_guards<Backend>(password, hash); },
+        [password, hash] { return bcrypt_verify<Backend>(password, hash); }, token);
 }
 
 #else
@@ -992,6 +1154,56 @@ void async_scrypt(WorkExecutor const& /*work*/, std::span<std::uint8_t> /*output
                   "webcpp::hash: async_scrypt runs on another thread and needs a build with "
                   "threads (natively, remove WEBCPP_HASH_NO_THREADS; on Emscripten, link with "
                   "-pthread). Without threads, call scrypt.");
+}
+
+/**
+ bcrypt on another thread, which a build without threads does not have: a call refuses at compile
+ time, naming `bcrypt`.
+
+ @tparam Backend The backend. @return Nothing: the refusal has stopped the build.
+*/
+template <class Backend = default_backend<kdfs::bcrypt>, class WorkExecutor, class CompletionToken>
+void async_bcrypt(WorkExecutor const& /*work*/, std::span<char> /*output*/,
+                  std::span<std::uint8_t const> /*password*/,
+                  std::span<std::uint8_t const> /*salt*/, bcrypt_parameters const& /*parameters*/,
+                  CompletionToken&& /*token*/) {
+    static_assert(detail::always_false<Backend>,
+                  "webcpp::hash: async_bcrypt runs on another thread and needs a build with "
+                  "threads (natively, remove WEBCPP_HASH_NO_THREADS; on Emscripten, link with "
+                  "-pthread). Without threads, call bcrypt.");
+}
+
+/**
+ bcrypt_pbkdf on another thread, which a build without threads does not have: a call refuses at
+ compile time, naming `bcrypt_pbkdf`.
+
+ @tparam Backend The backend. @return Nothing: the refusal has stopped the build.
+*/
+template <class Backend = default_backend<kdfs::bcrypt_pbkdf>, class WorkExecutor,
+          class CompletionToken>
+void async_bcrypt_pbkdf(WorkExecutor const& /*work*/, std::span<std::uint8_t> /*output*/,
+                        std::span<std::uint8_t const> /*password*/,
+                        std::span<std::uint8_t const> /*salt*/, std::uint32_t /*rounds*/,
+                        CompletionToken&& /*token*/) {
+    static_assert(detail::always_false<Backend>,
+                  "webcpp::hash: async_bcrypt_pbkdf runs on another thread and needs a build with "
+                  "threads (natively, remove WEBCPP_HASH_NO_THREADS; on Emscripten, link with "
+                  "-pthread). Without threads, call bcrypt_pbkdf.");
+}
+
+/**
+ bcrypt_verify on another thread, which a build without threads does not have: a call refuses at
+ compile time, naming `bcrypt_verify`.
+
+ @tparam Backend The backend. @return Nothing: the refusal has stopped the build.
+*/
+template <class Backend = default_backend<kdfs::bcrypt>, class WorkExecutor, class CompletionToken>
+void async_bcrypt_verify(WorkExecutor const& /*work*/, std::span<std::uint8_t const> /*password*/,
+                         std::string_view /*hash*/, CompletionToken&& /*token*/) {
+    static_assert(detail::always_false<Backend>,
+                  "webcpp::hash: async_bcrypt_verify runs on another thread and needs a build "
+                  "with threads (natively, remove WEBCPP_HASH_NO_THREADS; on Emscripten, link "
+                  "with -pthread). Without threads, call bcrypt_verify.");
 }
 
 #endif

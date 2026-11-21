@@ -7,7 +7,7 @@
 // pbkdf2 on backends::sodium stops with spec section 3.3's text: libsodium has no PBKDF2.
 
 // clang-format off
-// expected-error@webcpp/hash/backends/sodium.hpp:* {{webcpp::hash: pbkdf2 is not in backends::sodium: libsodium has no PBKDF2. The backends that have pbkdf2: backends::hash2 (every hmac) and backends::openssl (every hmac but hmac_ripemd_128).}}
+// expected-error@webcpp/hash/backends/sodium.hpp:* {{webcpp::hash: pbkdf2 is not in backends::sodium: libsodium has no PBKDF2. The backends that have pbkdf2: backends::hash2 (every hmac), backends::openssl (every hmac but hmac_ripemd_128) and backends::botan (every hmac but hmac_ripemd_128 and hmac_sha2_512_224).}}
 // clang-format on
 #include <webcpp/hash/pbkdf2.hpp>
 

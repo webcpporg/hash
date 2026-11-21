@@ -60,6 +60,7 @@ webcpp.headers-alone hash : ../include :
     hash/algorithms.hpp
     hash/argon2.hpp
     hash/backends/hash2.hpp
+    hash/bcrypt.hpp
     hash/blake2b_subkey.hpp
     hash/config.hpp
     hash/detail/engines.hpp
@@ -400,6 +401,41 @@ webcpp.compile botan_no_exceptions : botan_no_exceptions_test.cpp
   : <library>/third_party//botan <exception-handling>on
     <define>WEBCPP_HASH_NO_EXCEPTIONS
   : native emscripten ;
+# HKDF and PBKDF2 on backends::botan: RFC 5869's seven cases, RFC 6070's and
+# RFC 7914's, the guards at their limits, keys past Botan's HMAC's 8,192 bytes,
+# and 1,000 seeded cases each against backends::hash2 over every hmac Botan has.
+botan-run kdfs_botan : kdfs_botan_test.cpp ;
+# Argon2 on backends::botan: RFC 9106's three cases through the family,
+# libsodium's table through argon2id, argon2_ctx on random cases with lanes, a
+# secret and associated data, libsodium at one lane, and Botan's limits (129
+# lanes, m past 8 GiB) answering unsupported_by_backend.
+botan-run argon2_botan : argon2_botan_test.cpp
+  : <library>/third_party//sodium <library>/third_party//sodium-test-config ;
+# scrypt on backends::botan: RFC 7914's first three cases, libsodium's scrypt
+# on random cases, and Botan's bounds answering unsupported_by_backend; the
+# fourth case, 1 GiB, natively and on Emscripten (Botan's memory growth).
+botan-run scrypt_botan : scrypt_botan_test.cpp : <library>/third_party//sodium ;
+botan-run scrypt_botan_large : scrypt_botan_large_test.cpp ;
+# bcrypt on backends::botan: the cases of Botan's passhash/bcrypt.vec of
+# jBCrypt, openwall's and OpenBSD's code, computed from their salt and cost and
+# verified, and the guards, a cost past Botan's 18 unsupported_by_backend.
+botan-run bcrypt_botan : bcrypt_botan_test.cpp : <library>/third_party//botan_vectors ;
+# bcrypt_pbkdf on backends::botan: every case of Botan's bcrypt_pbkdf.vec, of
+# OpenBSD's code and dchest's Go package, and the guards at OpenBSD's limits.
+botan-run bcrypt_pbkdf_botan : bcrypt_pbkdf_botan_test.cpp
+  : <library>/third_party//botan_vectors ;
+# KBKDF, SSKDF and the X9.63 KDF on backends::botan: OpenSSL's evpkdf files
+# (NIST CAVP's KBKDF cases, without the separator and L, refused), Botan's
+# kdf/sp800_108_ctr.vec cases with L, a second implementation over Boost.Hash2,
+# and natively backends::openssl on random cases.
+botan-run kdf_standards_botan : kdf_standards_botan_test.cpp
+  : <library>/third_party//openssl_evp_data <library>/third_party//botan_vectors
+    <conditional>@openssl-off-emscripten ;
+# The heavy functions on backends::botan on a thread_pool's thread, natively
+# and on Emscripten with -pthread (PTHREAD_POOL_SIZE, as async_heavy's).
+botan-run async_heavy_botan : async_heavy_botan_test.cpp
+  : <library>/webcpp/asio//asio <threading>multi
+    <toolset>emscripten:<linkflags>-sPTHREAD_POOL_SIZE=3 ;
 # Botan's allocations per call of every entry point of backends::botan,
 # through operator new (and the C library where the target counts it),
 # printed and never bounded; none for a refusal by a guard.
@@ -425,6 +461,14 @@ hash-run agreement_pbkdf2 : agreement_pbkdf2_test.cpp
     <library>/webcpp/hash//openssl : native wasip2 wasip3 ;
 hash-run agreement_pbkdf2_emscripten : agreement_pbkdf2_test.cpp
   : <library>/third_party//sodium <library>/third_party//bearssl : emscripten ;
+# The same with Botan, natively and on Emscripten, with exceptions: its HKDF and
+# PBKDF2 against every other backend of their rows.
+botan-run agreement_hkdf_botan : agreement_hkdf_test.cpp
+  : <library>/third_party//sodium <library>/third_party//bearssl
+    <conditional>@openssl-off-emscripten ;
+botan-run agreement_pbkdf2_botan : agreement_pbkdf2_test.cpp
+  : <library>/third_party//sodium <library>/third_party//bearssl
+    <conditional>@openssl-off-emscripten ;
 # The families across increments: every tag two backends or more have, and
 # every tag of backends::openssl, through digest_of, hasher, mac and argon2,
 # on seeded cases (1,000 per digest and MAC, 100 per Argon2 variant), against

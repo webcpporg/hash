@@ -8,7 +8,7 @@
 // BearSSL, not the primary template's, and with no other error.
 
 // clang-format off
-// expected-error@webcpp/hash/backends/bearssl.hpp:* {{webcpp::hash: pbkdf2 is not in backends::bearssl: BearSSL has no PBKDF2. The backends that have pbkdf2: backends::hash2 (every hmac) and backends::openssl (every hmac but hmac_ripemd_128).}}
+// expected-error@webcpp/hash/backends/bearssl.hpp:* {{webcpp::hash: pbkdf2 is not in backends::bearssl: BearSSL has no PBKDF2. The backends that have pbkdf2: backends::hash2 (every hmac), backends::openssl (every hmac but hmac_ripemd_128) and backends::botan (every hmac but hmac_ripemd_128 and hmac_sha2_512_224).}}
 // clang-format on
 #include <webcpp/hash/backends/bearssl.hpp>
 #include <webcpp/hash/hmac.hpp>

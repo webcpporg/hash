@@ -97,8 +97,8 @@ struct joined<std::tuple<First...>, std::tuple<Second...>> {
 };
 
 using hmac_functions = joined<test::kdf_operations, std::tuple<kdfs::kbkdf_hmac>>::type;
-using plain_functions =
-    std::tuple<kdfs::argon2id, kdfs::scrypt, kdfs::blake2b_subkey, kdfs::sskdf, kdfs::x963kdf>;
+using plain_functions = std::tuple<kdfs::argon2id, kdfs::scrypt, kdfs::blake2b_subkey, kdfs::sskdf,
+                                   kdfs::x963kdf, kdfs::bcrypt, kdfs::bcrypt_pbkdf>;
 
 template <class Function>
 constexpr std::string_view function_name() {
@@ -114,6 +114,10 @@ constexpr std::string_view function_name() {
         return "sskdf";
     } else if constexpr (std::is_same_v<Function, kdfs::x963kdf>) {
         return "x963kdf";
+    } else if constexpr (std::is_same_v<Function, kdfs::bcrypt>) {
+        return "bcrypt";
+    } else if constexpr (std::is_same_v<Function, kdfs::bcrypt_pbkdf>) {
+        return "bcrypt_pbkdf";
     } else {
         return test::name_of_operation<Function>();
     }
@@ -653,8 +657,8 @@ void check_names(json::object const& table) {
         }
     }
     names known_functions{
-        "hkdf_extract", "hkdf_expand",    "hkdf",  "pbkdf2", "argon2id",
-        "scrypt",       "blake2b_subkey", "kbkdf", "sskdf",  "x963kdf",
+        "hkdf_extract",   "hkdf_expand", "hkdf",  "pbkdf2",  "argon2id", "scrypt",
+        "blake2b_subkey", "kbkdf",       "sskdf", "x963kdf", "bcrypt",   "bcrypt_pbkdf",
     };
     for (auto const& row : type_rows()) {
         known_functions.emplace(row.name);
@@ -797,14 +801,15 @@ std::vector<refusal> const& refusals() {
         },
         {
             .header = "detail/engines.hpp",
-            .start = "argon2id is in backends::sodium and backends::openssl alone.",
+            .start =
+                "argon2id is in backends::sodium, backends::openssl and backends::botan alone.",
             .backend = "",
             .functions = {"argon2id"},
             .hmacs = {},
         },
         {
             .header = "detail/engines.hpp",
-            .start = "scrypt is in backends::sodium and backends::openssl alone.",
+            .start = "scrypt is in backends::sodium, backends::openssl and backends::botan alone.",
             .backend = "",
             .functions = {"scrypt"},
             .hmacs = {},
@@ -943,6 +948,27 @@ std::vector<refusal> const& refusals() {
             .hmacs = {},
         },
         {
+            .header = "async.hpp",
+            .start = "async_bcrypt runs on another thread",
+            .backend = "",
+            .functions = {},
+            .hmacs = {},
+        },
+        {
+            .header = "async.hpp",
+            .start = "async_bcrypt_pbkdf runs on another thread",
+            .backend = "",
+            .functions = {},
+            .hmacs = {},
+        },
+        {
+            .header = "async.hpp",
+            .start = "async_bcrypt_verify runs on another thread",
+            .backend = "",
+            .functions = {},
+            .hmacs = {},
+        },
+        {
             .header = "backends/webcrypto.hpp",
             .start = "backends::webcrypto completes through an io_context run on",
             .backend = "webcrypto",
@@ -1018,6 +1044,27 @@ std::vector<refusal> const& refusals() {
             .backend = "openssl",
             .functions = {"kbkdf"},
             .hmacs = {"lacks"},
+        },
+        {
+            .header = "backends/botan.hpp",
+            .start = "backends::botan has HKDF and PBKDF2 over every hmac of hmac.hpp but",
+            .backend = "botan",
+            .functions = {"hkdf", "pbkdf2"},
+            .hmacs = {"lacks"},
+        },
+        {
+            .header = "backends/botan.hpp",
+            .start = "backends::botan has kbkdf over the hmacs of hmac.hpp alone",
+            .backend = "botan",
+            .functions = {"kbkdf"},
+            .hmacs = {"lacks"},
+        },
+        {
+            .header = "backends/botan.hpp",
+            .start = "backends::botan has no SHA-512/224",
+            .backend = "botan",
+            .functions = {"sskdf"},
+            .hmacs = {},
         },
         {
             .header = "kdf_standards.hpp",

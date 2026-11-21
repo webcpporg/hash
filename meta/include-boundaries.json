@@ -35,7 +35,14 @@
                 "include/webcpp/hash/scrypt.hpp"
             ],
             "must-not-include": ["xkcp", "blake3", "sodium", "bearssl", "openssl/", "botan/"],
-            "why": "argon2id and scrypt include no C library's header: backends::sodium's webcpp header comes in under WEBCPP_HASH_HAS_SODIUM, so that a program that includes only argon2.hpp or scrypt.hpp gets its engine (spec sections 2.10 to 2.12)"
+            "why": "argon2id and scrypt include no C library's header: a linked backend's webcpp header (backends::sodium's, backends::openssl's, backends::botan's) comes in under its WEBCPP_HASH_HAS_<NAME>, so that a program that includes only argon2.hpp or scrypt.hpp gets its engines (spec sections 2.10 to 2.12)"
+        },
+        {
+            "headers": [
+                "include/webcpp/hash/bcrypt.hpp"
+            ],
+            "must-not-include": ["xkcp", "blake3", "sodium", "bearssl", "openssl/", "botan/"],
+            "why": "bcrypt, bcrypt_verify and bcrypt_pbkdf include no C library's header: backends::botan's webcpp header comes in under WEBCPP_HASH_HAS_BOTAN, so that a program that includes only bcrypt.hpp gets their engines (spec sections 2.12 and 2.15)"
         },
         {
             "headers": [
@@ -49,7 +56,7 @@
                 "include/webcpp/hash/kdf_standards.hpp"
             ],
             "must-not-include": ["xkcp", "blake3", "sodium", "bearssl", "openssl/", "botan/"],
-            "why": "kbkdf, sskdf and x963kdf include no C library's header: backends::openssl's webcpp header comes in under WEBCPP_HASH_HAS_OPENSSL, so that a program that includes only kdf_standards.hpp gets their engines (spec sections 2.12 and 2.15)"
+            "why": "kbkdf, sskdf and x963kdf include no C library's header: backends::openssl's and backends::botan's webcpp headers come in under WEBCPP_HASH_HAS_OPENSSL and WEBCPP_HASH_HAS_BOTAN, so that a program that includes only kdf_standards.hpp gets their engines (spec sections 2.12 and 2.15)"
         },
         {
             "headers": [
@@ -109,7 +116,7 @@
                 "include/webcpp/hash/backends/botan.hpp"
             ],
             "must-not-include": ["xkcp", "blake3", "sodium", "bearssl", "openssl/", "botan/internal/"],
-            "why": "backends::botan links Botan alone, through its public generic headers (botan/hash.h, botan/xof.h, botan/mac.h), never a module's own or an internal one (design D43)"
+            "why": "backends::botan links Botan alone, through its public headers: the generic ones (botan/hash.h, botan/xof.h, botan/mac.h, botan/kdf.h, botan/pwdhash.h, botan/rng.h, botan/exceptn.h) and bcrypt's own botan/bcrypt.h, whose two functions no generic interface has; never an internal one (design D43)"
         },
         {
             "headers": [

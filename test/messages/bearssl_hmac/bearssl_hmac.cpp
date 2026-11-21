@@ -8,7 +8,7 @@
 // section 3.3's text, and with no other error.
 
 // clang-format off
-// expected-error@webcpp/hash/backends/bearssl.hpp:* {{webcpp::hash: backends::bearssl has HKDF over hmac_md5_128, hmac_sha1_160, hmac_sha2_224, hmac_sha2_256, hmac_sha2_384 and hmac_sha2_512 alone. Over this hmac, name backends::hash2 (every hmac) or backends::openssl (every hmac but hmac_ripemd_128).}}
+// expected-error@webcpp/hash/backends/bearssl.hpp:* {{webcpp::hash: backends::bearssl has HKDF over hmac_md5_128, hmac_sha1_160, hmac_sha2_224, hmac_sha2_256, hmac_sha2_384 and hmac_sha2_512 alone. Over this hmac, name backends::hash2 (every hmac), backends::openssl (every hmac but hmac_ripemd_128) or backends::botan (every hmac but hmac_ripemd_128 and hmac_sha2_512_224).}}
 // clang-format on
 #include <webcpp/hash/backends/bearssl.hpp>
 #include <webcpp/hash/hkdf.hpp>

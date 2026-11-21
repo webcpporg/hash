@@ -45,6 +45,9 @@
 #ifdef WEBCPP_HASH_HAS_OPENSSL
 #include <webcpp/hash/backends/openssl.hpp>
 #endif
+#ifdef WEBCPP_HASH_HAS_BOTAN
+#include <webcpp/hash/backends/botan.hpp>
+#endif
 
 #include <boost/system/result.hpp>
 
@@ -80,6 +83,10 @@ template <class Hmac, class Backend>
     }
     using limits = backend_limits<Backend>;
     if (exceeds(output_size, limits::pbkdf2_output)) {
+        return error::invalid_output_size;
+    }
+    // A backend that derives fewer blocks than RFC 8018's 2^32 - 1 (backends::botan's 2^32 - 2).
+    if (exceeds(output_size, pbkdf2_max_blocks<Backend> * digest_length)) {
         return error::invalid_output_size;
     }
     // A specialisation written before pbkdf2_iterations existed has no limit of iterations.

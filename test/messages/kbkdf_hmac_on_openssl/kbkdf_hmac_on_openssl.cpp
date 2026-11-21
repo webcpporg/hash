@@ -10,7 +10,7 @@
 // clang's -verify reads a directive from one comment line: wrapped, it checks nothing, so the
 // whole text stays on one line.
 // clang-format off
-// expected-error@webcpp/hash/backends/openssl.hpp:* {{webcpp::hash: backends::openssl has kbkdf over the hmacs of hmac.hpp alone, hmac_ripemd_128 excepted, and no other backend has kbkdf.}}
+// expected-error@webcpp/hash/backends/openssl.hpp:* {{webcpp::hash: backends::openssl has kbkdf over the hmacs of hmac.hpp alone, hmac_ripemd_128 excepted, and no backend has kbkdf over this hmac.}}
 // clang-format on
 #include <webcpp/hash/backends/openssl.hpp>
 #include <webcpp/hash/hmac.hpp>

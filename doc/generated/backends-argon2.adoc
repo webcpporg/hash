@@ -20,6 +20,13 @@
 | -
 | not stated
 
+| `kdfs::argon2d`
+| `botan` (with exceptions only) (partial: more than 128 lanes, or m above 8 GiB (2 GiB on wasm32): Botan's Argon2 limits (argon2pwhash.cpp))
+| `/third_party//botan`
+| native, emscripten
+| -
+| no
+
 | `kdfs::argon2i`
 | `sodium` (partial: fewer than 3 passes, more than one lane, a secret, associated data, a salt other than 16 bytes or a tag under 16 bytes: libsodium's crypto_pwhash_argon2i takes none of them)
 | `/third_party//sodium`
@@ -31,6 +38,13 @@
 | `openssl` (partial: m above 4,194,303 KiB on wasm32: OpenSSL sizes Argon2's memory, m blocks of 1 KiB, in a size_t)
 | `/webcpp/hash//openssl`
 | native, wasip2, wasip3
+| -
+| not stated
+
+| `kdfs::argon2i`
+| `botan` (with exceptions only) (partial: more than 128 lanes, or m above 8 GiB (2 GiB on wasm32): Botan's Argon2 limits (argon2pwhash.cpp))
+| `/third_party//botan`
+| native, emscripten
 | -
 | not stated
 
@@ -47,13 +61,23 @@
 | native, wasip2, wasip3
 | -
 | not stated
+
+| `kdfs::argon2id`
+| `botan` (with exceptions only) (partial: more than 128 lanes, or m above 8 GiB (2 GiB on wasm32): Botan's Argon2 limits (argon2pwhash.cpp))
+| `/third_party//botan`
+| native, emscripten
+| -
+| not stated
 |===
 
 What each backend states on constant time, as the capability table read it:
 
+* `botan`:
+** Botan 3.14.1: doc/api_ref/pbkdf.rst states that Argon2i's memory accesses are independent of the data and Argon2id's depend on it after the first half of the first pass, and states no constant-time property.
+** Botan 3.14.1: doc/api_ref/pbkdf.rst warns that Argon2d accesses memory at addresses which depend on the password, and so may leak information about the password via cache-based side channels.
 * `openssl`: OpenSSL 3.5.9: doc/man7/EVP_KDF-ARGON2.pod states that Argon2i's memory accesses are independent of the data and Argon2d's depend on it, and states no constant-time property.
 * `sodium`: libsodium 1.0.22: its headers state constant time for comparisons (sodium/utils.h) alone, not for its hashing, MAC, key derivation and password hashing functions (crypto_hash_*, crypto_xof_*, crypto_generichash_*, crypto_shorthash_*, crypto_auth_*, crypto_kdf_*, crypto_pwhash_*).
 
 `kdfs::argon2d` has no default backend: the call names one of its backends, as its second template argument (<<hash-default-backend>>).
 
-The default of `kdfs::argon2i` and `kdfs::argon2id`: `sodium` on every target, whatever the program links; `openssl` only where the call names it, as its second template argument (<<hash-default-backend>>).
+The default of `kdfs::argon2i` and `kdfs::argon2id`: `sodium` on every target, whatever the program links; `botan`, `openssl` only where the call names it, as its second template argument (<<hash-default-backend>>).

@@ -9,7 +9,7 @@
 // clang's -verify reads a directive from one comment line: wrapped, it checks nothing, so the
 // whole text stays on one line.
 // clang-format off
-// expected-error@webcpp/hash/detail/engines.hpp:* {{webcpp::hash: kdfs::argon2d has no default backend. Name one of: backends::openssl.}}
+// expected-error@webcpp/hash/detail/engines.hpp:* {{webcpp::hash: kdfs::argon2d has no default backend. Name one of: backends::openssl, backends::botan.}}
 // clang-format on
 #include <webcpp/hash/argon2.hpp>
 

@@ -20,6 +20,7 @@
 #include <webcpp/hash/algorithms.hpp>
 #include <webcpp/hash/argon2.hpp>
 #include <webcpp/hash/backends/hash2.hpp>
+#include <webcpp/hash/bcrypt.hpp>
 #include <webcpp/hash/blake2b_subkey.hpp>
 #include <webcpp/hash/digest.hpp>
 #include <webcpp/hash/error.hpp>
@@ -63,14 +64,17 @@
 #include <webcpp/hash/backends/openssl.hpp>
 #endif
 
+// backends::botan needs Botan, /third_party//botan, which defines WEBCPP_HASH_HAS_BOTAN (native
+// and Emscripten): a program that does not link it leaves backends/botan.hpp out.
 #ifdef WEBCPP_HASH_HAS_BOTAN
 #include <webcpp/hash/backends/botan.hpp>
 #endif
 
-// scrypt, whose backends are libsodium's and OpenSSL's: a program that links neither leaves it
-// out. argon2.hpp and kdf_standards.hpp, above, need no library: their functions refuse at compile
-// time, with the Jamfile line to add, when they are called without one.
-#if defined(WEBCPP_HASH_HAS_SODIUM) || defined(WEBCPP_HASH_HAS_OPENSSL)
+// scrypt, whose backends are libsodium's, OpenSSL's and Botan's: a program that links none leaves
+// it out. argon2.hpp, bcrypt.hpp and kdf_standards.hpp, above, need no library: their functions
+// refuse at compile time, with the Jamfile line to add, when they are called without one.
+#if defined(WEBCPP_HASH_HAS_SODIUM) || defined(WEBCPP_HASH_HAS_OPENSSL) || \
+    defined(WEBCPP_HASH_HAS_BOTAN)
 #include <webcpp/hash/scrypt.hpp>
 #endif
 

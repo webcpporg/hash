@@ -811,6 +811,32 @@
             ],
             "choose": "When a format demands scrypt; otherwise Argon2id."
         },
+        "bcrypt": {
+            "summary": "bcrypt: OpenBSD's password hash, the modular crypt string \"$2b$\" that systems store, on a backend the call names (it has no default).",
+            "output": "60 characters: the version, the cost, the salt and the hash",
+            "security": "each guess costs 2^cost rounds of Blowfish's key schedule in 4 KiB of memory; it reads at most 72 bytes of a password",
+            "status": "legacy",
+            "webcrypto": null,
+            "anchor": "hash-bcrypt",
+            "uses": [
+                {"text": "OpenBSD's password hashes, and those of the many systems that store its strings", "source": "https://man.openbsd.org/bcrypt.3"},
+                {"text": "OWASP: for legacy systems where Argon2id and scrypt are not available, a cost of 10 or more", "source": "https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html"}
+            ],
+            "choose": "To check or make the bcrypt strings a system already stores; Argon2id for a new design."
+        },
+        "bcrypt_pbkdf": {
+            "summary": "bcrypt_pbkdf: OpenBSD's key derivation over bcrypt's hash, which OpenSSH's private key files use, on a backend the call names (it has no default).",
+            "output": "1 to 1,024 bytes",
+            "security": "each round costs a bcrypt key schedule; its output blocks are interleaved, so that an attacker computes them all",
+            "status": "legacy",
+            "webcrypto": null,
+            "anchor": "hash-bcrypt",
+            "uses": [
+                {"text": "OpenSSH's private key files, their kdfname bcrypt", "source": "https://github.com/openssh/openssh-portable/blob/master/PROTOCOL.key"},
+                {"text": "OpenBSD's bcrypt_pbkdf(3)", "source": "https://man.openbsd.org/bcrypt_pbkdf.3"}
+            ],
+            "choose": "To read or write OpenSSH's encrypted private keys; Argon2id for a new design."
+        },
         "digests::md5": {
             "standard": "RFC 1321",
             "summary": "MD5, a 128-bit digest, broken: kept to read existing data and protocols, as the tag of digest_of and hasher: one call, or pieces with one final result, on any backend that has it.",

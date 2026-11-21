@@ -8,7 +8,7 @@
         "hmacs": "The hmac columns of a function over an hmac: the aliases of <webcpp/hash/hmac.hpp>, and \"other\", hmac<H> over any other Boost.Hash2 hash whose result is a digest.",
         "algorithms[]": "One row group of spec 3.5: name, macro (the algorithm's word in upper case), tag (its kdfs:: type, or null), chapter (the documentation's chapter: digests, macs, kdfs, password_hashing, non-cryptographic), standard, functions.",
         "functions[]": "One public name: name (a type's or function's own name; a family's row is named by its qualified tag, as digests::sha2_256 or macs::hmac<digests::sha2_256>), kind (\"type\": a Boost.Hash2-form type; \"function\": a function template with a Backend parameter; \"digest\": a tag of digest_of and hasher; \"mac\": a tag of mac; \"kdf\": a variant of argon2), header, default (for a function or a family's tag, the backend default_backend names when the call names none, null for a tag with no default (detail::no_default) and for a type; every default has its cell), backends.",
-        "backends{}": "Per backend name, the cell: since (the increment it came with, 1 to 7), hmacs (the columns it has, or null for a function or type that takes no hmac), partial (only on a cell that refuses some values the family accepts: what it refuses, with unsupported_by_backend, or, for backends::webcrypto's narrower limits, with the error its backend_limits name), constant_time {value: \"yes\", \"no\" or \"not stated\", source: where upstream says so, or what was read and says nothing}. A cell holds on every target of its backend."
+        "backends{}": "Per backend name, the cell: since (the increment it came with, 1 to 7), hmacs (the columns it has, or null for a function or type that takes no hmac), partial (only on a cell that refuses some values the family accepts: what it refuses, with unsupported_by_backend, or, for a backend's narrower limits in its backend_limits (backends::webcrypto's, backends::botan's PBKDF2 count on wasm32), with the error they name), constant_time {value: \"yes\", \"no\" or \"not stated\", source: where upstream says so, or what was read and says nothing}. A cell holds on every target of its backend."
     },
     "targets": [
         "native",
@@ -3358,6 +3358,29 @@
                                 "value": "not stated",
                                 "source": "OpenSSL 3.5.9: doc/man7/EVP_KDF-HKDF.pod and EVP_KDF-PBKDF2.pod state no constant-time property."
                             }
+                        },
+                        "botan": {
+                            "since": 6,
+                            "hmacs": [
+                                "hmac_md5_128",
+                                "hmac_sha1_160",
+                                "hmac_sha2_224",
+                                "hmac_sha2_256",
+                                "hmac_sha2_384",
+                                "hmac_sha2_512",
+                                "hmac_sha2_512_256",
+                                "hmac_sha3_224",
+                                "hmac_sha3_256",
+                                "hmac_sha3_384",
+                                "hmac_sha3_512",
+                                "hmac_ripemd_160",
+                                "hmac_blake2b_512",
+                                "hmac_blake2s_256"
+                            ],
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "Botan 3.14.1: doc/api_ref/kdf.rst states no constant-time property of its KDFs, and their source (src/lib/kdf/) none."
+                            }
                         }
                     }
                 },
@@ -3427,6 +3450,29 @@
                             "constant_time": {
                                 "value": "not stated",
                                 "source": "OpenSSL 3.5.9: doc/man7/EVP_KDF-HKDF.pod and EVP_KDF-PBKDF2.pod state no constant-time property."
+                            }
+                        },
+                        "botan": {
+                            "since": 6,
+                            "hmacs": [
+                                "hmac_md5_128",
+                                "hmac_sha1_160",
+                                "hmac_sha2_224",
+                                "hmac_sha2_256",
+                                "hmac_sha2_384",
+                                "hmac_sha2_512",
+                                "hmac_sha2_512_256",
+                                "hmac_sha3_224",
+                                "hmac_sha3_256",
+                                "hmac_sha3_384",
+                                "hmac_sha3_512",
+                                "hmac_ripemd_160",
+                                "hmac_blake2b_512",
+                                "hmac_blake2s_256"
+                            ],
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "Botan 3.14.1: doc/api_ref/kdf.rst states no constant-time property of its KDFs, and their source (src/lib/kdf/) none."
                             }
                         }
                     }
@@ -3514,6 +3560,29 @@
                                 "source": "OpenSSL 3.5.9: doc/man7/EVP_KDF-HKDF.pod and EVP_KDF-PBKDF2.pod state no constant-time property."
                             }
                         },
+                        "botan": {
+                            "since": 6,
+                            "hmacs": [
+                                "hmac_md5_128",
+                                "hmac_sha1_160",
+                                "hmac_sha2_224",
+                                "hmac_sha2_256",
+                                "hmac_sha2_384",
+                                "hmac_sha2_512",
+                                "hmac_sha2_512_256",
+                                "hmac_sha3_224",
+                                "hmac_sha3_256",
+                                "hmac_sha3_384",
+                                "hmac_sha3_512",
+                                "hmac_ripemd_160",
+                                "hmac_blake2b_512",
+                                "hmac_blake2s_256"
+                            ],
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "Botan 3.14.1: doc/api_ref/kdf.rst states no constant-time property of its KDFs, and their source (src/lib/kdf/) none."
+                            }
+                        },
                         "webcrypto": {
                             "since": 7,
                             "hmacs": [
@@ -3594,6 +3663,30 @@
                             "constant_time": {
                                 "value": "not stated",
                                 "source": "OpenSSL 3.5.9: doc/man7/EVP_KDF-HKDF.pod and EVP_KDF-PBKDF2.pod state no constant-time property."
+                            }
+                        },
+                        "botan": {
+                            "since": 6,
+                            "hmacs": [
+                                "hmac_md5_128",
+                                "hmac_sha1_160",
+                                "hmac_sha2_224",
+                                "hmac_sha2_256",
+                                "hmac_sha2_384",
+                                "hmac_sha2_512",
+                                "hmac_sha2_512_256",
+                                "hmac_sha3_224",
+                                "hmac_sha3_256",
+                                "hmac_sha3_384",
+                                "hmac_sha3_512",
+                                "hmac_ripemd_160",
+                                "hmac_blake2b_512",
+                                "hmac_blake2s_256"
+                            ],
+                            "partial": "an iteration count above 2^32 - 1 on wasm32 (invalid_iterations): Botan counts iterations in a size_t; an output of more than 2^32 - 2 digests (invalid_output_size), where RFC 8018 allows 2^32 - 1: Botan's PBKDF2 derives at most 2^32 - 2 blocks (pbkdf2.cpp)",
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "Botan 3.14.1: doc/api_ref/pbkdf.rst states no constant-time property of PBKDF2, and its source (src/lib/pbkdf/pbkdf2/) none."
                             }
                         },
                         "webcrypto": {
@@ -3678,6 +3771,30 @@
                                 "value": "not stated",
                                 "source": "OpenSSL 3.5.9: doc/man7/EVP_KDF-KB.pod states no constant-time property."
                             }
+                        },
+                        "botan": {
+                            "since": 6,
+                            "hmacs": [
+                                "hmac_md5_128",
+                                "hmac_sha1_160",
+                                "hmac_sha2_224",
+                                "hmac_sha2_256",
+                                "hmac_sha2_384",
+                                "hmac_sha2_512",
+                                "hmac_sha2_512_256",
+                                "hmac_sha3_224",
+                                "hmac_sha3_256",
+                                "hmac_sha3_384",
+                                "hmac_sha3_512",
+                                "hmac_ripemd_160",
+                                "hmac_blake2b_512",
+                                "hmac_blake2s_256"
+                            ],
+                            "partial": "the separator or L turned off: Botan's SP800-108-Counter always writes both (sp800_108.cpp)",
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "Botan 3.14.1: doc/api_ref/kdf.rst states no constant-time property of its KDFs, and their source (src/lib/kdf/) none."
+                            }
                         }
                     }
                 }
@@ -3705,6 +3822,14 @@
                                 "value": "not stated",
                                 "source": "OpenSSL 3.5.9: doc/man7/EVP_KDF-SS.pod states no constant-time property."
                             }
+                        },
+                        "botan": {
+                            "since": 6,
+                            "hmacs": null,
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "Botan 3.14.1: doc/api_ref/kdf.rst states no constant-time property of its KDFs, and their source (src/lib/kdf/) none."
+                            }
                         }
                     }
                 }
@@ -3731,6 +3856,15 @@
                             "constant_time": {
                                 "value": "not stated",
                                 "source": "OpenSSL 3.5.9: doc/man7/EVP_KDF-X963.pod states no constant-time property."
+                            }
+                        },
+                        "botan": {
+                            "since": 6,
+                            "hmacs": null,
+                            "partial": "an output of more than 2^32 - 2 digests, where ANSI X9.63 allows 2^32 - 1: Botan's KDF2 derives at most 2^32 - 2 blocks (kdf2.cpp)",
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "Botan 3.14.1: doc/api_ref/kdf.rst states no constant-time property of its KDFs, and their source (src/lib/kdf/) none."
                             }
                         }
                     }
@@ -3766,6 +3900,14 @@
                                 "value": "not stated",
                                 "source": "OpenSSL 3.5.9: doc/man7/EVP_KDF-ARGON2.pod states that Argon2i's memory accesses are independent of the data and Argon2d's depend on it, and states no constant-time property."
                             }
+                        },
+                        "botan": {
+                            "since": 6,
+                            "hmacs": null,
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "Botan 3.14.1: doc/api_ref/pbkdf.rst states that Argon2i's memory accesses are independent of the data and Argon2id's depend on it after the first half of the first pass, and states no constant-time property."
+                            }
                         }
                     }
                 }
@@ -3791,6 +3933,15 @@
                             "constant_time": {
                                 "value": "not stated",
                                 "source": "OpenSSL 3.5.9: doc/man7/EVP_KDF-ARGON2.pod states that Argon2i's memory accesses are independent of the data and Argon2d's depend on it, and states no constant-time property."
+                            }
+                        },
+                        "botan": {
+                            "since": 6,
+                            "hmacs": null,
+                            "partial": "more than 128 lanes, or m above 8 GiB (2 GiB on wasm32): Botan's Argon2 limits (argon2pwhash.cpp)",
+                            "constant_time": {
+                                "value": "no",
+                                "source": "Botan 3.14.1: doc/api_ref/pbkdf.rst warns that Argon2d accesses memory at addresses which depend on the password, and so may leak information about the password via cache-based side channels."
                             }
                         }
                     }
@@ -3818,6 +3969,15 @@
                                 "value": "not stated",
                                 "source": "OpenSSL 3.5.9: doc/man7/EVP_KDF-ARGON2.pod states that Argon2i's memory accesses are independent of the data and Argon2d's depend on it, and states no constant-time property."
                             }
+                        },
+                        "botan": {
+                            "since": 6,
+                            "hmacs": null,
+                            "partial": "more than 128 lanes, or m above 8 GiB (2 GiB on wasm32): Botan's Argon2 limits (argon2pwhash.cpp)",
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "Botan 3.14.1: doc/api_ref/pbkdf.rst states that Argon2i's memory accesses are independent of the data and Argon2id's depend on it after the first half of the first pass, and states no constant-time property."
+                            }
                         }
                     }
                 },
@@ -3843,6 +4003,15 @@
                             "constant_time": {
                                 "value": "not stated",
                                 "source": "OpenSSL 3.5.9: doc/man7/EVP_KDF-ARGON2.pod states that Argon2i's memory accesses are independent of the data and Argon2d's depend on it, and states no constant-time property."
+                            }
+                        },
+                        "botan": {
+                            "since": 6,
+                            "hmacs": null,
+                            "partial": "more than 128 lanes, or m above 8 GiB (2 GiB on wasm32): Botan's Argon2 limits (argon2pwhash.cpp)",
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "Botan 3.14.1: doc/api_ref/pbkdf.rst states that Argon2i's memory accesses are independent of the data and Argon2id's depend on it after the first half of the first pass, and states no constant-time property."
                             }
                         }
                     }
@@ -3878,6 +4047,68 @@
                             "constant_time": {
                                 "value": "not stated",
                                 "source": "OpenSSL 3.5.9: doc/man7/EVP_KDF-SCRYPT.pod states no constant-time property."
+                            }
+                        },
+                        "botan": {
+                            "since": 6,
+                            "hmacs": null,
+                            "partial": "N above 2^22, r above 256, p above 1,024, or more than 8 GiB and 2 MiB of memory (2 GiB and 2 MiB on wasm32): Botan's scrypt limits (scrypt.cpp)",
+                            "constant_time": {
+                                "value": "no",
+                                "source": "Botan 3.14.1: doc/api_ref/pbkdf.rst warns that scrypt by design accesses memory at addresses which depend on the password, and so may leak information about the password via cache-based side channels."
+                            }
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "bcrypt",
+            "macro": "BCRYPT",
+            "tag": "kdfs::bcrypt",
+            "chapter": "password_hashing",
+            "standard": "Provos and Mazieres, A Future-Adaptable Password Scheme (USENIX 1999), as OpenBSD's bcrypt(3) writes it",
+            "functions": [
+                {
+                    "name": "bcrypt",
+                    "kind": "function",
+                    "tag": "kdfs::bcrypt",
+                    "header": "webcpp/hash/bcrypt.hpp",
+                    "default": null,
+                    "backends": {
+                        "botan": {
+                            "since": 6,
+                            "hmacs": null,
+                            "partial": "a cost above 18: Botan's limit (bcrypt.cpp), where bcrypt's format allows 31",
+                            "constant_time": {
+                                "value": "no",
+                                "source": "Botan 3.14.1: doc/api_ref/passhash.rst warns that bcrypt is built on Blowfish, which uses key-dependent tables indexed by secret data, and is thus likely vulnerable to cache-based side channels; no constant-time implementation is available."
+                            }
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "bcrypt_pbkdf",
+            "macro": "BCRYPT_PBKDF",
+            "tag": "kdfs::bcrypt_pbkdf",
+            "chapter": "password_hashing",
+            "standard": "OpenBSD's bcrypt_pbkdf(3), as OpenSSH's private keys use it",
+            "functions": [
+                {
+                    "name": "bcrypt_pbkdf",
+                    "kind": "function",
+                    "tag": "kdfs::bcrypt_pbkdf",
+                    "header": "webcpp/hash/bcrypt.hpp",
+                    "default": null,
+                    "backends": {
+                        "botan": {
+                            "since": 6,
+                            "hmacs": null,
+                            "constant_time": {
+                                "value": "no",
+                                "source": "Botan 3.14.1: doc/api_ref/pbkdf.rst warns that Bcrypt-PBKDF is built on Blowfish, which uses key-dependent tables indexed by secret data, and is thus likely vulnerable to cache-based side channels; no constant-time implementation is available."
                             }
                         }
                     }

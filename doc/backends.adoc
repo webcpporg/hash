@@ -1570,6 +1570,12 @@ states about its constant time. The backends:
 | not stated
 | native, wasip2, wasip3
 
+| hkdf_extract
+| botan (with exceptions only)
+| hmac_md5_128, hmac_sha1_160, hmac_sha2_224, hmac_sha2_256, hmac_sha2_384, hmac_sha2_512, hmac_sha2_512_256, hmac_sha3_224, hmac_sha3_256, hmac_sha3_384, hmac_sha3_512, hmac_ripemd_160, hmac_blake2b_512, hmac_blake2s_256
+| not stated
+| native, emscripten
+
 | hkdf_expand
 | hash2
 | hmac_md5_128, hmac_sha1_160, hmac_sha2_224, hmac_sha2_256, hmac_sha2_384, hmac_sha2_512, hmac_sha2_512_224, hmac_sha2_512_256, hmac_sha3_224, hmac_sha3_256, hmac_sha3_384, hmac_sha3_512, hmac_ripemd_128, hmac_ripemd_160, hmac_blake2b_512, hmac_blake2s_256, other
@@ -1587,6 +1593,12 @@ states about its constant time. The backends:
 | hmac_md5_128, hmac_sha1_160, hmac_sha2_224, hmac_sha2_256, hmac_sha2_384, hmac_sha2_512, hmac_sha2_512_224, hmac_sha2_512_256, hmac_sha3_224, hmac_sha3_256, hmac_sha3_384, hmac_sha3_512, hmac_ripemd_160, hmac_blake2b_512, hmac_blake2s_256
 | not stated
 | native, wasip2, wasip3
+
+| hkdf_expand
+| botan (with exceptions only)
+| hmac_md5_128, hmac_sha1_160, hmac_sha2_224, hmac_sha2_256, hmac_sha2_384, hmac_sha2_512, hmac_sha2_512_256, hmac_sha3_224, hmac_sha3_256, hmac_sha3_384, hmac_sha3_512, hmac_ripemd_160, hmac_blake2b_512, hmac_blake2s_256
+| not stated
+| native, emscripten
 
 | hkdf
 | hash2
@@ -1613,6 +1625,12 @@ states about its constant time. The backends:
 | native, wasip2, wasip3
 
 | hkdf
+| botan (with exceptions only)
+| hmac_md5_128, hmac_sha1_160, hmac_sha2_224, hmac_sha2_256, hmac_sha2_384, hmac_sha2_512, hmac_sha2_512_256, hmac_sha3_224, hmac_sha3_256, hmac_sha3_384, hmac_sha3_512, hmac_ripemd_160, hmac_blake2b_512, hmac_blake2s_256
+| not stated
+| native, emscripten
+
+| hkdf
 | webcrypto (asynchronous family only) (partial: an info longer than 1,024 bytes, which completes with input_too_long: WebCrypto's limit as node has it, where the other backends take 32,768)
 | hmac_sha1_160, hmac_sha2_256, hmac_sha2_384, hmac_sha2_512
 | not stated
@@ -1629,6 +1647,12 @@ states about its constant time. The backends:
 | hmac_md5_128, hmac_sha1_160, hmac_sha2_224, hmac_sha2_256, hmac_sha2_384, hmac_sha2_512, hmac_sha2_512_224, hmac_sha2_512_256, hmac_sha3_224, hmac_sha3_256, hmac_sha3_384, hmac_sha3_512, hmac_ripemd_160, hmac_blake2b_512, hmac_blake2s_256
 | not stated
 | native, wasip2, wasip3
+
+| pbkdf2
+| botan (with exceptions only) (partial: an iteration count above 2^32 - 1 on wasm32 (invalid_iterations): Botan counts iterations in a size_t; an output of more than 2^32 - 2 digests (invalid_output_size), where RFC 8018 allows 2^32 - 1: Botan's PBKDF2 derives at most 2^32 - 2 blocks (pbkdf2.cpp))
+| hmac_md5_128, hmac_sha1_160, hmac_sha2_224, hmac_sha2_256, hmac_sha2_384, hmac_sha2_512, hmac_sha2_512_256, hmac_sha3_224, hmac_sha3_256, hmac_sha3_384, hmac_sha3_512, hmac_ripemd_160, hmac_blake2b_512, hmac_blake2s_256
+| not stated
+| native, emscripten
 
 | pbkdf2
 | webcrypto (asynchronous family only) (partial: an iteration count above 2^32 - 1 (invalid_iterations) and an output longer than (2^32 - 1) / 8 bytes (invalid_output_size): WebCrypto's deriveBits counts iterations and bits in 32 bits)
@@ -1648,17 +1672,35 @@ states about its constant time. The backends:
 | not stated
 | native, wasip2, wasip3
 
+| kbkdf
+| botan (with exceptions only) (partial: the separator or L turned off: Botan's SP800-108-Counter always writes both (sp800_108.cpp))
+| hmac_md5_128, hmac_sha1_160, hmac_sha2_224, hmac_sha2_256, hmac_sha2_384, hmac_sha2_512, hmac_sha2_512_256, hmac_sha3_224, hmac_sha3_256, hmac_sha3_384, hmac_sha3_512, hmac_ripemd_160, hmac_blake2b_512, hmac_blake2s_256
+| not stated
+| native, emscripten
+
 | sskdf
 | openssl (partial: a secret, an info or an output of more than 2^30 bytes: OpenSSL's SSKDF_MAX_INLEN (providers/implementations/kdfs/sskdf.c))
 | -
 | not stated
 | native, wasip2, wasip3
 
+| sskdf
+| botan (with exceptions only)
+| -
+| not stated
+| native, emscripten
+
 | x963kdf
 | openssl (partial: a secret, an info or an output of more than 2^30 bytes: OpenSSL's SSKDF_MAX_INLEN (providers/implementations/kdfs/sskdf.c))
 | -
 | not stated
 | native, wasip2, wasip3
+
+| x963kdf
+| botan (with exceptions only) (partial: an output of more than 2^32 - 2 digests, where ANSI X9.63 allows 2^32 - 1: Botan's KDF2 derives at most 2^32 - 2 blocks (kdf2.cpp))
+| -
+| not stated
+| native, emscripten
 |===
 
 === Password hashing
@@ -1679,11 +1721,23 @@ states about its constant time. The backends:
 | not stated
 | native, wasip2, wasip3
 
+| argon2id
+| botan (with exceptions only)
+| -
+| not stated
+| native, emscripten
+
 | kdfs::argon2d
 | openssl (partial: m above 4,194,303 KiB on wasm32: OpenSSL sizes Argon2's memory, m blocks of 1 KiB, in a size_t)
 | -
 | not stated
 | native, wasip2, wasip3
+
+| kdfs::argon2d
+| botan (with exceptions only) (partial: more than 128 lanes, or m above 8 GiB (2 GiB on wasm32): Botan's Argon2 limits (argon2pwhash.cpp))
+| -
+| no
+| native, emscripten
 
 | kdfs::argon2i
 | sodium (partial: fewer than 3 passes, more than one lane, a secret, associated data, a salt other than 16 bytes or a tag under 16 bytes: libsodium's crypto_pwhash_argon2i takes none of them)
@@ -1697,6 +1751,12 @@ states about its constant time. The backends:
 | not stated
 | native, wasip2, wasip3
 
+| kdfs::argon2i
+| botan (with exceptions only) (partial: more than 128 lanes, or m above 8 GiB (2 GiB on wasm32): Botan's Argon2 limits (argon2pwhash.cpp))
+| -
+| not stated
+| native, emscripten
+
 | kdfs::argon2id
 | sodium (partial: more than one lane, a secret, associated data, a salt other than 16 bytes or a tag under 16 bytes: libsodium's crypto_pwhash_argon2id takes none of them)
 | -
@@ -1709,6 +1769,12 @@ states about its constant time. The backends:
 | not stated
 | native, wasip2, wasip3
 
+| kdfs::argon2id
+| botan (with exceptions only) (partial: more than 128 lanes, or m above 8 GiB (2 GiB on wasm32): Botan's Argon2 limits (argon2pwhash.cpp))
+| -
+| not stated
+| native, emscripten
+
 | scrypt
 | sodium
 | -
@@ -1720,6 +1786,24 @@ states about its constant time. The backends:
 | -
 | not stated
 | native, wasip2, wasip3
+
+| scrypt
+| botan (with exceptions only) (partial: N above 2^22, r above 256, p above 1,024, or more than 8 GiB and 2 MiB of memory (2 GiB and 2 MiB on wasm32): Botan's scrypt limits (scrypt.cpp))
+| -
+| no
+| native, emscripten
+
+| bcrypt
+| botan (with exceptions only) (partial: a cost above 18: Botan's limit (bcrypt.cpp), where bcrypt's format allows 31)
+| -
+| no
+| native, emscripten
+
+| bcrypt_pbkdf
+| botan (with exceptions only)
+| -
+| no
+| native, emscripten
 |===
 
 === The default backends
@@ -1994,7 +2078,14 @@ What each backend's upstream states, and where:
 ** Botan 3.14.1: doc/api_ref/hash.rst states no constant-time property of this hash, and its source (src/lib/hash/) none.
 ** Botan 3.14.1: doc/api_ref/hash.rst states no constant-time property of SHAKE or of its XOF interface, and its source (src/lib/xof/shake_xof/) none.
 ** Botan 3.14.1: doc/api_ref/message_auth_codes.rst states no constant-time property of this MAC, and its source (src/lib/mac/) none.
+** Botan 3.14.1: doc/api_ref/kdf.rst states no constant-time property of its KDFs, and their source (src/lib/kdf/) none.
+** Botan 3.14.1: doc/api_ref/pbkdf.rst states no constant-time property of PBKDF2, and its source (src/lib/pbkdf/pbkdf2/) none.
+** Botan 3.14.1: doc/api_ref/pbkdf.rst states that Argon2i's memory accesses are independent of the data and Argon2id's depend on it after the first half of the first pass, and states no constant-time property.
 * botan: no.
 ** Botan 3.14.1: doc/api_ref/hash.rst warns that Streebog's baseline implementation uses table lookups indexed by the data and is likely vulnerable to cache-based side channels; its constant-time code needs AVX-512 and GFNI, an instruction-set module that /third_party//botan's minimized build does not load.
 ** Botan 3.14.1: doc/api_ref/hash.rst warns that Whirlpool's baseline implementation uses table lookups indexed by the data and is likely vulnerable to cache-based side channels; its constant-time code needs AVX2 or AVX-512, instruction-set modules that /third_party//botan's minimized build does not load.
+** Botan 3.14.1: doc/api_ref/pbkdf.rst warns that Argon2d accesses memory at addresses which depend on the password, and so may leak information about the password via cache-based side channels.
+** Botan 3.14.1: doc/api_ref/pbkdf.rst warns that scrypt by design accesses memory at addresses which depend on the password, and so may leak information about the password via cache-based side channels.
+** Botan 3.14.1: doc/api_ref/passhash.rst warns that bcrypt is built on Blowfish, which uses key-dependent tables indexed by secret data, and is thus likely vulnerable to cache-based side channels; no constant-time implementation is available.
+** Botan 3.14.1: doc/api_ref/pbkdf.rst warns that Bcrypt-PBKDF is built on Blowfish, which uses key-dependent tables indexed by secret data, and is thus likely vulnerable to cache-based side channels; no constant-time implementation is available.
 * webcrypto: not stated. The Web Cryptography API (W3C Recommendation, 2017) states no constant-time property of digest, sign or deriveBits; each JavaScript runtime's implementation decides, and webcpp reads none.
