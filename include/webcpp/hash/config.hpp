@@ -63,6 +63,14 @@
 */
 #define WEBCPP_HASH_HAS_OPENSSL 1
 /**
+ Defined by `/third_party//botan` when the program links Botan; a program built without b2
+ defines it to 1 itself. Botan reports its errors by throwing: in a build without exceptions
+ (`WEBCPP_HASH_NO_EXCEPTIONS`) `backends/botan.hpp` declares nothing, and a call on
+ `backends::botan` stops at compile time. `/third_party//botan` is built natively and for
+ Emscripten.
+*/
+#define WEBCPP_HASH_HAS_BOTAN 1
+/**
  Defined where the heavy functions of `<webcpp/hash/async.hpp>` (`async_argon2id`, `async_argon2`,
  `async_scrypt`, `async_pbkdf2` on a synchronous backend) run on another thread: natively, where
  Boost.Config's `BOOST_HAS_THREADS` is defined (every native build, b2's `threading=single`
@@ -113,7 +121,8 @@
 // a program that uses both libraries (design D1 of crypto) sees both: clang-tidy's
 // bugprone-forward-declaration-namespace then takes a tag this translation unit does not use,
 // or one whose library is not linked here, for a declaration in the wrong namespace. Each library
-// names its own backends on purpose, so the three tags crypto shares are exempt.
+// names its own backends on purpose, so the tags crypto shares are exempt: sodium, bearssl,
+// openssl, and botan, which crypto's Botan increment declares.
 namespace webcpp::hash::backends {
 
 /**
@@ -127,6 +136,11 @@ struct sodium;  // NOLINT(bugprone-forward-declaration-namespace)
 struct bearssl;  // NOLINT(bugprone-forward-declaration-namespace)
 /** OpenSSL 3.5, built from its pinned sources, named by `/webcpp/hash//openssl`. */
 struct openssl;  // NOLINT(bugprone-forward-declaration-namespace)
+/**
+ Botan 3.14.1, built from its pinned sources by `/third_party//botan`, natively and on Emscripten,
+ with exceptions only.
+*/
+struct botan;  // NOLINT(bugprone-forward-declaration-namespace)
 /**
  XKCP, the Keccak team's code, built from its sources by `/third_party//xkcp`: the backend of
  `digests::keccak_256` and of the other Keccak functions: SHA-3, SHAKE, SP 800-185, KangarooTwelve

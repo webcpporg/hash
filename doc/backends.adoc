@@ -58,6 +58,13 @@ states about its constant time. The backends:
 | native, wasip2, wasip3
 | every function of its cells
 
+| botan
+| Botan 3.14.1
+| BSD-2-Clause
+| `/third_party//botan`
+| native, emscripten
+| every function of its cells, with exceptions only
+
 | webcrypto
 | the JavaScript runtime's Web Cryptography API (crypto.subtle): the browser's, or node's
 | none (an API of the JavaScript runtime, linked by nothing)
@@ -138,6 +145,12 @@ states about its constant time. The backends:
 | not stated
 | native, wasip2, wasip3
 
+| digests::md5
+| botan (with exceptions only)
+| -
+| not stated
+| native, emscripten
+
 | digests::sha1
 | hash2
 | -
@@ -155,6 +168,12 @@ states about its constant time. The backends:
 | -
 | not stated
 | native, wasip2, wasip3
+
+| digests::sha1
+| botan (with exceptions only)
+| -
+| not stated
+| native, emscripten
 
 | digests::sha1
 | webcrypto (asynchronous family only)
@@ -179,6 +198,12 @@ states about its constant time. The backends:
 | -
 | not stated
 | native, wasip2, wasip3
+
+| digests::sha2_224
+| botan (with exceptions only)
+| -
+| not stated
+| native, emscripten
 
 | digests::sha2_256
 | hash2
@@ -205,6 +230,12 @@ states about its constant time. The backends:
 | native, wasip2, wasip3
 
 | digests::sha2_256
+| botan (with exceptions only)
+| -
+| not stated
+| native, emscripten
+
+| digests::sha2_256
 | webcrypto (asynchronous family only)
 | -
 | not stated
@@ -227,6 +258,12 @@ states about its constant time. The backends:
 | -
 | not stated
 | native, wasip2, wasip3
+
+| digests::sha2_384
+| botan (with exceptions only)
+| -
+| not stated
+| native, emscripten
 
 | digests::sha2_384
 | webcrypto (asynchronous family only)
@@ -257,6 +294,12 @@ states about its constant time. The backends:
 | -
 | not stated
 | native, wasip2, wasip3
+
+| digests::sha2_512
+| botan (with exceptions only)
+| -
+| not stated
+| native, emscripten
 
 | digests::sha2_512
 | webcrypto (asynchronous family only)
@@ -287,6 +330,12 @@ states about its constant time. The backends:
 | -
 | not stated
 | native, wasip2, wasip3
+
+| digests::sha2_512_256
+| botan (with exceptions only)
+| -
+| not stated
+| native, emscripten
 
 | digests::md5_sha1
 | bearssl
@@ -354,6 +403,12 @@ states about its constant time. The backends:
 | not stated
 | native, wasip2, wasip3
 
+| digests::sha3_224
+| botan (with exceptions only)
+| -
+| not stated
+| native, emscripten
+
 | digests::sha3_256
 | hash2
 | -
@@ -378,6 +433,12 @@ states about its constant time. The backends:
 | not stated
 | native, wasip2, wasip3
 
+| digests::sha3_256
+| botan (with exceptions only)
+| -
+| not stated
+| native, emscripten
+
 | digests::sha3_384
 | hash2
 | -
@@ -395,6 +456,12 @@ states about its constant time. The backends:
 | -
 | not stated
 | native, wasip2, wasip3
+
+| digests::sha3_384
+| botan (with exceptions only)
+| -
+| not stated
+| native, emscripten
 
 | digests::sha3_512
 | hash2
@@ -419,6 +486,12 @@ states about its constant time. The backends:
 | -
 | not stated
 | native, wasip2, wasip3
+
+| digests::sha3_512
+| botan (with exceptions only)
+| -
+| not stated
+| native, emscripten
 
 | digests::shake_128
 | hash2
@@ -450,6 +523,12 @@ states about its constant time. The backends:
 | not stated
 | native, wasip2, wasip3
 
+| digests::shake_128
+| botan (with exceptions only)
+| -
+| not stated
+| native, emscripten
+
 | digests::shake_256
 | hash2
 | -
@@ -479,6 +558,12 @@ states about its constant time. The backends:
 | -
 | not stated
 | native, wasip2, wasip3
+
+| digests::shake_256
+| botan (with exceptions only)
+| -
+| not stated
+| native, emscripten
 
 | digests::turboshake_128
 | xkcp
@@ -522,6 +607,12 @@ states about its constant time. The backends:
 | not stated
 | native, wasip2, wasip3
 
+| digests::keccak_224
+| botan (with exceptions only)
+| -
+| not stated
+| native, emscripten
+
 | digests::keccak_256
 | xkcp
 | -
@@ -533,6 +624,12 @@ states about its constant time. The backends:
 | -
 | not stated
 | native, wasip2, wasip3
+
+| digests::keccak_256
+| botan (with exceptions only)
+| -
+| not stated
+| native, emscripten
 
 | digests::keccak_384
 | xkcp
@@ -546,6 +643,12 @@ states about its constant time. The backends:
 | not stated
 | native, wasip2, wasip3
 
+| digests::keccak_384
+| botan (with exceptions only)
+| -
+| not stated
+| native, emscripten
+
 | digests::keccak_512
 | xkcp
 | -
@@ -557,6 +660,12 @@ states about its constant time. The backends:
 | -
 | not stated
 | native, wasip2, wasip3
+
+| digests::keccak_512
+| botan (with exceptions only)
+| -
+| not stated
+| native, emscripten
 
 | digests::cshake_128
 | xkcp
@@ -636,6 +745,12 @@ states about its constant time. The backends:
 | not stated
 | native, wasip2, wasip3
 
+| digests::blake2b
+| botan (with exceptions only) (partial: a salt or a personalisation: Botan's BLAKE2b takes neither (blake2b.h))
+| -
+| not stated
+| native, emscripten
+
 | digests::blake2s_256
 | hash2
 | -
@@ -647,6 +762,12 @@ states about its constant time. The backends:
 | -
 | not stated
 | native, wasip2, wasip3
+
+| digests::blake2s_256
+| botan (with exceptions only)
+| -
+| not stated
+| native, emscripten
 
 | blake3
 | blake3
@@ -684,11 +805,47 @@ states about its constant time. The backends:
 | not stated
 | native, wasip2, wasip3
 
+| digests::ripemd_160
+| botan (with exceptions only)
+| -
+| not stated
+| native, emscripten
+
 | digests::sm3
 | openssl
 | -
 | not stated
 | native, wasip2, wasip3
+
+| digests::sm3
+| botan (with exceptions only)
+| -
+| not stated
+| native, emscripten
+
+| digests::streebog_256
+| botan (with exceptions only)
+| -
+| no
+| native, emscripten
+
+| digests::streebog_512
+| botan (with exceptions only)
+| -
+| no
+| native, emscripten
+
+| digests::whirlpool
+| botan (with exceptions only)
+| -
+| no
+| native, emscripten
+
+| digests::skein_512
+| botan (with exceptions only)
+| -
+| not stated
+| native, emscripten
 |===
 
 === Macs
@@ -727,6 +884,12 @@ states about its constant time. The backends:
 | not stated
 | native, wasip2, wasip3
 
+| macs::siphash_2_4
+| botan (with exceptions only)
+| -
+| not stated
+| native, emscripten
+
 | macs::siphash_2_4x
 | sodium
 | -
@@ -751,6 +914,12 @@ states about its constant time. The backends:
 | not stated
 | native, wasip2, wasip3
 
+| macs::kmac_128
+| botan (with exceptions only) (partial: a key over 192 bytes, or the XOF form (xof): Botan's KMAC limits its key to 192 bytes and has no KMACXOF (kmac.cpp))
+| -
+| not stated
+| native, emscripten
+
 | macs::kmac_256
 | xkcp
 | -
@@ -763,6 +932,12 @@ states about its constant time. The backends:
 | not stated
 | native, wasip2, wasip3
 
+| macs::kmac_256
+| botan (with exceptions only) (partial: a key over 192 bytes, or the XOF form (xof): Botan's KMAC limits its key to 192 bytes and has no KMACXOF (kmac.cpp))
+| -
+| not stated
+| native, emscripten
+
 | macs::blake2b_mac
 | sodium
 | -
@@ -774,6 +949,12 @@ states about its constant time. The backends:
 | -
 | not stated
 | native, wasip2, wasip3
+
+| macs::blake2b_mac
+| botan (with exceptions only)
+| -
+| not stated
+| native, emscripten
 
 | macs::blake2s_mac
 | hash2 (partial: a tag under 32 bytes: BLAKE2s's output size is a parameter of the hash, and Boost.Hash2's keyed blake2s_256 has 32 bytes alone)
@@ -907,6 +1088,12 @@ states about its constant time. The backends:
 | not stated
 | native, wasip2, wasip3
 
+| macs::hmac<digests::md5>
+| botan (with exceptions only)
+| -
+| not stated
+| native, emscripten
+
 | macs::hmac<digests::sha1>
 | hash2
 | -
@@ -924,6 +1111,12 @@ states about its constant time. The backends:
 | -
 | not stated
 | native, wasip2, wasip3
+
+| macs::hmac<digests::sha1>
+| botan (with exceptions only)
+| -
+| not stated
+| native, emscripten
 
 | macs::hmac<digests::sha1>
 | webcrypto (asynchronous family only)
@@ -948,6 +1141,12 @@ states about its constant time. The backends:
 | -
 | not stated
 | native, wasip2, wasip3
+
+| macs::hmac<digests::sha2_224>
+| botan (with exceptions only)
+| -
+| not stated
+| native, emscripten
 
 | macs::hmac<digests::sha2_256>
 | hash2
@@ -974,6 +1173,12 @@ states about its constant time. The backends:
 | native, wasip2, wasip3
 
 | macs::hmac<digests::sha2_256>
+| botan (with exceptions only)
+| -
+| not stated
+| native, emscripten
+
+| macs::hmac<digests::sha2_256>
 | webcrypto (asynchronous family only)
 | -
 | not stated
@@ -996,6 +1201,12 @@ states about its constant time. The backends:
 | -
 | not stated
 | native, wasip2, wasip3
+
+| macs::hmac<digests::sha2_384>
+| botan (with exceptions only)
+| -
+| not stated
+| native, emscripten
 
 | macs::hmac<digests::sha2_384>
 | webcrypto (asynchronous family only)
@@ -1026,6 +1237,12 @@ states about its constant time. The backends:
 | -
 | not stated
 | native, wasip2, wasip3
+
+| macs::hmac<digests::sha2_512>
+| botan (with exceptions only)
+| -
+| not stated
+| native, emscripten
 
 | macs::hmac<digests::sha2_512>
 | webcrypto (asynchronous family only)
@@ -1057,6 +1274,12 @@ states about its constant time. The backends:
 | not stated
 | native, wasip2, wasip3
 
+| macs::hmac<digests::sha2_512_256>
+| botan (with exceptions only)
+| -
+| not stated
+| native, emscripten
+
 | macs::hmac<digests::sha3_224>
 | hash2
 | -
@@ -1068,6 +1291,12 @@ states about its constant time. The backends:
 | -
 | not stated
 | native, wasip2, wasip3
+
+| macs::hmac<digests::sha3_224>
+| botan (with exceptions only)
+| -
+| not stated
+| native, emscripten
 
 | macs::hmac<digests::sha3_256>
 | hash2
@@ -1081,6 +1310,12 @@ states about its constant time. The backends:
 | not stated
 | native, wasip2, wasip3
 
+| macs::hmac<digests::sha3_256>
+| botan (with exceptions only)
+| -
+| not stated
+| native, emscripten
+
 | macs::hmac<digests::sha3_384>
 | hash2
 | -
@@ -1092,6 +1327,12 @@ states about its constant time. The backends:
 | -
 | not stated
 | native, wasip2, wasip3
+
+| macs::hmac<digests::sha3_384>
+| botan (with exceptions only)
+| -
+| not stated
+| native, emscripten
 
 | macs::hmac<digests::sha3_512>
 | hash2
@@ -1105,6 +1346,12 @@ states about its constant time. The backends:
 | not stated
 | native, wasip2, wasip3
 
+| macs::hmac<digests::sha3_512>
+| botan (with exceptions only)
+| -
+| not stated
+| native, emscripten
+
 | macs::hmac<digests::ripemd_160>
 | hash2
 | -
@@ -1116,6 +1363,12 @@ states about its constant time. The backends:
 | -
 | not stated
 | native, wasip2, wasip3
+
+| macs::hmac<digests::ripemd_160>
+| botan (with exceptions only)
+| -
+| not stated
+| native, emscripten
 
 | macs::hmac<digests::blake2b>
 | hash2
@@ -1129,6 +1382,12 @@ states about its constant time. The backends:
 | not stated
 | native, wasip2, wasip3
 
+| macs::hmac<digests::blake2b>
+| botan (with exceptions only)
+| -
+| not stated
+| native, emscripten
+
 | macs::hmac<digests::blake2s_256>
 | hash2
 | -
@@ -1140,6 +1399,12 @@ states about its constant time. The backends:
 | -
 | not stated
 | native, wasip2, wasip3
+
+| macs::hmac<digests::blake2s_256>
+| botan (with exceptions only)
+| -
+| not stated
+| native, emscripten
 
 | macs::hmac<digests::keccak_224>
 | openssl (partial: a key of more than INT_MAX bytes: OpenSSL takes HMAC's key length as an int (HMAC_Init_ex))
@@ -1147,11 +1412,23 @@ states about its constant time. The backends:
 | not stated
 | native, wasip2, wasip3
 
+| macs::hmac<digests::keccak_224>
+| botan (with exceptions only)
+| -
+| not stated
+| native, emscripten
+
 | macs::hmac<digests::keccak_256>
 | openssl (partial: a key of more than INT_MAX bytes: OpenSSL takes HMAC's key length as an int (HMAC_Init_ex))
 | -
 | not stated
 | native, wasip2, wasip3
+
+| macs::hmac<digests::keccak_256>
+| botan (with exceptions only)
+| -
+| not stated
+| native, emscripten
 
 | macs::hmac<digests::keccak_384>
 | openssl (partial: a key of more than INT_MAX bytes: OpenSSL takes HMAC's key length as an int (HMAC_Init_ex))
@@ -1159,17 +1436,59 @@ states about its constant time. The backends:
 | not stated
 | native, wasip2, wasip3
 
+| macs::hmac<digests::keccak_384>
+| botan (with exceptions only)
+| -
+| not stated
+| native, emscripten
+
 | macs::hmac<digests::keccak_512>
 | openssl (partial: a key of more than INT_MAX bytes: OpenSSL takes HMAC's key length as an int (HMAC_Init_ex))
 | -
 | not stated
 | native, wasip2, wasip3
 
+| macs::hmac<digests::keccak_512>
+| botan (with exceptions only)
+| -
+| not stated
+| native, emscripten
+
 | macs::hmac<digests::sm3>
 | openssl (partial: a key of more than INT_MAX bytes: OpenSSL takes HMAC's key length as an int (HMAC_Init_ex))
 | -
 | not stated
 | native, wasip2, wasip3
+
+| macs::hmac<digests::sm3>
+| botan (with exceptions only)
+| -
+| not stated
+| native, emscripten
+
+| macs::hmac<digests::streebog_256>
+| botan (with exceptions only)
+| -
+| no
+| native, emscripten
+
+| macs::hmac<digests::streebog_512>
+| botan (with exceptions only)
+| -
+| no
+| native, emscripten
+
+| macs::hmac<digests::whirlpool>
+| botan (with exceptions only)
+| -
+| no
+| native, emscripten
+
+| macs::hmac<digests::skein_512>
+| botan (with exceptions only)
+| -
+| not stated
+| native, emscripten
 |===
 
 === Non-cryptographic
@@ -1513,6 +1832,18 @@ The backend a call that names none uses, on every target, whatever the program l
 | digests::sm3
 | none: the call names its backend
 
+| digests::streebog_256
+| none: the call names its backend
+
+| digests::streebog_512
+| none: the call names its backend
+
+| digests::whirlpool
+| none: the call names its backend
+
+| digests::skein_512
+| none: the call names its backend
+
 | macs::siphash_2_4
 | hash2
 
@@ -1591,6 +1922,18 @@ The backend a call that names none uses, on every target, whatever the program l
 | macs::hmac<digests::sm3>
 | none: the call names its backend
 
+| macs::hmac<digests::streebog_256>
+| none: the call names its backend
+
+| macs::hmac<digests::streebog_512>
+| none: the call names its backend
+
+| macs::hmac<digests::whirlpool>
+| none: the call names its backend
+
+| macs::hmac<digests::skein_512>
+| none: the call names its backend
+
 | hkdf_extract
 | hash2
 
@@ -1647,4 +1990,11 @@ What each backend's upstream states, and where:
 ** OpenSSL 3.5.9: doc/man7/EVP_KDF-X963.pod states no constant-time property.
 ** OpenSSL 3.5.9: doc/man7/EVP_KDF-ARGON2.pod states that Argon2i's memory accesses are independent of the data and Argon2d's depend on it, and states no constant-time property.
 ** OpenSSL 3.5.9: doc/man7/EVP_KDF-SCRYPT.pod states no constant-time property.
+* botan: not stated.
+** Botan 3.14.1: doc/api_ref/hash.rst states no constant-time property of this hash, and its source (src/lib/hash/) none.
+** Botan 3.14.1: doc/api_ref/hash.rst states no constant-time property of SHAKE or of its XOF interface, and its source (src/lib/xof/shake_xof/) none.
+** Botan 3.14.1: doc/api_ref/message_auth_codes.rst states no constant-time property of this MAC, and its source (src/lib/mac/) none.
+* botan: no.
+** Botan 3.14.1: doc/api_ref/hash.rst warns that Streebog's baseline implementation uses table lookups indexed by the data and is likely vulnerable to cache-based side channels; its constant-time code needs AVX-512 and GFNI, an instruction-set module that /third_party//botan's minimized build does not load.
+** Botan 3.14.1: doc/api_ref/hash.rst warns that Whirlpool's baseline implementation uses table lookups indexed by the data and is likely vulnerable to cache-based side channels; its constant-time code needs AVX2 or AVX-512, instruction-set modules that /third_party//botan's minimized build does not load.
 * webcrypto: not stated. The Web Cryptography API (W3C Recommendation, 2017) states no constant-time property of digest, sign or deriveBits; each JavaScript runtime's implementation decides, and webcpp reads none.

@@ -63,6 +63,10 @@
 #include <webcpp/hash/backends/openssl.hpp>
 #endif
 
+#ifdef WEBCPP_HASH_HAS_BOTAN
+#include <webcpp/hash/backends/botan.hpp>
+#endif
+
 // scrypt, whose backends are libsodium's and OpenSSL's: a program that links neither leaves it
 // out. argon2.hpp and kdf_standards.hpp, above, need no library: their functions refuse at compile
 // time, with the Jamfile line to add, when they are called without one.

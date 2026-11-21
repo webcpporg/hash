@@ -8,7 +8,7 @@
 
 
 [#hash-backends-of-hmac]
-.Who implements `hmac` to `macs::hmac<digests::sm3>`, 37 names (RFC 2104)
+.Who implements `hmac` to `macs::hmac<digests::skein_512>`, 41 names (RFC 2104)
 [cols="2,1,2,2,3,1",options="header"]
 |===
 | Function | Backend | The program's Jamfile names | Targets | Hmacs | Constant time
@@ -153,6 +153,13 @@
 | -
 | not stated
 
+| `macs::hmac<digests::md5>`
+| `botan` (with exceptions only)
+| `/third_party//botan`
+| native, emscripten
+| -
+| not stated
+
 | `macs::hmac<digests::sha1>`
 | `hash2`
 | `/webcpp/hash//hash`
@@ -171,6 +178,13 @@
 | `openssl` (partial: a key of more than INT_MAX bytes: OpenSSL takes HMAC's key length as an int (HMAC_Init_ex))
 | `/webcpp/hash//openssl`
 | native, wasip2, wasip3
+| -
+| not stated
+
+| `macs::hmac<digests::sha1>`
+| `botan` (with exceptions only)
+| `/third_party//botan`
+| native, emscripten
 | -
 | not stated
 
@@ -199,6 +213,13 @@
 | `openssl` (partial: a key of more than INT_MAX bytes: OpenSSL takes HMAC's key length as an int (HMAC_Init_ex))
 | `/webcpp/hash//openssl`
 | native, wasip2, wasip3
+| -
+| not stated
+
+| `macs::hmac<digests::sha2_224>`
+| `botan` (with exceptions only)
+| `/third_party//botan`
+| native, emscripten
 | -
 | not stated
 
@@ -231,6 +252,13 @@
 | not stated
 
 | `macs::hmac<digests::sha2_256>`
+| `botan` (with exceptions only)
+| `/third_party//botan`
+| native, emscripten
+| -
+| not stated
+
+| `macs::hmac<digests::sha2_256>`
 | `webcrypto` (asynchronous family only)
 | `/webcpp/asio//asio`
 | emscripten
@@ -255,6 +283,13 @@
 | `openssl` (partial: a key of more than INT_MAX bytes: OpenSSL takes HMAC's key length as an int (HMAC_Init_ex))
 | `/webcpp/hash//openssl`
 | native, wasip2, wasip3
+| -
+| not stated
+
+| `macs::hmac<digests::sha2_384>`
+| `botan` (with exceptions only)
+| `/third_party//botan`
+| native, emscripten
 | -
 | not stated
 
@@ -290,6 +325,13 @@
 | `openssl` (partial: a key of more than INT_MAX bytes: OpenSSL takes HMAC's key length as an int (HMAC_Init_ex))
 | `/webcpp/hash//openssl`
 | native, wasip2, wasip3
+| -
+| not stated
+
+| `macs::hmac<digests::sha2_512>`
+| `botan` (with exceptions only)
+| `/third_party//botan`
+| native, emscripten
 | -
 | not stated
 
@@ -328,6 +370,13 @@
 | -
 | not stated
 
+| `macs::hmac<digests::sha2_512_256>`
+| `botan` (with exceptions only)
+| `/third_party//botan`
+| native, emscripten
+| -
+| not stated
+
 | `macs::hmac<digests::sha3_224>`
 | `hash2`
 | `/webcpp/hash//hash`
@@ -339,6 +388,13 @@
 | `openssl` (partial: a key of more than INT_MAX bytes: OpenSSL takes HMAC's key length as an int (HMAC_Init_ex))
 | `/webcpp/hash//openssl`
 | native, wasip2, wasip3
+| -
+| not stated
+
+| `macs::hmac<digests::sha3_224>`
+| `botan` (with exceptions only)
+| `/third_party//botan`
+| native, emscripten
 | -
 | not stated
 
@@ -356,6 +412,13 @@
 | -
 | not stated
 
+| `macs::hmac<digests::sha3_256>`
+| `botan` (with exceptions only)
+| `/third_party//botan`
+| native, emscripten
+| -
+| not stated
+
 | `macs::hmac<digests::sha3_384>`
 | `hash2`
 | `/webcpp/hash//hash`
@@ -367,6 +430,13 @@
 | `openssl` (partial: a key of more than INT_MAX bytes: OpenSSL takes HMAC's key length as an int (HMAC_Init_ex))
 | `/webcpp/hash//openssl`
 | native, wasip2, wasip3
+| -
+| not stated
+
+| `macs::hmac<digests::sha3_384>`
+| `botan` (with exceptions only)
+| `/third_party//botan`
+| native, emscripten
 | -
 | not stated
 
@@ -384,6 +454,13 @@
 | -
 | not stated
 
+| `macs::hmac<digests::sha3_512>`
+| `botan` (with exceptions only)
+| `/third_party//botan`
+| native, emscripten
+| -
+| not stated
+
 | `macs::hmac<digests::ripemd_160>`
 | `hash2`
 | `/webcpp/hash//hash`
@@ -395,6 +472,13 @@
 | `openssl` (partial: a key of more than INT_MAX bytes: OpenSSL takes HMAC's key length as an int (HMAC_Init_ex))
 | `/webcpp/hash//openssl`
 | native, wasip2, wasip3
+| -
+| not stated
+
+| `macs::hmac<digests::ripemd_160>`
+| `botan` (with exceptions only)
+| `/third_party//botan`
+| native, emscripten
 | -
 | not stated
 
@@ -412,6 +496,13 @@
 | -
 | not stated
 
+| `macs::hmac<digests::blake2b>`
+| `botan` (with exceptions only)
+| `/third_party//botan`
+| native, emscripten
+| -
+| not stated
+
 | `macs::hmac<digests::blake2s_256>`
 | `hash2`
 | `/webcpp/hash//hash`
@@ -423,6 +514,13 @@
 | `openssl` (partial: a key of more than INT_MAX bytes: OpenSSL takes HMAC's key length as an int (HMAC_Init_ex))
 | `/webcpp/hash//openssl`
 | native, wasip2, wasip3
+| -
+| not stated
+
+| `macs::hmac<digests::blake2s_256>`
+| `botan` (with exceptions only)
+| `/third_party//botan`
+| native, emscripten
 | -
 | not stated
 
@@ -433,10 +531,24 @@
 | -
 | not stated
 
+| `macs::hmac<digests::keccak_224>`
+| `botan` (with exceptions only)
+| `/third_party//botan`
+| native, emscripten
+| -
+| not stated
+
 | `macs::hmac<digests::keccak_256>`
 | `openssl` (partial: a key of more than INT_MAX bytes: OpenSSL takes HMAC's key length as an int (HMAC_Init_ex))
 | `/webcpp/hash//openssl`
 | native, wasip2, wasip3
+| -
+| not stated
+
+| `macs::hmac<digests::keccak_256>`
+| `botan` (with exceptions only)
+| `/third_party//botan`
+| native, emscripten
 | -
 | not stated
 
@@ -447,10 +559,24 @@
 | -
 | not stated
 
+| `macs::hmac<digests::keccak_384>`
+| `botan` (with exceptions only)
+| `/third_party//botan`
+| native, emscripten
+| -
+| not stated
+
 | `macs::hmac<digests::keccak_512>`
 | `openssl` (partial: a key of more than INT_MAX bytes: OpenSSL takes HMAC's key length as an int (HMAC_Init_ex))
 | `/webcpp/hash//openssl`
 | native, wasip2, wasip3
+| -
+| not stated
+
+| `macs::hmac<digests::keccak_512>`
+| `botan` (with exceptions only)
+| `/third_party//botan`
+| native, emscripten
 | -
 | not stated
 
@@ -460,11 +586,50 @@
 | native, wasip2, wasip3
 | -
 | not stated
+
+| `macs::hmac<digests::sm3>`
+| `botan` (with exceptions only)
+| `/third_party//botan`
+| native, emscripten
+| -
+| not stated
+
+| `macs::hmac<digests::streebog_256>`
+| `botan` (with exceptions only)
+| `/third_party//botan`
+| native, emscripten
+| -
+| no
+
+| `macs::hmac<digests::streebog_512>`
+| `botan` (with exceptions only)
+| `/third_party//botan`
+| native, emscripten
+| -
+| no
+
+| `macs::hmac<digests::whirlpool>`
+| `botan` (with exceptions only)
+| `/third_party//botan`
+| native, emscripten
+| -
+| no
+
+| `macs::hmac<digests::skein_512>`
+| `botan` (with exceptions only)
+| `/third_party//botan`
+| native, emscripten
+| -
+| not stated
 |===
 
 What each backend states on constant time, as the capability table read it:
 
 * `bearssl`: BearSSL at 7bea48e (v0.6-39): bearssl_hmac.h states constant time for br_hmac_outCT alone; mac calls br_hmac_out.
+* `botan`:
+** Botan 3.14.1: doc/api_ref/hash.rst warns that Streebog's baseline implementation uses table lookups indexed by the data and is likely vulnerable to cache-based side channels; its constant-time code needs AVX-512 and GFNI, an instruction-set module that /third_party//botan's minimized build does not load.
+** Botan 3.14.1: doc/api_ref/hash.rst warns that Whirlpool's baseline implementation uses table lookups indexed by the data and is likely vulnerable to cache-based side channels; its constant-time code needs AVX2 or AVX-512, instruction-set modules that /third_party//botan's minimized build does not load.
+** Botan 3.14.1: doc/api_ref/message_auth_codes.rst states no constant-time property of this MAC, and its source (src/lib/mac/) none.
 * `hash2`: Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property.
 * `openssl`: OpenSSL 3.5.9: doc/man3/EVP_MAC.pod, doc/man7/EVP_MAC-HMAC.pod, EVP_MAC-KMAC.pod, EVP_MAC-BLAKE2.pod, EVP_MAC-Siphash.pod and providers/implementations/macs/ state no constant-time property.
 * `sodium`: libsodium 1.0.22: its headers state constant time for comparisons (sodium/utils.h) alone, not for its hashing, MAC, key derivation and password hashing functions (crypto_hash_*, crypto_xof_*, crypto_generichash_*, crypto_shorthash_*, crypto_auth_*, crypto_kdf_*, crypto_pwhash_*).
@@ -480,10 +645,20 @@ What each backend states on constant time, as the capability table read it:
 
 `macs::hmac<digests::sm3>` has no default backend: the call names one of its backends, as its second template argument (<<hash-default-backend>>).
 
-The default of `macs::hmac<digests::md5>`, `macs::hmac<digests::sha1>`, `macs::hmac<digests::sha2_224>` and `macs::hmac<digests::sha2_384>`: `hash2` on every target, whatever the program links; `bearssl`, `openssl` only where the call names it, as its second template argument (<<hash-default-backend>>).
+`macs::hmac<digests::streebog_256>` has no default backend: the call names one of its backends, as its second template argument (<<hash-default-backend>>).
 
-The default of `macs::hmac<digests::sha2_256>` and `macs::hmac<digests::sha2_512>`: `hash2` on every target, whatever the program links; `bearssl`, `openssl`, `sodium` only where the call names it, as its second template argument (<<hash-default-backend>>).
+`macs::hmac<digests::streebog_512>` has no default backend: the call names one of its backends, as its second template argument (<<hash-default-backend>>).
 
-The default of `macs::hmac<digests::sha2_512_224>`, `macs::hmac<digests::sha2_512_256>`, `macs::hmac<digests::sha3_224>`, `macs::hmac<digests::sha3_256>`, `macs::hmac<digests::sha3_384>`, `macs::hmac<digests::sha3_512>`, `macs::hmac<digests::ripemd_160>`, `macs::hmac<digests::blake2b>` and `macs::hmac<digests::blake2s_256>`: `hash2` on every target, whatever the program links; `openssl` only where the call names it, as its second template argument (<<hash-default-backend>>).
+`macs::hmac<digests::whirlpool>` has no default backend: the call names one of its backends, as its second template argument (<<hash-default-backend>>).
+
+`macs::hmac<digests::skein_512>` has no default backend: the call names one of its backends, as its second template argument (<<hash-default-backend>>).
+
+The default of `macs::hmac<digests::md5>`, `macs::hmac<digests::sha1>`, `macs::hmac<digests::sha2_224>` and `macs::hmac<digests::sha2_384>`: `hash2` on every target, whatever the program links; `bearssl`, `botan`, `openssl` only where the call names it, as its second template argument (<<hash-default-backend>>).
+
+The default of `macs::hmac<digests::sha2_256>` and `macs::hmac<digests::sha2_512>`: `hash2` on every target, whatever the program links; `bearssl`, `botan`, `openssl`, `sodium` only where the call names it, as its second template argument (<<hash-default-backend>>).
+
+The default of `macs::hmac<digests::sha2_512_224>`: `hash2` on every target, whatever the program links; `openssl` only where the call names it, as its second template argument (<<hash-default-backend>>).
+
+The default of `macs::hmac<digests::sha2_512_256>`, `macs::hmac<digests::sha3_224>`, `macs::hmac<digests::sha3_256>`, `macs::hmac<digests::sha3_384>`, `macs::hmac<digests::sha3_512>`, `macs::hmac<digests::ripemd_160>`, `macs::hmac<digests::blake2b>` and `macs::hmac<digests::blake2s_256>`: `hash2` on every target, whatever the program links; `botan`, `openssl` only where the call names it, as its second template argument (<<hash-default-backend>>).
 
 `webcrypto` serves the asynchronous family alone, on Emscripten, where the type of its asynchronous call names it (<<hash-async-webcrypto>>).

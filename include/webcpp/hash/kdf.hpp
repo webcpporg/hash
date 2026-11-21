@@ -25,10 +25,15 @@ namespace webcpp::hash {
 
 /**
  Whether `Backend` has the key derivation `Kdf` over `Hmac`, or the algorithm of a family's tag: a
- property of the library behind it (spec sections 3.2 and 3.5), whether or not the program links it.
+ property of the library behind it (spec sections 3.2 and 3.5), whether or not the program links it,
+ `backends::botan` excepted.
 
  A backend that has a tag only in part (a partial cell of `doc/capabilities.json`, as
  `backends::hash2`'s BLAKE2b, its 64-byte output alone) has it.
+
+ `backends::botan`'s cells are declared by `<webcpp/hash/backends/botan.hpp>`, which every header
+ of the families includes when the program links Botan, and which declares nothing in a build
+ without exceptions: for it the answer is false in a program that cannot have Botan.
 
  @tparam Backend A backend of `backends`. @tparam Kdf `kdfs::hkdf`, `kdfs::pbkdf2` or another
  tag of `kdfs`; or a tag of `digests` or `macs`; or, for `argon2`, `kdfs::argon2d`,

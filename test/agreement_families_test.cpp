@@ -8,7 +8,9 @@
 // that has it, on seeded random cases, the empty input first (spec section 7.2; the controller's
 // task "Agreement across increments", ruling R6). The tags are every one that two or more backends
 // have once increments 1 to 7 have landed (doc/capabilities.json), and every tag of
-// backends::openssl, whose digest_of and hasher agree with each other where it is alone. A digest
+// backends::openssl and backends::botan, whose digest_of and hasher agree with each other where
+// it is alone. Botan is compared where the program links it with exceptions
+// (agreement_families_botan), its pairs left out elsewhere. A digest
 // is computed through `digest_of` and through a `hasher` fed in random pieces (empty ones among
 // them), a MAC through `mac` (1,000 cases per tag), Argon2i and Argon2id through `argon2` (100
 // cases each). The backends each tag compares are written out below, from doc/capabilities.json
@@ -21,7 +23,8 @@
 // unsupported_by_backend, and the run must give it cases of both kinds. The partial cells within
 // these cases: Boost.Hash2's BLAKE2b (a 64-byte output, no option) and keyed BLAKE2s (a 32-byte
 // tag), OpenSSL's BLAKE2b (no key, salt or personalisation) and KMAC (a key of 4 to 512 bytes, a
-// customisation of at most 512), and libsodium's Argon2 (one lane, a 16-byte salt, a tag of 16
+// customisation of at most 512), Botan's BLAKE2b (no salt or personalisation) and KMAC (a key of
+// at most 192 bytes, no XOF form), and libsodium's Argon2 (one lane, a 16-byte salt, a tag of 16
 // bytes or more, no secret or associated data, and for Argon2i 3 passes or more). Boost.Hash2's
 // SHAKE is whole (ruling R89). OpenSSL's HMAC and Argon2 are partial only past INT_MAX bytes of
 // key and past 4 GiB of memory on wasm32, which no case reaches, so they are held to every case.
@@ -82,12 +85,23 @@ bool lists(std::string_view names, std::string_view name) {
     return std::ranges::find(split, name) != split.end();
 }
 
-// Whether webcpp builds the backend on this target: OpenSSL on every target but Emscripten.
+// Whether Botan is compared here: where the program links it (agreement_families_botan) and has
+// exceptions, which Botan needs.
+#if defined(WEBCPP_HASH_HAS_BOTAN) && !defined(WEBCPP_HASH_NO_EXCEPTIONS)
+constexpr bool botan_here = true;
+#else
+constexpr bool botan_here = false;
+#endif
+
+// Whether the backend is compared on this target: OpenSSL on every target but Emscripten, Botan
+// where the program links it.
 constexpr bool built_here(std::string_view name) {
+    if (name == "botan") {
+        return botan_here;
+    }
 #ifdef WEBCPP_TARGET_EMSCRIPTEN
     return name != "openssl";
 #else
-    static_cast<void>(name);
     return true;
 #endif
 }
@@ -305,6 +319,11 @@ constexpr auto digest_served() -> bool (*)(digest_case<Digest> const&) {
         return [](digest_case<Digest> const& c) {
             return c.key.empty() && c.salt.empty() && c.personalisation.empty();
         };
+    } else if constexpr (std::is_same_v<Digest, digests::blake2b> &&
+                         std::is_same_v<Backend, backends::botan>) {
+        return [](digest_case<Digest> const& c) {
+            return c.salt.empty() && c.personalisation.empty();
+        };
     } else {
         return nullptr;
     }
@@ -338,6 +357,7 @@ void agree_digest(std::string_view tag, std::string_view expected) {
     add_digest_ways<Digest, backends::sodium>(ways, "sodium");
     add_digest_ways<Digest, backends::bearssl>(ways, "bearssl");
     add_digest_ways<Digest, backends::openssl>(ways, "openssl");
+    add_digest_ways<Digest, backends::botan>(ways, "botan");
     random_source rnd(webcpp::test::agreement_seed);
     for (std::size_t index = 0; index < webcpp::test::agreement_cases; ++index) {
         auto const c = next_digest_case<Digest>(rnd, index);
@@ -349,31 +369,38 @@ void agree_digest(std::string_view tag, std::string_view expected) {
 // Each tag's row of doc/capabilities.json, backends::webcrypto left out (its cells are the
 // asynchronous family's, compared in async_webcrypto).
 void digests_agree() {
-    agree_digest<digests::md5>("digests::md5", "hash2,bearssl,openssl");
-    agree_digest<digests::sha1>("digests::sha1", "hash2,bearssl,openssl");
-    agree_digest<digests::sha2_224>("digests::sha2_224", "hash2,bearssl,openssl");
-    agree_digest<digests::sha2_256>("digests::sha2_256", "hash2,sodium,bearssl,openssl");
-    agree_digest<digests::sha2_384>("digests::sha2_384", "hash2,bearssl,openssl");
-    agree_digest<digests::sha2_512>("digests::sha2_512", "hash2,sodium,bearssl,openssl");
+    agree_digest<digests::md5>("digests::md5", "hash2,bearssl,openssl,botan");
+    agree_digest<digests::sha1>("digests::sha1", "hash2,bearssl,openssl,botan");
+    agree_digest<digests::sha2_224>("digests::sha2_224", "hash2,bearssl,openssl,botan");
+    agree_digest<digests::sha2_256>("digests::sha2_256", "hash2,sodium,bearssl,openssl,botan");
+    agree_digest<digests::sha2_384>("digests::sha2_384", "hash2,bearssl,openssl,botan");
+    agree_digest<digests::sha2_512>("digests::sha2_512", "hash2,sodium,bearssl,openssl,botan");
     agree_digest<digests::sha2_512_224>("digests::sha2_512_224", "hash2,openssl");
-    agree_digest<digests::sha2_512_256>("digests::sha2_512_256", "hash2,openssl");
+    agree_digest<digests::sha2_512_256>("digests::sha2_512_256", "hash2,openssl,botan");
     agree_digest<digests::md5_sha1>("digests::md5_sha1", "bearssl,openssl");
-    agree_digest<digests::sha3_224>("digests::sha3_224", "hash2,xkcp,openssl");
-    agree_digest<digests::sha3_256>("digests::sha3_256", "hash2,xkcp,sodium,openssl");
-    agree_digest<digests::sha3_384>("digests::sha3_384", "hash2,xkcp,openssl");
-    agree_digest<digests::sha3_512>("digests::sha3_512", "hash2,xkcp,sodium,openssl");
-    agree_digest<digests::shake_128>("digests::shake_128", "hash2,xkcp,sodium,bearssl,openssl");
-    agree_digest<digests::shake_256>("digests::shake_256", "hash2,xkcp,sodium,bearssl,openssl");
+    agree_digest<digests::sha3_224>("digests::sha3_224", "hash2,xkcp,openssl,botan");
+    agree_digest<digests::sha3_256>("digests::sha3_256", "hash2,xkcp,sodium,openssl,botan");
+    agree_digest<digests::sha3_384>("digests::sha3_384", "hash2,xkcp,openssl,botan");
+    agree_digest<digests::sha3_512>("digests::sha3_512", "hash2,xkcp,sodium,openssl,botan");
+    agree_digest<digests::shake_128>("digests::shake_128",
+                                     "hash2,xkcp,sodium,bearssl,openssl,botan");
+    agree_digest<digests::shake_256>("digests::shake_256",
+                                     "hash2,xkcp,sodium,bearssl,openssl,botan");
     agree_digest<digests::turboshake_128>("digests::turboshake_128", "xkcp,sodium");
     agree_digest<digests::turboshake_256>("digests::turboshake_256", "xkcp,sodium");
-    agree_digest<digests::keccak_224>("digests::keccak_224", "xkcp,openssl");
-    agree_digest<digests::keccak_256>("digests::keccak_256", "xkcp,openssl");
-    agree_digest<digests::keccak_384>("digests::keccak_384", "xkcp,openssl");
-    agree_digest<digests::keccak_512>("digests::keccak_512", "xkcp,openssl");
-    agree_digest<digests::blake2b>("digests::blake2b", "hash2,sodium,openssl");
-    agree_digest<digests::blake2s_256>("digests::blake2s_256", "hash2,openssl");
-    agree_digest<digests::ripemd_160>("digests::ripemd_160", "hash2,openssl");
-    agree_digest<digests::sm3>("digests::sm3", "openssl");
+    agree_digest<digests::keccak_224>("digests::keccak_224", "xkcp,openssl,botan");
+    agree_digest<digests::keccak_256>("digests::keccak_256", "xkcp,openssl,botan");
+    agree_digest<digests::keccak_384>("digests::keccak_384", "xkcp,openssl,botan");
+    agree_digest<digests::keccak_512>("digests::keccak_512", "xkcp,openssl,botan");
+    agree_digest<digests::blake2b>("digests::blake2b", "hash2,sodium,openssl,botan");
+    agree_digest<digests::blake2s_256>("digests::blake2s_256", "hash2,openssl,botan");
+    agree_digest<digests::ripemd_160>("digests::ripemd_160", "hash2,openssl,botan");
+    agree_digest<digests::sm3>("digests::sm3", "openssl,botan");
+    // Botan's alone: its digest_of and hasher agree with each other.
+    agree_digest<digests::streebog_256>("digests::streebog_256", "botan");
+    agree_digest<digests::streebog_512>("digests::streebog_512", "botan");
+    agree_digest<digests::whirlpool>("digests::whirlpool", "botan");
+    agree_digest<digests::skein_512>("digests::skein_512", "botan");
 }
 
 // ---- MACs ----
@@ -453,6 +480,11 @@ constexpr auto mac_served() -> bool (*)(mac_case<Mac> const&) {
             return c.key.size() >= shortest_key && c.key.size() <= longest_string &&
                    c.customisation.size() <= longest_string;
         };
+    } else if constexpr (kmac_v<Mac> && std::is_same_v<Backend, backends::botan>) {
+        return [](mac_case<Mac> const& c) {
+            constexpr std::size_t longest_key = 192;
+            return c.key.size() <= longest_key && !c.xof;
+        };
     } else {
         return nullptr;
     }
@@ -479,6 +511,7 @@ void agree_mac(std::string_view tag, std::string_view expected) {
     add_mac_way<Mac, backends::sodium>(ways, "sodium");
     add_mac_way<Mac, backends::bearssl>(ways, "bearssl");
     add_mac_way<Mac, backends::openssl>(ways, "openssl");
+    add_mac_way<Mac, backends::botan>(ways, "botan");
     random_source rnd(webcpp::test::agreement_seed);
     for (std::size_t index = 0; index < webcpp::test::agreement_cases; ++index) {
         auto const c = next_mac_case<Mac>(rnd, index);
@@ -493,31 +526,37 @@ void agree_hmac(std::string_view tag, std::string_view expected) {
 }
 
 void macs_agree() {
-    agree_hmac<digests::md5>("macs::hmac<digests::md5>", "hash2,bearssl,openssl");
-    agree_hmac<digests::sha1>("macs::hmac<digests::sha1>", "hash2,bearssl,openssl");
-    agree_hmac<digests::sha2_224>("macs::hmac<digests::sha2_224>", "hash2,bearssl,openssl");
-    agree_hmac<digests::sha2_256>("macs::hmac<digests::sha2_256>", "hash2,sodium,bearssl,openssl");
-    agree_hmac<digests::sha2_384>("macs::hmac<digests::sha2_384>", "hash2,bearssl,openssl");
-    agree_hmac<digests::sha2_512>("macs::hmac<digests::sha2_512>", "hash2,sodium,bearssl,openssl");
+    agree_hmac<digests::md5>("macs::hmac<digests::md5>", "hash2,bearssl,openssl,botan");
+    agree_hmac<digests::sha1>("macs::hmac<digests::sha1>", "hash2,bearssl,openssl,botan");
+    agree_hmac<digests::sha2_224>("macs::hmac<digests::sha2_224>", "hash2,bearssl,openssl,botan");
+    agree_hmac<digests::sha2_256>("macs::hmac<digests::sha2_256>",
+                                  "hash2,sodium,bearssl,openssl,botan");
+    agree_hmac<digests::sha2_384>("macs::hmac<digests::sha2_384>", "hash2,bearssl,openssl,botan");
+    agree_hmac<digests::sha2_512>("macs::hmac<digests::sha2_512>",
+                                  "hash2,sodium,bearssl,openssl,botan");
     agree_hmac<digests::sha2_512_224>("macs::hmac<digests::sha2_512_224>", "hash2,openssl");
-    agree_hmac<digests::sha2_512_256>("macs::hmac<digests::sha2_512_256>", "hash2,openssl");
-    agree_hmac<digests::sha3_224>("macs::hmac<digests::sha3_224>", "hash2,openssl");
-    agree_hmac<digests::sha3_256>("macs::hmac<digests::sha3_256>", "hash2,openssl");
-    agree_hmac<digests::sha3_384>("macs::hmac<digests::sha3_384>", "hash2,openssl");
-    agree_hmac<digests::sha3_512>("macs::hmac<digests::sha3_512>", "hash2,openssl");
-    agree_hmac<digests::keccak_224>("macs::hmac<digests::keccak_224>", "openssl");
-    agree_hmac<digests::keccak_256>("macs::hmac<digests::keccak_256>", "openssl");
-    agree_hmac<digests::keccak_384>("macs::hmac<digests::keccak_384>", "openssl");
-    agree_hmac<digests::keccak_512>("macs::hmac<digests::keccak_512>", "openssl");
-    agree_hmac<digests::ripemd_160>("macs::hmac<digests::ripemd_160>", "hash2,openssl");
-    agree_hmac<digests::blake2b>("macs::hmac<digests::blake2b>", "hash2,openssl");
-    agree_hmac<digests::blake2s_256>("macs::hmac<digests::blake2s_256>", "hash2,openssl");
-    agree_hmac<digests::sm3>("macs::hmac<digests::sm3>", "openssl");
-    agree_mac<macs::kmac_128>("macs::kmac_128", "xkcp,openssl");
-    agree_mac<macs::kmac_256>("macs::kmac_256", "xkcp,openssl");
-    agree_mac<macs::siphash_2_4>("macs::siphash_2_4", "hash2,sodium,openssl");
+    agree_hmac<digests::sha2_512_256>("macs::hmac<digests::sha2_512_256>", "hash2,openssl,botan");
+    agree_hmac<digests::sha3_224>("macs::hmac<digests::sha3_224>", "hash2,openssl,botan");
+    agree_hmac<digests::sha3_256>("macs::hmac<digests::sha3_256>", "hash2,openssl,botan");
+    agree_hmac<digests::sha3_384>("macs::hmac<digests::sha3_384>", "hash2,openssl,botan");
+    agree_hmac<digests::sha3_512>("macs::hmac<digests::sha3_512>", "hash2,openssl,botan");
+    agree_hmac<digests::keccak_224>("macs::hmac<digests::keccak_224>", "openssl,botan");
+    agree_hmac<digests::keccak_256>("macs::hmac<digests::keccak_256>", "openssl,botan");
+    agree_hmac<digests::keccak_384>("macs::hmac<digests::keccak_384>", "openssl,botan");
+    agree_hmac<digests::keccak_512>("macs::hmac<digests::keccak_512>", "openssl,botan");
+    agree_hmac<digests::ripemd_160>("macs::hmac<digests::ripemd_160>", "hash2,openssl,botan");
+    agree_hmac<digests::blake2b>("macs::hmac<digests::blake2b>", "hash2,openssl,botan");
+    agree_hmac<digests::blake2s_256>("macs::hmac<digests::blake2s_256>", "hash2,openssl,botan");
+    agree_hmac<digests::sm3>("macs::hmac<digests::sm3>", "openssl,botan");
+    agree_hmac<digests::streebog_256>("macs::hmac<digests::streebog_256>", "botan");
+    agree_hmac<digests::streebog_512>("macs::hmac<digests::streebog_512>", "botan");
+    agree_hmac<digests::whirlpool>("macs::hmac<digests::whirlpool>", "botan");
+    agree_hmac<digests::skein_512>("macs::hmac<digests::skein_512>", "botan");
+    agree_mac<macs::kmac_128>("macs::kmac_128", "xkcp,openssl,botan");
+    agree_mac<macs::kmac_256>("macs::kmac_256", "xkcp,openssl,botan");
+    agree_mac<macs::siphash_2_4>("macs::siphash_2_4", "hash2,sodium,openssl,botan");
     agree_mac<macs::siphash_2_4x>("macs::siphash_2_4x", "sodium,openssl");
-    agree_mac<macs::blake2b_mac>("macs::blake2b_mac", "sodium,openssl");
+    agree_mac<macs::blake2b_mac>("macs::blake2b_mac", "sodium,openssl,botan");
     agree_mac<macs::blake2s_mac>("macs::blake2s_mac", "hash2,openssl");
 }
 

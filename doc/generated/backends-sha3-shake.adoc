@@ -76,6 +76,13 @@
 | -
 | not stated
 
+| `digests::sha3_224`
+| `botan` (with exceptions only)
+| `/third_party//botan`
+| native, emscripten
+| -
+| not stated
+
 | `digests::sha3_256`
 | `hash2`
 | `/webcpp/hash//hash`
@@ -104,6 +111,13 @@
 | -
 | not stated
 
+| `digests::sha3_256`
+| `botan` (with exceptions only)
+| `/third_party//botan`
+| native, emscripten
+| -
+| not stated
+
 | `digests::sha3_384`
 | `hash2`
 | `/webcpp/hash//hash`
@@ -122,6 +136,13 @@
 | `openssl`
 | `/webcpp/hash//openssl`
 | native, wasip2, wasip3
+| -
+| not stated
+
+| `digests::sha3_384`
+| `botan` (with exceptions only)
+| `/third_party//botan`
+| native, emscripten
 | -
 | not stated
 
@@ -150,6 +171,13 @@
 | `openssl`
 | `/webcpp/hash//openssl`
 | native, wasip2, wasip3
+| -
+| not stated
+
+| `digests::sha3_512`
+| `botan` (with exceptions only)
+| `/third_party//botan`
+| native, emscripten
 | -
 | not stated
 
@@ -188,6 +216,13 @@
 | -
 | not stated
 
+| `digests::shake_128`
+| `botan` (with exceptions only)
+| `/third_party//botan`
+| native, emscripten
+| -
+| not stated
+
 | `digests::shake_256`
 | `hash2`
 | `/webcpp/hash//hash`
@@ -220,6 +255,13 @@
 | `openssl`
 | `/webcpp/hash//openssl`
 | native, wasip2, wasip3
+| -
+| not stated
+
+| `digests::shake_256`
+| `botan` (with exceptions only)
+| `/third_party//botan`
+| native, emscripten
 | -
 | not stated
 |===
@@ -227,13 +269,16 @@
 What each backend states on constant time, as the capability table read it:
 
 * `bearssl`: BearSSL at 7bea48e (v0.6-39): bearssl_kdf.h states no constant-time property for br_shake_*.
+* `botan`:
+** Botan 3.14.1: doc/api_ref/hash.rst states no constant-time property of SHAKE or of its XOF interface, and its source (src/lib/xof/shake_xof/) none.
+** Botan 3.14.1: doc/api_ref/hash.rst states no constant-time property of this hash, and its source (src/lib/hash/) none.
 * `hash2`: Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property.
 * `openssl`: OpenSSL 3.5.9: doc/man7/EVP_MD-*.pod, doc/man3/EVP_DigestInit.pod and providers/implementations/digests/ state no constant-time property.
 * `sodium`: libsodium 1.0.22: its headers state constant time for comparisons (sodium/utils.h) alone, not for its hashing, MAC, key derivation and password hashing functions (crypto_hash_*, crypto_xof_*, crypto_generichash_*, crypto_shorthash_*, crypto_auth_*, crypto_kdf_*, crypto_pwhash_*).
 * `xkcp`: XKCP at d20c8fc: README.markdown, lib/low/KeccakP-1600 and lib/high/Keccak (KeccakSponge, FIPS202/KeccakHash) state no constant-time property.
 
-The default of `digests::sha3_224` and `digests::sha3_384`: `hash2` on every target, whatever the program links; `openssl`, `xkcp` only where the call names it, as its second template argument (<<hash-default-backend>>).
+The default of `digests::sha3_224` and `digests::sha3_384`: `hash2` on every target, whatever the program links; `botan`, `openssl`, `xkcp` only where the call names it, as its second template argument (<<hash-default-backend>>).
 
-The default of `digests::sha3_256` and `digests::sha3_512`: `hash2` on every target, whatever the program links; `openssl`, `sodium`, `xkcp` only where the call names it, as its second template argument (<<hash-default-backend>>).
+The default of `digests::sha3_256` and `digests::sha3_512`: `hash2` on every target, whatever the program links; `botan`, `openssl`, `sodium`, `xkcp` only where the call names it, as its second template argument (<<hash-default-backend>>).
 
-The default of `digests::shake_128` and `digests::shake_256`: `hash2` on every target, whatever the program links; `bearssl`, `openssl`, `sodium`, `xkcp` only where the call names it, as its second template argument (<<hash-default-backend>>).
+The default of `digests::shake_128` and `digests::shake_256`: `hash2` on every target, whatever the program links; `bearssl`, `botan`, `openssl`, `sodium`, `xkcp` only where the call names it, as its second template argument (<<hash-default-backend>>).

@@ -1250,7 +1250,58 @@
                 {"text": "RFC 8998, ShangMi cipher suites for TLS 1.3", "source": "https://www.rfc-editor.org/rfc/rfc8998"},
                 {"text": "ISO/IEC 10118-3:2018, dedicated hash functions", "source": "https://www.iso.org/standard/67116.html"}
             ],
-            "choose": "Where a Chinese standard or a regulator requires it (SM2 signatures, the ShangMi suites of TLS 1.3), naming backends::openssl; SHA-256 everywhere else."
+            "choose": "Where a Chinese standard or a regulator requires it (SM2 signatures, the ShangMi suites of TLS 1.3), naming backends::openssl or backends::botan; SHA-256 everywhere else."
+        },
+        "digests::streebog_256": {
+            "summary": "Streebog-256, Russia's national 256-bit digest (GOST R 34.11-2012, RFC 6986), as the tag of digest_of and hasher, on a backend the call names (it has no default).",
+            "output": "256 bits",
+            "security": "128-bit collision resistance; Botan warns that its S-box has a hidden structure",
+            "status": "legacy",
+            "webcrypto": null,
+            "anchor": "hash-digest-family",
+            "uses": [
+                {"text": "RFC 6986, GOST R 34.11-2012: Hash Function", "source": "https://www.rfc-editor.org/rfc/rfc6986"},
+                {"text": "RFC 7836, the guidelines of the GOST algorithms, which build HMAC and KDFs over it", "source": "https://www.rfc-editor.org/rfc/rfc7836"}
+            ],
+            "choose": "Only where a Russian standard requires GOST R 34.11-2012, naming backends::botan; SHA-256 everywhere else."
+        },
+        "digests::streebog_512": {
+            "summary": "Streebog-512, Russia's national 512-bit digest (GOST R 34.11-2012, RFC 6986), as the tag of digest_of and hasher, on a backend the call names (it has no default).",
+            "output": "512 bits",
+            "security": "256-bit collision resistance; Botan warns that its S-box has a hidden structure",
+            "status": "legacy",
+            "webcrypto": null,
+            "anchor": "hash-digest-family",
+            "uses": [
+                {"text": "RFC 6986, GOST R 34.11-2012: Hash Function", "source": "https://www.rfc-editor.org/rfc/rfc6986"},
+                {"text": "RFC 7836, the guidelines of the GOST algorithms", "source": "https://www.rfc-editor.org/rfc/rfc7836"}
+            ],
+            "choose": "Only where a Russian standard requires GOST R 34.11-2012, naming backends::botan; SHA-512 everywhere else."
+        },
+        "digests::whirlpool": {
+            "summary": "Whirlpool, a 512-bit digest of ISO/IEC 10118-3 and NESSIE, as the tag of digest_of and hasher, on a backend the call names (it has no default).",
+            "output": "512 bits",
+            "security": "256-bit collision resistance",
+            "status": "legacy",
+            "webcrypto": null,
+            "anchor": "hash-digest-family",
+            "uses": [
+                {"text": "ISO/IEC 10118-3:2018, dedicated hash functions", "source": "https://www.iso.org/standard/67116.html"},
+                {"text": "VeraCrypt's header key derivation, PBKDF2 over HMAC-Whirlpool", "source": "https://veracrypt.io/en/Header%20Key%20Derivation.html"}
+            ],
+            "choose": "Only to read what a format hashed with it, naming backends::botan; SHA-512 or SHA3-512 everywhere else."
+        },
+        "digests::skein_512": {
+            "summary": "Skein-512 with a 512-bit digest (Skein 1.3, a finalist of the SHA-3 competition), as the tag of digest_of and hasher, on a backend the call names (it has no default).",
+            "output": "512 bits",
+            "security": "256-bit collision resistance",
+            "status": "legacy",
+            "webcrypto": null,
+            "anchor": "hash-digest-family",
+            "uses": [
+                {"text": "The Skein Hash Function Family, version 1.3", "source": "https://www.schneier.com/academic/skein/"}
+            ],
+            "choose": "Only to read what a format hashed with it, naming backends::botan; SHA3-512 or BLAKE2b everywhere else."
         },
         "macs::hmac<digests::md5>": {
             "summary": "HMAC over MD5, legacy, as the tag of mac: the tag of a message under a key in one call, cut to 10 bytes or more if needed, on any backend that has it.",
@@ -1493,7 +1544,55 @@
                 {"text": "RFC 8998, ShangMi cipher suites for TLS 1.3, whose HKDF runs HMAC-SM3", "source": "https://www.rfc-editor.org/rfc/rfc8998"},
                 {"text": "GM/T 0042-2015's HMAC-SM3 test cases, in OpenSSL's evpmac_sm3.txt", "source": "https://github.com/openssl/openssl/blob/openssl-3.5.9/test/recipes/30-test_evp_data/evpmac_sm3.txt"}
             ],
-            "choose": "Where a Chinese standard or a regulator requires SM3, naming backends::openssl; HMAC-SHA-256 everywhere else."
+            "choose": "Where a Chinese standard or a regulator requires SM3, naming backends::openssl or backends::botan; HMAC-SHA-256 everywhere else."
+        },
+        "macs::hmac<digests::streebog_256>": {
+            "summary": "HMAC over Streebog-256 (HMAC_GOSTR3411_2012_256, RFC 7836), as the tag of mac: the tag of a message under a key in one call, cut to 10 bytes or more if needed, on a backend the call names (it has no default).",
+            "output": "256 bits",
+            "security": "128 bits and more",
+            "status": "legacy",
+            "webcrypto": null,
+            "anchor": "hash-mac-family",
+            "uses": [
+                {"text": "RFC 7836 section 4.1.1, HMAC_GOSTR3411_2012_256", "source": "https://www.rfc-editor.org/rfc/rfc7836"}
+            ],
+            "choose": "Only where a Russian standard requires it, naming backends::botan; HMAC-SHA-256 everywhere else."
+        },
+        "macs::hmac<digests::streebog_512>": {
+            "summary": "HMAC over Streebog-512 (HMAC_GOSTR3411_2012_512, RFC 7836), as the tag of mac: the tag of a message under a key in one call, cut to 10 bytes or more if needed, on a backend the call names (it has no default).",
+            "output": "512 bits",
+            "security": "256 bits and more",
+            "status": "legacy",
+            "webcrypto": null,
+            "anchor": "hash-mac-family",
+            "uses": [
+                {"text": "RFC 7836 section 4.1.2, HMAC_GOSTR3411_2012_512", "source": "https://www.rfc-editor.org/rfc/rfc7836"}
+            ],
+            "choose": "Only where a Russian standard requires it, naming backends::botan; HMAC-SHA-512 everywhere else."
+        },
+        "macs::hmac<digests::whirlpool>": {
+            "summary": "HMAC over Whirlpool, as the tag of mac: the tag of a message under a key in one call, cut to 10 bytes or more if needed, on a backend the call names (it has no default).",
+            "output": "512 bits",
+            "security": "256 bits and more",
+            "status": "legacy",
+            "webcrypto": null,
+            "anchor": "hash-mac-family",
+            "uses": [
+                {"text": "VeraCrypt's header key derivation, PBKDF2 over HMAC-Whirlpool", "source": "https://veracrypt.io/en/Header%20Key%20Derivation.html"}
+            ],
+            "choose": "Only where a format names HMAC over Whirlpool, naming backends::botan; HMAC-SHA-512 everywhere else."
+        },
+        "macs::hmac<digests::skein_512>": {
+            "summary": "HMAC over Skein-512, as the tag of mac: the tag of a message under a key in one call, cut to 10 bytes or more if needed, on a backend the call names (it has no default).",
+            "output": "512 bits",
+            "security": "256 bits and more",
+            "status": "legacy",
+            "webcrypto": null,
+            "anchor": "hash-mac-family",
+            "uses": [
+                {"text": "The Skein Hash Function Family, version 1.3, whose hash HMAC's generic construction takes", "source": "https://www.schneier.com/academic/skein/"}
+            ],
+            "choose": "Only where a format names HMAC over Skein-512, naming backends::botan; HMAC-SHA-512 everywhere else."
         },
         "macs::siphash_2_4": {
             "standard": "SipHash-2-4 (Aumasson, Bernstein)",

@@ -17,7 +17,7 @@ webcpp.doc hash : hash.adoc ;
 webcpp.reference hash : <library>/third_party//xkcp
   <library>/third_party//blake3 <library>/third_party//sodium
   <library>/third_party//bearssl <library>/webcpp/hash//openssl
-  <library>/webcpp/asio//asio ;
+  <library>/third_party//botan <library>/webcpp/asio//asio ;
 
 # The guide's generated tables and llms.txt (doc/generated/, doc/llms.txt)
 # against their data, capabilities.json, guide.json and measurements.json:

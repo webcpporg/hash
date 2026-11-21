@@ -77,3 +77,7 @@ build-project canary_bearssl_missing ;
 build-project canary_bearssl_other_commit ;
 build-project backend_two_files ;
 build-project openssl_kdf_not_linked ;
+build-project botan_not_linked ;
+build-project botan_without_exceptions ;
+build-project canary_botan_missing ;
+build-project canary_botan_other_commit ;

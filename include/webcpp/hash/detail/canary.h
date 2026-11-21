@@ -5,9 +5,9 @@
  * https://www.boost.org/LICENSE_1_0.txt)
  *
  * The link-time canaries of webcpp::hash's backends, readable as C and C++. A backend's
- * header reads its canary inside every function that calls the C library, and webcpp's
- * src/canary_<name>.c, which /third_party//<name> compiles with the library's own flags,
- * defines it, so that a program linked without that library, or with one of another
+ * header reads its canary inside every function that calls the library, and webcpp's
+ * src/canary_<name>.c (Botan's: src/canary_botan.cpp), which /third_party//<name> compiles
+ * with the library's own flags, defines it, so that a program linked without that library, or with one of another
  * commit or configuration, fails to link with the canary's name:
  *
  *     webcpp_hash_<name>_<commit7>_<configuration>__add_third_party_<name>_to_your_link
@@ -42,6 +42,12 @@
 #define WEBCPP_HASH_BEARSSL_COMMIT WEBCPP_HASH_BEARSSL_CANARY_COMMIT
 #else
 #define WEBCPP_HASH_BEARSSL_COMMIT 7bea48e
+#endif
+
+#ifdef WEBCPP_HASH_BOTAN_CANARY_COMMIT
+#define WEBCPP_HASH_BOTAN_COMMIT WEBCPP_HASH_BOTAN_CANARY_COMMIT
+#else
+#define WEBCPP_HASH_BOTAN_COMMIT 01af88c
 #endif
 
 #define WEBCPP_HASH_DETAIL_CANARY_I(name, commit, configuration) \

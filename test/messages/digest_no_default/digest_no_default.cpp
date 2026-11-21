@@ -10,7 +10,7 @@
 // clang's -verify reads a directive from one comment line: wrapped, it checks nothing, so the
 // whole text stays on one line.
 // clang-format off
-// expected-error@webcpp/hash/detail/engines.hpp:* {{webcpp::hash: digests::whirlpool has no default backend, and no backend has it yet.}}
+// expected-error@webcpp/hash/detail/engines.hpp:* {{webcpp::hash: digests::whirlpool has no default backend. Name one of: backends::botan.}}
 // clang-format on
 #include <webcpp/hash/digest.hpp>
 
