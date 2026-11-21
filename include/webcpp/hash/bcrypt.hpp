@@ -270,6 +270,10 @@ template <class Backend = default_backend<kdfs::bcrypt>>
 /**
  Whether `password` gives `hash`, a modular crypt string of bcrypt, compared in constant time.
 
+ A caller that checks strings made by an implementation that silently cuts a longer password (at
+ 72 bytes, as OpenBSD's and most others do) passes the first 72 bytes of the password: bcrypt reads
+ no more, so the answer is the same, where the whole password is refused with `input_too_long`.
+
  @tparam Backend The backend; the call names `backends::botan`, as for @ref bcrypt.
  @param password The password, at most `bcrypt_max_password_size` bytes, without a zero byte.
  @param hash The string, `bcrypt_hash_size` characters of bcrypt's form.

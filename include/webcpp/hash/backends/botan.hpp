@@ -1565,7 +1565,7 @@ struct botan_refused_kbkdf {
     static_assert(always_false<Hmac>,
                   "webcpp::hash: backends::botan has kbkdf over the hmacs of hmac.hpp alone, "
                   "hmac_ripemd_128 and hmac_sha2_512_224 excepted. Over hmac_sha2_512_224, name "
-                  "backends::openssl.");
+                  "backends::openssl; no backend has kbkdf over hmac_ripemd_128.");
 
     /** Never read. */
     static constexpr kdf_standard_limits limits{};

@@ -170,10 +170,10 @@ struct hkdf_engine {
     static_assert(
         std::is_same_v<Backend, backends::webcrypto>,
         "webcpp::hash: this backend has no HKDF. The backends that have HKDF: "
-        "backends::hash2 (every hmac), backends::openssl (every hmac but "
-        "hmac_ripemd_128), backends::botan (every hmac but hmac_ripemd_128 and "
-        "hmac_sha2_512_224), backends::sodium (hmac_sha2_256, hmac_sha2_512) and "
-        "backends::bearssl (MD5, SHA-1, SHA-224, SHA-256, SHA-384, SHA-512; hkdf alone).");
+        "backends::hash2 (every hmac), backends::sodium (hmac_sha2_256, hmac_sha2_512), "
+        "backends::bearssl (MD5, SHA-1, SHA-224, SHA-256, SHA-384, SHA-512; hkdf alone), "
+        "backends::openssl (every hmac but hmac_ripemd_128) and backends::botan (every hmac "
+        "but hmac_ripemd_128 and hmac_sha2_512_224).");
 };
 
 /**
