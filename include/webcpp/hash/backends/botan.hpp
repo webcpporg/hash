@@ -32,17 +32,19 @@
  `errc::not_enough_memory`, any other exception `error::backend_failure`, and the family then
  zeroes the output. No exception leaves webcpp::hash.
 
- Botan allocates its objects and their state through `operator new` (spec section 6.2's
- departure): `digest_of` and `mac` make a Botan object (`HashFunction::create_or_throw`,
- `XOF::create_or_throw`, `MessageAuthenticationCode::create_or_throw`, by Botan's name of the
- algorithm), use it and release it before they return, its state cleared (`clear()`) first; a
- `hasher` owns its object until it finishes, is destroyed or is moved from, and clears it then.
+ Botan makes its objects with `operator new`, and the buffers of their state and secrets (Argon2's
+ m KiB, scrypt's 128 r (N + p + 1) bytes) with the C library's `calloc`, through its secure
+ allocator, which zeroes them when it frees them (spec section 6.2's departure): `digest_of` and
+ `mac` make a Botan object (`HashFunction::create_or_throw`, `XOF::create_or_throw`,
+ `MessageAuthenticationCode::create_or_throw`, by Botan's name of the algorithm), use it and
+ release it before they return, its state cleared (`clear()`) first; a `hasher` owns its object
+ until it finishes, is destroyed or is moved from, and clears it then.
  An HMAC key of more than 8,192 bytes, which Botan's `HMAC::key_spec` refuses, is hashed first, as
  RFC 2104 hashes every key longer than the hash's block: the same tag. So is every key Botan gives
  an HMAC in a key derivation: HKDF-Extract's salt, PBKDF2's and scrypt's password, KBKDF's key.
  A key derivation makes Botan's `KDF` or `PasswordHash` in each call and releases it before the
  call returns; Botan holds the keys, and the memory of scrypt and Argon2, in `secure_vector`s,
- which it zeroes when it frees them.
+ which its secure allocator takes from `calloc` and zeroes when it frees them.
 
  @see "Backends", in the guide.
 */
@@ -314,8 +316,8 @@ private:
 /**
  Botan's name of a tag of `digests` it has, its `value`, as `HashFunction::create` (or, for
  SHAKE, `XOF::create`) takes it at 3.14.1 (`src/lib/hash/hash.cpp`, `src/lib/xof/xof.cpp`).
- Declared for every tag, defined for each tag backends::botan has but BLAKE2b, whose name carries
- its size.
+ Declared for every tag, defined for each tag backends::botan has; BLAKE2b's is its 64-byte form,
+ which HMAC uses, the digest family naming its own size.
 
  @tparam Digest A tag of `digests`.
 */
@@ -1374,8 +1376,8 @@ struct botan_argon2_name<kdfs::argon2id> {
  Argon2 of the variant `Variant` on backends::botan, Botan's "Argon2d", "Argon2i" or "Argon2id",
  version 0x13, with the secret and the associated data (`derive_key` with `key` and `ad`), the
  lanes computed in turn in the calling thread (Botan's build loads no `thread_utils`) (the engine's
- interface: @ref argon2_engine). Botan allocates the m KiB through `operator new`, zeroed when
- freed (`secure_vector`).
+ interface: @ref argon2_engine). Botan allocates the m KiB through its secure allocator
+ (`calloc`), zeroed when freed (`secure_vector`).
 
  @tparam Variant `kdfs::argon2d`, `kdfs::argon2i` or `kdfs::argon2id`.
 */
@@ -1452,7 +1454,7 @@ struct argon2id_engine<backends::botan> {
  1,024 and at most 8 GiB and 2 MiB of memory, 2 GiB and 2 MiB on wasm32 (`scrypt.cpp`), and refuses
  the rest, which `scrypt` answers with `unsupported_by_backend`. The password keys Botan's
  HMAC-SHA-256, hashed first when it is longer than Botan's HMAC takes. Botan allocates the
- 128 r (N + p + 1) bytes through `operator new`, zeroed when freed.
+ 128 r (N + p + 1) bytes through its secure allocator (`calloc`), zeroed when freed.
 */
 template <>
 struct scrypt_engine<backends::botan> {

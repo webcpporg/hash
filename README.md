@@ -1,14 +1,13 @@
 # hash
 
 hash is one entry point for hashing and key derivation in a C++20 program, on every target
-[webcpp](https://github.com/webcpporg/webcpp) has: native (Linux, macOS, Windows with MSVC),
-wasip2, wasip3 and Emscripten. Boost.Hash2's algorithms and `hmac` are re-exported by alias;
-Keccak-256, BLAKE3, Argon2id, scrypt, bcrypt and the key derivations of NIST SP 800-108, SP
-800-56C and ANSI X9.63 run on C and C++ libraries; HKDF and PBKDF2 run on a backend of the
-program's choice. The families `digest_of`, `hasher`, `mac` and `argon2` reach the digests, MACs
-and Argon2 through a tag and a backend: Boost.Hash2, XKCP, BLAKE3, libsodium, BearSSL, OpenSSL or
-Botan (with exceptions). Every synchronous
-function reports failure as a value and allocates nothing in webcpp's own code;
+[webcpp](https://github.com/webcpporg/webcpp) has: native (Linux, macOS, Windows with MSVC), wasip2,
+wasip3 and Emscripten. Boost.Hash2's algorithms and `hmac` are re-exported by alias; Keccak-256,
+BLAKE3, Argon2id, scrypt, bcrypt and the key derivations of NIST SP 800-108, SP 800-56C and ANSI
+X9.63 run on C and C++ libraries; HKDF and PBKDF2 run on a backend of the program's choice. The
+families `digest_of`, `hasher`, `mac` and `argon2` reach the digests, MACs and Argon2 through a tag
+and a backend: Boost.Hash2, XKCP, BLAKE3, libsodium, BearSSL, OpenSSL or Botan (with exceptions).
+Every synchronous function reports failure as a value and allocates nothing in webcpp's own code;
 `<webcpp/hash/async.hpp>` gives the slow functions and the ones the browser's WebCrypto has an
 asynchronous form over webcpp::asio.
 

@@ -695,10 +695,10 @@ competition, built on Threefish, a tweakable block cipher of additions,
 rotations and XORs that is fast on 64-bit processors. Skein-512 has a 512-bit
 state and gives any length of output; `digests::skein_512` is Skein-512 with
 its 64-byte digest, Skein 1.3, the version of the competition's last round.
-Keccak won, and Skein remains where a format chose it before. hash has it on `backends::botan` alone, Botan's
-`Skein-512(512)`, with no default: the call names `backends::botan` and the
-program links `/third_party//botan`, natively or on Emscripten, with
-exceptions.
+Keccak won, and Skein remains where a format chose it before. hash has it on
+`backends::botan` alone, Botan's `Skein-512(512)`, with no default: the call
+names `backends::botan` and the program links `/third_party//botan`, natively
+or on Emscripten, with exceptions.
 
 [source]
 ----

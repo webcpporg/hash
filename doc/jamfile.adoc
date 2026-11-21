@@ -66,7 +66,7 @@ each once. On Emscripten `/third_party//sodium` also links the program with
 `-sALLOW_MEMORY_GROWTH=1`, since Argon2id and scrypt allocate more than
 Emscripten's fixed 16 MiB.
 
-Botan is the one library built with exceptions: it reports its failures by
+Botan is the one library that needs exceptions: it reports its failures by
 throwing, so `/third_party//botan` stops the build of a program with
 `exception-handling=off`, and `<webcpp/hash/backends/botan.hpp>` declares
 nothing under `WEBCPP_HASH_NO_EXCEPTIONS`. It is built natively and for

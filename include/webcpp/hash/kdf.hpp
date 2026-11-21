@@ -1456,10 +1456,9 @@ struct default_of<kdfs::x963kdf> {
  The backend a function of `Algorithm` uses when the call names none (spec 4.1).
 
  `backends::hash2` for `hkdf_extract`, `hkdf_expand`, `hkdf` and `pbkdf2`, on every target and
- whatever the program links; `backends::sodium` for `argon2id`, `scrypt` (which
- `backends::openssl` and `backends::botan` also have, named in the call) and `blake2b_subkey`,
- which stops the build with the line to add to the Jamfile when the program does not link
- libsodium. A tag of the families
+ whatever the program links; `backends::sodium` for `argon2id`, `scrypt` (which `backends::openssl`
+ and `backends::botan` also have, named in the call) and `blake2b_subkey`, which stops the build
+ with the line to add to the Jamfile when the program does not link libsodium. A tag of the families
  defaults to the first of `backends::hash2`, `backends::xkcp`, `backends::blake3` and
  `backends::sodium` that has it (design D34), or to `detail::no_default`, which refuses: the call
  names its backend. `backends::bearssl`, `backends::openssl` and `backends::botan` are never a

@@ -274,8 +274,8 @@ an HMAC key of at most `INT_MAX` bytes (`unsupported_by_backend`).
 * *Botan writes the separator and L, always.* `backends::botan` computes
 SP 800-108's default fixed input alone, with the separator and a 32-bit L:
 `kbkdf_options` with `.separator = false` or `.length = false` is
-`unsupported_by_backend` there, which NIST's validation vectors, written
-without either, are on Botan (<<hash-kdfs-botan>>).
+`unsupported_by_backend` there: NIST's validation vectors, written without
+either, therefore cannot run on Botan (<<hash-kdfs-botan>>).
 
 include::generated/backends-kbkdf.adoc[]
 
