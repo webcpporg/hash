@@ -49,7 +49,7 @@
 | not stated
 
 | `digests::blake2b`
-| `botan` (with exceptions only) (partial: a salt or a personalisation: Botan's BLAKE2b takes neither (blake2b.h))
+| `botan` (partial: a salt or a personalisation: Botan's BLAKE2b takes neither (blake2b.h))
 | `/third_party//botan`
 | native, emscripten
 | -
@@ -70,7 +70,7 @@
 | not stated
 
 | `digests::blake2s_256`
-| `botan` (with exceptions only)
+| `botan`
 | `/third_party//botan`
 | native, emscripten
 | -

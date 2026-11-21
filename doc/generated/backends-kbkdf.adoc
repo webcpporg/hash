@@ -21,7 +21,7 @@
 | not stated
 
 | `kbkdf`
-| `botan` (with exceptions only) (partial: the separator or L turned off: Botan's SP800-108-Counter always writes both (sp800_108.cpp))
+| `botan` (partial: the separator or L turned off: Botan's SP800-108-Counter always writes both (sp800_108.cpp))
 | `/third_party//botan`
 | native, emscripten
 | `hmac_md5_128`, `hmac_sha1_160`, `hmac_sha2_224`, `hmac_sha2_256`, `hmac_sha2_384`, `hmac_sha2_512`, `hmac_sha2_512_256`, `hmac_sha3_224`, `hmac_sha3_256`, `hmac_sha3_384`, `hmac_sha3_512`, `hmac_ripemd_160`, `hmac_blake2b_512`, `hmac_blake2s_256`

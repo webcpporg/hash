@@ -154,7 +154,7 @@
 | not stated
 
 | `macs::hmac<digests::md5>`
-| `botan` (with exceptions only)
+| `botan`
 | `/third_party//botan`
 | native, emscripten
 | -
@@ -182,7 +182,7 @@
 | not stated
 
 | `macs::hmac<digests::sha1>`
-| `botan` (with exceptions only)
+| `botan`
 | `/third_party//botan`
 | native, emscripten
 | -
@@ -217,7 +217,7 @@
 | not stated
 
 | `macs::hmac<digests::sha2_224>`
-| `botan` (with exceptions only)
+| `botan`
 | `/third_party//botan`
 | native, emscripten
 | -
@@ -252,7 +252,7 @@
 | not stated
 
 | `macs::hmac<digests::sha2_256>`
-| `botan` (with exceptions only)
+| `botan`
 | `/third_party//botan`
 | native, emscripten
 | -
@@ -287,7 +287,7 @@
 | not stated
 
 | `macs::hmac<digests::sha2_384>`
-| `botan` (with exceptions only)
+| `botan`
 | `/third_party//botan`
 | native, emscripten
 | -
@@ -329,7 +329,7 @@
 | not stated
 
 | `macs::hmac<digests::sha2_512>`
-| `botan` (with exceptions only)
+| `botan`
 | `/third_party//botan`
 | native, emscripten
 | -
@@ -371,7 +371,7 @@
 | not stated
 
 | `macs::hmac<digests::sha2_512_256>`
-| `botan` (with exceptions only)
+| `botan`
 | `/third_party//botan`
 | native, emscripten
 | -
@@ -392,7 +392,7 @@
 | not stated
 
 | `macs::hmac<digests::sha3_224>`
-| `botan` (with exceptions only)
+| `botan`
 | `/third_party//botan`
 | native, emscripten
 | -
@@ -413,7 +413,7 @@
 | not stated
 
 | `macs::hmac<digests::sha3_256>`
-| `botan` (with exceptions only)
+| `botan`
 | `/third_party//botan`
 | native, emscripten
 | -
@@ -434,7 +434,7 @@
 | not stated
 
 | `macs::hmac<digests::sha3_384>`
-| `botan` (with exceptions only)
+| `botan`
 | `/third_party//botan`
 | native, emscripten
 | -
@@ -455,7 +455,7 @@
 | not stated
 
 | `macs::hmac<digests::sha3_512>`
-| `botan` (with exceptions only)
+| `botan`
 | `/third_party//botan`
 | native, emscripten
 | -
@@ -476,7 +476,7 @@
 | not stated
 
 | `macs::hmac<digests::ripemd_160>`
-| `botan` (with exceptions only)
+| `botan`
 | `/third_party//botan`
 | native, emscripten
 | -
@@ -497,7 +497,7 @@
 | not stated
 
 | `macs::hmac<digests::blake2b>`
-| `botan` (with exceptions only)
+| `botan`
 | `/third_party//botan`
 | native, emscripten
 | -
@@ -518,7 +518,7 @@
 | not stated
 
 | `macs::hmac<digests::blake2s_256>`
-| `botan` (with exceptions only)
+| `botan`
 | `/third_party//botan`
 | native, emscripten
 | -
@@ -532,7 +532,7 @@
 | not stated
 
 | `macs::hmac<digests::keccak_224>`
-| `botan` (with exceptions only)
+| `botan`
 | `/third_party//botan`
 | native, emscripten
 | -
@@ -546,7 +546,7 @@
 | not stated
 
 | `macs::hmac<digests::keccak_256>`
-| `botan` (with exceptions only)
+| `botan`
 | `/third_party//botan`
 | native, emscripten
 | -
@@ -560,7 +560,7 @@
 | not stated
 
 | `macs::hmac<digests::keccak_384>`
-| `botan` (with exceptions only)
+| `botan`
 | `/third_party//botan`
 | native, emscripten
 | -
@@ -574,7 +574,7 @@
 | not stated
 
 | `macs::hmac<digests::keccak_512>`
-| `botan` (with exceptions only)
+| `botan`
 | `/third_party//botan`
 | native, emscripten
 | -
@@ -588,35 +588,35 @@
 | not stated
 
 | `macs::hmac<digests::sm3>`
-| `botan` (with exceptions only)
+| `botan`
 | `/third_party//botan`
 | native, emscripten
 | -
 | not stated
 
 | `macs::hmac<digests::streebog_256>`
-| `botan` (with exceptions only)
+| `botan`
 | `/third_party//botan`
 | native, emscripten
 | -
 | no
 
 | `macs::hmac<digests::streebog_512>`
-| `botan` (with exceptions only)
+| `botan`
 | `/third_party//botan`
 | native, emscripten
 | -
 | no
 
 | `macs::hmac<digests::whirlpool>`
-| `botan` (with exceptions only)
+| `botan`
 | `/third_party//botan`
 | native, emscripten
 | -
 | no
 
 | `macs::hmac<digests::skein_512>`
-| `botan` (with exceptions only)
+| `botan`
 | `/third_party//botan`
 | native, emscripten
 | -
@@ -625,7 +625,7 @@
 
 What each backend states on constant time, as the capability table read it:
 
-* `bearssl`: BearSSL at 7bea48e (v0.6-39): bearssl_hmac.h states constant time for br_hmac_outCT alone; mac calls br_hmac_out.
+* `bearssl`: BearSSL upstream 7bea48e (v0.6-39), unchanged in webcpp's pin 32381d6: bearssl_hmac.h states constant time for br_hmac_outCT alone; mac calls br_hmac_out.
 * `botan`:
 ** Botan 3.14.1: doc/api_ref/hash.rst warns that Streebog's baseline implementation uses table lookups indexed by the data and is likely vulnerable to cache-based side channels; its constant-time code needs AVX-512 and GFNI, an instruction-set module that /third_party//botan's minimized build does not load.
 ** Botan 3.14.1: doc/api_ref/hash.rst warns that Whirlpool's baseline implementation uses table lookups indexed by the data and is likely vulnerable to cache-based side channels; its constant-time code needs AVX2 or AVX-512, instruction-set modules that /third_party//botan's minimized build does not load.

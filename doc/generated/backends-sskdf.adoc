@@ -21,7 +21,7 @@
 | not stated
 
 | `sskdf`
-| `botan` (with exceptions only)
+| `botan`
 | `/third_party//botan`
 | native, emscripten
 | -

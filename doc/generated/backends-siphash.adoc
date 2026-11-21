@@ -49,7 +49,7 @@
 | not stated
 
 | `macs::siphash_2_4`
-| `botan` (with exceptions only)
+| `botan`
 | `/third_party//botan`
 | native, emscripten
 | -

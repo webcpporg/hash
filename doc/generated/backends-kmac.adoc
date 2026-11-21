@@ -28,7 +28,7 @@
 | not stated
 
 | `macs::kmac_128`
-| `botan` (with exceptions only) (partial: a key over 192 bytes, or the XOF form (xof): Botan's KMAC limits its key to 192 bytes and has no KMACXOF (kmac.cpp))
+| `botan` (partial: a key over 192 bytes, or the XOF form (xof): Botan's KMAC limits its key to 192 bytes and has no KMACXOF (kmac.cpp))
 | `/third_party//botan`
 | native, emscripten
 | -
@@ -49,7 +49,7 @@
 | not stated
 
 | `macs::kmac_256`
-| `botan` (with exceptions only) (partial: a key over 192 bytes, or the XOF form (xof): Botan's KMAC limits its key to 192 bytes and has no KMACXOF (kmac.cpp))
+| `botan` (partial: a key over 192 bytes, or the XOF form (xof): Botan's KMAC limits its key to 192 bytes and has no KMACXOF (kmac.cpp))
 | `/third_party//botan`
 | native, emscripten
 | -

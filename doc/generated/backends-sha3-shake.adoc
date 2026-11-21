@@ -77,7 +77,7 @@
 | not stated
 
 | `digests::sha3_224`
-| `botan` (with exceptions only)
+| `botan`
 | `/third_party//botan`
 | native, emscripten
 | -
@@ -112,7 +112,7 @@
 | not stated
 
 | `digests::sha3_256`
-| `botan` (with exceptions only)
+| `botan`
 | `/third_party//botan`
 | native, emscripten
 | -
@@ -140,7 +140,7 @@
 | not stated
 
 | `digests::sha3_384`
-| `botan` (with exceptions only)
+| `botan`
 | `/third_party//botan`
 | native, emscripten
 | -
@@ -175,7 +175,7 @@
 | not stated
 
 | `digests::sha3_512`
-| `botan` (with exceptions only)
+| `botan`
 | `/third_party//botan`
 | native, emscripten
 | -
@@ -217,7 +217,7 @@
 | not stated
 
 | `digests::shake_128`
-| `botan` (with exceptions only)
+| `botan`
 | `/third_party//botan`
 | native, emscripten
 | -
@@ -259,7 +259,7 @@
 | not stated
 
 | `digests::shake_256`
-| `botan` (with exceptions only)
+| `botan`
 | `/third_party//botan`
 | native, emscripten
 | -
@@ -268,7 +268,7 @@
 
 What each backend states on constant time, as the capability table read it:
 
-* `bearssl`: BearSSL at 7bea48e (v0.6-39): bearssl_kdf.h states no constant-time property for br_shake_*.
+* `bearssl`: BearSSL upstream 7bea48e (v0.6-39), unchanged in webcpp's pin 32381d6: bearssl_kdf.h states no constant-time property for br_shake_*.
 * `botan`:
 ** Botan 3.14.1: doc/api_ref/hash.rst states no constant-time property of SHAKE or of its XOF interface, and its source (src/lib/xof/shake_xof/) none.
 ** Botan 3.14.1: doc/api_ref/hash.rst states no constant-time property of this hash, and its source (src/lib/hash/) none.

@@ -21,7 +21,7 @@
 | not stated
 
 | `x963kdf`
-| `botan` (with exceptions only) (partial: an output of more than 2^32 - 2 digests, where ANSI X9.63 allows 2^32 - 1: Botan's KDF2 derives at most 2^32 - 2 blocks (kdf2.cpp))
+| `botan` (partial: an output of more than 2^32 - 2 digests, where ANSI X9.63 allows 2^32 - 1: Botan's KDF2 derives at most 2^32 - 2 blocks (kdf2.cpp))
 | `/third_party//botan`
 | native, emscripten
 | -

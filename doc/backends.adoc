@@ -45,7 +45,7 @@ states about its constant time. The backends:
 | every function of its cells
 
 | bearssl
-| BearSSL at 7bea48e (v0.6-39)
+| BearSSL at 32381d6 (webcpporg/bearssl's webcpp branch: upstream 7bea48e (v0.6-39) plus one ECDSA fix that does not touch hashing)
 | MIT
 | `/third_party//bearssl`
 | native, wasip2, wasip3, emscripten
@@ -63,7 +63,7 @@ states about its constant time. The backends:
 | BSD-2-Clause
 | `/third_party//botan`
 | native, emscripten
-| every function of its cells, with exceptions only
+| every function of its cells
 
 | webcrypto
 | the JavaScript runtime's Web Cryptography API (crypto.subtle): the browser's, or node's
@@ -146,7 +146,7 @@ states about its constant time. The backends:
 | native, wasip2, wasip3
 
 | digests::md5
-| botan (with exceptions only)
+| botan
 | -
 | not stated
 | native, emscripten
@@ -170,7 +170,7 @@ states about its constant time. The backends:
 | native, wasip2, wasip3
 
 | digests::sha1
-| botan (with exceptions only)
+| botan
 | -
 | not stated
 | native, emscripten
@@ -200,7 +200,7 @@ states about its constant time. The backends:
 | native, wasip2, wasip3
 
 | digests::sha2_224
-| botan (with exceptions only)
+| botan
 | -
 | not stated
 | native, emscripten
@@ -230,7 +230,7 @@ states about its constant time. The backends:
 | native, wasip2, wasip3
 
 | digests::sha2_256
-| botan (with exceptions only)
+| botan
 | -
 | not stated
 | native, emscripten
@@ -260,7 +260,7 @@ states about its constant time. The backends:
 | native, wasip2, wasip3
 
 | digests::sha2_384
-| botan (with exceptions only)
+| botan
 | -
 | not stated
 | native, emscripten
@@ -296,7 +296,7 @@ states about its constant time. The backends:
 | native, wasip2, wasip3
 
 | digests::sha2_512
-| botan (with exceptions only)
+| botan
 | -
 | not stated
 | native, emscripten
@@ -332,7 +332,7 @@ states about its constant time. The backends:
 | native, wasip2, wasip3
 
 | digests::sha2_512_256
-| botan (with exceptions only)
+| botan
 | -
 | not stated
 | native, emscripten
@@ -404,7 +404,7 @@ states about its constant time. The backends:
 | native, wasip2, wasip3
 
 | digests::sha3_224
-| botan (with exceptions only)
+| botan
 | -
 | not stated
 | native, emscripten
@@ -434,7 +434,7 @@ states about its constant time. The backends:
 | native, wasip2, wasip3
 
 | digests::sha3_256
-| botan (with exceptions only)
+| botan
 | -
 | not stated
 | native, emscripten
@@ -458,7 +458,7 @@ states about its constant time. The backends:
 | native, wasip2, wasip3
 
 | digests::sha3_384
-| botan (with exceptions only)
+| botan
 | -
 | not stated
 | native, emscripten
@@ -488,7 +488,7 @@ states about its constant time. The backends:
 | native, wasip2, wasip3
 
 | digests::sha3_512
-| botan (with exceptions only)
+| botan
 | -
 | not stated
 | native, emscripten
@@ -524,7 +524,7 @@ states about its constant time. The backends:
 | native, wasip2, wasip3
 
 | digests::shake_128
-| botan (with exceptions only)
+| botan
 | -
 | not stated
 | native, emscripten
@@ -560,7 +560,7 @@ states about its constant time. The backends:
 | native, wasip2, wasip3
 
 | digests::shake_256
-| botan (with exceptions only)
+| botan
 | -
 | not stated
 | native, emscripten
@@ -608,7 +608,7 @@ states about its constant time. The backends:
 | native, wasip2, wasip3
 
 | digests::keccak_224
-| botan (with exceptions only)
+| botan
 | -
 | not stated
 | native, emscripten
@@ -626,7 +626,7 @@ states about its constant time. The backends:
 | native, wasip2, wasip3
 
 | digests::keccak_256
-| botan (with exceptions only)
+| botan
 | -
 | not stated
 | native, emscripten
@@ -644,7 +644,7 @@ states about its constant time. The backends:
 | native, wasip2, wasip3
 
 | digests::keccak_384
-| botan (with exceptions only)
+| botan
 | -
 | not stated
 | native, emscripten
@@ -662,7 +662,7 @@ states about its constant time. The backends:
 | native, wasip2, wasip3
 
 | digests::keccak_512
-| botan (with exceptions only)
+| botan
 | -
 | not stated
 | native, emscripten
@@ -746,7 +746,7 @@ states about its constant time. The backends:
 | native, wasip2, wasip3
 
 | digests::blake2b
-| botan (with exceptions only) (partial: a salt or a personalisation: Botan's BLAKE2b takes neither (blake2b.h))
+| botan (partial: a salt or a personalisation: Botan's BLAKE2b takes neither (blake2b.h))
 | -
 | not stated
 | native, emscripten
@@ -764,7 +764,7 @@ states about its constant time. The backends:
 | native, wasip2, wasip3
 
 | digests::blake2s_256
-| botan (with exceptions only)
+| botan
 | -
 | not stated
 | native, emscripten
@@ -806,7 +806,7 @@ states about its constant time. The backends:
 | native, wasip2, wasip3
 
 | digests::ripemd_160
-| botan (with exceptions only)
+| botan
 | -
 | not stated
 | native, emscripten
@@ -818,31 +818,31 @@ states about its constant time. The backends:
 | native, wasip2, wasip3
 
 | digests::sm3
-| botan (with exceptions only)
+| botan
 | -
 | not stated
 | native, emscripten
 
 | digests::streebog_256
-| botan (with exceptions only)
+| botan
 | -
 | no
 | native, emscripten
 
 | digests::streebog_512
-| botan (with exceptions only)
+| botan
 | -
 | no
 | native, emscripten
 
 | digests::whirlpool
-| botan (with exceptions only)
+| botan
 | -
 | no
 | native, emscripten
 
 | digests::skein_512
-| botan (with exceptions only)
+| botan
 | -
 | not stated
 | native, emscripten
@@ -885,7 +885,7 @@ states about its constant time. The backends:
 | native, wasip2, wasip3
 
 | macs::siphash_2_4
-| botan (with exceptions only)
+| botan
 | -
 | not stated
 | native, emscripten
@@ -915,7 +915,7 @@ states about its constant time. The backends:
 | native, wasip2, wasip3
 
 | macs::kmac_128
-| botan (with exceptions only) (partial: a key over 192 bytes, or the XOF form (xof): Botan's KMAC limits its key to 192 bytes and has no KMACXOF (kmac.cpp))
+| botan (partial: a key over 192 bytes, or the XOF form (xof): Botan's KMAC limits its key to 192 bytes and has no KMACXOF (kmac.cpp))
 | -
 | not stated
 | native, emscripten
@@ -933,7 +933,7 @@ states about its constant time. The backends:
 | native, wasip2, wasip3
 
 | macs::kmac_256
-| botan (with exceptions only) (partial: a key over 192 bytes, or the XOF form (xof): Botan's KMAC limits its key to 192 bytes and has no KMACXOF (kmac.cpp))
+| botan (partial: a key over 192 bytes, or the XOF form (xof): Botan's KMAC limits its key to 192 bytes and has no KMACXOF (kmac.cpp))
 | -
 | not stated
 | native, emscripten
@@ -951,7 +951,7 @@ states about its constant time. The backends:
 | native, wasip2, wasip3
 
 | macs::blake2b_mac
-| botan (with exceptions only)
+| botan
 | -
 | not stated
 | native, emscripten
@@ -1089,7 +1089,7 @@ states about its constant time. The backends:
 | native, wasip2, wasip3
 
 | macs::hmac<digests::md5>
-| botan (with exceptions only)
+| botan
 | -
 | not stated
 | native, emscripten
@@ -1113,7 +1113,7 @@ states about its constant time. The backends:
 | native, wasip2, wasip3
 
 | macs::hmac<digests::sha1>
-| botan (with exceptions only)
+| botan
 | -
 | not stated
 | native, emscripten
@@ -1143,7 +1143,7 @@ states about its constant time. The backends:
 | native, wasip2, wasip3
 
 | macs::hmac<digests::sha2_224>
-| botan (with exceptions only)
+| botan
 | -
 | not stated
 | native, emscripten
@@ -1173,7 +1173,7 @@ states about its constant time. The backends:
 | native, wasip2, wasip3
 
 | macs::hmac<digests::sha2_256>
-| botan (with exceptions only)
+| botan
 | -
 | not stated
 | native, emscripten
@@ -1203,7 +1203,7 @@ states about its constant time. The backends:
 | native, wasip2, wasip3
 
 | macs::hmac<digests::sha2_384>
-| botan (with exceptions only)
+| botan
 | -
 | not stated
 | native, emscripten
@@ -1239,7 +1239,7 @@ states about its constant time. The backends:
 | native, wasip2, wasip3
 
 | macs::hmac<digests::sha2_512>
-| botan (with exceptions only)
+| botan
 | -
 | not stated
 | native, emscripten
@@ -1275,7 +1275,7 @@ states about its constant time. The backends:
 | native, wasip2, wasip3
 
 | macs::hmac<digests::sha2_512_256>
-| botan (with exceptions only)
+| botan
 | -
 | not stated
 | native, emscripten
@@ -1293,7 +1293,7 @@ states about its constant time. The backends:
 | native, wasip2, wasip3
 
 | macs::hmac<digests::sha3_224>
-| botan (with exceptions only)
+| botan
 | -
 | not stated
 | native, emscripten
@@ -1311,7 +1311,7 @@ states about its constant time. The backends:
 | native, wasip2, wasip3
 
 | macs::hmac<digests::sha3_256>
-| botan (with exceptions only)
+| botan
 | -
 | not stated
 | native, emscripten
@@ -1329,7 +1329,7 @@ states about its constant time. The backends:
 | native, wasip2, wasip3
 
 | macs::hmac<digests::sha3_384>
-| botan (with exceptions only)
+| botan
 | -
 | not stated
 | native, emscripten
@@ -1347,7 +1347,7 @@ states about its constant time. The backends:
 | native, wasip2, wasip3
 
 | macs::hmac<digests::sha3_512>
-| botan (with exceptions only)
+| botan
 | -
 | not stated
 | native, emscripten
@@ -1365,7 +1365,7 @@ states about its constant time. The backends:
 | native, wasip2, wasip3
 
 | macs::hmac<digests::ripemd_160>
-| botan (with exceptions only)
+| botan
 | -
 | not stated
 | native, emscripten
@@ -1383,7 +1383,7 @@ states about its constant time. The backends:
 | native, wasip2, wasip3
 
 | macs::hmac<digests::blake2b>
-| botan (with exceptions only)
+| botan
 | -
 | not stated
 | native, emscripten
@@ -1401,7 +1401,7 @@ states about its constant time. The backends:
 | native, wasip2, wasip3
 
 | macs::hmac<digests::blake2s_256>
-| botan (with exceptions only)
+| botan
 | -
 | not stated
 | native, emscripten
@@ -1413,7 +1413,7 @@ states about its constant time. The backends:
 | native, wasip2, wasip3
 
 | macs::hmac<digests::keccak_224>
-| botan (with exceptions only)
+| botan
 | -
 | not stated
 | native, emscripten
@@ -1425,7 +1425,7 @@ states about its constant time. The backends:
 | native, wasip2, wasip3
 
 | macs::hmac<digests::keccak_256>
-| botan (with exceptions only)
+| botan
 | -
 | not stated
 | native, emscripten
@@ -1437,7 +1437,7 @@ states about its constant time. The backends:
 | native, wasip2, wasip3
 
 | macs::hmac<digests::keccak_384>
-| botan (with exceptions only)
+| botan
 | -
 | not stated
 | native, emscripten
@@ -1449,7 +1449,7 @@ states about its constant time. The backends:
 | native, wasip2, wasip3
 
 | macs::hmac<digests::keccak_512>
-| botan (with exceptions only)
+| botan
 | -
 | not stated
 | native, emscripten
@@ -1461,31 +1461,31 @@ states about its constant time. The backends:
 | native, wasip2, wasip3
 
 | macs::hmac<digests::sm3>
-| botan (with exceptions only)
+| botan
 | -
 | not stated
 | native, emscripten
 
 | macs::hmac<digests::streebog_256>
-| botan (with exceptions only)
+| botan
 | -
 | no
 | native, emscripten
 
 | macs::hmac<digests::streebog_512>
-| botan (with exceptions only)
+| botan
 | -
 | no
 | native, emscripten
 
 | macs::hmac<digests::whirlpool>
-| botan (with exceptions only)
+| botan
 | -
 | no
 | native, emscripten
 
 | macs::hmac<digests::skein_512>
-| botan (with exceptions only)
+| botan
 | -
 | not stated
 | native, emscripten
@@ -1571,7 +1571,7 @@ states about its constant time. The backends:
 | native, wasip2, wasip3
 
 | hkdf_extract
-| botan (with exceptions only)
+| botan
 | hmac_md5_128, hmac_sha1_160, hmac_sha2_224, hmac_sha2_256, hmac_sha2_384, hmac_sha2_512, hmac_sha2_512_256, hmac_sha3_224, hmac_sha3_256, hmac_sha3_384, hmac_sha3_512, hmac_ripemd_160, hmac_blake2b_512, hmac_blake2s_256
 | not stated
 | native, emscripten
@@ -1595,7 +1595,7 @@ states about its constant time. The backends:
 | native, wasip2, wasip3
 
 | hkdf_expand
-| botan (with exceptions only)
+| botan
 | hmac_md5_128, hmac_sha1_160, hmac_sha2_224, hmac_sha2_256, hmac_sha2_384, hmac_sha2_512, hmac_sha2_512_256, hmac_sha3_224, hmac_sha3_256, hmac_sha3_384, hmac_sha3_512, hmac_ripemd_160, hmac_blake2b_512, hmac_blake2s_256
 | not stated
 | native, emscripten
@@ -1625,7 +1625,7 @@ states about its constant time. The backends:
 | native, wasip2, wasip3
 
 | hkdf
-| botan (with exceptions only)
+| botan
 | hmac_md5_128, hmac_sha1_160, hmac_sha2_224, hmac_sha2_256, hmac_sha2_384, hmac_sha2_512, hmac_sha2_512_256, hmac_sha3_224, hmac_sha3_256, hmac_sha3_384, hmac_sha3_512, hmac_ripemd_160, hmac_blake2b_512, hmac_blake2s_256
 | not stated
 | native, emscripten
@@ -1649,7 +1649,7 @@ states about its constant time. The backends:
 | native, wasip2, wasip3
 
 | pbkdf2
-| botan (with exceptions only) (partial: an iteration count above 2^32 - 1 on wasm32 (invalid_iterations): Botan counts iterations in a size_t; an output of more than 2^32 - 2 digests (invalid_output_size), where RFC 8018 allows 2^32 - 1: Botan's PBKDF2 derives at most 2^32 - 2 blocks (pbkdf2.cpp))
+| botan (partial: an iteration count above 2^32 - 1 on wasm32 (invalid_iterations): Botan counts iterations in a size_t; an output of more than 2^32 - 2 digests (invalid_output_size), where RFC 8018 allows 2^32 - 1: Botan's PBKDF2 derives at most 2^32 - 2 blocks (pbkdf2.cpp))
 | hmac_md5_128, hmac_sha1_160, hmac_sha2_224, hmac_sha2_256, hmac_sha2_384, hmac_sha2_512, hmac_sha2_512_256, hmac_sha3_224, hmac_sha3_256, hmac_sha3_384, hmac_sha3_512, hmac_ripemd_160, hmac_blake2b_512, hmac_blake2s_256
 | not stated
 | native, emscripten
@@ -1673,7 +1673,7 @@ states about its constant time. The backends:
 | native, wasip2, wasip3
 
 | kbkdf
-| botan (with exceptions only) (partial: the separator or L turned off: Botan's SP800-108-Counter always writes both (sp800_108.cpp))
+| botan (partial: the separator or L turned off: Botan's SP800-108-Counter always writes both (sp800_108.cpp))
 | hmac_md5_128, hmac_sha1_160, hmac_sha2_224, hmac_sha2_256, hmac_sha2_384, hmac_sha2_512, hmac_sha2_512_256, hmac_sha3_224, hmac_sha3_256, hmac_sha3_384, hmac_sha3_512, hmac_ripemd_160, hmac_blake2b_512, hmac_blake2s_256
 | not stated
 | native, emscripten
@@ -1685,7 +1685,7 @@ states about its constant time. The backends:
 | native, wasip2, wasip3
 
 | sskdf
-| botan (with exceptions only)
+| botan
 | -
 | not stated
 | native, emscripten
@@ -1697,7 +1697,7 @@ states about its constant time. The backends:
 | native, wasip2, wasip3
 
 | x963kdf
-| botan (with exceptions only) (partial: an output of more than 2^32 - 2 digests, where ANSI X9.63 allows 2^32 - 1: Botan's KDF2 derives at most 2^32 - 2 blocks (kdf2.cpp))
+| botan (partial: an output of more than 2^32 - 2 digests, where ANSI X9.63 allows 2^32 - 1: Botan's KDF2 derives at most 2^32 - 2 blocks (kdf2.cpp))
 | -
 | not stated
 | native, emscripten
@@ -1722,7 +1722,7 @@ states about its constant time. The backends:
 | native, wasip2, wasip3
 
 | argon2id
-| botan (with exceptions only)
+| botan
 | -
 | not stated
 | native, emscripten
@@ -1734,7 +1734,7 @@ states about its constant time. The backends:
 | native, wasip2, wasip3
 
 | kdfs::argon2d
-| botan (with exceptions only) (partial: more than 128 lanes, or m above 8 GiB (2 GiB on wasm32): Botan's Argon2 limits (argon2pwhash.cpp))
+| botan (partial: more than 128 lanes, or m above 8 GiB (2 GiB on wasm32): Botan's Argon2 limits (argon2pwhash.cpp))
 | -
 | no
 | native, emscripten
@@ -1752,7 +1752,7 @@ states about its constant time. The backends:
 | native, wasip2, wasip3
 
 | kdfs::argon2i
-| botan (with exceptions only) (partial: more than 128 lanes, or m above 8 GiB (2 GiB on wasm32): Botan's Argon2 limits (argon2pwhash.cpp))
+| botan (partial: more than 128 lanes, or m above 8 GiB (2 GiB on wasm32): Botan's Argon2 limits (argon2pwhash.cpp))
 | -
 | not stated
 | native, emscripten
@@ -1770,7 +1770,7 @@ states about its constant time. The backends:
 | native, wasip2, wasip3
 
 | kdfs::argon2id
-| botan (with exceptions only) (partial: more than 128 lanes, or m above 8 GiB (2 GiB on wasm32): Botan's Argon2 limits (argon2pwhash.cpp))
+| botan (partial: more than 128 lanes, or m above 8 GiB (2 GiB on wasm32): Botan's Argon2 limits (argon2pwhash.cpp))
 | -
 | not stated
 | native, emscripten
@@ -1788,19 +1788,19 @@ states about its constant time. The backends:
 | native, wasip2, wasip3
 
 | scrypt
-| botan (with exceptions only) (partial: N above 2^22, r above 256, p above 1,024, or more than 8 GiB and 2 MiB of memory (2 GiB and 2 MiB on wasm32): Botan's scrypt limits (scrypt.cpp))
+| botan (partial: N above 2^22, r above 256, p above 1,024, or more than 8 GiB and 2 MiB of memory (2 GiB and 2 MiB on wasm32): Botan's scrypt limits (scrypt.cpp))
 | -
 | no
 | native, emscripten
 
 | bcrypt
-| botan (with exceptions only) (partial: a cost above 18: Botan's limit (bcrypt.cpp), where bcrypt's format allows 31)
+| botan (partial: a cost above 18: Botan's limit (bcrypt.cpp), where bcrypt's format allows 31)
 | -
 | no
 | native, emscripten
 
 | bcrypt_pbkdf
-| botan (with exceptions only)
+| botan
 | -
 | no
 | native, emscripten
@@ -2061,10 +2061,10 @@ What each backend's upstream states, and where:
 * blake3: not stated. BLAKE3 1.8.7: README.md and c/README.md state no constant-time property.
 * sodium: not stated. libsodium 1.0.22: its headers state constant time for comparisons (sodium/utils.h) alone, not for its hashing, MAC, key derivation and password hashing functions (crypto_hash_*, crypto_xof_*, crypto_generichash_*, crypto_shorthash_*, crypto_auth_*, crypto_kdf_*, crypto_pwhash_*).
 * bearssl: not stated.
-** BearSSL at 7bea48e (v0.6-39): bearssl_hash.h states constant time for its GHASH implementations alone, not for br_md5_*, br_sha1_*, br_sha224_* to br_sha512_* or br_md5sha1_*.
-** BearSSL at 7bea48e (v0.6-39): bearssl_kdf.h states no constant-time property for br_shake_*.
-** BearSSL at 7bea48e (v0.6-39): bearssl_hmac.h states constant time for br_hmac_outCT alone; mac calls br_hmac_out.
-** BearSSL at 7bea48e (v0.6-39): bearssl_hmac.h states constant time for br_hmac_outCT alone; br_hkdf_* (src/kdf/hkdf.c) calls br_hmac_out.
+** BearSSL upstream 7bea48e (v0.6-39), unchanged in webcpp's pin 32381d6: bearssl_hash.h states constant time for its GHASH implementations alone, not for br_md5_*, br_sha1_*, br_sha224_* to br_sha512_* or br_md5sha1_*.
+** BearSSL upstream 7bea48e (v0.6-39), unchanged in webcpp's pin 32381d6: bearssl_kdf.h states no constant-time property for br_shake_*.
+** BearSSL upstream 7bea48e (v0.6-39), unchanged in webcpp's pin 32381d6: bearssl_hmac.h states constant time for br_hmac_outCT alone; mac calls br_hmac_out.
+** BearSSL upstream 7bea48e (v0.6-39), unchanged in webcpp's pin 32381d6: bearssl_hmac.h states constant time for br_hmac_outCT alone; br_hkdf_* (src/kdf/hkdf.c) calls br_hmac_out.
 * openssl: not stated.
 ** OpenSSL 3.5.9: doc/man7/EVP_MD-*.pod, doc/man3/EVP_DigestInit.pod and providers/implementations/digests/ state no constant-time property.
 ** OpenSSL 3.5.9: doc/man3/EVP_MAC.pod, doc/man7/EVP_MAC-HMAC.pod, EVP_MAC-KMAC.pod, EVP_MAC-BLAKE2.pod, EVP_MAC-Siphash.pod and providers/implementations/macs/ state no constant-time property.
