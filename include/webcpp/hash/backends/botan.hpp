@@ -322,58 +322,180 @@ private:
 template <class Digest>
 struct botan_hash_name;
 
-// clang-format off
-/** MD5. */
-template <> struct botan_hash_name<digests::md5> { static constexpr std::string_view value = "MD5"; };
+/** MD5 (its module deprecated in Botan 3.14.1, still served). */
+template <>
+struct botan_hash_name<digests::md5> {
+    /** Botan's name. */
+    static constexpr std::string_view value = "MD5";
+};
+
 /** SHA-1. */
-template <> struct botan_hash_name<digests::sha1> { static constexpr std::string_view value = "SHA-1"; };
+template <>
+struct botan_hash_name<digests::sha1> {
+    /** Botan's name. */
+    static constexpr std::string_view value = "SHA-1";
+};
+
 /** SHA-224. */
-template <> struct botan_hash_name<digests::sha2_224> { static constexpr std::string_view value = "SHA-224"; };
+template <>
+struct botan_hash_name<digests::sha2_224> {
+    /** Botan's name. */
+    static constexpr std::string_view value = "SHA-224";
+};
+
 /** SHA-256. */
-template <> struct botan_hash_name<digests::sha2_256> { static constexpr std::string_view value = "SHA-256"; };
+template <>
+struct botan_hash_name<digests::sha2_256> {
+    /** Botan's name. */
+    static constexpr std::string_view value = "SHA-256";
+};
+
 /** SHA-384. */
-template <> struct botan_hash_name<digests::sha2_384> { static constexpr std::string_view value = "SHA-384"; };
+template <>
+struct botan_hash_name<digests::sha2_384> {
+    /** Botan's name. */
+    static constexpr std::string_view value = "SHA-384";
+};
+
 /** SHA-512. */
-template <> struct botan_hash_name<digests::sha2_512> { static constexpr std::string_view value = "SHA-512"; };
+template <>
+struct botan_hash_name<digests::sha2_512> {
+    /** Botan's name. */
+    static constexpr std::string_view value = "SHA-512";
+};
+
 /** SHA-512/256. */
-template <> struct botan_hash_name<digests::sha2_512_256> { static constexpr std::string_view value = "SHA-512-256"; };
+template <>
+struct botan_hash_name<digests::sha2_512_256> {
+    /** Botan's name. */
+    static constexpr std::string_view value = "SHA-512-256";
+};
+
 /** SHA3-224. */
-template <> struct botan_hash_name<digests::sha3_224> { static constexpr std::string_view value = "SHA-3(224)"; };
+template <>
+struct botan_hash_name<digests::sha3_224> {
+    /** Botan's name. */
+    static constexpr std::string_view value = "SHA-3(224)";
+};
+
 /** SHA3-256. */
-template <> struct botan_hash_name<digests::sha3_256> { static constexpr std::string_view value = "SHA-3(256)"; };
+template <>
+struct botan_hash_name<digests::sha3_256> {
+    /** Botan's name. */
+    static constexpr std::string_view value = "SHA-3(256)";
+};
+
 /** SHA3-384. */
-template <> struct botan_hash_name<digests::sha3_384> { static constexpr std::string_view value = "SHA-3(384)"; };
+template <>
+struct botan_hash_name<digests::sha3_384> {
+    /** Botan's name. */
+    static constexpr std::string_view value = "SHA-3(384)";
+};
+
 /** SHA3-512. */
-template <> struct botan_hash_name<digests::sha3_512> { static constexpr std::string_view value = "SHA-3(512)"; };
+template <>
+struct botan_hash_name<digests::sha3_512> {
+    /** Botan's name. */
+    static constexpr std::string_view value = "SHA-3(512)";
+};
+
 /** SHAKE128, Botan's XOF. */
-template <> struct botan_hash_name<digests::shake_128> { static constexpr std::string_view value = "SHAKE-128"; };
+template <>
+struct botan_hash_name<digests::shake_128> {
+    /** Botan's name. */
+    static constexpr std::string_view value = "SHAKE-128";
+};
+
 /** SHAKE256, Botan's XOF. */
-template <> struct botan_hash_name<digests::shake_256> { static constexpr std::string_view value = "SHAKE-256"; };
-/** Keccak-224 (deprecated in Botan 3.14.1, still served). */
-template <> struct botan_hash_name<digests::keccak_224> { static constexpr std::string_view value = "Keccak-1600(224)"; };
-/** Keccak-256. */
-template <> struct botan_hash_name<digests::keccak_256> { static constexpr std::string_view value = "Keccak-1600(256)"; };
-/** Keccak-384. */
-template <> struct botan_hash_name<digests::keccak_384> { static constexpr std::string_view value = "Keccak-1600(384)"; };
-/** Keccak-512. */
-template <> struct botan_hash_name<digests::keccak_512> { static constexpr std::string_view value = "Keccak-1600(512)"; };
+template <>
+struct botan_hash_name<digests::shake_256> {
+    /** Botan's name. */
+    static constexpr std::string_view value = "SHAKE-256";
+};
+
+/** Keccak-224 (its module deprecated in Botan 3.14.1, still served). */
+template <>
+struct botan_hash_name<digests::keccak_224> {
+    /** Botan's name. */
+    static constexpr std::string_view value = "Keccak-1600(224)";
+};
+
+/** Keccak-256 (its module deprecated in Botan 3.14.1, still served). */
+template <>
+struct botan_hash_name<digests::keccak_256> {
+    /** Botan's name. */
+    static constexpr std::string_view value = "Keccak-1600(256)";
+};
+
+/** Keccak-384 (its module deprecated in Botan 3.14.1, still served). */
+template <>
+struct botan_hash_name<digests::keccak_384> {
+    /** Botan's name. */
+    static constexpr std::string_view value = "Keccak-1600(384)";
+};
+
+/** Keccak-512 (its module deprecated in Botan 3.14.1, still served). */
+template <>
+struct botan_hash_name<digests::keccak_512> {
+    /** Botan's name. */
+    static constexpr std::string_view value = "Keccak-1600(512)";
+};
+
 /** BLAKE2b with a 64-byte digest, the hash of `macs::hmac<digests::blake2b>`. */
-template <> struct botan_hash_name<digests::blake2b> { static constexpr std::string_view value = "BLAKE2b(512)"; };
+template <>
+struct botan_hash_name<digests::blake2b> {
+    /** Botan's name. */
+    static constexpr std::string_view value = "BLAKE2b(512)";
+};
+
 /** BLAKE2s-256. */
-template <> struct botan_hash_name<digests::blake2s_256> { static constexpr std::string_view value = "BLAKE2s(256)"; };
+template <>
+struct botan_hash_name<digests::blake2s_256> {
+    /** Botan's name. */
+    static constexpr std::string_view value = "BLAKE2s(256)";
+};
+
 /** RIPEMD-160. */
-template <> struct botan_hash_name<digests::ripemd_160> { static constexpr std::string_view value = "RIPEMD-160"; };
+template <>
+struct botan_hash_name<digests::ripemd_160> {
+    /** Botan's name. */
+    static constexpr std::string_view value = "RIPEMD-160";
+};
+
 /** SM3. */
-template <> struct botan_hash_name<digests::sm3> { static constexpr std::string_view value = "SM3"; };
-/** Streebog-256. */
-template <> struct botan_hash_name<digests::streebog_256> { static constexpr std::string_view value = "Streebog-256"; };
-/** Streebog-512 (deprecated in Botan 3.14.1, still served). */
-template <> struct botan_hash_name<digests::streebog_512> { static constexpr std::string_view value = "Streebog-512"; };
+template <>
+struct botan_hash_name<digests::sm3> {
+    /** Botan's name. */
+    static constexpr std::string_view value = "SM3";
+};
+
+/** Streebog-256 (its module deprecated in Botan 3.14.1, still served). */
+template <>
+struct botan_hash_name<digests::streebog_256> {
+    /** Botan's name. */
+    static constexpr std::string_view value = "Streebog-256";
+};
+
+/** Streebog-512 (its module deprecated in Botan 3.14.1, still served). */
+template <>
+struct botan_hash_name<digests::streebog_512> {
+    /** Botan's name. */
+    static constexpr std::string_view value = "Streebog-512";
+};
+
 /** Whirlpool. */
-template <> struct botan_hash_name<digests::whirlpool> { static constexpr std::string_view value = "Whirlpool"; };
+template <>
+struct botan_hash_name<digests::whirlpool> {
+    /** Botan's name. */
+    static constexpr std::string_view value = "Whirlpool";
+};
+
 /** Skein-512 with a 64-byte digest and no personalisation. */
-template <> struct botan_hash_name<digests::skein_512> { static constexpr std::string_view value = "Skein-512(512)"; };
-// clang-format on
+template <>
+struct botan_hash_name<digests::skein_512> {
+    /** Botan's name. */
+    static constexpr std::string_view value = "Skein-512(512)";
+};
 
 /**
  A digest of a fixed size on backends::botan (its interface is @ref digest_engine), over Botan's

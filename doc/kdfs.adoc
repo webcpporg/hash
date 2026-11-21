@@ -27,8 +27,8 @@ ECIES and ANSI X9.63's KDF (<<hash-kdf-standards>>).
 The key derivations are the functions of hash that run on a backend, a C
 library or Boost.Hash2, that the program names or leaves to the default,
 `backends::hash2` (<<hash-default-backend>>); BLAKE2b subkeys run on libsodium
-alone, and the key derivations of standards on OpenSSL alone, which is never a
-default: the call names it. Each backend gives the same bytes for the same inputs: the
+alone, and the key derivations of standards on OpenSSL or Botan, which are
+never a default: the call names one (<<hash-kdfs-botan>>). Each backend gives the same bytes for the same inputs: the
 tests check them against each other on random inputs on every target.
 
 include::generated/compare-kdfs.adoc[]
@@ -214,14 +214,18 @@ a key or a key agreement's shared secret, never a password. For a new design
 HKDF is the better choice (<<hash-hkdf>>): it is as fast, it extracts, and
 WebCrypto and every library have it.
 
-They run on `backends::openssl` alone (OpenSSL 3.5.9's `EVP_KDF`
-implementations "KBKDF", "SSKDF" and "X963KDF"), so a program names it in the
-call and links `/webcpp/hash//openssl`, on native, wasip2 and wasip3; none of
-them has a default backend (<<hash-default-backend>>), and a call that names
-none stops the build with "... has no default backend. Name one of:
-backends::openssl.".
+They run on `backends::openssl` (OpenSSL 3.5.9's `EVP_KDF` implementations
+"KBKDF", "SSKDF" and "X963KDF"), which a program names in the call and links
+as `/webcpp/hash//openssl`, on native, wasip2 and wasip3; and on
+`backends::botan` (Botan 3.14.1's `SP800-108-Counter`, `SP800-56A` and
+`KDF2`), named likewise and linked as `/third_party//botan`, natively and on
+Emscripten, with exceptions (<<hash-kdfs-botan>>). None of them has a default
+backend (<<hash-default-backend>>), and a call that names none stops the build
+with "... has no default backend. Name one of: backends::openssl,
+backends::botan.".
 The tests check each against OpenSSL's own test files, NIST's validation
-vectors among them, and against a second implementation over Boost.Hash2.
+vectors among them, Botan's own, and a second implementation over
+Boost.Hash2.
 
 [#hash-kbkdf]
 ==== KBKDF (NIST SP 800-108)
@@ -267,6 +271,11 @@ an approved derivation is required, pick SHA-2 or SHA-3.
 (L counts bits in 32 of them), `invalid_output_size` otherwise; a counter of
 another width than 8, 16, 24 or 32 bits is `invalid_parameters`; OpenSSL takes
 an HMAC key of at most `INT_MAX` bytes (`unsupported_by_backend`).
+* *Botan writes the separator and L, always.* `backends::botan` computes
+SP 800-108's default fixed input alone, with the separator and a 32-bit L:
+`kbkdf_options` with `.separator = false` or `.length = false` is
+`unsupported_by_backend` there, which NIST's validation vectors, written
+without either, are on Botan (<<hash-kdfs-botan>>).
 
 include::generated/backends-kbkdf.adoc[]
 
@@ -303,7 +312,8 @@ hash of it: an empty one is `invalid_key_size`.
 * *Its limits:* at most 2^32^ - 1 blocks (`invalid_output_size`) and the input
 the hash takes (`input_too_long`, past 2^61^ bytes for SHA-1 and SHA-256);
 OpenSSL takes a secret, a FixedInfo and an output of at most 2^30^ bytes each
-(`unsupported_by_backend`).
+(`unsupported_by_backend`). `backends::botan` has no SHA-512/224: `sskdf`
+over it on Botan stops the build, naming `backends::openssl`.
 
 include::generated/backends-sskdf.adoc[]
 
@@ -340,6 +350,55 @@ every byte.
 * *Its limits:* fewer bytes than 2^32^ - 1 blocks (`invalid_output_size`) and
 the input the hash takes (`input_too_long`); OpenSSL takes a secret, a
 SharedInfo and an output of at most 2^30^ bytes each
-(`unsupported_by_backend`). An empty secret is `invalid_key_size`.
+(`unsupported_by_backend`); Botan's KDF2 derives at most 2^32^ - 2 blocks, one
+fewer than ANSI X9.63 allows (`unsupported_by_backend` for the last). An empty
+secret is `invalid_key_size`.
 
 include::generated/backends-x963kdf.adoc[]
+
+[#hash-kdfs-botan]
+=== Key derivation on Botan
+
+`backends::botan` computes HKDF, PBKDF2 and the three key derivations of
+standards through Botan 3.14.1's `KDF` and `PasswordHashFamily`, natively and
+on Emscripten, in a program built with exceptions that links
+`/third_party//botan`. It is never a default (design D34): a call names it,
+as the second template argument, `hkdf<hmac_sha2_256, backends::botan>`. Its
+HKDF (extract, expand and both), PBKDF2 and KBKDF take every hmac of
+`hmac.hpp` but `hmac_ripemd_128` and `hmac_sha2_512_224`, whose digests Botan
+does not have; its one-step KDF (`SP800-56A`) takes the digests SP 800-56C
+approves but SHA-512/224, and its X9.63 KDF (`KDF2`) the five SEC 1 lists. A
+call over another stops the build with a message that names the backends that
+have it. The tests check Botan against the RFCs' vectors, Botan's own test
+files and every other backend, on random inputs.
+
+[source]
+----
+include::{examples}/kdfs_botan.cpp[tag=example,indent=0]
+----
+
+[listing]
+----
+include::{examples}/kdfs_botan.expected[]
+----
+
+*Pitfalls.*
+
+* *KBKDF's fixed input is SP 800-108's default, always.* Botan writes the
+separator and L (32 bits) whatever `kbkdf_options` says, so `.separator =
+false` or `.length = false` is `unsupported_by_backend` there; a format that
+leaves either out names `backends::openssl` (<<hash-kbkdf>>).
+* *One block short of the standards.* Botan's PBKDF2 and KDF2 derive at most
+2^32^ - 2 blocks, where RFC 8018 and ANSI X9.63 allow 2^32^ - 1: PBKDF2's
+last block is `invalid_output_size`, X9.63's `unsupported_by_backend`, before
+Botan is called. No program asks for 128 GiB of a key.
+* *An iteration count in a `size_t`.* On Emscripten (wasm32) Botan's PBKDF2
+takes at most 2^32^ - 1 iterations: more is `invalid_iterations`.
+* *Long HMAC keys are hashed first.* Botan's HMAC takes a key of at most
+8,192 bytes; hash hashes a longer one first (an HKDF salt, a PBKDF2 password,
+a KBKDF key), as RFC 2104 does, so the bytes are every other backend's.
+* *Botan allocates and throws.* Each call makes Botan's objects with
+`operator new` and their secret buffers with `calloc`, overwritten and freed
+before it returns; an exception is caught at
+the call's boundary, `errc::not_enough_memory` for an allocation,
+`backend_failure` for anything else, the output zeroed (<<hash-allocation>>).

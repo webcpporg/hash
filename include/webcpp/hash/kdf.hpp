@@ -1457,13 +1457,14 @@ struct default_of<kdfs::x963kdf> {
 
  `backends::hash2` for `hkdf_extract`, `hkdf_expand`, `hkdf` and `pbkdf2`, on every target and
  whatever the program links; `backends::sodium` for `argon2id`, `scrypt` (which
- `backends::openssl` also has, named in the call) and `blake2b_subkey`, which stops the build with
- the line to add to the Jamfile when the program does not link libsodium. A tag of the families
+ `backends::openssl` and `backends::botan` also have, named in the call) and `blake2b_subkey`,
+ which stops the build with the line to add to the Jamfile when the program does not link
+ libsodium. A tag of the families
  defaults to the first of `backends::hash2`, `backends::xkcp`, `backends::blake3` and
  `backends::sodium` that has it (design D34), or to `detail::no_default`, which refuses: the call
- names its backend. `backends::bearssl` and `backends::openssl` are never a default. No define
- changes it: another backend is chosen by naming it in the call, as `hkdf<hmac_sha2_256,
- backends::openssl>`.
+ names its backend. `backends::bearssl`, `backends::openssl` and `backends::botan` are never a
+ default. No define changes it: another backend is chosen by naming it in the call, as
+ `hkdf<hmac_sha2_256, backends::openssl>`.
 
  @tparam Algorithm A tag of `kdfs` (`hkdf`, `hkdf_extract`, `hkdf_expand`, `pbkdf2`, `argon2id`,
  `scrypt`, `blake2b_subkey`, ...), `digests` or `macs`.

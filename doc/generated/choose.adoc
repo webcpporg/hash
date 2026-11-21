@@ -42,6 +42,12 @@
 | link /third_party//sodium
 | `example/argon2id.cpp`
 
+| check or make the bcrypt strings a system already stores, or read and write OpenSSH's encrypted private keys
+| <<hash-bcrypt,bcrypt and bcrypt_verify at a cost of 10 or more (bcrypt_pbkdf for OpenSSH's keys); argon2id for a new design>>
+| `botan` (with exceptions only): `/third_party//botan`
+| name backends::botan and link /third_party//botan, with exceptions
+| `example/bcrypt.cpp`
+
 | turn a shared secret (an ECDH result) into keys
 | <<hash-hkdf,hkdf over hmac_sha2_256, one info label per key>>
 | `hash2`: `/webcpp/hash//hash`, `sodium`: `/third_party//sodium`, `bearssl`: `/third_party//bearssl`, `openssl`: `/webcpp/hash//openssl`, `botan` (with exceptions only): `/third_party//botan`, `webcrypto` (asynchronous family only): `/webcpp/asio//asio`
@@ -51,19 +57,19 @@
 | derive the key JOSE's ECDH-ES (a JWE) or another NIST SP 800-56C protocol derives from a shared secret
 | <<hash-sskdf,sskdf over digests::sha2_256, the fixed info as the protocol writes it>>
 | `openssl`: `/webcpp/hash//openssl`, `botan` (with exceptions only): `/third_party//botan`
-| name backends::openssl and link /webcpp/hash//openssl
+| name backends::openssl (or backends::botan) and link its library, /webcpp/hash//openssl (or /third_party//botan)
 | `example/sskdf.cpp`
 
 | derive the keys of ECIES or of a smart card's key agreement (ANSI X9.63)
 | <<hash-x963kdf,x963kdf over digests::sha2_256, the shared info as the scheme writes it>>
 | `openssl`: `/webcpp/hash//openssl`, `botan` (with exceptions only): `/third_party//botan`
-| name backends::openssl and link /webcpp/hash//openssl
+| name backends::openssl (or backends::botan) and link its library, /webcpp/hash//openssl (or /third_party//botan)
 | `example/x963kdf.cpp`
 
 | derive keys from a key as NIST SP 800-108 or Kerberos does (a label and a context)
 | <<hash-kbkdf,kbkdf over hmac_sha2_256 with the label and the context>>
 | `openssl`: `/webcpp/hash//openssl`, `botan` (with exceptions only): `/third_party//botan`
-| name backends::openssl and link /webcpp/hash//openssl
+| name backends::openssl (or backends::botan) and link its library, /webcpp/hash//openssl (or /third_party//botan)
 | `example/kbkdf.cpp`
 
 | derive many keys from one master key, one per purpose

@@ -27,8 +27,9 @@ loop does not build webcpp::asio.
 
 The functions come in two kinds:
 
-* *The heavy functions*, `async_argon2id`, `async_argon2`, `async_scrypt`
-and `async_pbkdf2`, run the work on another thread, on an executor the program
+* *The heavy functions*, `async_argon2id`, `async_argon2`, `async_scrypt`,
+`async_pbkdf2`, `async_bcrypt`, `async_bcrypt_pbkdf` and
+`async_bcrypt_verify`, run the work on another thread, on an executor the program
 gives (the executor of a `webcpp::asio::thread_pool`), and complete on the
 event loop. They exist only where the build has threads.
 * *The cheap functions*, `async_digest`, `async_hmac` and `async_hkdf`, cost
@@ -147,6 +148,48 @@ every Asio operation's are, and all of it is given back before the handler
 runs, a cancellation's completion included; the pool allocates the job it
 queues as Asio does. webcpp's own code calls neither `operator new` nor the C
 allocator.
+
+[#hash-async-bcrypt]
+==== bcrypt on another thread
+
+`async_bcrypt`, `async_bcrypt_pbkdf` and `async_bcrypt_verify` are the heavy
+forms of bcrypt's three functions (<<hash-bcrypt>>), on `backends::botan`, the
+one backend that has them, named in the call as for the synchronous ones. They
+exist where the build has threads and Botan is built: natively, and on
+Emscripten with `-pthread`, in a program built with exceptions that links
+`/third_party//botan`. `async_bcrypt` and `async_bcrypt_pbkdf` complete with a
+`boost::system::error_code`, as the others; `async_bcrypt_verify` completes
+with `void(boost::system::error_code, bool)`, the `bool` true when the
+password gives the string. A login server makes the string of a new password
+on its pool, then checks a password typed later against it:
+
+[source]
+----
+include::{examples}/async_bcrypt.cpp[tag=example,indent=0]
+----
+
+[listing]
+----
+include::{examples}/async_bcrypt.expected[]
+----
+
+*Pitfalls.*
+
+* *The guards run first, on the caller's thread.* A password of more than 72
+bytes, one with a zero byte, a salt of another size than 16 bytes, a string
+not of bcrypt's form or a cost above Botan's 18 completes at once through a
+post with the synchronous function's error, the output untouched, and nothing
+waits for the pool.
+* *A failed verification is not an error.* A wrong password completes with an
+empty code and `false`; an error (a refused password, a malformed string, a
+cancellation) completes with its code and `false`. Read the code first.
+* *The string is the caller's until the completion.* `async_bcrypt_verify`
+reads the `std::string_view` on the pool's thread: keep its characters alive,
+as the spans of every heavy function.
+* *A cancellation zeroes the output.* As for the other heavy functions, a
+cancellation after the work started lets it run to its end, then zeroes the
+string or the key and completes with `operation_aborted`; Botan cannot be
+interrupted.
 
 [#hash-async-cheap]
 === The cheap functions through the event loop

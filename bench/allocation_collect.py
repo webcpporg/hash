@@ -12,21 +12,25 @@
     allocation_collect.py --render-only --data ... --page ...
     allocation_collect.py --check --data ... --page ...
 
-Every `record key=value ...` line that test allocation and test allocation_openssl print
-(allocation.output and allocation_openssl.output under a lane's build directory) becomes one
-case of the data file, shaped like doc/measurements.throughput.json's: operation, backend,
-target, implementation and the counts. The page's table, between the `tag::table[]` and
-`end::table[]` lines, is rendered from the data and never typed; --check fails when the page
-differs from what the data renders.
+Every `record key=value ...` line that test allocation, test allocation_openssl and test
+allocation_botan print (allocation_release.output, allocation_openssl_release.output and
+allocation_botan_release.output under a lane's build directory) becomes one case of the data file,
+shaped like doc/measurements.throughput.json's: operation, backend, target, implementation and the
+counts. backends::botan's records (one per call of each of its entry points, a first call and a
+steady one) keep their tag; the table gives one row per operation and target, the range over the
+tags. The page's table, between the `tag::table[]` and `end::table[]` lines, is rendered from the
+data and never typed; --check fails when the page differs from what the data renders.
 
 The table is built only from release builds: the counting programs are bench/Jamfile's
-allocation_release and allocation_openssl_release (`b2 libs/hash/bench//allocation_release
-libs/hash/bench//allocation_openssl_release`, at variant=release, one build directory per
-target), and an output whose build directory, b2's bench/<name>.test/<toolset>/<variant>/..., is not
-variant=release, or does not say (the lanes' test/ directories included), is refused before
-anything is written. The data records the build and each target's toolset, and `--render-only` and
-`--check` refuse data whose build is not variant=release. The ordinary allocation tests of the
-lanes keep their variant and are never collected.
+allocation_release, allocation_openssl_release and allocation_botan_release (`b2
+libs/hash/bench//allocation_release libs/hash/bench//allocation_openssl_release
+libs/hash/bench//allocation_botan_release`, at variant=release, one build directory per target;
+OpenSSL's natively and on WASI, Botan's natively and on Emscripten), and an output whose build
+directory, b2's bench/<name>.test/<toolset>/<variant>/..., is not variant=release, or does not say
+(the lanes' test/ directories included), is refused before anything is written. The data records the
+build and each target's toolset, and `--render-only` and `--check` refuse data whose build is not
+variant=release. The ordinary allocation tests of the lanes keep their variant and are never
+collected.
 """
 
 import argparse
@@ -37,12 +41,12 @@ import platform
 import sys
 
 TARGETS = ["native", "wasip2", "wasip3", "emscripten"]
-# What the table is built from, and only from: bench/Jamfile's allocation_release and
-# allocation_openssl_release, which fix variant=release themselves.
+# What the table is built from, and only from: bench/Jamfile's allocation_release,
+# allocation_openssl_release and allocation_botan_release, which fix variant=release themselves.
 BUILD = "variant=release"
 RELEASE_ONLY = (
-    "the table is built only from release builds: bench/Jamfile's allocation_release and "
-    "allocation_openssl_release at " + BUILD
+    "the table is built only from release builds: bench/Jamfile's allocation_release, "
+    "allocation_openssl_release and allocation_botan_release at " + BUILD
 )
 KEPT = {"argon2id", "scrypt", "sodium_init", "hkdf", "pbkdf2"}
 
@@ -105,7 +109,7 @@ def outputs_of(lanes):
         for target, directory in lanes
         for output in sorted(
             pathlib.Path(directory).rglob("allocation*.output"),
-            key=lambda path: ("openssl" in path.name, path.name),
+            key=lambda path: ("openssl" in path.name, "botan" in path.name, path.name),
         )
         if "no_exceptions" not in output.name
     ]
@@ -123,6 +127,20 @@ def collect(outputs):
         for record in parse(output):
             if record["operation"] == "counter":
                 counted[target] = record["c_counted"] == "1"
+            elif record.get("backend") == "botan":
+                cases.append(
+                    {
+                        "operation": record["operation"],
+                        "backend": "botan",
+                        "target": target,
+                        "implementation": "backends::botan",
+                        "tag": record["tag"],
+                        "call": int(record["call"]),
+                        "operator_new": int(record["new"]),
+                        "c_allocator_calls": int(record["c"]),
+                        "c_allocator_counted": record["counted"] == "1",
+                    }
+                )
             elif record["operation"] in KEPT:
                 case = {
                     "operation": record["operation"],
@@ -150,18 +168,60 @@ def collect(outputs):
     }
 
 
+def span(values):
+    """'n', or 'low to high', of a list of counts."""
+    low, high = min(values), max(values)
+    return str(low) if low == high else "%d to %d" % (low, high)
+
+
+def botan_rows(cases, target):
+    """One row per operation of backends::botan on a target, in the order the test calls them:
+    the range of operator new over its tags at a first call, and the C library's calls (operator
+    new's own included), with a steady call's when they differ."""
+    mine = [c for c in cases if c["backend"] == "botan"]
+    operations = list(dict.fromkeys(c["operation"] for c in mine))
+    rows = []
+    for op in operations:
+        first = [c for c in mine if c["operation"] == op and c["call"] == 1]
+        steady = [c for c in mine if c["operation"] == op and c["call"] == 2]
+        tags = len({c["tag"] for c in first})
+        over = "over its %d algorithms" % tags if tags > 1 else "of %s" % first[0]["tag"]
+        if all(c["c_allocator_counted"] for c in first):
+            detail = "Botan: %s C library calls (operator new's included), %s" % (
+                span([c["c_allocator_calls"] for c in first]),
+                over,
+            )
+        else:
+            detail = "Botan: C library not counted, %s" % over
+        new_first = span([c["operator_new"] for c in first])
+        same = [(c["operator_new"], c["c_allocator_calls"]) for c in first] == [
+            (c["operator_new"], c["c_allocator_calls"]) for c in steady
+        ]
+        if same:
+            detail += "; the same in a steady call"
+        else:
+            detail += "; a steady call: %s operator new, %s C library calls" % (
+                span([c["operator_new"] for c in steady]),
+                span([c["c_allocator_calls"] for c in steady]),
+            )
+        rows.append((op, "botan", target, new_first, detail))
+    return rows
+
+
 def render(data):
     rows = []
     by_target = {t: [c for c in data["cases"] if c["target"] == t] for t in TARGETS}
     for target in TARGETS:
         for c in by_target[target]:
-            if c["operation"] in ("argon2id", "scrypt", "sodium_init"):
+            if c["backend"] == "sodium" and c["operation"] in ("argon2id", "scrypt", "sodium_init"):
                 counted = "C library calls: %d" % c["c_allocator_calls"]
                 if not c["c_allocator_counted"]:
                     counted = "C library: not counted"
                 rows.append((c["operation"], c["backend"], target, str(c["operator_new"]), counted))
         for op in ("hkdf", "pbkdf2"):
-            mine = [c for c in by_target[target] if c["operation"] == op]
+            mine = [
+                c for c in by_target[target] if c["operation"] == op and c["backend"] == "openssl"
+            ]
             if not mine:
                 continue
 
@@ -178,6 +238,7 @@ def render(data):
             detail += "%s first call (hmac_sha2_512), " % at("hmac_sha2_512", 1)
             detail += "%s steady state" % at("hmac_sha2_512", 2)
             rows.append((op, "openssl", target, "0", detail))
+        rows.extend(botan_rows(by_target[target], target))
     lines = [
         '[cols="1,1,1,1,3",options="header"]',
         "|===",

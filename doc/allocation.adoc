@@ -30,8 +30,8 @@ first). Test `allocation` counts a bare await's blocks, prints them as
 per promise and nothing more. The table below leaves that block out: it lists the C
 libraries of hash's backends, and the block is webcpp::asio's.
 
-The C libraries are another matter, and the table says so plainly. Their allocations are
-the library's, outside the user's allocator, and hash does not hide them.
+The libraries of the backends are another matter, and the table says so plainly. Their
+allocations are the library's, outside the user's allocator, and hash does not hide them.
 
 * libsodium's Argon2id takes its memory matrix (`memory` bytes, 64 MiB for
   `argon2id_interactive`) from `mmap` where there is one, else `posix_memalign`, else
@@ -50,13 +50,24 @@ the library's, outside the user's allocator, and hash does not hide them.
   too, and the table below holds the key derivations' alone. The
   counts are those of OpenSSL 3.5.9 as webcpp builds it, are measured and never bounded,
   and change with the version.
+* Botan, a {cpp} library, makes its objects (a hash, a MAC, a key derivation, a password
+  hash) with the global `operator new` in every call on `backends::botan`, and the buffers
+  of their state and secrets with the C library's `calloc`, through its secure allocator,
+  which overwrites each buffer before it frees it; Argon2's matrix and scrypt's buffer are
+  among them. So on `backends::botan` the `operator new` column counts Botan's calls, not
+  hash's, and the C library's column counts every block (the `malloc` of `operator new`
+  included). Test `allocation_botan` counts each call of every entry point Botan has, a
+  first and a steady one, prints each, never bounds them, and asserts that a guard's refusal,
+  before Botan is reached, allocates nothing; the table gives, per operation, the range over
+  the algorithms Botan has. The counts are those of Botan 3.14.1 as webcpp configures it.
 
 The table is generated from `measurements.allocation.json` by
 `bench/allocation_collect.py`, and only from release builds: the counts are those of
-`allocation_release` and `allocation_openssl_release` of `bench/Jamfile`, the programs of the
-two tests built at `variant=release`, and the collector refuses an output of any other
-variant. The tests of the lanes keep the lane's variant. The figures are those of the machine
-the file records.
+`allocation_release`, `allocation_openssl_release` and `allocation_botan_release` of
+`bench/Jamfile`, the programs of the three tests built at `variant=release`, and the collector
+refuses an output of any other variant. The tests of the lanes keep the lane's variant. The
+figures are those of the machine the file records; Botan's rows, collected on 2026-11-21, are
+to be re-measured in the final pass, with every other count, before the release.
 
 // tag::table[]
 [cols="1,1,1,1,3",options="header"]
@@ -68,6 +79,22 @@ the file records.
 | `scrypt` | `sodium` | native | 0 | C library calls: 0
 | `hkdf` | `openssl` | native | 0 | OpenSSL: 4080 first call (hmac_sha2_256), 30 first call (hmac_sha2_512), 24 steady state
 | `pbkdf2` | `openssl` | native | 0 | OpenSSL: 30 first call (hmac_sha2_256), 18 first call (hmac_sha2_512), 18 steady state
+| `digest_of` | `botan` | native | 1 to 4 | Botan: 1 to 13 C library calls (operator new's included), over its 25 algorithms; the same in a steady call
+| `hasher` | `botan` | native | 1 to 4 | Botan: 1 to 13 C library calls (operator new's included), over its 25 algorithms; the same in a steady call
+| `mac` | `botan` | native | 3 to 8 | Botan: 5 to 26 C library calls (operator new's included), over its 27 algorithms; the same in a steady call
+| `hkdf_extract` | `botan` | native | 16 to 26 | Botan: 19 to 29 C library calls (operator new's included), over its 14 algorithms; the same in a steady call
+| `hkdf_expand` | `botan` | native | 13 to 26 | Botan: 16 to 30 C library calls (operator new's included), over its 14 algorithms; the same in a steady call
+| `hkdf` | `botan` | native | 17 to 30 | Botan: 25 to 39 C library calls (operator new's included), over its 14 algorithms; the same in a steady call
+| `pbkdf2` | `botan` | native | 16 to 29 | Botan: 21 to 34 C library calls (operator new's included), over its 14 algorithms; the same in a steady call
+| `kbkdf` | `botan` | native | 18 to 28 | Botan: 21 to 32 C library calls (operator new's included), over its 14 algorithms; the same in a steady call
+| `sskdf` | `botan` | native | 4 to 7 | Botan: 5 to 8 C library calls (operator new's included), over its 10 algorithms; the same in a steady call
+| `x963kdf` | `botan` | native | 4 | Botan: 5 to 6 C library calls (operator new's included), over its 5 algorithms; the same in a steady call
+| `argon2id` | `botan` | native | 6 | Botan: 9 C library calls (operator new's included), of kdfs::argon2id; the same in a steady call
+| `argon2` | `botan` | native | 6 | Botan: 9 C library calls (operator new's included), over its 3 algorithms; the same in a steady call
+| `scrypt` | `botan` | native | 6 | Botan: 13 C library calls (operator new's included), of kdfs::scrypt; the same in a steady call
+| `bcrypt` | `botan` | native | 7 | Botan: 10 C library calls (operator new's included), of kdfs::bcrypt; the same in a steady call
+| `bcrypt_verify` | `botan` | native | 7 | Botan: 11 C library calls (operator new's included), of kdfs::bcrypt; the same in a steady call
+| `bcrypt_pbkdf` | `botan` | native | 3 | Botan: 10 C library calls (operator new's included), of kdfs::bcrypt_pbkdf; the same in a steady call
 | `sodium_init` | `sodium` | wasip2 | 0 | C library calls: 1
 | `argon2id` | `sodium` | wasip2 | 0 | C library calls: 5
 | `scrypt` | `sodium` | wasip2 | 0 | C library calls: 1
@@ -81,5 +108,21 @@ the file records.
 | `sodium_init` | `sodium` | emscripten | 0 | C library calls: 0
 | `argon2id` | `sodium` | emscripten | 0 | C library calls: 4
 | `scrypt` | `sodium` | emscripten | 0 | C library calls: 1
+| `digest_of` | `botan` | emscripten | 1 to 6 | Botan: 1 to 15 C library calls (operator new's included), over its 25 algorithms; the same in a steady call
+| `hasher` | `botan` | emscripten | 1 to 6 | Botan: 1 to 15 C library calls (operator new's included), over its 25 algorithms; the same in a steady call
+| `mac` | `botan` | emscripten | 4 to 15 | Botan: 7 to 32 C library calls (operator new's included), over its 27 algorithms; the same in a steady call
+| `hkdf_extract` | `botan` | emscripten | 21 to 41 | Botan: 24 to 44 C library calls (operator new's included), over its 14 algorithms; the same in a steady call
+| `hkdf_expand` | `botan` | emscripten | 21 to 41 | Botan: 24 to 45 C library calls (operator new's included), over its 14 algorithms; the same in a steady call
+| `hkdf` | `botan` | emscripten | 24 to 44 | Botan: 32 to 53 C library calls (operator new's included), over its 14 algorithms; the same in a steady call
+| `pbkdf2` | `botan` | emscripten | 23 to 43 | Botan: 28 to 48 C library calls (operator new's included), over its 14 algorithms; the same in a steady call
+| `kbkdf` | `botan` | emscripten | 24 to 43 | Botan: 27 to 47 C library calls (operator new's included), over its 14 algorithms; the same in a steady call
+| `sskdf` | `botan` | emscripten | 7 to 10 | Botan: 8 to 11 C library calls (operator new's included), over its 10 algorithms; the same in a steady call
+| `x963kdf` | `botan` | emscripten | 7 | Botan: 8 to 9 C library calls (operator new's included), over its 5 algorithms; the same in a steady call
+| `argon2id` | `botan` | emscripten | 10 | Botan: 13 C library calls (operator new's included), of kdfs::argon2id; the same in a steady call
+| `argon2` | `botan` | emscripten | 10 | Botan: 13 C library calls (operator new's included), over its 3 algorithms; the same in a steady call
+| `scrypt` | `botan` | emscripten | 8 | Botan: 15 C library calls (operator new's included), of kdfs::scrypt; the same in a steady call
+| `bcrypt` | `botan` | emscripten | 9 | Botan: 12 C library calls (operator new's included), of kdfs::bcrypt; the same in a steady call
+| `bcrypt_verify` | `botan` | emscripten | 10 | Botan: 14 C library calls (operator new's included), of kdfs::bcrypt; the same in a steady call
+| `bcrypt_pbkdf` | `botan` | emscripten | 6 | Botan: 13 C library calls (operator new's included), of kdfs::bcrypt_pbkdf; the same in a steady call
 |===
 // end::table[]

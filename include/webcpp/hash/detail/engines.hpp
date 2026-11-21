@@ -58,13 +58,17 @@ namespace webcpp::hash::detail {
 template <class T>
 inline constexpr bool always_false = false;
 
+#ifdef WEBCPP_HASH_NO_EXCEPTIONS
 /**
  Whether the build has no exceptions (`WEBCPP_HASH_NO_EXCEPTIONS`): then `backends::botan`, whose
  library reports its errors by throwing, is refused with its own text, linked or not.
 */
-#ifdef WEBCPP_HASH_NO_EXCEPTIONS
 inline constexpr bool botan_without_exceptions = true;
 #else
+/**
+ Whether the build has no exceptions (`WEBCPP_HASH_NO_EXCEPTIONS`): then `backends::botan`, whose
+ library reports its errors by throwing, is refused with its own text, linked or not.
+*/
 inline constexpr bool botan_without_exceptions = false;
 #endif
 

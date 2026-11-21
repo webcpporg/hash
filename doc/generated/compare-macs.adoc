@@ -328,28 +328,28 @@
 | recommended
 | no
 
-| <<hash-mac-family,`macs::hmac<digests::streebog_256>`>>
+| <<hash-macs-botan,`macs::hmac<digests::streebog_256>`>>
 | 256 bits
 | 128 bits and more
 | RFC 2104
 | legacy
 | no
 
-| <<hash-mac-family,`macs::hmac<digests::streebog_512>`>>
+| <<hash-macs-botan,`macs::hmac<digests::streebog_512>`>>
 | 512 bits
 | 256 bits and more
 | RFC 2104
 | legacy
 | no
 
-| <<hash-mac-family,`macs::hmac<digests::whirlpool>`>>
+| <<hash-macs-botan,`macs::hmac<digests::whirlpool>`>>
 | 512 bits
 | 256 bits and more
 | RFC 2104
 | legacy
 | no
 
-| <<hash-mac-family,`macs::hmac<digests::skein_512>`>>
+| <<hash-macs-botan,`macs::hmac<digests::skein_512>`>>
 | 512 bits
 | 256 bits and more
 | RFC 2104
@@ -633,25 +633,25 @@
 | link:https://www.rfc-editor.org/rfc/rfc8998[RFC 8998, ShangMi cipher suites for TLS 1.3, whose HKDF runs HMAC-SM3]; link:https://github.com/openssl/openssl/blob/openssl-3.5.9/test/recipes/30-test_evp_data/evpmac_sm3.txt[GM/T 0042-2015's HMAC-SM3 test cases, in OpenSSL's evpmac_sm3.txt]
 | Where a Chinese standard or a regulator requires SM3, naming backends::openssl or backends::botan; HMAC-SHA-256 everywhere else.
 
-| <<hash-mac-family,`macs::hmac<digests::streebog_256>`>>
+| <<hash-macs-botan,`macs::hmac<digests::streebog_256>`>>
 | -
 | -
 | link:https://www.rfc-editor.org/rfc/rfc7836[RFC 7836 section 4.1.1, HMAC_GOSTR3411_2012_256]
 | Only where a Russian standard requires it, naming backends::botan; HMAC-SHA-256 everywhere else.
 
-| <<hash-mac-family,`macs::hmac<digests::streebog_512>`>>
+| <<hash-macs-botan,`macs::hmac<digests::streebog_512>`>>
 | -
 | -
 | link:https://www.rfc-editor.org/rfc/rfc7836[RFC 7836 section 4.1.2, HMAC_GOSTR3411_2012_512]
 | Only where a Russian standard requires it, naming backends::botan; HMAC-SHA-512 everywhere else.
 
-| <<hash-mac-family,`macs::hmac<digests::whirlpool>`>>
+| <<hash-macs-botan,`macs::hmac<digests::whirlpool>`>>
 | -
 | -
 | link:https://veracrypt.io/en/Header%20Key%20Derivation.html[VeraCrypt's header key derivation, PBKDF2 over HMAC-Whirlpool]
 | Only where a format names HMAC over Whirlpool, naming backends::botan; HMAC-SHA-512 everywhere else.
 
-| <<hash-mac-family,`macs::hmac<digests::skein_512>`>>
+| <<hash-macs-botan,`macs::hmac<digests::skein_512>`>>
 | -
 | -
 | link:https://www.schneier.com/academic/skein/[The Skein Hash Function Family, version 1.3, whose hash HMAC's generic construction takes]

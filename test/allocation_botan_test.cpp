@@ -4,15 +4,16 @@
 // accompanying file LICENSE_1_0.txt or copy at
 // https://www.boost.org/LICENSE_1_0.txt)
 
-// backends::botan's allocations (spec section 6.2's departure, design D43): Botan makes its
-// objects and their state through operator new, so each call of every entry point backends::botan
-// has is counted, operator new and, where the target counts it, the C library's allocator, and
-// printed as a record, never bounded. The calls are digest_of and a hasher's whole hash over each
-// of its 25 digests, mac over each of its 27 MACs, and every key derivation and password hash:
-// hkdf_extract, hkdf_expand, hkdf and pbkdf2 over each of its 14 hmacs, argon2id, argon2 of each
-// variant, scrypt, bcrypt, bcrypt_verify, bcrypt_pbkdf, kbkdf over each hmac, sskdf over each of
-// its 10 digests and x963kdf over each of its 5, each twice (a first call and a steady one). A
-// refusal by a guard, before Botan is reached, allocates nothing at all, which is asserted.
+// backends::botan's allocations (spec section 6.2's departure, design D43): Botan makes its objects
+// through operator new and their secret state through the C library's calloc (its secure
+// allocator), so each call of every entry point backends::botan has is counted, operator new and,
+// where the target counts it, the C library's allocator, and printed as a record, never bounded.
+// The calls are digest_of and a hasher's whole hash over each of its 25 digests, mac over each of
+// its 27 MACs, and every key derivation and password hash: hkdf_extract, hkdf_expand, hkdf and
+// pbkdf2 over each of its 14 hmacs, argon2id, argon2 of each variant, scrypt, bcrypt,
+// bcrypt_verify, bcrypt_pbkdf, kbkdf over each hmac, sskdf over each of its 10 digests and x963kdf
+// over each of its 5, each twice (a first call and a steady one). A refusal by a guard, before
+// Botan is reached, allocates nothing at all, which is asserted.
 
 #include <webcpp/hash/argon2.hpp>
 #include <webcpp/hash/backends/botan.hpp>

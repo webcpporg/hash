@@ -50,10 +50,10 @@ TupleHash and ParallelHash; RFC 9861's KangarooTwelve and TurboSHAKE
 
 | HKDF (RFC 5869: extract, expand, extract-and-expand)
 | a backend: `backends::hash2`, `backends::sodium`, `backends::bearssl`,
-`backends::openssl`
+`backends::openssl`, `backends::botan`
 
 | PBKDF2 (RFC 8018)
-| a backend: `backends::hash2`, `backends::openssl`
+| a backend: `backends::hash2`, `backends::openssl`, `backends::botan`
 
 | Argon2id (RFC 9106, parallelism 1)
 | libsodium's `crypto_pwhash_argon2id`
@@ -86,11 +86,20 @@ the call
 
 | KBKDF (NIST SP 800-108), the one-step KDF (NIST SP 800-56C), the X9.63 KDF
 (ANSI X9.63)
-| OpenSSL's `EVP_KDF` implementations, on `backends::openssl` named in the
-call
+| OpenSSL's `EVP_KDF` implementations or Botan's `KDF`, on
+`backends::openssl` or `backends::botan` named in the call
+
+| MD5, SHA-1, SHA-2, SHA-3, SHAKE, Keccak, BLAKE2, RIPEMD-160, SM3, Streebog,
+Whirlpool and Skein-512 as digests; HMAC over them, KMAC, SipHash and keyed
+BLAKE2b as MACs; HKDF, PBKDF2, Argon2, scrypt and the key derivations of
+standards; bcrypt and bcrypt_pbkdf (`bcrypt.hpp`)
+| Botan 3.14.1, `backends::botan` named in the call, natively and on
+Emscripten, in a program built with exceptions; Streebog, Whirlpool,
+Skein-512, their HMACs, bcrypt and bcrypt_pbkdf are Botan's alone
 
 | Asynchronous forms: `async_digest`, `async_hmac`, `async_hkdf`,
-`async_pbkdf2`, `async_argon2id`, `async_argon2`, `async_scrypt`
+`async_pbkdf2`, `async_argon2id`, `async_argon2`, `async_scrypt`,
+`async_bcrypt`, `async_bcrypt_pbkdf`, `async_bcrypt_verify`
 | `<webcpp/hash/async.hpp>` over webcpp::asio, on the synchronous default
 backend, or on `backends::webcrypto`, the browser's WebCrypto, named in the
 type on Emscripten (<<hash-async>>)
@@ -101,7 +110,9 @@ Every synchronous function reports failure as a value
 in webcpp's own code (<<hash-backend-conditions>> names what the C
 libraries allocate). `<webcpp/hash/async.hpp>` gives the slow ones and the
 ones WebCrypto has an asynchronous form, which completes through an event loop
-with a `boost::system::error_code` (<<hash-async>>).
+with a `boost::system::error_code` (<<hash-async>>). No exception leaves hash:
+`backends::botan`, whose library throws, needs a build with exceptions, and
+hash catches Botan's at each call's boundary (<<hash-exceptions>>).
 
 [#hash-overview-shape]
 === The shape of a hash
