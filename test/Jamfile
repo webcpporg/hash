@@ -43,9 +43,10 @@ rule openssl-off-emscripten ( properties * )
     }
 }
 
-# Botan where it is built, natively with exceptions: the headers-alone unit of
-# backends/openssl.hpp links every library its target has.
-rule botan-off-wasi ( properties * )
+# Botan in a native build with exceptions, and in no other: the headers-alone
+# unit of backends/openssl.hpp (native, wasip2 and wasip3) links every library
+# its target has, and Botan has no WASI build.
+rule botan-native-with-exceptions ( properties * )
 {
     if [ webcpp-target.target-of $(properties) ] = native
       && ! ( <exception-handling>off in $(properties) )
@@ -112,7 +113,7 @@ webcpp.headers-alone hash : ../include : hash/backends/openssl.hpp
   : <library>/webcpp/hash//openssl <library>/third_party//xkcp
     <library>/third_party//blake3 <library>/third_party//bearssl
     <library>/third_party//sodium <library>/webcpp/asio//asio
-    <conditional>@botan-off-wasi
+    <conditional>@botan-native-with-exceptions
   : native wasip2 wasip3 ;
 
 # backends/botan.hpp compiles alone with Botan, whose target defines

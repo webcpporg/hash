@@ -7,8 +7,8 @@
  * The link-time canaries of webcpp::hash's backends, readable as C and C++. A backend's
  * header reads its canary inside every function that calls the library, and webcpp's
  * src/canary_<name>.c (Botan's: src/canary_botan.cpp), which /third_party//<name> compiles
- * with the library's own flags, defines it, so that a program linked without that library, or with one of another
- * commit or configuration, fails to link with the canary's name:
+ * with the library's own flags, defines it, so that a program linked without that library, or
+ * with one of another commit or configuration, fails to link with the canary's name:
  *
  *     webcpp_hash_<name>_<commit7>_<configuration>__add_third_party_<name>_to_your_link
  *
