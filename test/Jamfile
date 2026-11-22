@@ -65,6 +65,7 @@ webcpp.headers-alone hash : ../include :
     hash/config.hpp
     hash/detail/engines.hpp
     hash/detail/limits.hpp
+    hash/detail/timing.hpp
     hash/detail/wipe.hpp
     hash/detail/xkcp.hpp
     hash/digest.hpp
@@ -692,6 +693,21 @@ hash-run allocation_openssl : allocation_openssl_test.cpp
   : <library>/webcpp/hash//openssl
     <target-os>wasi:<linkflags>-Wl,--wrap=malloc,--wrap=calloc,--wrap=realloc,--wrap=aligned_alloc,--wrap=posix_memalign
   : native wasip2 wasip3 ;
+
+# detail::timing_guard sets DIT for its scope where the CPU has it and leaves
+# the thread's state as it found it; its seam fires on every target, engaged
+# or not. timing_threads adds a second thread, natively, with threads.
+hash-run timing : timing_test.cpp ;
+hash-run timing_threads : timing_test.cpp
+  : <threading>multi <define>WEBCPP_TEST_TIMING_THREADS : native ;
+# Without the seam, the guard takes a bool and no source_location, on every
+# target; natively, at release, a program that calls mac reads its own
+# executable and finds neither mac's name nor mac.hpp's path, which a guard's
+# source_location would keep where its constructor is not inlined (clang on
+# arm64).
+hash-run timing_unseamed : timing_unseamed_test.cpp ;
+webcpp.run timing_unseamed_release : timing_unseamed_test.cpp
+  : <variant>release <define>WEBCPP_TEST_TIMING_READ_SELF : native ;
 
 build-project messages ;
 
