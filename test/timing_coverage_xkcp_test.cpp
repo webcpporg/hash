@@ -10,8 +10,10 @@
 // enters none; and so does the keccak_256 type, seeded or not (design D3)
 // (support/timing_coverage.hpp).
 //
-// What it covers, by family; the list is doc/capabilities.json's, read at run time, and a cell
-// the table gains fails here until the support has its call:
+// What it covers, by family; the list is doc/capabilities.json's, read at run time. A new cell of
+// a family the support knows gets its call from backend_has_v, which capabilities_test keeps equal
+// to the table; a cell of a family or function the support does not know fails here until its
+// call is written:
 // - mac over kmac_128 and kmac_256.
 // - Not guarded: each digest cell without a key (SHA-3, SHAKE, TurboSHAKE, Keccak, cSHAKE,
 //   TupleHash, ParallelHash, KangarooTwelve), through digest_of and a hasher round; keccak_256.

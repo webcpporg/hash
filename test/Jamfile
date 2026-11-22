@@ -731,8 +731,10 @@ botan-run timing_keyed_botan : timing_keyed_botan_test.cpp ;
 # password hashes, one per hmac a cell lists, and BLAKE2b with a key, the
 # blake3 type's keyed modes and bcrypt_verify) enters its own
 # detail::timing_guard first; every digest cell without a key, and every
-# Boost.Hash2-form type, enters none. A cell the table gains fails until its
-# call is added. backends::webcrypto has none (design D6).
+# Boost.Hash2-form type, enters none. A new cell of a family the support
+# knows gets its call from backend_has_v, which capabilities keeps equal to the
+# table; a cell of a family or function it does not know fails until its call
+# is written. backends::webcrypto has none (design D6).
 hash-run timing_coverage_hash2 : timing_coverage_hash2_test.cpp : $(.hash-tables) ;
 hash-run timing_coverage_sodium : timing_coverage_sodium_test.cpp
   : $(.hash-tables) <library>/third_party//sodium ;

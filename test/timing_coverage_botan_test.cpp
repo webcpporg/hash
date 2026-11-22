@@ -9,8 +9,10 @@
 // each with valid input and with input refused before the backend; every digest cell, called
 // without a key, enters none (support/timing_coverage.hpp).
 //
-// What it covers, by family; the list is doc/capabilities.json's, read at run time, and a cell
-// the table gains fails here until the support has its call:
+// What it covers, by family; the list is doc/capabilities.json's, read at run time. A new cell of
+// a family the support knows gets its call from backend_has_v, which capabilities_test keeps equal
+// to the table; a cell of a family or function the support does not know fails here until its
+// call is written:
 // - mac over siphash_2_4, kmac_128, kmac_256, blake2b_mac and hmac<D> for the 23 digests of
 //   the backend's cells.
 // - hkdf_extract, hkdf_expand, hkdf, pbkdf2 and kbkdf over each of the 14 hmacs the cells list;

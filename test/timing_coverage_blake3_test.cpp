@@ -9,8 +9,10 @@
 // where DIT does not apply; its digest cell, called through digest_of and a hasher round, and the
 // blake3 type in its plain mode enter none (support/timing_coverage.hpp).
 //
-// What it covers, by family; the list is doc/capabilities.json's, read at run time, and a cell
-// the table gains fails here until the support has its call:
+// What it covers, by family; the list is doc/capabilities.json's, read at run time. A new cell of
+// a family the support knows gets its call from backend_has_v, which capabilities_test keeps equal
+// to the table; a cell of a family or function the support does not know fails here until its
+// call is written:
 // - The blake3 type keyed (design D1), which the table holds no keyed cell of: keyed and
 //   derive_key, and the seeds that key (a non-zero integer, bytes), then update (both
 //   overloads), result, squeeze and reset of a keyed object (ruling H4, H5).

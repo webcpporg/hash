@@ -549,8 +549,8 @@ void cover_pbkdf2() {
             (hash::pbkdf2<Hmac, Backend>(output, coverage_key, coverage_salt, 1)).has_value());
     });
     covered("hash::pbkdf2 of 0 iterations" + on, [&] {
-        BOOST_TEST(
-            !(hash::pbkdf2<Hmac, Backend>(output, coverage_key, coverage_salt, 0)).has_value());
+        BOOST_TEST((hash::pbkdf2<Hmac, Backend>(output, coverage_key, coverage_salt, 0)).error() ==
+                   hash::error::invalid_iterations);
     });
 }
 
@@ -568,7 +568,8 @@ void cover_kbkdf() {
     });
     covered("hash::kbkdf with a counter of 7 bits" + on, [&] {
         BOOST_TEST(
-            !(hash::kbkdf<Hmac, Backend>(output, coverage_key, {.counter_bits = 7})).has_value());
+            (hash::kbkdf<Hmac, Backend>(output, coverage_key, {.counter_bits = 7})).error() ==
+            hash::error::invalid_parameters);
     });
 }
 
@@ -610,9 +611,9 @@ void cover_sskdf() {
                 .has_value());
     });
     covered("hash::sskdf with an output of no byte" + on, [&] {
-        BOOST_TEST(!(hash::sskdf<hash::digests::sha2_256, Backend>(std::span<std::uint8_t>{},
-                                                                   coverage_key, coverage_input))
-                        .has_value());
+        BOOST_TEST((hash::sskdf<hash::digests::sha2_256, Backend>(std::span<std::uint8_t>{},
+                                                                  coverage_key, coverage_input))
+                       .error() == hash::error::invalid_output_size);
     });
 }
 
@@ -627,9 +628,9 @@ void cover_x963kdf() {
                 .has_value());
     });
     covered("hash::x963kdf with an output of no byte" + on, [&] {
-        BOOST_TEST(!(hash::x963kdf<hash::digests::sha2_256, Backend>(std::span<std::uint8_t>{},
-                                                                     coverage_key, coverage_input))
-                        .has_value());
+        BOOST_TEST((hash::x963kdf<hash::digests::sha2_256, Backend>(std::span<std::uint8_t>{},
+                                                                    coverage_key, coverage_input))
+                       .error() == hash::error::invalid_output_size);
     });
 }
 
@@ -644,7 +645,8 @@ void cover_blake2b_subkey() {
     });
     std::array<std::uint8_t, 8> tiny{};
     covered("hash::blake2b_subkey with an output too small" + on, [&] {
-        BOOST_TEST(!(hash::blake2b_subkey<Backend>(tiny, coverage_key, 7, context)).has_value());
+        BOOST_TEST((hash::blake2b_subkey<Backend>(tiny, coverage_key, 7, context)).error() ==
+                   hash::error::invalid_output_size);
     });
 }
 
@@ -659,9 +661,9 @@ void cover_argon2id() {
             (hash::argon2id<Backend>(output, coverage_key, coverage_salt, cheapest)).has_value());
     });
     covered("hash::argon2id with a salt of 4 bytes" + on, [&] {
-        BOOST_TEST(!(hash::argon2id<Backend>(output, coverage_key,
-                                             std::span(coverage_salt).first(4), cheapest))
-                        .has_value());
+        BOOST_TEST((hash::argon2id<Backend>(output, coverage_key, std::span(coverage_salt).first(4),
+                                            cheapest))
+                       .error() == hash::error::invalid_salt_size);
     });
 }
 
@@ -680,9 +682,9 @@ void cover_argon2(std::string_view variant) {
                        .has_value());
     });
     covered("hash::argon2 with a salt of 4 bytes" + on, [&] {
-        BOOST_TEST(!(hash::argon2<Variant, Backend>(output, coverage_key,
-                                                    std::span(coverage_salt).first(4), family))
-                        .has_value());
+        BOOST_TEST((hash::argon2<Variant, Backend>(output, coverage_key,
+                                                   std::span(coverage_salt).first(4), family))
+                       .error() == hash::error::invalid_salt_size);
     });
 }
 
@@ -698,8 +700,8 @@ void cover_scrypt() {
     });
     covered("hash::scrypt of N = 1" + on, [&] {
         BOOST_TEST(
-            !(hash::scrypt<Backend>(output, coverage_key, coverage_salt, {.n = 1, .r = 1, .p = 1}))
-                 .has_value());
+            (hash::scrypt<Backend>(output, coverage_key, coverage_salt, {.n = 1, .r = 1, .p = 1}))
+                .error() == hash::error::invalid_parameters);
     });
 }
 
@@ -713,9 +715,9 @@ void cover_bcrypt() {
             (hash::bcrypt<Backend>(output, coverage_key, coverage_salt, {.cost = 4})).has_value());
     });
     covered("hash::bcrypt with a salt of 8 bytes" + on, [&] {
-        BOOST_TEST(!(hash::bcrypt<Backend>(output, coverage_key, std::span(coverage_salt).first(8),
-                                           {.cost = 4}))
-                        .has_value());
+        BOOST_TEST((hash::bcrypt<Backend>(output, coverage_key, std::span(coverage_salt).first(8),
+                                          {.cost = 4}))
+                       .error() == hash::error::invalid_salt_size);
     });
 }
 
@@ -741,7 +743,8 @@ void cover_bcrypt_verify() {
         BOOST_TEST(checked.has_value() && !*checked);
     });
     covered("hash::bcrypt_verify of a string of the wrong form" + on, [&] {
-        BOOST_TEST(!hash::bcrypt_verify<Backend>(coverage_key, "not a bcrypt string").has_value());
+        BOOST_TEST(hash::bcrypt_verify<Backend>(coverage_key, "not a bcrypt string").error() ==
+                   hash::error::invalid_parameters);
     });
 }
 
@@ -755,8 +758,8 @@ void cover_bcrypt_pbkdf() {
             (hash::bcrypt_pbkdf<Backend>(output, coverage_key, coverage_salt, 1)).has_value());
     });
     covered("hash::bcrypt_pbkdf of 0 rounds" + on, [&] {
-        BOOST_TEST(
-            !(hash::bcrypt_pbkdf<Backend>(output, coverage_key, coverage_salt, 0)).has_value());
+        BOOST_TEST((hash::bcrypt_pbkdf<Backend>(output, coverage_key, coverage_salt, 0)).error() ==
+                   hash::error::invalid_iterations);
     });
 }
 
@@ -835,8 +838,10 @@ void cover_keyed_blake2b() {
  * The calls of every keyed cell this support knows that `Backend` has, each by the name of its
  * cell (keyed_cells): mac over each tag, the functions over each hmac of the table's columns,
  * those over none, argon2's variants, and the keyed functions of design D1 but the blake3 type's,
- * which its backend's test adds. A cell the backend has and this support does not know stays
- * without a call, which check_and_run reports.
+ * which its backend's test adds. A new cell of a family this support knows gets its call here
+ * from backend_has_v, which capabilities_test keeps equal to the table; a cell of a family or
+ * function this support does not know stays without a call, which check_and_run reports until its
+ * call is written.
  *
  * @return The calls.
  */

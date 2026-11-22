@@ -9,8 +9,10 @@
 // each with valid input and with input refused before the backend; every digest cell, called
 // without a key, enters none (support/timing_coverage.hpp).
 //
-// What it covers, by family; the list is doc/capabilities.json's, read at run time, and a cell
-// the table gains fails here until the support has its call:
+// What it covers, by family; the list is doc/capabilities.json's, read at run time. A new cell of
+// a family the support knows gets its call from backend_has_v, which capabilities_test keeps equal
+// to the table; a cell of a family or function the support does not know fails here until its
+// call is written:
 // - mac over hmac<D> for MD5, SHA-1, SHA-224, SHA-256, SHA-384 and SHA-512.
 // - hkdf over the six hmacs of those digests.
 // - Not guarded: each digest cell, through digest_of and a hasher round.
