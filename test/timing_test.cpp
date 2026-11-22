@@ -12,7 +12,7 @@
 // (timing_threads, native, with threads), a guard on one thread leaves another's DIT clear. A copy
 // of libs/crypto/test/timing_test.cpp with hash's names and the engaged flag.
 
-#include "support/timing_seam.hpp"
+#include "support/timing_dit.hpp"
 
 #include <webcpp/hash/detail/timing.hpp>
 #include <webcpp/test/exit_status.hpp>
@@ -45,19 +45,6 @@ void forwarding_function() {
 }
 
 }  // namespace seam_probe
-
-/**
- * Sets or clears DIT for this thread, as a program can, so that a test starts from a known state;
- * only where the CPU has DIT, since the instruction traps on a CPU without it.
- */
-void force_dit([[maybe_unused]] bool set) {
-#ifdef WEBCPP_HASH_DETAIL_TIMING_COVERED
-    if (!detail::cpu_has_dit()) {
-        return;
-    }
-    detail::write_dit(set ? detail::dit_bit : 0);
-#endif
-}
 
 // Constructing a guard raises the seam's count by exactly one, on every target.
 void seam_fires() {
@@ -139,7 +126,7 @@ void names_function_spellings() {
 
 // From clear: set inside a guard, clear after it. Where the guard does not apply, never set.
 void guard_sets_and_clears() {
-    force_dit(false);
+    webcpp::test::force_dit(false);
     BOOST_TEST(!detail::dit_is_set());
     {
         detail::timing_guard const guard;
@@ -150,20 +137,20 @@ void guard_sets_and_clears() {
 
 // From set, as a program sets it: still set after a guard.
 void guard_leaves_set_bit() {
-    force_dit(true);
+    webcpp::test::force_dit(true);
     BOOST_TEST_EQ(detail::dit_is_set(), detail::cpu_has_dit());
     {
         detail::timing_guard const guard;
         BOOST_TEST_EQ(detail::dit_is_set(), detail::cpu_has_dit());
     }
     BOOST_TEST_EQ(detail::dit_is_set(), detail::cpu_has_dit());
-    force_dit(false);
+    webcpp::test::force_dit(false);
     BOOST_TEST(!detail::dit_is_set());
 }
 
 // From clear: set inside both guards and after the inner one, clear after the outer one.
 void nested_guards() {
-    force_dit(false);
+    webcpp::test::force_dit(false);
     {
         detail::timing_guard const outer;
         {
@@ -183,20 +170,20 @@ void nested_guards() {
 // A guard constructed with false fires no seam and touches nothing, whichever state it finds.
 void disengaged_does_nothing() {
     std::size_t const before = webcpp::test::timing_entries;
-    force_dit(false);
+    webcpp::test::force_dit(false);
     {
         detail::timing_guard const guard{false};
         BOOST_TEST_EQ(webcpp::test::timing_entries, before);
         BOOST_TEST(!detail::dit_is_set());
     }
     BOOST_TEST(!detail::dit_is_set());
-    force_dit(true);
+    webcpp::test::force_dit(true);
     {
         detail::timing_guard const guard{false};
         BOOST_TEST_EQ(detail::dit_is_set(), detail::cpu_has_dit());
     }
     BOOST_TEST_EQ(detail::dit_is_set(), detail::cpu_has_dit());
-    force_dit(false);
+    webcpp::test::force_dit(false);
     BOOST_TEST(!detail::dit_is_set());
 }
 
@@ -205,7 +192,7 @@ void disengaged_does_nothing() {
 // started before the guard, so that it cannot inherit the state at its creation (Linux's clone
 // copies PSTATE), and reads it only once the guard is entered.
 void other_thread_untouched() {
-    force_dit(false);
+    webcpp::test::force_dit(false);
     std::promise<void> guard_entered;
     std::promise<bool> other_reading;
     std::thread other([entered = guard_entered.get_future(), &other_reading]() mutable {

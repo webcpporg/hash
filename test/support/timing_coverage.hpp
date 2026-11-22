@@ -25,7 +25,7 @@
 #ifndef WEBCPP_TEST_HASH_SUPPORT_TIMING_COVERAGE_HPP
 #define WEBCPP_TEST_HASH_SUPPORT_TIMING_COVERAGE_HPP
 
-#include "timing_seam.hpp"
+#include "timing_dit.hpp"
 
 #include <webcpp/hash/argon2.hpp>
 #include <webcpp/hash/bcrypt.hpp>
@@ -66,21 +66,6 @@
 #include <vector>
 
 namespace webcpp::test {
-
-/**
- * Sets or clears DIT for this thread, as a program can, so that a test starts from a known state;
- * only where the CPU has DIT, since the instruction traps on a CPU without it.
- *
- * @param set Whether to set DIT.
- */
-inline void force_dit([[maybe_unused]] bool set) noexcept {
-#ifdef WEBCPP_HASH_DETAIL_TIMING_COVERED
-    if (!webcpp::hash::detail::cpu_has_dit()) {
-        return;
-    }
-    webcpp::hash::detail::write_dit(set ? webcpp::hash::detail::dit_bit : 0);
-#endif
-}
 
 /**
  * Runs `call` and reports an error when it entered no detail::timing_guard, when the first guard

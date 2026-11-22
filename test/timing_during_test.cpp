@@ -15,7 +15,7 @@
 // the same through async_pbkdf2 on a webcpp::asio::thread_pool of one thread, the probe's record
 // read on the pool's thread, which computes.
 
-#include "support/timing_seam.hpp"
+#include "support/timing_dit.hpp"
 
 #include <webcpp/hash/backends/hash2.hpp>
 #include <webcpp/hash/detail/timing.hpp>
@@ -148,19 +148,6 @@ constexpr std::array<std::uint8_t, 32> key{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12
 constexpr std::array<std::uint8_t, 16> salt{16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1};
 constexpr std::array<std::uint8_t, 8> info{'c', 'o', 'n', 't', 'e', 'x', 't', 0};
 
-/**
- * Sets or clears DIT for this thread, as a program can; only where the CPU has DIT, since the
- * instruction traps on a CPU without it.
- */
-void force_dit([[maybe_unused]] bool set) {
-#ifdef WEBCPP_HASH_DETAIL_TIMING_COVERED
-    if (!hash::detail::cpu_has_dit()) {
-        return;
-    }
-    hash::detail::write_dit(set ? hash::detail::dit_bit : 0);
-#endif
-}
-
 // Reports, by `name`, a probe that never ran, an update before any guard, an update with DIT
 // other than the CPU gives under a guard, or a thread left with DIT set.
 void check_record(std::string const& name, test::probe_record const& seen, bool dit_set_after) {
@@ -187,7 +174,7 @@ void check_record(std::string const& name, test::probe_record const& seen, bool 
 // Runs `call` from a thread with DIT clear, then checks what the probe saw during it.
 template <class Call>
 void during(std::string const& name, Call call) {
-    force_dit(false);
+    test::force_dit(false);
     test::probe_reset();
     call();
     check_record(name, test::probe_seen, hash::detail::dit_is_set());
@@ -249,7 +236,7 @@ void on_the_pool() {
     asio::io_context context;
     asio::thread_pool pool(1);
     on_pool(pool, [] {
-        force_dit(false);
+        test::force_dit(false);
         test::probe_reset();
         return true;
     });

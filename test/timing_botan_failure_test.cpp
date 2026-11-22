@@ -12,7 +12,7 @@
 // guard first and leaves the thread's DIT as it found it, from a thread with DIT clear and from
 // one that set DIT itself (where the CPU has DIT).
 
-#include "support/timing_seam.hpp"
+#include "support/timing_dit.hpp"
 
 #include <webcpp/hash/backends/botan.hpp>
 #include <webcpp/hash/detail/timing.hpp>
@@ -41,19 +41,6 @@ namespace test = webcpp::test;
 using hash::backends::botan;
 using hmac = hash::hmac_sha2_256;
 
-/**
- * Sets or clears DIT for this thread, as a program can; only where the CPU has DIT, since the
- * instruction traps on a CPU without it.
- */
-void force_dit([[maybe_unused]] bool set) {
-#ifdef WEBCPP_HASH_DETAIL_TIMING_COVERED
-    if (!hash::detail::cpu_has_dit()) {
-        return;
-    }
-    hash::detail::write_dit(set ? hash::detail::dit_bit : 0);
-#endif
-}
-
 std::array<std::uint8_t, 3> const abc{0x61, 0x62, 0x63};
 std::array<std::uint8_t, 16> const salt{1};
 std::array<std::uint8_t, 32> const key{2};
@@ -64,7 +51,7 @@ bool backend_failed(boost::system::result<void> const& outcome) {
 
 // Each call, from DIT set as `set` says: its own guard first, backend_failure, DIT as found.
 void fails_inside_guard(bool set) {
-    force_dit(set);
+    test::force_dit(set);
     bool const before = hash::detail::dit_is_set();
     std::string const from = set ? " from DIT set" : " from DIT clear";
     auto const restored = [&](std::string const& name) {
@@ -95,7 +82,7 @@ void fails_inside_guard(bool set) {
         BOOST_TEST(backend_failed(hash::pbkdf2<hmac, botan>(output, abc, salt, 2)));
     });
     restored("pbkdf2");
-    force_dit(false);
+    test::force_dit(false);
 }
 
 }  // namespace
