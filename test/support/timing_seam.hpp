@@ -81,8 +81,8 @@ struct named_function {
  * `(<parameter word>`, or by a space and words that say how it is called.
  *
  * The scope is the component before the identifier, empty when there is none. A check named
- * `pem::algorithm::unarmour of a text without lines on sodium` names `algorithm::unarmour`;
- * `secp256k1::equal(digest` names `secp256k1::equal` with a parameter list that holds `digest`.
+ * `hkdf::hkdf_extract of a salt on hash2` names `hkdf::hkdf_extract`;
+ * `blake3::update(void` names `blake3::update` with a parameter list that holds `void`.
  *
  * @param spelled The function as a check spells it.
  * @return Its scope, identifier and parameter word.
@@ -138,7 +138,7 @@ inline std::string normalized_function_name(std::string_view entered) {
 
 /**
  * The component that qualifies a name, read back from the `::` before it at `separator`:
- * `algorithm` in `pem::algorithm<sodium>::armour`, its template arguments skipped.
+ * `mac_engine` in `detail::mac_engine<hash2, Mac>::compute`, its template arguments skipped.
  *
  * @param text A normalized `function_name()`.
  * @param separator The position of the `::` before the name.

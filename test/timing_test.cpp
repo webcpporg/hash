@@ -4,13 +4,13 @@
 // accompanying file LICENSE_1_0.txt or copy at
 // https://www.boost.org/LICENSE_1_0.txt)
 
-// detail::timing_guard, with no backend: its seam fires once per guard, engaged or not, on every
-// target and names the function that holds the guard, which require_enters reads in the spellings
-// of clang, GCC and MSVC; where the CPU has DIT, an engaged guard sets it for its scope and
-// clears it after when it was clear, leaves it set when it was set, and nests; a disengaged guard
-// touches nothing. Built with WEBCPP_TEST_TIMING_THREADS (timing_threads, native, with threads),
-// a guard on one thread leaves another's DIT clear. A copy of libs/crypto/test/timing_test.cpp
-// with hash's names and the engaged flag.
+// detail::timing_guard, with no backend: its seam fires once per engaged guard on every
+// target, and never for a disengaged one, and names the function that holds the guard, which
+// require_enters reads in the spellings of clang, GCC and MSVC; where the CPU has DIT, an engaged
+// guard sets it for its scope and clears it after when it was clear, leaves it set when it was set,
+// and nests; a disengaged guard touches nothing. Built with WEBCPP_TEST_TIMING_THREADS
+// (timing_threads, native, with threads), a guard on one thread leaves another's DIT clear. A copy
+// of libs/crypto/test/timing_test.cpp with hash's names and the engaged flag.
 
 #include "support/timing_seam.hpp"
 
@@ -180,13 +180,13 @@ void nested_guards() {
     BOOST_TEST(!detail::dit_is_set());
 }
 
-// A guard constructed with false fires the seam and touches nothing, whichever state it finds.
+// A guard constructed with false fires no seam and touches nothing, whichever state it finds.
 void disengaged_does_nothing() {
     std::size_t const before = webcpp::test::timing_entries;
     force_dit(false);
     {
         detail::timing_guard const guard{false};
-        BOOST_TEST_EQ(webcpp::test::timing_entries, before + 1);
+        BOOST_TEST_EQ(webcpp::test::timing_entries, before);
         BOOST_TEST(!detail::dit_is_set());
     }
     BOOST_TEST(!detail::dit_is_set());

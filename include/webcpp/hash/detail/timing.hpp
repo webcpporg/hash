@@ -27,8 +27,8 @@
  * by their arguments (a BLAKE2b digest of a call that passes a key, a BLAKE3 object made with a
  * key), and an unkeyed call of the same function computes on public data and must not pay for
  * DIT: those functions construct the guard with `engaged` false when the call is not keyed. A
- * disengaged guard sets nothing and clears nothing; on a target the guard does not cover,
- * `engaged` is read only to fire the seam.
+ * disengaged guard sets nothing, clears nothing and fires no seam, on every target; on a target the
+ * guard does not cover, `engaged` alone decides whether the seam fires and nothing else happens.
  *
  * The guard applies on arm64 under macOS, iOS, Linux and Android, where the system says whether
  * the CPU has FEAT_DIT. Everywhere else (x86, WebAssembly, where the engine decides, and Windows
@@ -147,25 +147,32 @@ class timing_guard {
 public:
 #ifdef WEBCPP_HASH_DETAIL_TIMING_ENTERED
     /**
-     * Runs the seam, then sets DIT where `engaged`, the CPU has it and it is clear: a test's
-     * build alone.
+     * Where `engaged`, runs the seam, then sets DIT where the CPU has it and it is clear: a
+     * test's build alone.
      *
-     * @param engaged Whether the call is keyed; false makes the guard do nothing but fire the
-     * seam.
+     * @param engaged Whether the call is keyed; false makes the guard do nothing, the seam
+     * included.
      * @param where Where the guard is declared, the default: the seam's argument alone.
      */
     explicit timing_guard(bool engaged = true,
                           std::source_location where = std::source_location::current()) noexcept {
+        if (!engaged) {
+            return;
+        }
         WEBCPP_HASH_DETAIL_TIMING_ENTERED(where);
-        enter(engaged);
+        enter();
     }
 #else
     /**
-     * Sets DIT where `engaged`, the CPU has it and it is clear.
+     * Where `engaged`, sets DIT where the CPU has it and it is clear.
      *
      * @param engaged Whether the call is keyed; false makes the guard do nothing.
      */
-    explicit timing_guard(bool engaged = true) noexcept { enter(engaged); }
+    explicit timing_guard(bool engaged = true) noexcept {
+        if (engaged) {
+            enter();
+        }
+    }
 #endif
 
     /** Clears DIT when this guard set it. */
@@ -191,13 +198,11 @@ public:
 
 private:
     /**
-     * Sets DIT where `engaged`, the CPU has it and it is clear, and remembers to clear it.
-     *
-     * @param engaged Whether the call is keyed.
+     * Sets DIT where the CPU has it and it is clear, and remembers to clear it.
      */
-    void enter([[maybe_unused]] bool engaged) noexcept {
+    void enter() noexcept {
 #ifdef WEBCPP_HASH_DETAIL_TIMING_COVERED
-        if (engaged && cpu_has_dit() && !dit_is_set()) {
+        if (cpu_has_dit() && !dit_is_set()) {
             write_dit(dit_bit);
             armed_ = true;
         }

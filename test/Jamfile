@@ -695,8 +695,9 @@ hash-run allocation_openssl : allocation_openssl_test.cpp
   : native wasip2 wasip3 ;
 
 # detail::timing_guard sets DIT for its scope where the CPU has it and leaves
-# the thread's state as it found it; its seam fires on every target, engaged
-# or not. timing_threads adds a second thread, natively, with threads.
+# the thread's state as it found it; its seam fires on every target for an engaged
+# guard and never for a disengaged one. timing_threads adds a second thread,
+# natively, with threads.
 hash-run timing : timing_test.cpp ;
 hash-run timing_threads : timing_test.cpp
   : <threading>multi <define>WEBCPP_TEST_TIMING_THREADS : native ;
