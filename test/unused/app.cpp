@@ -10,6 +10,11 @@
 
 #include <webcpp/hash.hpp>
 
+// Botan's public headers include <chrono>, which under MSVC's C++20 brings the locale's
+// time_get members into every object that includes it; their references to the C runtime
+// change the order of the program's imports, not one byte of its code. Both programs include
+// it, so that the two differ only by what a library adds.
+#include <chrono>
 #include <cstdint>
 #include <cstdio>
 #include <string_view>
