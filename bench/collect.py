@@ -33,17 +33,18 @@ or a program that does not run, does. `--render-only` rewrites the page from
 the data.
 
 The timing guard's cost (detail::timing_guard, which every keyed function holds and which sets
-64-bit ARM's DIT where the CPU has it) is `timing --measure`'s one line: whether the guard sets
-DIT on this machine, and the nanoseconds a guard adds to a call entered from a thread whose DIT
-is clear, from one where it is already set, and a disengaged guard's (an unkeyed call of a
-function keyed by its arguments), each the median of five runs of 10^7 guards minus an empty
-loop's, with the fastest and slowest run. The data keeps it under "timing_guard" with the date
-(UTC's), the machine and the load; the page renders it as a paragraph and a table after the
-throughput. A line or a "timing_guard" that is not the form this script writes (an older
-program's, a key missing or of another type) is refused with a message naming what is wrong,
-before anything is written. `--provisional` marks the guard's figures as provisional, measured
-on a shared, loaded machine and to be measured again in a final pass on a quiet one, which the
-page says; measuring the guard without it clears the mark.
+64-bit ARM's DIT where the CPU has it) is `timing --measure`'s one line: whether the guard sets DIT
+on this machine, and the nanoseconds a guard adds to a call entered from a thread whose DIT is
+clear, from one where it is already set, and a disengaged guard's (an unkeyed call of a function
+keyed by its arguments), each the median of five runs of 10^7 guards minus an empty loop's, with the
+fastest and slowest run. The data keeps it under "timing_guard" with the date, the machine and the
+load (every date of the data is UTC's); the page renders it as a paragraph and a table after the
+throughput. A line or a "timing_guard" that is not the form this script writes (an older program's,
+a key missing or of another type) is refused with a message naming what is wrong, before anything is
+written. `--provisional` marks the guard's figures as provisional, measured on a shared, loaded
+machine and to be measured again in a final pass on a quiet one, which the page says; measuring the
+guard without it clears the mark. `--exe` alone keeps the data's guard when the data is what this
+script writes, and otherwise replaces the data, saying the guard was not kept.
 """
 
 import argparse
@@ -201,7 +202,7 @@ def measure(exes, invocations):
     peak = max(loads[0][0], loads[1][0])
     return {
         "measurement": "pbkdf2-hmac-sha-512, 1,000,000 iterations, 64 bytes",
-        "date": datetime.date.today().isoformat(),
+        "date": utc_today(),
         "machine": machine(),
         "load_average_before_after": [list(loads[0]), list(loads[1])],
         "loaded": peak > cores,
@@ -253,7 +254,7 @@ def wrong(value, shape, where):
 
 
 def utc_today():
-    """Today's date in UTC, the date the guard's measurement states."""
+    """Today's date in UTC, the date every measurement of the page states."""
     return datetime.datetime.now(datetime.timezone.utc).date().isoformat()
 
 
@@ -464,29 +465,36 @@ def render(data, page):
         f.write("\n".join(lines))
 
 
-def read_release_data(path):
-    """The data at path; exits when it cannot be read, or when it, or its guard's measurement,
-    was not built at BUILD or is not the form this script writes."""
+def release_data(path):
+    """The data at path and None, or None and what is wrong with it: it cannot be read, or it, or
+    its guard's measurement, was not built at BUILD or is not the form this script writes."""
     try:
         with open(path, encoding="utf-8") as f:
             data = json.load(f)
     except (OSError, ValueError) as error:
-        sys.exit(f"collect.py: {path} cannot be read ({error}); --timing alone and --render-only "
-                 "read the data that --exe wrote")
+        return None, (f"{path} cannot be read ({error}); --timing alone and --render-only read "
+                      "the data that --exe wrote")
     if not isinstance(data, dict) or data.get("build") != BUILD:
         build = data.get("build") if isinstance(data, dict) else None
-        sys.exit(f"collect.py: {path} was measured with build {build}, not {BUILD}: "
-                 f"{RELEASE_ONLY}")
+        return None, f"{path} was measured with build {build}, not {BUILD}: {RELEASE_ONLY}"
     timing = data.get("timing_guard")
     if timing is not None:
         if not isinstance(timing, dict) or timing.get("build") != BUILD:
             build = timing.get("build") if isinstance(timing, dict) else None
-            sys.exit(f"collect.py: {path}'s timing guard was measured with build {build}, not "
-                     f"{BUILD}: {RELEASE_ONLY}")
+            return None, (f"{path}'s timing guard was measured with build {build}, not {BUILD}: "
+                          f"{RELEASE_ONLY}")
         found = wrong(timing, TIMING_SHAPE, "data.timing_guard")
         if found is not None:
-            sys.exit(f"collect.py: {path} is not the data collect.py writes: {found} is wrong; "
-                     "measure the guard again with --timing")
+            return None, (f"{path} is not the data collect.py writes: {found} is wrong; measure "
+                          "the guard again with --timing")
+    return data, None
+
+
+def read_release_data(path):
+    """The data at path; exits naming what is wrong with it (release_data)."""
+    data, fault = release_data(path)
+    if data is None:
+        sys.exit(f"collect.py: {fault}")
     return data
 
 
@@ -513,15 +521,18 @@ def main():
         if not exes and args.timing is None:
             sys.exit("collect.py: nothing to measure: give --exe, --timing or --render-only")
         check_release({**exes, **({"timing": args.timing} if args.timing else {})})
-        kept = read_release_data(args.data) if (not exes or args.timing is None) and \
-            Path(args.data).exists() else None
         if exes:
             data = measure(exes, args.invocations)
-            # The guard's cost is kept until it is measured again.
-            if kept is not None and kept.get("timing_guard") is not None:
-                data["timing_guard"] = kept["timing_guard"]
-        elif kept is not None:
-            data = kept
+            # The guard's cost is kept until it is measured again; data this script cannot keep
+            # is replaced by the new throughput, without a guard, and says so.
+            if args.timing is None and Path(args.data).exists():
+                kept, fault = release_data(args.data)
+                if fault is not None:
+                    print(f"collect.py: the guard is not kept: {fault}", file=sys.stderr)
+                elif kept is not None and kept.get("timing_guard") is not None:
+                    data["timing_guard"] = kept["timing_guard"]
+        elif Path(args.data).exists():
+            data = read_release_data(args.data)
         else:
             sys.exit(f"collect.py: {args.data} does not exist; --timing alone keeps the data's "
                      "throughput, which --exe writes")

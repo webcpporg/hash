@@ -17,7 +17,7 @@ of every version are on webcpp's index page.
 
 // tag::unreleased[]
 * Added the library: Boost.Hash2's algorithms and HMAC under webcpp::hash's names, keccak_256 (Ethereum's Keccak-256 over XKCP), blake3 (keyed, key derivation, extendable output), every result `+[[nodiscard]]+`.
-* Added HKDF (RFC 5869) and PBKDF2 (RFC 8018) on hash2, argon2id (RFC 9106) with libsodium's presets, scrypt (RFC 7914) and argon2's Argon2i on sodium; keyed calls set DIT on arm64.
+* Added HKDF (RFC 5869) and PBKDF2 (RFC 8018) on hash2, argon2id (RFC 9106), scrypt and argon2's Argon2i and Argon2id on sodium; keyed calls set DIT on arm64 Apple and Linux.
 * Added backends::openssl (OpenSSL 3.5.9; native, wasip2, wasip3), named in the call: its digests, MACs and key derivations.
 * Added backends::botan: Botan 3.14.1's hashes, MACs, key derivations and bcrypt, with exceptions.
 * Added backends::sodium's HKDF over HMAC-SHA-256/512, BLAKE2b with key, salt, personalisation and length, keyed BLAKE2b (macs::blake2b_mac), SipHash-2-4, SipHash-2-4x, blake2b_subkey, SHA-256/512, SHA3-256/512, SHAKE, TurboSHAKE with its domain byte, and HMAC-SHA-256/512.
