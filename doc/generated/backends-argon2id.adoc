@@ -28,7 +28,7 @@
 | not stated
 
 | `argon2id`
-| `botan`
+| `botan` (with exceptions only)
 | `/third_party//botan`
 | native, emscripten
 | -

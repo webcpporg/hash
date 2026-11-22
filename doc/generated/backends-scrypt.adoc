@@ -28,7 +28,7 @@
 | not stated
 
 | `scrypt`
-| `botan` (partial: N above 2^22, r above 256, p above 1,024, or more than 8 GiB and 2 MiB of memory (2 GiB and 2 MiB on wasm32): Botan's scrypt limits (scrypt.cpp))
+| `botan` (with exceptions only) (partial: N above 2^22, r above 256, p above 1,024, or more than 8 GiB and 2 MiB of memory (2 GiB and 2 MiB on wasm32): Botan's scrypt limits (scrypt.cpp))
 | `/third_party//botan`
 | native, emscripten
 | -

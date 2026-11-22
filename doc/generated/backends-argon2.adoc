@@ -21,7 +21,7 @@
 | not stated
 
 | `kdfs::argon2d`
-| `botan` (partial: more than 128 lanes, or m above 8 GiB (2 GiB on wasm32): Botan's Argon2 limits (argon2pwhash.cpp))
+| `botan` (with exceptions only) (partial: more than 128 lanes, or m above 8 GiB (2 GiB on wasm32): Botan's Argon2 limits (argon2pwhash.cpp))
 | `/third_party//botan`
 | native, emscripten
 | -
@@ -42,7 +42,7 @@
 | not stated
 
 | `kdfs::argon2i`
-| `botan` (partial: more than 128 lanes, or m above 8 GiB (2 GiB on wasm32): Botan's Argon2 limits (argon2pwhash.cpp))
+| `botan` (with exceptions only) (partial: more than 128 lanes, or m above 8 GiB (2 GiB on wasm32): Botan's Argon2 limits (argon2pwhash.cpp))
 | `/third_party//botan`
 | native, emscripten
 | -
@@ -63,7 +63,7 @@
 | not stated
 
 | `kdfs::argon2id`
-| `botan` (partial: more than 128 lanes, or m above 8 GiB (2 GiB on wasm32): Botan's Argon2 limits (argon2pwhash.cpp))
+| `botan` (with exceptions only) (partial: more than 128 lanes, or m above 8 GiB (2 GiB on wasm32): Botan's Argon2 limits (argon2pwhash.cpp))
 | `/third_party//botan`
 | native, emscripten
 | -

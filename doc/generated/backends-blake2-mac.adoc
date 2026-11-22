@@ -28,7 +28,7 @@
 | not stated
 
 | `macs::blake2b_mac`
-| `botan`
+| `botan` (with exceptions only)
 | `/third_party//botan`
 | native, emscripten
 | -

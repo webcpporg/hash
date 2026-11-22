@@ -14,7 +14,7 @@
 | Function | Backend | The program's Jamfile names | Targets | Hmacs | Constant time
 
 | `digests::skein_512`
-| `botan`
+| `botan` (with exceptions only)
 | `/third_party//botan`
 | native, emscripten
 | -

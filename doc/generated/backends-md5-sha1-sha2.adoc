@@ -91,7 +91,7 @@
 | not stated
 
 | `digests::md5`
-| `botan`
+| `botan` (with exceptions only)
 | `/third_party//botan`
 | native, emscripten
 | -
@@ -119,7 +119,7 @@
 | not stated
 
 | `digests::sha1`
-| `botan`
+| `botan` (with exceptions only)
 | `/third_party//botan`
 | native, emscripten
 | -
@@ -154,7 +154,7 @@
 | not stated
 
 | `digests::sha2_224`
-| `botan`
+| `botan` (with exceptions only)
 | `/third_party//botan`
 | native, emscripten
 | -
@@ -189,7 +189,7 @@
 | not stated
 
 | `digests::sha2_256`
-| `botan`
+| `botan` (with exceptions only)
 | `/third_party//botan`
 | native, emscripten
 | -
@@ -224,7 +224,7 @@
 | not stated
 
 | `digests::sha2_384`
-| `botan`
+| `botan` (with exceptions only)
 | `/third_party//botan`
 | native, emscripten
 | -
@@ -266,7 +266,7 @@
 | not stated
 
 | `digests::sha2_512`
-| `botan`
+| `botan` (with exceptions only)
 | `/third_party//botan`
 | native, emscripten
 | -
@@ -308,7 +308,7 @@
 | not stated
 
 | `digests::sha2_512_256`
-| `botan`
+| `botan` (with exceptions only)
 | `/third_party//botan`
 | native, emscripten
 | -

@@ -154,7 +154,7 @@
 | not stated
 
 | `macs::hmac<digests::md5>`
-| `botan`
+| `botan` (with exceptions only)
 | `/third_party//botan`
 | native, emscripten
 | -
@@ -182,7 +182,7 @@
 | not stated
 
 | `macs::hmac<digests::sha1>`
-| `botan`
+| `botan` (with exceptions only)
 | `/third_party//botan`
 | native, emscripten
 | -
@@ -217,7 +217,7 @@
 | not stated
 
 | `macs::hmac<digests::sha2_224>`
-| `botan`
+| `botan` (with exceptions only)
 | `/third_party//botan`
 | native, emscripten
 | -
@@ -252,7 +252,7 @@
 | not stated
 
 | `macs::hmac<digests::sha2_256>`
-| `botan`
+| `botan` (with exceptions only)
 | `/third_party//botan`
 | native, emscripten
 | -
@@ -287,7 +287,7 @@
 | not stated
 
 | `macs::hmac<digests::sha2_384>`
-| `botan`
+| `botan` (with exceptions only)
 | `/third_party//botan`
 | native, emscripten
 | -
@@ -329,7 +329,7 @@
 | not stated
 
 | `macs::hmac<digests::sha2_512>`
-| `botan`
+| `botan` (with exceptions only)
 | `/third_party//botan`
 | native, emscripten
 | -
@@ -371,7 +371,7 @@
 | not stated
 
 | `macs::hmac<digests::sha2_512_256>`
-| `botan`
+| `botan` (with exceptions only)
 | `/third_party//botan`
 | native, emscripten
 | -
@@ -392,7 +392,7 @@
 | not stated
 
 | `macs::hmac<digests::sha3_224>`
-| `botan`
+| `botan` (with exceptions only)
 | `/third_party//botan`
 | native, emscripten
 | -
@@ -413,7 +413,7 @@
 | not stated
 
 | `macs::hmac<digests::sha3_256>`
-| `botan`
+| `botan` (with exceptions only)
 | `/third_party//botan`
 | native, emscripten
 | -
@@ -434,7 +434,7 @@
 | not stated
 
 | `macs::hmac<digests::sha3_384>`
-| `botan`
+| `botan` (with exceptions only)
 | `/third_party//botan`
 | native, emscripten
 | -
@@ -455,7 +455,7 @@
 | not stated
 
 | `macs::hmac<digests::sha3_512>`
-| `botan`
+| `botan` (with exceptions only)
 | `/third_party//botan`
 | native, emscripten
 | -
@@ -476,7 +476,7 @@
 | not stated
 
 | `macs::hmac<digests::ripemd_160>`
-| `botan`
+| `botan` (with exceptions only)
 | `/third_party//botan`
 | native, emscripten
 | -
@@ -497,7 +497,7 @@
 | not stated
 
 | `macs::hmac<digests::blake2b>`
-| `botan`
+| `botan` (with exceptions only)
 | `/third_party//botan`
 | native, emscripten
 | -
@@ -518,7 +518,7 @@
 | not stated
 
 | `macs::hmac<digests::blake2s_256>`
-| `botan`
+| `botan` (with exceptions only)
 | `/third_party//botan`
 | native, emscripten
 | -
@@ -532,7 +532,7 @@
 | not stated
 
 | `macs::hmac<digests::keccak_224>`
-| `botan`
+| `botan` (with exceptions only)
 | `/third_party//botan`
 | native, emscripten
 | -
@@ -546,7 +546,7 @@
 | not stated
 
 | `macs::hmac<digests::keccak_256>`
-| `botan`
+| `botan` (with exceptions only)
 | `/third_party//botan`
 | native, emscripten
 | -
@@ -560,7 +560,7 @@
 | not stated
 
 | `macs::hmac<digests::keccak_384>`
-| `botan`
+| `botan` (with exceptions only)
 | `/third_party//botan`
 | native, emscripten
 | -
@@ -574,7 +574,7 @@
 | not stated
 
 | `macs::hmac<digests::keccak_512>`
-| `botan`
+| `botan` (with exceptions only)
 | `/third_party//botan`
 | native, emscripten
 | -
@@ -588,35 +588,35 @@
 | not stated
 
 | `macs::hmac<digests::sm3>`
-| `botan`
+| `botan` (with exceptions only)
 | `/third_party//botan`
 | native, emscripten
 | -
 | not stated
 
 | `macs::hmac<digests::streebog_256>`
-| `botan`
+| `botan` (with exceptions only)
 | `/third_party//botan`
 | native, emscripten
 | -
 | no
 
 | `macs::hmac<digests::streebog_512>`
-| `botan`
+| `botan` (with exceptions only)
 | `/third_party//botan`
 | native, emscripten
 | -
 | no
 
 | `macs::hmac<digests::whirlpool>`
-| `botan`
+| `botan` (with exceptions only)
 | `/third_party//botan`
 | native, emscripten
 | -
 | no
 
 | `macs::hmac<digests::skein_512>`
-| `botan`
+| `botan` (with exceptions only)
 | `/third_party//botan`
 | native, emscripten
 | -

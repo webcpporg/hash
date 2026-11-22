@@ -14,14 +14,14 @@
 | Function | Backend | The program's Jamfile names | Targets | Hmacs | Constant time
 
 | `digests::streebog_256`
-| `botan`
+| `botan` (with exceptions only)
 | `/third_party//botan`
 | native, emscripten
 | -
 | no
 
 | `digests::streebog_512`
-| `botan`
+| `botan` (with exceptions only)
 | `/third_party//botan`
 | native, emscripten
 | -

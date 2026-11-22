@@ -14,7 +14,7 @@
 | Function | Backend | The program's Jamfile names | Targets | Hmacs | Constant time
 
 | `bcrypt`
-| `botan` (partial: a cost above 18: Botan's limit (bcrypt.cpp), where bcrypt's format allows 31)
+| `botan` (with exceptions only) (partial: a cost above 18: Botan's limit (bcrypt.cpp), where bcrypt's format allows 31)
 | `/third_party//botan`
 | native, emscripten
 | -

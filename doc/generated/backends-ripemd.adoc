@@ -42,7 +42,7 @@
 | not stated
 
 | `digests::ripemd_160`
-| `botan`
+| `botan` (with exceptions only)
 | `/third_party//botan`
 | native, emscripten
 | -

@@ -21,7 +21,7 @@
 | not stated
 
 | `digests::sm3`
-| `botan`
+| `botan` (with exceptions only)
 | `/third_party//botan`
 | native, emscripten
 | -

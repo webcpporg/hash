@@ -28,7 +28,7 @@
 | not stated
 
 | `pbkdf2`
-| `botan` (partial: an iteration count above 2^32 - 1 on wasm32 (invalid_iterations): Botan counts iterations in a size_t; an output of more than 2^32 - 2 digests (invalid_output_size), where RFC 8018 allows 2^32 - 1: Botan's PBKDF2 derives at most 2^32 - 2 blocks (pbkdf2.cpp))
+| `botan` (with exceptions only) (partial: an iteration count above 2^32 - 1 on wasm32 (invalid_iterations): Botan counts iterations in a size_t; an output of more than 2^32 - 2 digests (invalid_output_size), where RFC 8018 allows 2^32 - 1: Botan's PBKDF2 derives at most 2^32 - 2 blocks (pbkdf2.cpp))
 | `/third_party//botan`
 | native, emscripten
 | `hmac_md5_128`, `hmac_sha1_160`, `hmac_sha2_224`, `hmac_sha2_256`, `hmac_sha2_384`, `hmac_sha2_512`, `hmac_sha2_512_256`, `hmac_sha3_224`, `hmac_sha3_256`, `hmac_sha3_384`, `hmac_sha3_512`, `hmac_ripemd_160`, `hmac_blake2b_512`, `hmac_blake2s_256`
