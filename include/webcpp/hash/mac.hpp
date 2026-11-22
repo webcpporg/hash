@@ -8,6 +8,9 @@
  The MAC family (spec 2.15): `mac`, the tag of a message under a key in one call, over a tag of
  `macs` and a backend, `default_backend` of the tag by default.
 
+ Every call holds the data-independent-timing guard (`detail::timing_guard`): where the CPU has
+ DIT, `mac` sets it for the call and leaves the thread's state as it found it.
+
  The guards are the same on every backend and run before any work: a tag of a size the MAC does
  not produce is `invalid_output_size`, a key of a size it does not take `invalid_key_size`, a value
  the MAC accepts and the chosen backend does not `unsupported_by_backend`. A guard's refusal leaves
@@ -33,6 +36,7 @@
 #include <webcpp/hash/backends/hash2.hpp>
 #include <webcpp/hash/detail/engines.hpp>
 #include <webcpp/hash/detail/limits.hpp>
+#include <webcpp/hash/detail/timing.hpp>
 #include <webcpp/hash/detail/wipe.hpp>
 #include <webcpp/hash/digest.hpp>
 #include <webcpp/hash/error.hpp>
@@ -251,6 +255,7 @@ template <class Mac, class Backend = default_backend<Mac>>
                                               std::span<std::uint8_t const> key,
                                               std::span<std::uint8_t const> input,
                                               mac_options<Mac> const& options = {}) {
+    detail::timing_guard const timing;
     using engine = detail::mac_engine<Backend, Mac>;
     auto checked = detail::mac_guards<Mac>(output.size(), key.size(), options);
     if (!checked) {

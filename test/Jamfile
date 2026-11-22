@@ -710,6 +710,13 @@ hash-run timing_unseamed : timing_unseamed_test.cpp ;
 webcpp.run timing_unseamed_release : timing_unseamed_test.cpp
   : <variant>release <define>WEBCPP_TEST_TIMING_READ_SELF : native ;
 
+# mac and the keyed modes of BLAKE2b (digest_of, hasher with a key) and of BLAKE3
+# (keyed, derive_key and the seeds that key) hold detail::timing_guard; a call
+# that is not keyed holds none; no output changes.
+hash-run timing_keyed : timing_keyed_test.cpp
+  : <library>/third_party//blake3 <library>/third_party//sodium
+    <library>/third_party//blake3_vectors <library>/webcpp//boost_json ;
+
 build-project messages ;
 
 # The canaries at link time, each C library's absence and another commit of

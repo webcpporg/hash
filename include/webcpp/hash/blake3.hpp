@@ -22,6 +22,7 @@
 #else
 
 #include <webcpp/hash/detail/canary.h>
+#include <webcpp/hash/detail/timing.hpp>
 
 #include <boost/hash2/digest.hpp>
 
@@ -88,8 +89,17 @@ inline void touch_blake3_canary() noexcept {
  BLAKE3, its keyed mode, its key derivation and its extendable output, over the official C
  implementation, in Boost.Hash2's HashAlgorithm form.
 
- The object holds the C implementation's state, 1,912 bytes on 64-bit targets, and allocates
- nothing. Its destructor does not wipe that state, as Hash2's own algorithms do not.
+ The object holds the C implementation's state, 1,912 bytes on 64-bit targets, a count of the
+ bytes `result()` returned and a flag that says whether the object is keyed, 1,928 bytes in all on
+ 64-bit targets (the flag costs one alignment), and allocates nothing. Its destructor does not wipe
+ that state, as Hash2's own algorithms do not.
+
+ The keyed modes compute on a secret, and every call on a keyed object sets the CPU's
+ data-independent timing (DIT) for the call where the CPU has it, as `mac` does, and leaves the
+ thread's state as it found it (design D1): `keyed`, `derive_key`, a non-zero integer seed and a
+ seed of bytes, then `update`, `result`, `squeeze` and `reset` of the object they make, which keeps
+ the flag through copies and moves. The plain mode, a zero integer seed and a seed of no bytes
+ compute on public data and hold no guard (design D2).
 */
 class blake3 {
 public:
@@ -170,6 +180,7 @@ private:
 
     blake3_hasher hasher_;        // the C implementation's state, 1,912 bytes on 64-bit targets
     std::uint64_t squeezed_ = 0;  // bytes result() returned since input was last added
+    bool keyed_ = false;          // keyed or derived from a key: every call holds the timing guard
 };
 
 // Each constructor initializes hasher_ through BLAKE3's own init function, which writes what
@@ -182,7 +193,9 @@ inline blake3::blake3() noexcept {
 }
 
 inline blake3::blake3(std::uint64_t seed_value) noexcept {
+    detail::timing_guard const timing{seed_value != 0};
     detail::touch_blake3_canary();
+    keyed_ = seed_value != 0;
     if (seed_value == 0) {
         blake3_hasher_init(&hasher_);
         return;
@@ -198,7 +211,9 @@ inline blake3::blake3(void const* input_data, std::size_t input_size) noexcept
     : blake3(static_cast<unsigned char const*>(input_data), input_size) {}
 
 inline blake3::blake3(unsigned char const* input_data, std::size_t input_size) noexcept {
+    detail::timing_guard const timing{input_size != 0};
     detail::touch_blake3_canary();
+    keyed_ = input_size != 0;
     if (input_size == 0) {
         blake3_hasher_init(&hasher_);
         return;
@@ -216,25 +231,31 @@ inline blake3::blake3(unsigned char const* input_data, std::size_t input_size) n
 // NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
 inline blake3 blake3::keyed(std::span<std::uint8_t const, 32> key_bytes) noexcept {
+    detail::timing_guard const timing;
     detail::touch_blake3_canary();
     blake3 derived_hasher{uninitialized{}};
+    derived_hasher.keyed_ = true;
     blake3_hasher_init_keyed(&derived_hasher.hasher_, key_bytes.data());
     return derived_hasher;
 }
 
 inline blake3 blake3::derive_key(std::string_view context_string) noexcept {
+    detail::timing_guard const timing;
     detail::touch_blake3_canary();
     blake3 derived_hasher{uninitialized{}};
+    derived_hasher.keyed_ = true;
     blake3_hasher_init_derive_key_raw(&derived_hasher.hasher_, context_string.data(),
                                       context_string.size());
     return derived_hasher;
 }
 
 inline void blake3::update(void const* input_data, std::size_t input_size) noexcept {
+    detail::timing_guard const timing{keyed_};
     update(static_cast<unsigned char const*>(input_data), input_size);
 }
 
 inline void blake3::update(unsigned char const* input_data, std::size_t input_size) noexcept {
+    detail::timing_guard const timing{keyed_};
     detail::touch_blake3_canary();
     if (input_size == 0) {
         return;
@@ -244,6 +265,7 @@ inline void blake3::update(unsigned char const* input_data, std::size_t input_si
 }
 
 inline blake3::result_type blake3::result() noexcept {
+    detail::timing_guard const timing{keyed_};
     detail::touch_blake3_canary();
     result_type output_bytes;
     blake3_hasher_finalize_seek(&hasher_, squeezed_, output_bytes.data(), output_bytes.size());
@@ -253,11 +275,13 @@ inline blake3::result_type blake3::result() noexcept {
 
 inline void blake3::squeeze(std::span<std::uint8_t> output_bytes,
                             std::uint64_t seek_position) const noexcept {
+    detail::timing_guard const timing{keyed_};
     detail::touch_blake3_canary();
     blake3_hasher_finalize_seek(&hasher_, seek_position, output_bytes.data(), output_bytes.size());
 }
 
 inline void blake3::reset() noexcept {
+    detail::timing_guard const timing{keyed_};
     detail::touch_blake3_canary();
     blake3_hasher_reset(&hasher_);
     squeezed_ = 0;
