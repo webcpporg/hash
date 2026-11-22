@@ -144,12 +144,22 @@ namespace backends = webcpp::hash::backends;
 
 using probe_hmac = hash::hmac<test::dit_probe>;
 
-constexpr std::array<std::uint8_t, 32> test_key{
-    1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,
-};
-constexpr std::array<std::uint8_t, 16> test_salt{
-    16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1,
-};
+// The bytes 1 to 16, then 16 zero bytes.
+constexpr std::array<std::uint8_t, 32> test_key = [] {
+    std::array<std::uint8_t, 32> bytes{};
+    for (std::size_t i = 0; i < 16; ++i) {
+        bytes[i] = static_cast<std::uint8_t>(i + 1);
+    }
+    return bytes;
+}();
+// The bytes 16 down to 1.
+constexpr std::array<std::uint8_t, 16> test_salt = [] {
+    std::array<std::uint8_t, 16> bytes{};
+    for (std::size_t i = 0; i < bytes.size(); ++i) {
+        bytes[i] = static_cast<std::uint8_t>(16 - i);
+    }
+    return bytes;
+}();
 constexpr std::array<std::uint8_t, 8> test_info{'c', 'o', 'n', 't', 'e', 'x', 't', 0};
 
 // Reports, by `name`, a probe that never ran, an update before any guard, an update with DIT
