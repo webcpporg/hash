@@ -89,8 +89,9 @@ constexpr std::uint32_t argon2_lanes = 1;
 #endif
 
 constexpr std::array<std::uint8_t, 8> test_password{'p', 'a', 's', 's', 'w', 'o', 'r', 'd'};
-constexpr std::array<std::uint8_t, 16> test_salt{1, 2,  3,  4,  5,  6,  7,  8,
-                                                 9, 10, 11, 12, 13, 14, 15, 16};
+constexpr std::array<std::uint8_t, 16> test_salt{
+    1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,
+};
 
 // What a thread recorded through the seam, and whether it was back to DIT off when it was read.
 struct record {
