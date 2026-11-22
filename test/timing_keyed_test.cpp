@@ -262,10 +262,10 @@ void blake3_modes() {
     std::array<std::uint8_t, 40> const bytes{1, 2, 3, 4, 5, 6, 7, 8, 9};
     std::optional<blake3> keyed;
     test::require_enters("blake3::keyed", [&] { keyed.emplace(blake3::keyed(key)); });
-    test::require_enters("blake3::update(void of a keyed object", [&] {
+    test::require_enters("blake3::update(void const*) of a keyed object", [&] {
         keyed->update(static_cast<void const*>(bytes.data()), bytes.size());
     });
-    test::require_enters("blake3::update(unsigned of a keyed object", [&] {
+    test::require_enters("blake3::update(unsigned char const*) of a keyed object", [&] {
         keyed->update(static_cast<unsigned char const*>(bytes.data()), bytes.size());
     });
     test::require_enters("blake3::result of a keyed object",
@@ -278,7 +278,7 @@ void blake3_modes() {
 
     std::optional<blake3> derived;
     test::require_enters("blake3::derive_key", [&] { derived.emplace(blake3::derive_key("ctx")); });
-    test::require_enters("blake3::update(void of a derived object", [&] {
+    test::require_enters("blake3::update(void const*) of a derived object", [&] {
         derived->update(static_cast<void const*>(bytes.data()), bytes.size());
     });
     test::require_enters("blake3::result of a derived object",
@@ -287,10 +287,10 @@ void blake3_modes() {
 
     // A copy and a move of a keyed object are keyed as it is.
     blake3 copy{*keyed};
-    test::require_enters("blake3::update(void of a copy of a keyed object",
+    test::require_enters("blake3::update(void const*) of a copy of a keyed object",
                          [&] { copy.update(static_cast<void const*>(bytes.data()), 1); });
     blake3 moved{std::move(copy)};
-    test::require_enters("blake3::update(void of a moved keyed object",
+    test::require_enters("blake3::update(void const*) of a moved keyed object",
                          [&] { moved.update(static_cast<void const*>(bytes.data()), 1); });
 
     // The seeds that key: a non-zero integer, and bytes.
@@ -298,30 +298,31 @@ void blake3_modes() {
         blake3 seeded{std::uint64_t{7}};
         BOOST_TEST(seeded.result().size() == 32);
     });
-    test::require_enters("blake3::blake3(char of 16 bytes", [&] {
+    test::require_enters("blake3::blake3(unsigned char const*) of 16 bytes", [&] {
         blake3 seeded{static_cast<unsigned char const*>(bytes.data()), std::size_t{16}};
         BOOST_TEST(seeded.result().size() == 32);
     });
-    test::require_enters("blake3::blake3(char of 40 bytes", [&] {
+    test::require_enters("blake3::blake3(unsigned char const*) of 40 bytes", [&] {
         blake3 seeded{static_cast<unsigned char const*>(bytes.data()), std::size_t{40}};
         BOOST_TEST(seeded.result().size() == 32);
     });
     // The delegating constructor of void const* holds none: the one it delegates to runs first.
-    test::require_enters("blake3::blake3(char of 16 bytes through void", [&] {
-        blake3 seeded{static_cast<void const*>(bytes.data()), std::size_t{16}};
-        BOOST_TEST(seeded.result().size() == 32);
-    });
+    test::require_enters(
+        "blake3::blake3(unsigned char const*) of 16 bytes, through the void const* overload", [&] {
+            blake3 seeded{static_cast<void const*>(bytes.data()), std::size_t{16}};
+            BOOST_TEST(seeded.result().size() == 32);
+        });
     // The seed that keys leaves a keyed object.
     blake3 seeded{std::uint64_t{7}};
-    test::require_enters("blake3::update(void of a seeded object",
+    test::require_enters("blake3::update(void const*) of a seeded object",
                          [&] { seeded.update(static_cast<void const*>(bytes.data()), 3); });
 
     // The plain mode, and the seeds that are plain, compute on public data.
     test::uncovered("blake3::blake3()", [&] { blake3 plain; });
     blake3 plain;
-    test::uncovered("blake3::update(void of a plain object",
+    test::uncovered("blake3::update(void const*) of a plain object",
                     [&] { plain.update(static_cast<void const*>(bytes.data()), bytes.size()); });
-    test::uncovered("blake3::update(unsigned of a plain object", [&] {
+    test::uncovered("blake3::update(unsigned char const*) of a plain object", [&] {
         plain.update(static_cast<unsigned char const*>(bytes.data()), bytes.size());
     });
     test::uncovered("blake3::result of a plain object",
