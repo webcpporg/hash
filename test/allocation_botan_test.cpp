@@ -51,7 +51,7 @@ using hash::backends::botan;
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables): the calls counted
 std::size_t calls_made = 0;
 
-std::array<std::uint8_t, 100> const input{};
+std::array<std::uint8_t, 100> const message{};
 
 // One call's allocations, printed as a record; the call must succeed.
 template <class F>
@@ -88,14 +88,14 @@ void digest_calls(std::string_view name, std::size_t size) {
     auto const out = std::span(output).first(size);
     for (int round = 1; round != 3; ++round) {
         counted("digest_of", name, round,
-                [&] { return hash::digest_of<Tag, botan>(out, input).has_value(); });
+                [&] { return hash::digest_of<Tag, botan>(out, message).has_value(); });
         counted("hasher", name, round, [&] {
             auto made = hash::hasher<Tag, botan>::make();
-            return made && made->update(input) && made->finish(out).has_value();
+            return made && made->update(message) && made->finish(out).has_value();
         });
     }
     refused_without_allocating(name, [&] {
-        auto const refused = hash::digest_of<Tag, botan>(out.first(0), input);
+        auto const refused = hash::digest_of<Tag, botan>(out.first(0), message);
         return refused.has_error() && refused.error() == hash::error::invalid_output_size;
     });
 }
@@ -108,12 +108,12 @@ void mac_calls(std::string_view name, std::size_t size, std::size_t key_size) {
     auto const out = std::span(output).first(size);
     for (int round = 1; round != 3; ++round) {
         counted("mac", name, round, [&] {
-            return hash::mac<Tag, botan>(out, std::span(key).first(key_size), input).has_value();
+            return hash::mac<Tag, botan>(out, std::span(key).first(key_size), message).has_value();
         });
     }
     refused_without_allocating(name, [&] {
         auto const refused =
-            hash::mac<Tag, botan>(out.first(0), std::span(key).first(key_size), input);
+            hash::mac<Tag, botan>(out.first(0), std::span(key).first(key_size), message);
         return refused.has_error() && refused.error() == hash::error::invalid_output_size;
     });
 }
@@ -128,19 +128,20 @@ void hmac_kdf_calls(std::string_view name) {
     auto const key = std::span(prk).first(digest_size);
     for (int round = 1; round != 3; ++round) {
         counted("hkdf_extract", name, round,
-                [&] { return hash::hkdf_extract<Hmac, botan>(input, input).has_value(); });
+                [&] { return hash::hkdf_extract<Hmac, botan>(message, message).has_value(); });
         counted("hkdf_expand", name, round,
-                [&] { return hash::hkdf_expand<Hmac, botan>(output, key, input).has_value(); });
-        counted("hkdf", name, round,
-                [&] { return hash::hkdf<Hmac, botan>(output, input, input, input).has_value(); });
+                [&] { return hash::hkdf_expand<Hmac, botan>(output, key, message).has_value(); });
+        counted("hkdf", name, round, [&] {
+            return hash::hkdf<Hmac, botan>(output, message, message, message).has_value();
+        });
         counted("pbkdf2", name, round,
-                [&] { return hash::pbkdf2<Hmac, botan>(output, input, input, 2).has_value(); });
+                [&] { return hash::pbkdf2<Hmac, botan>(output, message, message, 2).has_value(); });
         counted("kbkdf", name, round,
-                [&] { return hash::kbkdf<Hmac, botan>(output, input).has_value(); });
+                [&] { return hash::kbkdf<Hmac, botan>(output, message).has_value(); });
     }
     refused_without_allocating(name, [&] {
         auto const refused =
-            hash::hkdf<Hmac, botan>(std::span(output).first(0), input, input, input);
+            hash::hkdf<Hmac, botan>(std::span(output).first(0), message, message, message);
         return refused.has_error() && refused.error() == hash::error::invalid_output_size;
     });
 }
@@ -151,10 +152,11 @@ void digest_kdf_calls(std::string_view name) {
     std::array<std::uint8_t, 48> output{};
     for (int round = 1; round != 3; ++round) {
         counted("sskdf", name, round,
-                [&] { return hash::sskdf<Digest, botan>(output, input, input).has_value(); });
+                [&] { return hash::sskdf<Digest, botan>(output, message, message).has_value(); });
         if constexpr (X963) {
-            counted("x963kdf", name, round,
-                    [&] { return hash::x963kdf<Digest, botan>(output, input, input).has_value(); });
+            counted("x963kdf", name, round, [&] {
+                return hash::x963kdf<Digest, botan>(output, message, message).has_value();
+            });
         }
     }
 }
@@ -168,26 +170,27 @@ void password_calls() {
     std::array<std::uint8_t, 8> const word{'p', 'a', 's', 's', 'w', 'o', 'r', 'd'};
     for (int round = 1; round != 3; ++round) {
         counted("argon2id", "kdfs::argon2id", round, [&] {
-            return hash::argon2id<botan>(output, input, salt, {.passes = 1, .memory = 8192})
+            return hash::argon2id<botan>(output, message, salt, {.passes = 1, .memory = 8192})
                 .has_value();
         });
         counted("argon2", "kdfs::argon2d", round, [&] {
             return hash::argon2<hash::kdfs::argon2d, botan>(
-                       output, input, salt, {.passes = 1, .memory_kib = 16, .lanes = 2})
+                       output, message, salt, {.passes = 1, .memory_kib = 16, .lanes = 2})
                 .has_value();
         });
         counted("argon2", "kdfs::argon2i", round, [&] {
             return hash::argon2<hash::kdfs::argon2i, botan>(
-                       output, input, salt, {.passes = 1, .memory_kib = 16, .lanes = 2})
+                       output, message, salt, {.passes = 1, .memory_kib = 16, .lanes = 2})
                 .has_value();
         });
         counted("argon2", "kdfs::argon2id", round, [&] {
             return hash::argon2<hash::kdfs::argon2id, botan>(
-                       output, input, salt, {.passes = 1, .memory_kib = 16, .lanes = 2})
+                       output, message, salt, {.passes = 1, .memory_kib = 16, .lanes = 2})
                 .has_value();
         });
         counted("scrypt", "kdfs::scrypt", round, [&] {
-            return hash::scrypt<botan>(output, input, salt, {.n = 16, .r = 1, .p = 1}).has_value();
+            return hash::scrypt<botan>(output, message, salt, {.n = 16, .r = 1, .p = 1})
+                .has_value();
         });
         counted("bcrypt", "kdfs::bcrypt", round,
                 [&] { return hash::bcrypt<botan>(stored, word, salt, {.cost = 4}).has_value(); });
@@ -200,29 +203,30 @@ void password_calls() {
                 [&] { return hash::bcrypt_pbkdf<botan>(output, word, salt, 2).has_value(); });
     }
     refused_without_allocating("kdfs::argon2id", [&] {
-        auto const refused = hash::argon2id<botan>(output, input, std::span(salt).first(8),
+        auto const refused = hash::argon2id<botan>(output, message, std::span(salt).first(8),
                                                    {.passes = 1, .memory = 8192});
         return refused.has_error() && refused.error() == hash::error::invalid_salt_size;
     });
     refused_without_allocating("kdfs::argon2", [&] {
         auto const refused = hash::argon2<hash::kdfs::argon2id, botan>(
-            output, input, salt, {.passes = 1, .memory_kib = 8 * 129, .lanes = 129});
+            output, message, salt, {.passes = 1, .memory_kib = 8 * 129, .lanes = 129});
         return refused.has_error() && refused.error() == hash::error::unsupported_by_backend;
     });
     refused_without_allocating("kdfs::scrypt", [&] {
-        auto const refused = hash::scrypt<botan>(output, input, salt, {.n = 16, .r = 257, .p = 1});
+        auto const refused =
+            hash::scrypt<botan>(output, message, salt, {.n = 16, .r = 257, .p = 1});
         return refused.has_error() && refused.error() == hash::error::unsupported_by_backend;
     });
     refused_without_allocating("kdfs::bcrypt", [&] {
-        auto const refused = hash::bcrypt<botan>(stored, input, salt, {.cost = 4});
+        auto const refused = hash::bcrypt<botan>(stored, message, salt, {.cost = 4});
         return refused.has_error() && refused.error() == hash::error::input_too_long;
     });
     refused_without_allocating("kdfs::bcrypt_verify", [&] {
-        auto const refused = hash::bcrypt_verify<botan>(input, "$2b$04$");
+        auto const refused = hash::bcrypt_verify<botan>(message, "$2b$04$");
         return refused.has_error() && refused.error() == hash::error::input_too_long;
     });
     refused_without_allocating("kdfs::bcrypt_pbkdf", [&] {
-        auto const refused = hash::bcrypt_pbkdf<botan>(output, input, salt, 0);
+        auto const refused = hash::bcrypt_pbkdf<botan>(output, message, salt, 0);
         return refused.has_error() && refused.error() == hash::error::invalid_iterations;
     });
 }
