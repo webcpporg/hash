@@ -9,8 +9,8 @@
 // function that holds it, on every target, also where DIT does not apply. require_enters then
 // checks that a call entered a guard, and that the first, the outermost since a guard is its
 // function's first statement, is the one of the function the check names: a public function that
-// forgot its own guard fails, also when it calls another guarded function. uncovered checks the
-// converse: a function that calls no backend's code enters no guard.
+// forgot its own guard fails, also when it calls another guarded function. The converse, a call
+// that enters no guard, is support/timing_coverage.hpp's uncovered.
 //
 // This is a copy of libs/crypto/test/support/timing_seam.hpp with hash's macro: the duplication is
 // accepted for the reason of detail/timing.hpp's own (hash includes nothing of crypto).
@@ -281,26 +281,6 @@ void require_enters(std::string_view name, std::string_view function, Call&& cal
 template <class Call>
 void require_enters(std::string_view name, Call&& call) {
     require_enters(name, name, std::forward<Call>(call));
-}
-
-/**
- * Runs `call` and reports an error when it entered a detail::timing_guard: a public function that
- * calls no backend's code holds none (the data-independent-timing change of hash). A guard
- * added to one by mistake costs every call, and makes the rule "a guard where the backend runs"
- * harder to check.
- *
- * @param name What the call is, `<family>::<function> on <backend>`, as an error names it.
- * @param call The call, with its arguments bound.
- */
-template <class Call>
-void uncovered(std::string_view name, Call&& call) {
-    std::size_t const before = timing_entries;
-    std::forward<Call>(call)();
-    if (timing_entries != before) {
-        std::string const message =
-            std::string(name) + " entered a detail::timing_guard it should not hold";
-        BOOST_ERROR(message.c_str());
-    }
 }
 
 }  // namespace webcpp::test

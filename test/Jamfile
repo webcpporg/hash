@@ -695,9 +695,9 @@ hash-run allocation_openssl : allocation_openssl_test.cpp
   : native wasip2 wasip3 ;
 
 # detail::timing_guard sets DIT for its scope where the CPU has it and leaves
-# the thread's state as it found it; its seam fires on every target for an engaged
-# guard and never for a disengaged one. timing_threads adds a second thread,
-# natively, with threads.
+# the thread's state as it found it; its seam fires on every target for an
+# engaged guard and never for a disengaged one. timing_threads adds a second
+# thread, natively, with threads.
 hash-run timing : timing_test.cpp ;
 hash-run timing_threads : timing_test.cpp
   : <threading>multi <define>WEBCPP_TEST_TIMING_THREADS : native ;
@@ -710,12 +710,12 @@ hash-run timing_unseamed : timing_unseamed_test.cpp ;
 webcpp.run timing_unseamed_release : timing_unseamed_test.cpp
   : <variant>release <define>WEBCPP_TEST_TIMING_READ_SELF : native ;
 
-# mac and the keyed modes of BLAKE2b (digest_of, hasher with a key) and of BLAKE3
-# (keyed, derive_key and the seeds that key) hold detail::timing_guard; a call
-# that is not keyed holds none; no output changes.
+# mac and the keyed modes of BLAKE2b (digest_of, hasher with a key) and of
+# BLAKE3 (keyed, derive_key and the seeds that key) hold detail::timing_guard; a
+# call that is not keyed holds none; no output changes.
 hash-run timing_keyed : timing_keyed_test.cpp
-  : <library>/third_party//blake3 <library>/third_party//sodium
-    <library>/third_party//blake3_vectors <library>/webcpp//boost_json ;
+  : $(.hash-tables) <library>/third_party//blake3 <library>/third_party//sodium
+    <library>/third_party//blake3_vectors ;
 
 # The key derivations and password hashes hold detail::timing_guard on every
 # backend: timing_keyed covers the default backends'; kbkdf, sskdf and x963kdf,
@@ -725,6 +725,26 @@ hash-run timing_keyed : timing_keyed_test.cpp
 hash-run timing_keyed_openssl : timing_keyed_openssl_test.cpp
   : <library>/webcpp/hash//openssl : native wasip2 wasip3 ;
 botan-run timing_keyed_botan : timing_keyed_botan_test.cpp ;
+
+# One coverage test per backend, driven by doc/capabilities.json: every keyed
+# cell of the backend (support/timing_coverage.hpp: macs, key derivations and
+# password hashes, one per hmac a cell lists, and BLAKE2b with a key, the
+# blake3 type's keyed modes and bcrypt_verify) enters its own
+# detail::timing_guard first; every digest cell without a key, and every
+# Boost.Hash2-form type, enters none. A cell the table gains fails until its
+# call is added. backends::webcrypto has none (design D6).
+hash-run timing_coverage_hash2 : timing_coverage_hash2_test.cpp : $(.hash-tables) ;
+hash-run timing_coverage_sodium : timing_coverage_sodium_test.cpp
+  : $(.hash-tables) <library>/third_party//sodium ;
+hash-run timing_coverage_bearssl : timing_coverage_bearssl_test.cpp
+  : $(.hash-tables) <library>/third_party//bearssl ;
+hash-run timing_coverage_openssl : timing_coverage_openssl_test.cpp
+  : $(.hash-tables) <library>/webcpp/hash//openssl : native wasip2 wasip3 ;
+hash-run timing_coverage_xkcp : timing_coverage_xkcp_test.cpp
+  : $(.hash-tables) <library>/third_party//xkcp ;
+hash-run timing_coverage_blake3 : timing_coverage_blake3_test.cpp
+  : $(.hash-tables) <library>/third_party//blake3 ;
+botan-run timing_coverage_botan : timing_coverage_botan_test.cpp : $(.hash-tables) ;
 
 build-project messages ;
 

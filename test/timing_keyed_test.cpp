@@ -11,7 +11,7 @@
 // guard refuses before the backend; a call that is not keyed enters none (D2); a guard changes no
 // byte of any output. Where the CPU has DIT, mac leaves the thread's state as it found it.
 
-#include "support/timing_seam.hpp"
+#include "support/timing_coverage.hpp"
 
 #include <webcpp/hash/algorithms.hpp>
 #include <webcpp/hash/argon2.hpp>
