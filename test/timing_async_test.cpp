@@ -53,14 +53,12 @@
 #include <webcpp/test/exit_status.hpp>
 
 #include <array>
-#include <atomic>
 #include <cstddef>
 #include <cstdint>
 #include <future>
 #include <span>
 #include <string>
 #include <string_view>
-#include <thread>
 #include <type_traits>
 #include <utility>
 
@@ -290,15 +288,14 @@ void check_cancelled_before(asio::io_context& context) {
     asio::thread_pool busy(1);
     std::promise<void> release;
     auto const released = release.get_future().share();
-    std::atomic<bool> blocking{false};
+    std::promise<void> blocking;
+    auto const holding = blocking.get_future();
     asio::post(busy, [&blocking, released] {
         reset_this_thread();
-        blocking = true;
+        blocking.set_value();
         released.wait();
     });
-    while (!blocking) {
-        std::this_thread::yield();
-    }
+    holding.wait();
     reset_this_thread();
     auto work = busy.get_executor();
     std::array<std::uint8_t, 32> output{};
