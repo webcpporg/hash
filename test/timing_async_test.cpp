@@ -203,13 +203,6 @@ completion heavy(std::string_view name, std::string_view function, asio::io_cont
     return form_on(computes_on::pool, name, function, context, pool, std::move(start));
 }
 
-// A cheap form on a synchronous backend: the calling thread computes, during the initiation.
-template <class Start>
-completion cheap(std::string_view name, std::string_view function, asio::io_context& context,
-                 asio::thread_pool& pool, Start start) {
-    return form_on(computes_on::caller, name, function, context, pool, std::move(start));
-}
-
 void check_heavy(asio::io_context& context, asio::thread_pool& pool) {
     auto work = pool.get_executor();
     std::array<std::uint8_t, 32> output{};
@@ -253,6 +246,13 @@ void check_heavy(asio::io_context& context, asio::thread_pool& pool) {
 }
 
 #ifndef WEBCPP_TEST_TIMING_ASYNC_BOTAN
+// A cheap form on a synchronous backend: the calling thread computes, during the initiation.
+template <class Start>
+completion cheap(std::string_view name, std::string_view function, asio::io_context& context,
+                 asio::thread_pool& pool, Start start) {
+    return form_on(computes_on::caller, name, function, context, pool, std::move(start));
+}
+
 void check_cheap(asio::io_context& context, asio::thread_pool& pool) {
     auto loop = context.get_executor();
     std::array<std::uint8_t, 32> output{};
