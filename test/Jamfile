@@ -717,6 +717,15 @@ hash-run timing_keyed : timing_keyed_test.cpp
   : <library>/third_party//blake3 <library>/third_party//sodium
     <library>/third_party//blake3_vectors <library>/webcpp//boost_json ;
 
+# The key derivations and password hashes hold detail::timing_guard on every
+# backend: timing_keyed covers the default backends'; kbkdf, sskdf and x963kdf,
+# and a second cell of the templates, on backends::openssl, here, and bcrypt,
+# bcrypt_verify and bcrypt_pbkdf, and a cell of the templates, on
+# backends::botan (exceptions on, native and Emscripten).
+hash-run timing_keyed_openssl : timing_keyed_openssl_test.cpp
+  : <library>/webcpp/hash//openssl : native wasip2 wasip3 ;
+botan-run timing_keyed_botan : timing_keyed_botan_test.cpp ;
+
 build-project messages ;
 
 # The canaries at link time, each C library's absence and another commit of

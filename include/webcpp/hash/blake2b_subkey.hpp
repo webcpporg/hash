@@ -14,6 +14,9 @@
  zero bytes as the personalisation: the bytes libsodium's `crypto_kdf_derive_from_key` gives, so
  that a program and a libsodium peer derive the same keys.
 
+ Every call holds the data-independent-timing guard (`detail::timing_guard`): where the CPU has
+ DIT, the call sets it and leaves the thread's state as it found it.
+
  Every guard runs before any work, and a guard's refusal leaves the output as it was; a backend's
  failure zeroes it.
 
@@ -34,6 +37,7 @@
 #include <webcpp/hash/config.hpp>
 
 #include <webcpp/hash/detail/engines.hpp>
+#include <webcpp/hash/detail/timing.hpp>
 #include <webcpp/hash/detail/wipe.hpp>
 #include <webcpp/hash/error.hpp>
 #include <webcpp/hash/kdf.hpp>
@@ -83,6 +87,7 @@ template <class Backend = default_backend<kdfs::blake2b_subkey>>
                                                          std::span<std::uint8_t const> master_key,
                                                          std::uint64_t subkey_id,
                                                          std::span<std::uint8_t const> context) {
+    detail::timing_guard const timing;
     using engine = detail::blake2b_subkey_engine<Backend>;
     if (output.size() < blake2b_subkey_min_size || output.size() > blake2b_subkey_max_size) {
         return error::invalid_output_size;

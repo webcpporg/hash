@@ -17,6 +17,9 @@
  None of them is for a password (Argon2id is) nor a better choice than HKDF for a new design: they
  are here to derive the bytes a standard, a smart card or another library derives.
 
+ Every call holds the data-independent-timing guard (`detail::timing_guard`): where the CPU has
+ DIT, the call sets it and leaves the thread's state as it found it.
+
  Every guard runs before any work, and a guard's refusal leaves the output as it was; a backend's
  failure zeroes it.
 
@@ -39,6 +42,7 @@
 
 #include <webcpp/hash/detail/engines.hpp>
 #include <webcpp/hash/detail/limits.hpp>
+#include <webcpp/hash/detail/timing.hpp>
 #include <webcpp/hash/detail/wipe.hpp>
 #include <webcpp/hash/error.hpp>
 #include <webcpp/hash/kdf.hpp>
@@ -285,6 +289,7 @@ template <class Hmac, class Backend = default_backend<kdfs::kbkdf_hmac, Hmac>>
 [[nodiscard]] boost::system::result<void> kbkdf(std::span<std::uint8_t> output,
                                                 std::span<std::uint8_t const> key,
                                                 kbkdf_options const& options = {}) {
+    detail::timing_guard const timing;
     if constexpr (!detail::takes_hmac<Hmac>()) {
         return error::backend_failure;  // unreachable: takes_hmac has stopped the build
     } else {
@@ -353,6 +358,7 @@ template <class Digest, class Backend = default_backend<kdfs::sskdf>>
 [[nodiscard]] boost::system::result<void> sskdf(std::span<std::uint8_t> output,
                                                 std::span<std::uint8_t const> secret,
                                                 std::span<std::uint8_t const> fixed_info = {}) {
+    detail::timing_guard const timing;
     if constexpr (!detail::sskdf_takes<Digest>()) {
         return error::backend_failure;  // unreachable: sskdf_takes has stopped the build
     } else {
@@ -414,6 +420,7 @@ template <class Digest, class Backend = default_backend<kdfs::x963kdf>>
 [[nodiscard]] boost::system::result<void> x963kdf(std::span<std::uint8_t> output,
                                                   std::span<std::uint8_t const> secret,
                                                   std::span<std::uint8_t const> shared_info = {}) {
+    detail::timing_guard const timing;
     if constexpr (!detail::x963kdf_takes<Digest>()) {
         return error::backend_failure;  // unreachable: x963kdf_takes has stopped the build
     } else {

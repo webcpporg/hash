@@ -4,19 +4,26 @@
 // accompanying file LICENSE_1_0.txt or copy at
 // https://www.boost.org/LICENSE_1_0.txt)
 
-// mac, and the keyed modes of BLAKE2b (digest_of, hasher) and of BLAKE3 (the blake3 class), hold
-// detail::timing_guard (design D1, D4): each enters its own guard first, on every target, through
-// the seam; a call that is not keyed enters none (D2); a guard changes no byte of any output.
-// Where the CPU has DIT, mac leaves the thread's state as it found it.
+// mac, the keyed modes of BLAKE2b (digest_of, hasher) and of BLAKE3 (the blake3 class), and the
+// key derivations and password hashes of the default backends (hkdf_extract, hkdf_expand, hkdf,
+// pbkdf2, blake2b_subkey, argon2id, argon2, scrypt), hold detail::timing_guard (design D1, D4):
+// each enters its own guard first, on every target, through the seam, also for a call that a
+// guard refuses before the backend; a call that is not keyed enters none (D2); a guard changes no
+// byte of any output. Where the CPU has DIT, mac leaves the thread's state as it found it.
 
 #include "support/timing_seam.hpp"
 
 #include <webcpp/hash/algorithms.hpp>
+#include <webcpp/hash/argon2.hpp>
 #include <webcpp/hash/backends/sodium.hpp>
+#include <webcpp/hash/blake2b_subkey.hpp>
 #include <webcpp/hash/blake3.hpp>
 #include <webcpp/hash/detail/timing.hpp>
 #include <webcpp/hash/digest.hpp>
+#include <webcpp/hash/hkdf.hpp>
 #include <webcpp/hash/mac.hpp>
+#include <webcpp/hash/pbkdf2.hpp>
+#include <webcpp/hash/scrypt.hpp>
 #include <webcpp/test/exit_status.hpp>
 
 #include "require.hpp"
@@ -348,6 +355,125 @@ void blake3_modes() {
     });
 }
 
+using hmac_sha2_256 = hash::hmac_sha2_256;
+
+std::array<std::uint8_t, 16> const salt16{16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1};
+
+// hkdf_extract and hkdf_expand enter their own guards, and hkdf its own first though it computes
+// what the other two do; a call refused by a guard (an output of no byte) enters its guard too.
+void hkdf_enters() {
+    using prk_type = hmac_sha2_256::result_type;
+    std::optional<prk_type> prk;
+    test::require_enters("hash::hkdf_extract of a salt on hash2", [&] {
+        auto const made = hash::hkdf_extract<hmac_sha2_256, backends::hash2>(salt16, key);
+        if (BOOST_TEST(made.has_value())) {
+            prk.emplace(*made);
+        }
+    });
+    if (!prk) {
+        return;
+    }
+    std::array<std::uint8_t, 42> okm{};
+    test::require_enters("hash::hkdf_expand of a prk on hash2", [&] {
+        BOOST_TEST(
+            (hash::hkdf_expand<hmac_sha2_256, backends::hash2>(okm, *prk, input)).has_value());
+    });
+    test::require_enters("hash::hkdf_expand with a prk of the wrong size on hash2", [&] {
+        BOOST_TEST(!(hash::hkdf_expand<hmac_sha2_256, backends::hash2>(
+                         okm, std::span<std::uint8_t const>{key}.first(5), input))
+                        .has_value());
+    });
+    std::array<std::uint8_t, 42> whole{};
+    test::require_enters("hash::hkdf of a salt on hash2", [&] {
+        BOOST_TEST(
+            (hash::hkdf<hmac_sha2_256, backends::hash2>(whole, salt16, key, input)).has_value());
+    });
+    // The two steps give what hkdf gives: the guards change no byte.
+    std::array<std::uint8_t, 42> stepped{};
+    auto const extracted = hash::hkdf_extract<hmac_sha2_256, backends::hash2>(salt16, key);
+    if (BOOST_TEST(extracted.has_value())) {
+        BOOST_TEST((hash::hkdf_expand<hmac_sha2_256, backends::hash2>(stepped, *extracted, input))
+                       .has_value());
+        BOOST_TEST(stepped == whole);
+    }
+    std::array<std::uint8_t, 0> none{};
+    test::require_enters("hash::hkdf with an output of no byte on hash2", [&] {
+        BOOST_TEST(
+            !(hash::hkdf<hmac_sha2_256, backends::hash2>(none, salt16, key, input)).has_value());
+    });
+}
+
+// pbkdf2 enters its guard, also for an iteration count of 0, and derives the same bytes.
+void pbkdf2_enters() {
+    std::array<std::uint8_t, 32> derived{};
+    test::require_enters("hash::pbkdf2 of 1000 iterations on hash2", [&] {
+        BOOST_TEST(
+            (hash::pbkdf2<hmac_sha2_256, backends::hash2>(derived, key, salt16, 1000)).has_value());
+    });
+    std::array<std::uint8_t, 32> again{};
+    test::require_enters("hash::pbkdf2 with the same arguments on hash2", [&] {
+        BOOST_TEST(
+            (hash::pbkdf2<hmac_sha2_256, backends::hash2>(again, key, salt16, 1000)).has_value());
+    });
+    BOOST_TEST(derived == again);
+    test::require_enters("hash::pbkdf2 of 0 iterations on hash2", [&] {
+        BOOST_TEST(
+            !(hash::pbkdf2<hmac_sha2_256, backends::hash2>(derived, key, salt16, 0)).has_value());
+    });
+}
+
+// blake2b_subkey, argon2id, argon2 and scrypt on sodium, each also with a parameter refused
+// before the backend.
+void sodium_derivations_enter() {
+    std::array<std::uint8_t, 8> const context{'c', 't', 'x', '_', 't', 'e', 's', 't'};
+    std::array<std::uint8_t, 32> subkey{};
+    test::require_enters("hash::blake2b_subkey on sodium", [&] {
+        BOOST_TEST((hash::blake2b_subkey<backends::sodium>(subkey, key, 7, context)).has_value());
+    });
+    std::array<std::uint8_t, 8> tiny{};
+    test::require_enters("hash::blake2b_subkey with an output too small on sodium", [&] {
+        BOOST_TEST(!(hash::blake2b_subkey<backends::sodium>(tiny, key, 7, context)).has_value());
+    });
+
+    std::array<std::uint8_t, 32> derived{};
+    hash::argon2id_parameters const cheapest{.passes = 1, .memory = 8192};
+    test::require_enters("hash::argon2id of the minimum parameters on sodium", [&] {
+        BOOST_TEST((hash::argon2id<backends::sodium>(derived, key, salt16, cheapest)).has_value());
+    });
+    std::array<std::uint8_t, 4> const short_salt{1, 2, 3, 4};
+    test::require_enters("hash::argon2id with a salt of the wrong size on sodium", [&] {
+        BOOST_TEST(
+            !(hash::argon2id<backends::sodium>(derived, key, short_salt, cheapest)).has_value());
+    });
+
+    hash::argon2_parameters const family{.passes = 3, .memory_kib = 8};
+    test::require_enters("hash::argon2 of argon2id on sodium", [&] {
+        BOOST_TEST(
+            (hash::argon2<hash::kdfs::argon2id, backends::sodium>(derived, key, salt16, family))
+                .has_value());
+    });
+    test::require_enters("hash::argon2 of argon2i on sodium", [&] {
+        BOOST_TEST(
+            (hash::argon2<hash::kdfs::argon2i, backends::sodium>(derived, key, salt16, family))
+                .has_value());
+    });
+    test::require_enters("hash::argon2 with a salt too short on sodium", [&] {
+        BOOST_TEST(!(hash::argon2<hash::kdfs::argon2id, backends::sodium>(derived, key, short_salt,
+                                                                          family))
+                        .has_value());
+    });
+
+    hash::scrypt_parameters const small{.n = 16, .r = 1, .p = 1};
+    test::require_enters("hash::scrypt of N = 16 on sodium", [&] {
+        BOOST_TEST((hash::scrypt<backends::sodium>(derived, key, salt16, small)).has_value());
+    });
+    test::require_enters("hash::scrypt of N = 1 on sodium", [&] {
+        BOOST_TEST(!(hash::scrypt<backends::sodium>(
+                         derived, key, salt16, hash::scrypt_parameters{.n = 1, .r = 1, .p = 1}))
+                        .has_value());
+    });
+}
+
 }  // namespace
 
 int main() {
@@ -358,5 +484,8 @@ int main() {
     moved_keyed_hasher();
     blake3_vectors_unchanged();
     blake3_modes();
+    hkdf_enters();
+    pbkdf2_enters();
+    sodium_derivations_enter();
     return webcpp::test::exit_status(boost::report_errors());
 }

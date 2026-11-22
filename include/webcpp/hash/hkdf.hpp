@@ -8,6 +8,9 @@
  HKDF, RFC 5869: `hkdf_extract`, `hkdf_expand` and `hkdf`, over any Boost.Hash2 hmac whose result
  is a digest, on the backend the call names or on @ref webcpp::hash::default_kdf_backend.
 
+ Every call holds the data-independent-timing guard (`detail::timing_guard`): where the CPU has
+ DIT, the call sets it and leaves the thread's state as it found it.
+
  Every guard runs before any work, and a guard's refusal leaves the output as it was; a backend's
  failure zeroes it.
 
@@ -30,6 +33,7 @@
 #include <webcpp/hash/backends/hash2.hpp>
 #include <webcpp/hash/detail/engines.hpp>
 #include <webcpp/hash/detail/limits.hpp>
+#include <webcpp/hash/detail/timing.hpp>
 #include <webcpp/hash/detail/wipe.hpp>
 #include <webcpp/hash/error.hpp>
 #include <webcpp/hash/kdf.hpp>
@@ -111,6 +115,7 @@ template <class Hmac, class Backend>
 template <class Hmac, class Backend = default_kdf_backend<Hmac, kdfs::hkdf_extract>>
 [[nodiscard]] boost::system::result<typename detail::hmac_result<Hmac>::type> hkdf_extract(
     std::span<std::uint8_t const> salt_bytes, std::span<std::uint8_t const> ikm_bytes) {
+    detail::timing_guard const timing;
     if constexpr (!detail::takes_hmac<Hmac>()) {
         return error::backend_failure;  // unreachable: takes_hmac has stopped the build
     } else {
@@ -139,6 +144,7 @@ template <class Hmac, class Backend = default_kdf_backend<Hmac, kdfs::hkdf_expan
 [[nodiscard]] boost::system::result<void> hkdf_expand(std::span<std::uint8_t> output_bytes,
                                                       std::span<std::uint8_t const> prk_bytes,
                                                       std::span<std::uint8_t const> info_bytes) {
+    detail::timing_guard const timing;
     if constexpr (!detail::takes_hmac<Hmac>()) {
         return error::backend_failure;  // unreachable: takes_hmac has stopped the build
     } else {
@@ -189,6 +195,7 @@ template <class Hmac, class Backend = default_kdf_backend<Hmac>>
                                                std::span<std::uint8_t const> salt_bytes,
                                                std::span<std::uint8_t const> ikm_bytes,
                                                std::span<std::uint8_t const> info_bytes) {
+    detail::timing_guard const timing;
     if constexpr (!detail::takes_hmac<Hmac>()) {
         return error::backend_failure;  // unreachable: takes_hmac has stopped the build
     } else {
