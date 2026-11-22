@@ -39,6 +39,7 @@
 #include <fstream>
 #include <iostream>
 #include <iterator>
+#include <memory>
 #include <optional>
 #include <span>
 #include <string>
@@ -208,8 +209,9 @@ void moved_keyed_hasher() {
     // The destructor of a keyed hasher wipes and holds no guard.
     auto dying = hash::hasher<digests::blake2b>::make(keyed);
     if (BOOST_TEST(dying.has_value())) {
-        std::optional<hash::hasher<digests::blake2b>> held;
-        held.emplace(std::move(*dying));
+        // Held by a unique_ptr, not a std::optional, whose reset GCC 15 at -O2 reads as a use of
+        // an uninitialized phase (-Wmaybe-uninitialized).
+        auto held = std::make_unique<hash::hasher<digests::blake2b>>(std::move(*dying));
         test::uncovered("destroying a keyed hasher", [&] { held.reset(); });
     }
 }
