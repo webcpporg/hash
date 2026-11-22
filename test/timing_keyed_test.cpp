@@ -72,7 +72,7 @@ void force_dit([[maybe_unused]] bool set) {
 #endif
 }
 
-std::array<std::uint8_t, 32> const key = [] {
+constexpr std::array<std::uint8_t, 32> key = [] {
     std::array<std::uint8_t, 32> bytes{};
     for (std::size_t i = 0; i < bytes.size(); ++i) {
         bytes[i] = static_cast<std::uint8_t>(i + 1);
@@ -296,7 +296,8 @@ void blake3_modes() {
     blake3 copy{*keyed};
     test::require_enters("blake3::update(void const*) of a copy of a keyed object",
                          [&] { copy.update(static_cast<void const*>(bytes.data()), 1); });
-    blake3 moved{std::move(copy)};
+    // blake3 is trivially copyable: its move is its copy, which the check names as a move.
+    blake3 moved{std::move(copy)};  // NOLINT(performance-move-const-arg)
     test::require_enters("blake3::update(void const*) of a moved keyed object",
                          [&] { moved.update(static_cast<void const*>(bytes.data()), 1); });
 

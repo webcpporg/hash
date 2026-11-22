@@ -40,7 +40,7 @@ namespace kdfs = webcpp::hash::kdfs;
 using hash::backends::botan;
 using hmac_sha2_256 = hash::hmac_sha2_256;
 
-std::array<std::uint8_t, 32> const key = [] {
+constexpr std::array<std::uint8_t, 32> key = [] {
     std::array<std::uint8_t, 32> bytes{};
     for (std::size_t i = 0; i < bytes.size(); ++i) {
         bytes[i] = static_cast<std::uint8_t>(i + 1);
@@ -89,9 +89,9 @@ void bcrypt_enters() {
     });
 }
 
-// One cell of every other function: the template's guard covers Botan's engine, and no function
-// of the backend holds one of its own.
-void templates_enter() {
+// HKDF's three functions, one cell each: the template's guard covers Botan's engine, and no
+// function of the backend holds one of its own.
+void hkdf_enters() {
     std::array<std::uint8_t, 32> derived{};
     std::array<std::uint8_t, 0> none{};
     using prk_type = hmac_sha2_256::result_type;
@@ -113,6 +113,12 @@ void templates_enter() {
     test::require_enters("hash::hkdf with an output of no byte on botan", [&] {
         BOOST_TEST(!(hash::hkdf<hmac_sha2_256, botan>(none, salt, key, info)).has_value());
     });
+}
+
+// The other key derivations and the password hashes over Botan's engines, each entering its
+// template's guard, as hkdf_enters' functions do.
+void derivations_enter() {
+    std::array<std::uint8_t, 32> derived{};
     test::require_enters("hash::pbkdf2 of 1000 iterations on botan", [&] {
         BOOST_TEST((hash::pbkdf2<hmac_sha2_256, botan>(derived, key, salt, 1000)).has_value());
     });
@@ -162,6 +168,7 @@ void templates_enter() {
 
 int main() {
     bcrypt_enters();
-    templates_enter();
+    hkdf_enters();
+    derivations_enter();
     return webcpp::test::exit_status(boost::report_errors());
 }

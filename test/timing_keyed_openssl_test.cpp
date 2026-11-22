@@ -38,7 +38,7 @@ namespace kdfs = webcpp::hash::kdfs;
 using hash::backends::openssl;
 using hmac_sha2_256 = hash::hmac_sha2_256;
 
-std::array<std::uint8_t, 32> const key = [] {
+constexpr std::array<std::uint8_t, 32> key = [] {
     std::array<std::uint8_t, 32> bytes{};
     for (std::size_t i = 0; i < bytes.size(); ++i) {
         bytes[i] = static_cast<std::uint8_t>(i + 1);
@@ -76,9 +76,9 @@ void standards_enter() {
     });
 }
 
-// The templates the default backends cover, over OpenSSL's engines: the guard of the template
-// covers each backend's (H2).
-void templates_enter() {
+// HKDF's three functions, which the default backends cover too, over OpenSSL's engines: the
+// guard of the template covers each backend's (H2).
+void hkdf_enters() {
     std::array<std::uint8_t, 32> derived{};
     using prk_type = hmac_sha2_256::result_type;
     std::optional<prk_type> prk;
@@ -97,6 +97,12 @@ void templates_enter() {
     test::require_enters("hash::hkdf of a salt on openssl", [&] {
         BOOST_TEST((hash::hkdf<hmac_sha2_256, openssl>(derived, salt, key, info)).has_value());
     });
+}
+
+// The other key derivations and the password hashes over OpenSSL's engines, each entering its
+// template's guard, as hkdf_enters' functions do.
+void derivations_enter() {
+    std::array<std::uint8_t, 32> derived{};
     test::require_enters("hash::pbkdf2 of 1000 iterations on openssl", [&] {
         BOOST_TEST((hash::pbkdf2<hmac_sha2_256, openssl>(derived, key, salt, 1000)).has_value());
     });
@@ -131,6 +137,7 @@ void templates_enter() {
 
 int main() {
     standards_enter();
-    templates_enter();
+    hkdf_enters();
+    derivations_enter();
     return webcpp::test::exit_status(boost::report_errors());
 }
