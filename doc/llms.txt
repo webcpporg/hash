@@ -4,6 +4,8 @@
 
 Primitives only: protocol steps (BIP39, hash160, EIP-55, Nostr ids, NIP-44) are what a domain library builds from these functions; the guide shows them as examples, never as this library's API.
 
+Timing: every MAC, key derivation and password hash, and BLAKE2b's and BLAKE3's keyed modes, set 64-bit ARM's DIT (data-independent timing) around each call where the CPU has it, on every backend, and leave the thread's DIT as they found it; unkeyed digests and Boost.Hash2's hmac<H> by alias do not, so an HMAC with DIT is mac<macs::hmac<D>>. [Section](https://webcpporg.github.io/libs/hash/#hash-backends-dit)
+
 - [The guide](https://webcpporg.github.io/libs/hash/): every chapter, example and table
 - [Choose by use case](https://webcpporg.github.io/libs/hash/#hash-choose): a decision table, need to function, backend and example
 

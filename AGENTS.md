@@ -23,5 +23,13 @@ specific to hash.
   decoding); a moved pin carries that commit. A moved pin is a change of its own (rule 12).
 - A test is declared through `hash-run` in `test/Jamfile`, which runs it with exceptions and
   without.
+- Every function that computes on a key, a password or a key derivation's secret input holds
+  `detail::timing_guard` as its first statement (`timing{engaged}` where the arguments decide
+  whether the call is keyed); unkeyed digests and Boost.Hash2's types by alias hold none. A new
+  keyed function, or a keyed cell that `doc/capabilities.json` gains (a MAC, a key derivation, a
+  password hash, on any backend), holds the guard and gets its call in that backend's
+  `test/timing_coverage_<backend>_test.cpp`, which fails until it does. `detail/timing.hpp` is a
+  copy of webcpp::crypto's `detail/timing.hpp` (hash cannot depend on crypto): a change to one is
+  made to both, and crypto's `test/timing_hash_interop_test.cpp` runs the two together.
 - `include/webcpp/hash/detail/canary.h` is a C header: it is in neither the headers-alone list nor
   `meta/include-boundaries.json`.

@@ -4,7 +4,8 @@
 # accompanying file LICENSE_1_0.txt or copy at
 # https://www.boost.org/LICENSE_1_0.txt)
 
-# The throughput of PBKDF2-HMAC-SHA-512 at 1,000,000 iterations (spec 4.3).
+# The throughput of PBKDF2-HMAC-SHA-512 at 1,000,000 iterations (spec 4.3),
+# and the cost of the timing guard (timing.cpp).
 # pbkdf2_sha512_key is the correctness test of the measured program: each
 # variant's derived key against an independent value, on every target, never
 # failing on a time. The measurements themselves are made by collect.py, which
@@ -37,6 +38,18 @@ webcpp.run pbkdf2_sha512_key : pbkdf2_sha512.cpp : $(.requirements) ;
 # every lane of test/ (test/Jamfile builds this project).
 exe pbkdf2_sha512 : pbkdf2_sha512.cpp : $(.requirements) <variant>release ;
 explicit pbkdf2_sha512 ;
+
+# The cost of detail::timing_guard, the scope every keyed function runs in
+# (doc/performance.adoc). timing_check is the correctness test of the measured
+# program, run in every lane of test/: the measurement at 10^3 iterations, its
+# line's form and the thread's DIT checked. It needs no backend:
+# detail/timing.hpp alone.
+webcpp.run timing_check : timing.cpp : <optimization>speed ;
+
+# The same program at variant=release, the one collect.py --timing measures,
+# natively and by hand (doc/performance.adoc); no lane measures it.
+exe timing : timing.cpp : <variant>release <optimization>speed ;
+explicit timing ;
 
 # The allocation counts of doc/allocation.adoc (spec section 7.7), from release
 # builds only: the programs of test/allocation_test.cpp,
