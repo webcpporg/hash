@@ -81,7 +81,7 @@ struct named_function {
  * `(<parameter word>`, or by a space and words that say how it is called.
  *
  * The scope is the component before the identifier, empty when there is none. A check named
- * `hkdf::hkdf_extract of a salt on hash2` names `hkdf::hkdf_extract`;
+ * `hash::hkdf_extract of a salt on hash2` names `hash::hkdf_extract`;
  * `blake3::update(void` names `blake3::update` with a parameter list that holds `void`.
  *
  * @param spelled The function as a check spells it.
