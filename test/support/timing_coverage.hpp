@@ -68,6 +68,21 @@
 namespace webcpp::test {
 
 /**
+ * Sets or clears DIT for this thread, as a program can, so that a test starts from a known state;
+ * only where the CPU has DIT, since the instruction traps on a CPU without it.
+ *
+ * @param set Whether to set DIT.
+ */
+inline void force_dit([[maybe_unused]] bool set) noexcept {
+#ifdef WEBCPP_HASH_DETAIL_TIMING_COVERED
+    if (!webcpp::hash::detail::cpu_has_dit()) {
+        return;
+    }
+    webcpp::hash::detail::write_dit(set ? webcpp::hash::detail::dit_bit : 0);
+#endif
+}
+
+/**
  * Runs `call` and reports an error when it entered no detail::timing_guard, when the first guard
  * it entered is not the one of `function` (support/timing_seam.hpp), or when it left the thread's
  * DIT other than it found it.
@@ -83,7 +98,8 @@ void covered(std::string const& name, std::string const& function, Call&& call) 
     bool const before = webcpp::hash::detail::dit_is_set();
     require_enters(name, function, std::forward<Call>(call));
     if (webcpp::hash::detail::dit_is_set() != before) {
-        std::string const message = name + " left DIT other than it found it";
+        std::string const message = name + (before ? " left DIT clear, though it found it set"
+                                                   : " left DIT set, though it found it clear");
         BOOST_ERROR(message.c_str());
     }
 }
@@ -175,6 +191,32 @@ inline bool table_has_cell(boost::json::value const& table, std::string_view row
     return false;
 }
 
+/**
+ * Whether the table's cell of `digests::blake2b` on `backend` takes a key: the cell exists, and its
+ * "partial", when it has one, does not list "a key" among what the backend refuses.
+ *
+ * @param backend The backend's name.
+ * @return Whether the table says the backend takes a key.
+ */
+inline bool table_blake2b_takes_key(std::string_view backend) {
+    auto const table = capability_table();
+    for (auto const& algorithm : table.at("algorithms").as_array()) {
+        for (auto const& function : algorithm.at("functions").as_array()) {
+            if (function.at("name").as_string() != "digests::blake2b") {
+                continue;
+            }
+            auto const* const cell = cell_of(function, backend);
+            if (cell == nullptr) {
+                return false;
+            }
+            auto const* const partial = cell->as_object().if_contains("partial");
+            return partial == nullptr || !partial->is_string() ||
+                   std::string_view(partial->as_string()).find("a key") == std::string_view::npos;
+        }
+    }
+    return false;
+}
+
 /** The name of the keyed cell of BLAKE2b with a key, a keyed function of design D1. */
 inline constexpr std::string_view keyed_blake2b_cell = "digests::blake2b keyed";
 /** The name of the keyed cell of the blake3 type's keyed modes, a keyed function of design D1. */
@@ -244,7 +286,9 @@ inline std::vector<std::string> keyed_cells(std::string_view backend) {
 
 /**
  * Reports each keyed cell of `backend` that `calls` does not cover and each call that names no
- * keyed cell of it, then runs every call.
+ * keyed cell of it, then runs every call from a thread with DIT clear, and again from one that set
+ * DIT itself (where the CPU has DIT), as a program can: `covered` checks that each call leaves the
+ * thread's DIT as it found it, clear and set. The thread's DIT is clear after.
  *
  * @param backend The backend's name, as the table spells it.
  * @param calls The backend's coverage calls.
@@ -259,14 +303,22 @@ inline void check_and_run(std::string_view backend, coverage_calls const& calls)
             BOOST_ERROR(message.c_str());
         }
     }
-    for (auto const& [name, call] : calls) {
-        if (std::ranges::find(cells, name) == cells.end()) {
+    for (auto const& entry : calls) {
+        if (std::ranges::find(cells, entry.first) == cells.end()) {
             std::string const message =
-                name + " on " + std::string(backend) + " names no keyed cell";
+                entry.first + " on " + std::string(backend) + " names no keyed cell";
             BOOST_ERROR(message.c_str());
         }
-        call();
     }
+    force_dit(false);
+    for (auto const& entry : calls) {
+        entry.second();
+    }
+    force_dit(true);
+    for (auto const& entry : calls) {
+        entry.second();
+    }
+    force_dit(false);
 }
 
 /**
@@ -801,16 +853,21 @@ std::optional<std::array<std::uint8_t, 64>> cover_keyed_blake2b_round(
 /**
  * BLAKE2b with a key on `Backend` (design D1): `digest_of`, then a hasher round, `make`, `update`
  * and `finish`, the round's digest the one of `digest_of`; on a backend whose cell refuses a key
- * (its "partial": `backends::hash2`, `backends::openssl`), `digest_of` and `make` answer
- * `unsupported_by_backend` and still enter the guard, which precedes every check. Then
- * `digest_of` and `make` with a key of 65 bytes, which the guards refuse before the backend.
+ * (its "partial" lists "a key": `backends::hash2`, `backends::openssl`; the engine must agree),
+ * `digest_of` and `make` answer `unsupported_by_backend` and still enter the guard, which precedes
+ * every check. Then `digest_of` and `make` with a key of 65 bytes, which the guards refuse before
+ * the backend.
  */
 template <class Backend>
 void cover_keyed_blake2b() {
     using hash::digests::blake2b;
     std::string const on = " of blake2b with a key" + coverage_on<Backend>();
     hash::digest_options<blake2b> const keyed{.key = coverage_key};
-    bool const takes_key = hash::detail::digest_engine<Backend, blake2b>::accepts(keyed);
+    // The table says whether the backend takes a key; the engine must agree, so that a backend
+    // that stopped taking one fails here rather than passing through the refusal's branch.
+    bool const takes_key = table_blake2b_takes_key(name_of<Backend>());
+    bool const engine_takes_key = hash::detail::digest_engine<Backend, blake2b>::accepts(keyed);
+    BOOST_TEST_EQ(engine_takes_key, takes_key);
     std::array<std::uint8_t, 64> once{};
     covered("hash::digest_of" + on, [&] {
         auto const done = hash::digest_of<blake2b, Backend>(once, coverage_input, keyed);

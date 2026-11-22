@@ -60,19 +60,6 @@ using webcpp::hash::blake3;
 using hmac_sha256 = macs::hmac<digests::sha2_256>;
 using blake2b_options = hash::digest_options<digests::blake2b>;
 
-/**
- * Sets or clears DIT for this thread, as a program can, so that a test starts from a known state;
- * only where the CPU has DIT, since the instruction traps on a CPU without it.
- */
-void force_dit([[maybe_unused]] bool set) {
-#ifdef WEBCPP_HASH_DETAIL_TIMING_COVERED
-    if (!detail::cpu_has_dit()) {
-        return;
-    }
-    detail::write_dit(set ? detail::dit_bit : 0);
-#endif
-}
-
 constexpr std::array<std::uint8_t, 32> key = [] {
     std::array<std::uint8_t, 32> bytes{};
     for (std::size_t i = 0; i < bytes.size(); ++i) {
@@ -109,11 +96,11 @@ void mac_enters() {
 // Where the CPU has DIT: mac leaves it set when the program set it, and clear when it was clear.
 void mac_leaves_set_state() {
     std::array<std::uint8_t, 32> tag{};
-    force_dit(true);
+    test::force_dit(true);
     BOOST_TEST_EQ(detail::dit_is_set(), detail::cpu_has_dit());
     BOOST_TEST((hash::mac<hmac_sha256, backends::hash2>(tag, key, input)).has_value());
     BOOST_TEST_EQ(detail::dit_is_set(), detail::cpu_has_dit());
-    force_dit(false);
+    test::force_dit(false);
     BOOST_TEST(!detail::dit_is_set());
     BOOST_TEST((hash::mac<hmac_sha256, backends::hash2>(tag, key, input)).has_value());
     BOOST_TEST(!detail::dit_is_set());
