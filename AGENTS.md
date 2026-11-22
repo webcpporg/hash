@@ -18,8 +18,9 @@ specific to hash.
 
 ## Cautions
 
-- Every C library is unchanged upstream code. A moved pin is a change of its own
-  (CODING-GUIDELINES.md chapter 5, rule 12).
+- Every C library is upstream code, unchanged except where CODING-GUIDELINES.md chapter 5 rule 1
+  allows a security fix on the mirror's `webcpp` branch (BearSSL: 32381d6, ECDSA's nonce
+  decoding); a moved pin carries that commit. A moved pin is a change of its own (rule 12).
 - A test is declared through `hash-run` in `test/Jamfile`, which runs it with exceptions and
   without.
 - `include/webcpp/hash/detail/canary.h` is a C header: it is in neither the headers-alone list nor

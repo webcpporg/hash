@@ -77,7 +77,7 @@
             "name": "bearssl",
             "tag": "backends::bearssl",
             "macro": "BEARSSL",
-            "library": "BearSSL at 7bea48e (v0.6-39)",
+            "library": "BearSSL at 32381d6 (webcpporg/bearssl's webcpp branch: upstream 7bea48e (v0.6-39) plus one ECDSA fix that does not touch hashing)",
             "licence": "MIT",
             "jamfile": "/third_party//bearssl",
             "targets": [
@@ -390,7 +390,7 @@
                             "hmacs": null,
                             "constant_time": {
                                 "value": "not stated",
-                                "source": "BearSSL at 7bea48e (v0.6-39): bearssl_hash.h states constant time for its GHASH implementations alone, not for br_md5_*, br_sha1_*, br_sha224_* to br_sha512_* or br_md5sha1_*."
+                                "source": "BearSSL upstream 7bea48e (v0.6-39), unchanged in webcpp's pin 32381d6: bearssl_hash.h states constant time for its GHASH implementations alone, not for br_md5_*, br_sha1_*, br_sha224_* to br_sha512_* or br_md5sha1_*."
                             }
                         },
                         "openssl": {
@@ -430,7 +430,7 @@
                             "hmacs": null,
                             "constant_time": {
                                 "value": "not stated",
-                                "source": "BearSSL at 7bea48e (v0.6-39): bearssl_hash.h states constant time for its GHASH implementations alone, not for br_md5_*, br_sha1_*, br_sha224_* to br_sha512_* or br_md5sha1_*."
+                                "source": "BearSSL upstream 7bea48e (v0.6-39), unchanged in webcpp's pin 32381d6: bearssl_hash.h states constant time for its GHASH implementations alone, not for br_md5_*, br_sha1_*, br_sha224_* to br_sha512_* or br_md5sha1_*."
                             }
                         },
                         "openssl": {
@@ -478,7 +478,7 @@
                             "hmacs": null,
                             "constant_time": {
                                 "value": "not stated",
-                                "source": "BearSSL at 7bea48e (v0.6-39): bearssl_hash.h states constant time for its GHASH implementations alone, not for br_md5_*, br_sha1_*, br_sha224_* to br_sha512_* or br_md5sha1_*."
+                                "source": "BearSSL upstream 7bea48e (v0.6-39), unchanged in webcpp's pin 32381d6: bearssl_hash.h states constant time for its GHASH implementations alone, not for br_md5_*, br_sha1_*, br_sha224_* to br_sha512_* or br_md5sha1_*."
                             }
                         },
                         "openssl": {
@@ -526,7 +526,7 @@
                             "hmacs": null,
                             "constant_time": {
                                 "value": "not stated",
-                                "source": "BearSSL at 7bea48e (v0.6-39): bearssl_hash.h states constant time for its GHASH implementations alone, not for br_md5_*, br_sha1_*, br_sha224_* to br_sha512_* or br_md5sha1_*."
+                                "source": "BearSSL upstream 7bea48e (v0.6-39), unchanged in webcpp's pin 32381d6: bearssl_hash.h states constant time for its GHASH implementations alone, not for br_md5_*, br_sha1_*, br_sha224_* to br_sha512_* or br_md5sha1_*."
                             }
                         },
                         "openssl": {
@@ -574,7 +574,7 @@
                             "hmacs": null,
                             "constant_time": {
                                 "value": "not stated",
-                                "source": "BearSSL at 7bea48e (v0.6-39): bearssl_hash.h states constant time for its GHASH implementations alone, not for br_md5_*, br_sha1_*, br_sha224_* to br_sha512_* or br_md5sha1_*."
+                                "source": "BearSSL upstream 7bea48e (v0.6-39), unchanged in webcpp's pin 32381d6: bearssl_hash.h states constant time for its GHASH implementations alone, not for br_md5_*, br_sha1_*, br_sha224_* to br_sha512_* or br_md5sha1_*."
                             }
                         },
                         "openssl": {
@@ -630,7 +630,7 @@
                             "hmacs": null,
                             "constant_time": {
                                 "value": "not stated",
-                                "source": "BearSSL at 7bea48e (v0.6-39): bearssl_hash.h states constant time for its GHASH implementations alone, not for br_md5_*, br_sha1_*, br_sha224_* to br_sha512_* or br_md5sha1_*."
+                                "source": "BearSSL upstream 7bea48e (v0.6-39), unchanged in webcpp's pin 32381d6: bearssl_hash.h states constant time for its GHASH implementations alone, not for br_md5_*, br_sha1_*, br_sha224_* to br_sha512_* or br_md5sha1_*."
                             }
                         },
                         "openssl": {
@@ -726,7 +726,7 @@
                             "hmacs": null,
                             "constant_time": {
                                 "value": "not stated",
-                                "source": "BearSSL at 7bea48e (v0.6-39): bearssl_hash.h states constant time for its GHASH implementations alone, not for br_md5_*, br_sha1_*, br_sha224_* to br_sha512_* or br_md5sha1_*."
+                                "source": "BearSSL upstream 7bea48e (v0.6-39), unchanged in webcpp's pin 32381d6: bearssl_hash.h states constant time for its GHASH implementations alone, not for br_md5_*, br_sha1_*, br_sha224_* to br_sha512_* or br_md5sha1_*."
                             }
                         },
                         "openssl": {
@@ -1055,7 +1055,7 @@
                             "hmacs": null,
                             "constant_time": {
                                 "value": "not stated",
-                                "source": "BearSSL at 7bea48e (v0.6-39): bearssl_kdf.h states no constant-time property for br_shake_*."
+                                "source": "BearSSL upstream 7bea48e (v0.6-39), unchanged in webcpp's pin 32381d6: bearssl_kdf.h states no constant-time property for br_shake_*."
                             }
                         },
                         "openssl": {
@@ -1111,7 +1111,7 @@
                             "hmacs": null,
                             "constant_time": {
                                 "value": "not stated",
-                                "source": "BearSSL at 7bea48e (v0.6-39): bearssl_kdf.h states no constant-time property for br_shake_*."
+                                "source": "BearSSL upstream 7bea48e (v0.6-39), unchanged in webcpp's pin 32381d6: bearssl_kdf.h states no constant-time property for br_shake_*."
                             }
                         },
                         "openssl": {
@@ -2392,7 +2392,7 @@
                             "hmacs": null,
                             "constant_time": {
                                 "value": "not stated",
-                                "source": "BearSSL at 7bea48e (v0.6-39): bearssl_hmac.h states constant time for br_hmac_outCT alone; mac calls br_hmac_out."
+                                "source": "BearSSL upstream 7bea48e (v0.6-39), unchanged in webcpp's pin 32381d6: bearssl_hmac.h states constant time for br_hmac_outCT alone; mac calls br_hmac_out."
                             }
                         },
                         "openssl": {
@@ -2433,7 +2433,7 @@
                             "hmacs": null,
                             "constant_time": {
                                 "value": "not stated",
-                                "source": "BearSSL at 7bea48e (v0.6-39): bearssl_hmac.h states constant time for br_hmac_outCT alone; mac calls br_hmac_out."
+                                "source": "BearSSL upstream 7bea48e (v0.6-39), unchanged in webcpp's pin 32381d6: bearssl_hmac.h states constant time for br_hmac_outCT alone; mac calls br_hmac_out."
                             }
                         },
                         "openssl": {
@@ -2482,7 +2482,7 @@
                             "hmacs": null,
                             "constant_time": {
                                 "value": "not stated",
-                                "source": "BearSSL at 7bea48e (v0.6-39): bearssl_hmac.h states constant time for br_hmac_outCT alone; mac calls br_hmac_out."
+                                "source": "BearSSL upstream 7bea48e (v0.6-39), unchanged in webcpp's pin 32381d6: bearssl_hmac.h states constant time for br_hmac_outCT alone; mac calls br_hmac_out."
                             }
                         },
                         "openssl": {
@@ -2531,7 +2531,7 @@
                             "hmacs": null,
                             "constant_time": {
                                 "value": "not stated",
-                                "source": "BearSSL at 7bea48e (v0.6-39): bearssl_hmac.h states constant time for br_hmac_outCT alone; mac calls br_hmac_out."
+                                "source": "BearSSL upstream 7bea48e (v0.6-39), unchanged in webcpp's pin 32381d6: bearssl_hmac.h states constant time for br_hmac_outCT alone; mac calls br_hmac_out."
                             }
                         },
                         "openssl": {
@@ -2580,7 +2580,7 @@
                             "hmacs": null,
                             "constant_time": {
                                 "value": "not stated",
-                                "source": "BearSSL at 7bea48e (v0.6-39): bearssl_hmac.h states constant time for br_hmac_outCT alone; mac calls br_hmac_out."
+                                "source": "BearSSL upstream 7bea48e (v0.6-39), unchanged in webcpp's pin 32381d6: bearssl_hmac.h states constant time for br_hmac_outCT alone; mac calls br_hmac_out."
                             }
                         },
                         "openssl": {
@@ -2637,7 +2637,7 @@
                             "hmacs": null,
                             "constant_time": {
                                 "value": "not stated",
-                                "source": "BearSSL at 7bea48e (v0.6-39): bearssl_hmac.h states constant time for br_hmac_outCT alone; mac calls br_hmac_out."
+                                "source": "BearSSL upstream 7bea48e (v0.6-39), unchanged in webcpp's pin 32381d6: bearssl_hmac.h states constant time for br_hmac_outCT alone; mac calls br_hmac_out."
                             }
                         },
                         "openssl": {
@@ -3533,7 +3533,7 @@
                             ],
                             "constant_time": {
                                 "value": "not stated",
-                                "source": "BearSSL at 7bea48e (v0.6-39): bearssl_hmac.h states constant time for br_hmac_outCT alone; br_hkdf_* (src/kdf/hkdf.c) calls br_hmac_out."
+                                "source": "BearSSL upstream 7bea48e (v0.6-39), unchanged in webcpp's pin 32381d6: bearssl_hmac.h states constant time for br_hmac_outCT alone; br_hkdf_* (src/kdf/hkdf.c) calls br_hmac_out."
                             }
                         },
                         "openssl": {

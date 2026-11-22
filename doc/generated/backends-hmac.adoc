@@ -625,7 +625,7 @@
 
 What each backend states on constant time, as the capability table read it:
 
-* `bearssl`: BearSSL at 7bea48e (v0.6-39): bearssl_hmac.h states constant time for br_hmac_outCT alone; mac calls br_hmac_out.
+* `bearssl`: BearSSL upstream 7bea48e (v0.6-39), unchanged in webcpp's pin 32381d6: bearssl_hmac.h states constant time for br_hmac_outCT alone; mac calls br_hmac_out.
 * `botan`:
 ** Botan 3.14.1: doc/api_ref/hash.rst warns that Streebog's baseline implementation uses table lookups indexed by the data and is likely vulnerable to cache-based side channels; its constant-time code needs AVX-512 and GFNI, an instruction-set module that /third_party//botan's minimized build does not load.
 ** Botan 3.14.1: doc/api_ref/hash.rst warns that Whirlpool's baseline implementation uses table lookups indexed by the data and is likely vulnerable to cache-based side channels; its constant-time code needs AVX2 or AVX-512, instruction-set modules that /third_party//botan's minimized build does not load.

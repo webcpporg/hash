@@ -8,7 +8,7 @@
 // its link, or with another commit's canary (WEBCPP_HASH_BEARSSL_CANARY_COMMIT), it does not link:
 // the canary its header reads,
 //
-//     webcpp_hash_bearssl_7bea48e_<configuration>__add_third_party_bearssl_to_your_link,
+//     webcpp_hash_bearssl_32381d6_<configuration>__add_third_party_bearssl_to_your_link,
 //
 // whose configuration is noseeder on Windows and getentropy elsewhere, is undefined (spec
 // section 5.4). It names nothing of the test support, which a link-fail program is built without.
