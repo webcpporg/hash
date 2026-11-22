@@ -65,6 +65,7 @@ webcpp.headers-alone hash : ../include :
     hash/config.hpp
     hash/detail/engines.hpp
     hash/detail/limits.hpp
+    hash/detail/timing.hpp
     hash/detail/wipe.hpp
     hash/detail/xkcp.hpp
     hash/digest.hpp
@@ -692,6 +693,87 @@ hash-run allocation_openssl : allocation_openssl_test.cpp
   : <library>/webcpp/hash//openssl
     <target-os>wasi:<linkflags>-Wl,--wrap=malloc,--wrap=calloc,--wrap=realloc,--wrap=aligned_alloc,--wrap=posix_memalign
   : native wasip2 wasip3 ;
+
+# detail::timing_guard sets DIT for its scope where the CPU has it and leaves
+# the thread's state as it found it; its seam fires on every target for an
+# engaged guard and never for a disengaged one. timing_threads adds a second
+# thread, natively, with threads.
+hash-run timing : timing_test.cpp ;
+hash-run timing_threads : timing_test.cpp
+  : <threading>multi <define>WEBCPP_TEST_TIMING_THREADS : native ;
+# Without the seam, the guard takes a bool and no source_location, on every
+# target; natively, at release, a program that calls mac reads its own
+# executable and finds neither mac's name nor mac.hpp's path, which a guard's
+# source_location would keep where its constructor is not inlined (clang on
+# arm64).
+hash-run timing_unseamed : timing_unseamed_test.cpp ;
+webcpp.run timing_unseamed_release : timing_unseamed_test.cpp
+  : <variant>release <define>WEBCPP_TEST_TIMING_READ_SELF : native ;
+
+# The asynchronous forms set DIT on the thread that computes: the pool's for a
+# heavy function (the synchronous function's guard, no initiating function holds
+# one), the caller's for a cheap one; timing_async_botan the same for Botan's
+# heavy forms and async_bcrypt, async_bcrypt_verify and async_bcrypt_pbkdf.
+hash-run timing_async : timing_async_test.cpp
+  : <library>/webcpp/asio//asio <library>/third_party//sodium <threading>multi
+    <toolset>emscripten:<linkflags>-sPTHREAD_POOL_SIZE=3
+  : native emscripten ;
+botan-run timing_async_botan : timing_async_test.cpp
+  : <library>/webcpp/asio//asio <threading>multi
+    <define>WEBCPP_TEST_TIMING_ASYNC_BOTAN
+    <toolset>emscripten:<linkflags>-sPTHREAD_POOL_SIZE=3 ;
+
+# DIT is set while a keyed function computes: a Hash2-form probe records DIT at
+# each update under the hmac of hkdf_extract, hkdf_expand, hkdf, pbkdf2 and mac;
+# timing_during_async the same through async_pbkdf2, on the pool's thread.
+hash-run timing_during : timing_during_test.cpp ;
+hash-run timing_during_async : timing_during_test.cpp
+  : <library>/webcpp/asio//asio <threading>multi <define>WEBCPP_TEST_TIMING_DURING_ASYNC
+    <toolset>emscripten:<linkflags>-sPTHREAD_POOL_SIZE=2
+  : native emscripten ;
+
+# mac and the keyed modes of BLAKE2b (digest_of, hasher with a key) and of
+# BLAKE3 (keyed, derive_key and the seeds that key) hold detail::timing_guard; a
+# call that is not keyed holds none; no output changes.
+hash-run timing_keyed : timing_keyed_test.cpp
+  : $(.hash-tables) <library>/third_party//blake3 <library>/third_party//sodium
+    <library>/third_party//blake3_vectors ;
+
+# The key derivations and password hashes hold detail::timing_guard on every
+# backend: timing_keyed covers the default backends'; kbkdf, sskdf and x963kdf,
+# and a second cell of the templates, on backends::openssl, here, and bcrypt,
+# bcrypt_verify and bcrypt_pbkdf, and a cell of the templates, on
+# backends::botan (exceptions on, native and Emscripten).
+hash-run timing_keyed_openssl : timing_keyed_openssl_test.cpp
+  : <library>/webcpp/hash//openssl : native wasip2 wasip3 ;
+botan-run timing_keyed_botan : timing_keyed_botan_test.cpp ;
+# Botan failing inside a guard (a name it does not know, through the seam of
+# botan_failure): mac, hkdf_extract, hkdf_expand, hkdf and pbkdf2 enter their
+# own guard, answer backend_failure and leave DIT as they found it.
+botan-run timing_botan_failure : timing_botan_failure_test.cpp
+  : <define>"\"WEBCPP_HASH_DETAIL_TEST_BOTAN_NAME=\\\"NO-SUCH-HASH\\\"\"" ;
+
+# One coverage test per backend, driven by doc/capabilities.json: every keyed
+# cell of the backend (support/timing_coverage.hpp: macs, key derivations and
+# password hashes, one per hmac a cell lists, and BLAKE2b with a key, the
+# blake3 type's keyed modes and bcrypt_verify) enters its own
+# detail::timing_guard first; every digest cell without a key, and every
+# Boost.Hash2-form type, enters none. A new cell of a family the support
+# knows gets its call from backend_has_v, which capabilities keeps equal to the
+# table; a cell of a family or function it does not know fails until its call
+# is written. backends::webcrypto has none (design D6).
+hash-run timing_coverage_hash2 : timing_coverage_hash2_test.cpp : $(.hash-tables) ;
+hash-run timing_coverage_sodium : timing_coverage_sodium_test.cpp
+  : $(.hash-tables) <library>/third_party//sodium ;
+hash-run timing_coverage_bearssl : timing_coverage_bearssl_test.cpp
+  : $(.hash-tables) <library>/third_party//bearssl ;
+hash-run timing_coverage_openssl : timing_coverage_openssl_test.cpp
+  : $(.hash-tables) <library>/webcpp/hash//openssl : native wasip2 wasip3 ;
+hash-run timing_coverage_xkcp : timing_coverage_xkcp_test.cpp
+  : $(.hash-tables) <library>/third_party//xkcp ;
+hash-run timing_coverage_blake3 : timing_coverage_blake3_test.cpp
+  : $(.hash-tables) <library>/third_party//blake3 ;
+botan-run timing_coverage_botan : timing_coverage_botan_test.cpp : $(.hash-tables) ;
 
 build-project messages ;
 

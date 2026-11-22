@@ -35,6 +35,10 @@ static_assert(std::is_copy_assignable_v<blake3>);
 static_assert(blake3::block_size == 64);
 static_assert(blake3::key_size == 32);
 static_assert(std::is_same_v<blake3::result_type, boost::hash2::digest<32>>);
+// The size the documentation states (blake3.hpp, digests.adoc): BLAKE3's state of 1,912 bytes, a
+// count and the keyed flag, 1,928 bytes on 64-bit targets; and BLAKE3's own state, 1,912.
+static_assert(sizeof(void*) != 8 || sizeof(blake3_hasher) == 1912);
+static_assert(sizeof(void*) != 8 || sizeof(blake3) == 1928);
 
 // n bytes of BLAKE3's keyed hash under key, of message, from position on, through the C API.
 template <std::size_t N>

@@ -25,6 +25,23 @@ finds another input with the digest of a given one). A digest of 256 bits
 gives 128-bit collision resistance, which no computer will reach; the
 "Security" column below gives each function's.
 
+A digest sets no DIT. hash sets 64-bit ARM's DIT (data-independent timing)
+around every call that computes on a key, a password or a key derivation's
+secret input (<<hash-backends-dit>>), and a digest's input is not a secret by
+its contract: a program that must keep a value secret and derive from it uses
+a MAC or a key derivation. A digest is also the streaming case, called once
+per chunk, often per network read, where a guard per call would cost every
+checksum a real part of a short chunk's time for no secret
+(<<hash-performance-timing>>); and the same algorithm is also Boost.Hash2's
+own type by alias, which hash cannot guard, so that a guard on one spelling
+would make the protection depend on the spelling. The keyed modes are MACs
+and set DIT: `digest_of` and `hasher` of `digests::blake2b` when the options
+carry a key (<<hash-blake2b-options>>), and `blake3` in its keyed,
+key-derivation and seeded keyed modes (<<hash-blake3>>). Boost.Hash2's
+`blake2b_512` and `blake2s_256` constructed with a key are its own types by
+alias and set none: for a keyed BLAKE2 with DIT, use `mac<macs::blake2b_mac>`
+or `digests::blake2b` with a key.
+
 include::generated/compare-digests.adoc[]
 
 [#hash-sha2]
@@ -423,7 +440,9 @@ same way on every side, since the library does not guess a padding.
 * *A key is a secret, the salt and personalisation are not.* For a MAC, use a
 random key of 16 to 64 bytes from `webcpp::crypto::random_device`, compare
 tags with `webcpp::crypto::equal`, and prefer `mac<macs::blake2b_mac>`
-(<<hash-blake2b-mac-sodium>>); a key of 0 bytes is the unkeyed hash.
+(<<hash-blake2b-mac-sodium>>); a key of 0 bytes is the unkeyed hash. With a
+key, `digest_of` and each of `make`, `update` and `finish` of a `hasher` set
+DIT around the call (<<hash-backends-dit>>); without one, none does.
 * *`backends::hash2` has BLAKE2b-512 alone.* Named in the call, it answers
 `unsupported_by_backend` to a shorter output, a key, a salt or a
 personalisation, rather than ignore one.
@@ -470,6 +489,13 @@ The key material goes through `update`.
 * *The seeded constructor is a keyed hash.* `blake3(seed_value)` and
 `blake3(input_data, input_size)` exist for Boost.Hash2's HashAlgorithm form
 and key the hash with the seed; for a MAC, call `keyed` with a 32-byte key.
+* *A keyed object sets DIT around each call; a plain one does not.* `keyed`,
+`derive_key` and the seeded constructors with a seed that keys the hash (a
+non-empty byte seed, a non-zero integer seed) set DIT
+(<<hash-backends-dit>>), and so do `update`, `result`, `squeeze` and `reset`
+of the object they make; the plain hash sets none. The flag that says which
+is part of the object: 1,928 bytes on 64-bit targets, BLAKE3's state of 1,912
+bytes, the count of bytes `result()` returned and the flag.
 * *`blake3` does not wipe itself.* Like Hash2's types, it holds the key in
 its state until it is destroyed; a program that needs the key gone writes over
 the object.

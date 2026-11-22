@@ -43,6 +43,16 @@ Each runs, by default, on the synchronous function's backend
 (<<hash-default-backend>>): `backends::webcrypto`, the browser's WebCrypto, is
 used only when the type names it, on Emscripten (<<hash-async-webcrypto>>).
 
+An asynchronous function sets DIT (data-independent timing) where its
+synchronous function does (<<hash-backends-dit>>), on the thread that
+computes: a heavy function's synchronous function runs on a thread of the
+executor's pool, inside its own guard, and gives that thread its DIT back
+when it returns; a cheap one's runs at once on the calling thread, inside its
+guard. The initiating function holds no guard of its own, and
+`async_digest` computes an unkeyed digest, which sets none. On
+`backends::webcrypto` the browser's JavaScript engine computes, on a target
+where the guard does nothing, and nothing is added.
+
 [#hash-async-heavy]
 === The heavy functions on another thread
 

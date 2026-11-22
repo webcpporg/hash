@@ -267,5 +267,43 @@
       "max_ms": 1004.75,
       "key_correct": true
     }
-  ]
+  ],
+  "timing_guard": {
+    "measurement": "the nanoseconds detail::timing_guard adds to a call, bench/timing.cpp",
+    "date": "2026-11-22",
+    "machine": {
+      "cpu": "Apple M5 Max",
+      "architecture": "arm64",
+      "cores": 18,
+      "os": "Darwin 27.0.0"
+    },
+    "load_average_before_after": [
+      [
+        61.44970703125,
+        270.64794921875,
+        332.67626953125
+      ],
+      [
+        61.44970703125,
+        270.64794921875,
+        332.67626953125
+      ]
+    ],
+    "build": "variant=release optimization=speed",
+    "target": "native",
+    "compiler": "Apple LLVM 21.0.0 (clang-2100.4.1.1)",
+    "iterations": 10000000,
+    "runs": 5,
+    "dit": true,
+    "clear_ns": 45.418,
+    "clear_fastest_ns": 44.81,
+    "clear_slowest_ns": 48.771,
+    "set_ns": 0.711,
+    "set_fastest_ns": 0.646,
+    "set_slowest_ns": 0.755,
+    "disengaged_ns": -0.006,
+    "disengaged_fastest_ns": -0.013,
+    "disengaged_slowest_ns": 0.099,
+    "provisional": true
+  }
 }

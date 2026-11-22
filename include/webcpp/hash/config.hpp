@@ -17,10 +17,13 @@
 
 #include <webcpp/config.hpp>
 
-// MrDocs parses hash natively, as a build with exceptions does, where none of these macros is
-// defined: these definitions are the ones the reference lists. Each is undone at once, except the
-// libraries' WEBCPP_HASH_HAS_<NAME>, which stay defined: doc/Jamfile links every library, so that
-// the reference reads each backend's header, as a program that links them all does.
+// MrDocs parses hash as a build with exceptions does, where none of these macros is defined: these
+// definitions are the ones the reference lists. Each is undone at once but WEBCPP_HASH_HAS_THREADS,
+// which stays defined, as a native build has it. The libraries' WEBCPP_HASH_HAS_<NAME> are left as
+// the build set them (push_macro and pop_macro keep the definition or its absence): hash's
+// doc/Jamfile links every library, so its reference reads each backend's header, while the
+// reference of a library that includes hash reads only the backends that library links (trystero's,
+// for Emscripten's target, reads BearSSL's alone).
 #ifdef __MRDOCS__
 /**
  Defined when webcpp::hash is built without exceptions: when webcpp has none (the compiler has
@@ -37,31 +40,48 @@
 /** Defined on the WebAssembly targets, wasip2, wasip3 and Emscripten. */
 #define WEBCPP_HASH_WEBASSEMBLY 1
 #undef WEBCPP_HASH_WEBASSEMBLY
+#pragma push_macro("WEBCPP_HASH_HAS_XKCP")
+#undef WEBCPP_HASH_HAS_XKCP
 /**
  Defined by `/third_party//xkcp` when the program links XKCP; a program built without b2
  defines it to 1 itself.
 */
 #define WEBCPP_HASH_HAS_XKCP 1
+#pragma pop_macro("WEBCPP_HASH_HAS_XKCP")
+#pragma push_macro("WEBCPP_HASH_HAS_BLAKE3")
+#undef WEBCPP_HASH_HAS_BLAKE3
 /**
  Defined by `/third_party//blake3` when the program links the BLAKE3 C implementation; a
  program built without b2 defines it to 1 itself.
 */
 #define WEBCPP_HASH_HAS_BLAKE3 1
+#pragma pop_macro("WEBCPP_HASH_HAS_BLAKE3")
+#pragma push_macro("WEBCPP_HASH_HAS_SODIUM")
+#undef WEBCPP_HASH_HAS_SODIUM
 /**
  Defined by `/third_party//sodium` when the program links libsodium; a program built without
  b2 defines it to 1 itself.
 */
 #define WEBCPP_HASH_HAS_SODIUM 1
+#pragma pop_macro("WEBCPP_HASH_HAS_SODIUM")
+#pragma push_macro("WEBCPP_HASH_HAS_BEARSSL")
+#undef WEBCPP_HASH_HAS_BEARSSL
 /**
  Defined by `/third_party//bearssl` when the program links BearSSL; a program built without
  b2 defines it to 1 itself.
 */
 #define WEBCPP_HASH_HAS_BEARSSL 1
+#pragma pop_macro("WEBCPP_HASH_HAS_BEARSSL")
+#pragma push_macro("WEBCPP_HASH_HAS_OPENSSL")
+#undef WEBCPP_HASH_HAS_OPENSSL
 /**
  Defined by `/webcpp/hash//openssl` when the program links OpenSSL; a program built without
  b2 defines it to 1 itself. Refused on Emscripten, where OpenSSL is not built.
 */
 #define WEBCPP_HASH_HAS_OPENSSL 1
+#pragma pop_macro("WEBCPP_HASH_HAS_OPENSSL")
+#pragma push_macro("WEBCPP_HASH_HAS_BOTAN")
+#undef WEBCPP_HASH_HAS_BOTAN
 /**
  Defined by `/third_party//botan` when the program links Botan; a program built without b2
  defines it to 1 itself. Botan reports its errors by throwing: in a build without exceptions
@@ -70,6 +90,7 @@
  Emscripten.
 */
 #define WEBCPP_HASH_HAS_BOTAN 1
+#pragma pop_macro("WEBCPP_HASH_HAS_BOTAN")
 /**
  Defined where the heavy functions of `<webcpp/hash/async.hpp>` (`async_argon2id`, `async_argon2`,
  `async_scrypt`, `async_pbkdf2` on a synchronous backend) run on another thread: natively, where
@@ -111,8 +132,9 @@
 
 // The refusals of impossible combinations (spec 5.7). Clang and gcc go on after an #error, so
 // the first error is the instruction; MSVC stops at it.
+// A reference (MrDocs) describes the headers and builds no program, so none of them refuses it.
 // clang-format off
-#if defined(WEBCPP_TARGET_EMSCRIPTEN) && defined(WEBCPP_HASH_HAS_OPENSSL)
+#if !defined(__MRDOCS__) && defined(WEBCPP_TARGET_EMSCRIPTEN) && defined(WEBCPP_HASH_HAS_OPENSSL)
 #error "webcpp::hash: OpenSSL is not built for Emscripten. In the program's Jamfile, remove /webcpp/hash//openssl: hkdf and pbkdf2 then run on backends::hash2."
 #endif
 // clang-format on

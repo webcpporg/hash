@@ -18,6 +18,13 @@ nor change a message and keep its tag. A MAC does not hide the message, and it
 does not prove to a third party who wrote it (both sides hold the key); that
 is a signature's job, webcpp::crypto's.
 
+`mac` sets DIT (data-independent timing) around each call, on every
+synchronous backend, on 64-bit ARM under Apple's systems and Linux where the
+CPU has FEAT_DIT, and leaves the thread's DIT as it found it: a program does nothing (<<hash-backends-dit>>). Boost.Hash2's types that
+hash names by alias, `hmac<H>` and its `hmac_*` aliases, `siphash_32` and
+`siphash_64`, set none (<<hash-hmac>>): for HMAC with DIT, call
+`mac<macs::hmac<D>>`, and for SipHash with DIT, `mac<macs::siphash_2_4>`.
+
 include::generated/compare-macs.adoc[]
 
 [#hash-hmac]
@@ -60,6 +67,12 @@ first, which gives it no more strength.
 lets an attacker change the headers, the recipient or the order of messages;
 put a version, the context and a counter or timestamp inside the
 authenticated bytes, with an unambiguous encoding (lengths, not separators).
+* *`hmac<H>` and its aliases set no DIT; `mac` does.* They are Boost.Hash2's
+own classes, which hash names by alias, and a guard inside them would need a
+type of hash's in place of the one a program shares with Boost.Hash2's code.
+For an HMAC with DIT on 64-bit ARM, call `mac<macs::hmac<D>>`, which runs the
+same Boost.Hash2 code on `backends::hash2` inside its guard, or set DIT around
+the computation yourself (Apple's `timingsafe_enable_if_supported`).
 * *Truncate only on purpose.* A tag cut to 16 bytes still gives 128 bits
 against forgery; one cut to 4 bytes gives an attacker a one-in-four-billion
 chance per try, which a busy server can reach.

@@ -35,6 +35,7 @@
 #include <webcpp/hash/backends/hash2.hpp>
 #include <webcpp/hash/detail/engines.hpp>
 #include <webcpp/hash/detail/limits.hpp>
+#include <webcpp/hash/detail/timing.hpp>
 #include <webcpp/hash/detail/wipe.hpp>
 #include <webcpp/hash/error.hpp>
 #include <webcpp/hash/kdf.hpp>
@@ -672,6 +673,22 @@ template <class Engine>
     return {};
 }
 
+/**
+ Whether a digest's options carry a key: a keyed BLAKE2b is a MAC, and holds the timing guard of
+ one (design D1); every other digest computes on public data.
+
+ @tparam Options A tag's `digest_options`. @param options The digest's parameters.
+ @return Whether the options hold a non-empty `key`; `false` for options without one.
+*/
+template <class Options>
+[[nodiscard]] constexpr bool options_keyed(Options const& options) noexcept {
+    if constexpr (requires { options.key.empty(); }) {
+        return !options.key.empty();
+    } else {
+        return false;
+    }
+}
+
 }  // namespace detail
 
 /**
@@ -697,6 +714,7 @@ template <class Digest, class Backend = default_backend<Digest>>
 [[nodiscard]] boost::system::result<void> digest_of(std::span<std::uint8_t> output,
                                                     std::span<std::uint8_t const> input,
                                                     digest_options<Digest> const& options = {}) {
+    detail::timing_guard const timing{detail::options_keyed(options)};
     using engine = detail::digest_engine<Backend, Digest>;
     auto checked = detail::digest_guards<Digest>(output.size(), options);
     if (!checked) {
@@ -722,6 +740,9 @@ template <class Digest, class Backend = default_backend<Digest>>
 
  Unlike Boost.Hash2's types, the result is final: an `update` or a `finish` after `finish`, or on a
  hasher moved from, is `error::invalid_state`.
+
+ A hasher made with a key (BLAKE2b's) holds the timing guard of a MAC in `make`, `update` and
+ `finish`, as `digest_of` with a key does; one made without a key holds none (design D1, D2).
 
  Move-only. The state is wiped (and what the backend allocated for it freed) by `finish`, by the
  destructor, and in the hasher moved from.
@@ -758,6 +779,7 @@ public:
     */
     [[nodiscard]] static boost::system::result<hasher> make(
         digest_options<Digest> const& options = {}) noexcept {
+        detail::timing_guard const timing{detail::options_keyed(options)};
         auto const checked = traits::check(options);
         if (!checked) {
             return checked.error();
@@ -774,6 +796,7 @@ public:
         }
         started.min_output_ = traits::min_output(options);
         started.max_output_ = traits::max_output(options);
+        started.keyed_ = detail::options_keyed(options);
         started.phase_ = phase::hashing;
         return started;
     }
@@ -787,6 +810,7 @@ public:
         : state_(std::move(moved_from.state_)),
           min_output_(moved_from.min_output_),
           max_output_(moved_from.max_output_),
+          keyed_(moved_from.keyed_),
           phase_(moved_from.phase_) {
         moved_from.leave();
     }
@@ -804,6 +828,7 @@ public:
             state_ = std::move(moved_from.state_);
             min_output_ = moved_from.min_output_;
             max_output_ = moved_from.max_output_;
+            keyed_ = moved_from.keyed_;
             phase_ = moved_from.phase_;
             moved_from.leave();
         }
@@ -828,6 +853,7 @@ public:
      either of the last two the hasher is spent (`invalid_state`).
     */
     [[nodiscard]] boost::system::result<void> update(std::span<std::uint8_t const> input) noexcept {
+        detail::timing_guard const timing{keyed_};
         if (phase_ != phase::hashing) {
             return error::invalid_state;
         }
@@ -849,6 +875,7 @@ public:
      hasher spent.
     */
     [[nodiscard]] boost::system::result<void> finish(std::span<std::uint8_t> output) noexcept {
+        detail::timing_guard const timing{keyed_};
         if (phase_ != phase::hashing) {
             return error::invalid_state;
         }
@@ -894,6 +921,7 @@ private:
     engine::state state_{};
     std::uint64_t min_output_ = 0;
     std::uint64_t max_output_ = 0;
+    bool keyed_ = false;  // made with a key: update and finish hold the timing guard
     phase phase_ = phase::spent;
 };
 

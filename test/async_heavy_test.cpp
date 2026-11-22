@@ -722,13 +722,27 @@ void check_allocator_released(asio::io_context& context, asio::thread_pool& pool
 // A cancellation racing the pool: 300 quick PBKDF2s, each cancelled after a spin of 0 to 299
 // yields, so that the emit lands while the job waits, while the pool takes it, while it runs and
 // after it has completed. Each call completes exactly once, successfully or with
-// operation_aborted, and the handler's allocator holds nothing when it runs.
+// operation_aborted, and the handler's allocator holds nothing when it runs. In the first round
+// the pool's only thread is held by a job of the test until the emit, so that at least one emit
+// lands while the job waits, whatever the scheduler does with the others: that call is aborted.
 void check_cancellation_races(asio::io_context& context) {
     asio::thread_pool pool(1);
     holding counts;
     std::array<std::uint8_t, 32> output{};
     int aborted = 0;
+    // The first round's hold, alive until the pool has joined: the pool's thread may still be in
+    // released.wait() when the round ends.
+    std::promise<void> held;
+    std::promise<void> release;
+    auto released = release.get_future();
     for (int round = 0; round != 300; ++round) {
+        if (round == 0) {
+            asio::post(pool, [&] {
+                held.set_value();
+                released.wait();
+            });
+            held.get_future().wait();
+        }
         asio::cancellation_signal signal;
         int calls = 0;
         int held_at_call = -1;
@@ -748,11 +762,17 @@ void check_cancellation_races(asio::io_context& context) {
             std::this_thread::yield();
         }
         signal.emit(asio::cancellation_type::terminal);
+        if (round == 0) {
+            release.set_value();
+        }
         context.restart();
         context.run_for(std::chrono::seconds(5));  // lint-run: the test's event loop
         BOOST_TEST_EQ(calls, 1);
         BOOST_TEST_EQ(held_at_call, 0);
         BOOST_TEST(!code || code == asio::error::operation_aborted);
+        if (round == 0) {
+            BOOST_TEST(code == asio::error::operation_aborted);
+        }
         aborted += code ? 1 : 0;
     }
     pool.join();

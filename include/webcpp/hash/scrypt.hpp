@@ -9,6 +9,9 @@
  `crypto_pwhash_scryptsalsa208sha256_ll`, the default), `backends::openssl` (OpenSSL's "SCRYPT",
  its own memory limit lifted) and `backends::botan` (Botan's "Scrypt", in part).
 
+ Every call holds the data-independent-timing guard (`detail::timing_guard`): where the CPU has
+ DIT, the call sets it and leaves the thread's state as it found it.
+
  Every guard runs before any work, and a guard's refusal leaves the output as it was; a backend's
  failure zeroes it. The backend allocates the 128 r (N + p) bytes the costs name.
 
@@ -33,6 +36,7 @@
 
 #include <webcpp/hash/detail/engines.hpp>
 #include <webcpp/hash/detail/limits.hpp>
+#include <webcpp/hash/detail/timing.hpp>
 #include <webcpp/hash/detail/wipe.hpp>
 #include <webcpp/hash/error.hpp>
 #include <webcpp/hash/kdf.hpp>
@@ -157,6 +161,7 @@ template <class Backend = default_backend<kdfs::scrypt>>
                                                  std::span<std::uint8_t const> password_bytes,
                                                  std::span<std::uint8_t const> salt_bytes,
                                                  scrypt_parameters const& cost_parameters) {
+    detail::timing_guard const timing;
     auto guarded = detail::scrypt_guards<Backend>(output_bytes.size(), password_bytes.size(),
                                                   salt_bytes.size(), cost_parameters);
     if (!guarded) {

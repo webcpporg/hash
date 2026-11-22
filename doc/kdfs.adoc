@@ -31,6 +31,14 @@ alone, and the key derivations of standards on OpenSSL or Botan, which are
 never a default: the call names one (<<hash-kdfs-botan>>). Each backend gives the same bytes for the same inputs: the
 tests check them against each other on random inputs on every target.
 
+Every key derivation computes on a secret, and sets DIT (data-independent
+timing) around each call, on every synchronous backend, on 64-bit ARM under
+Apple's systems and Linux where the CPU has FEAT_DIT, leaving the thread's DIT as it found it (<<hash-backends-dit>>):
+`hkdf_extract`, `hkdf_expand`, `hkdf`, `pbkdf2`, `blake2b_subkey`, `kbkdf`,
+`sskdf` and `x963kdf`. `hkdf` enters one guard and runs the whole derivation
+inside it, and HKDF and PBKDF2 on `backends::hash2` run Boost.Hash2's `hmac`
+there too.
+
 include::generated/compare-kdfs.adoc[]
 
 [#hash-hkdf]
