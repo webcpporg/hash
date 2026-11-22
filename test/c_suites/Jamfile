@@ -180,8 +180,30 @@ webcpp.run blake3_c_suite : $(.blake3-c-suite) : $(.blake3-c-suite-requirements)
 webcpp.run blake3_c_suite_corrupted : $(.blake3-c-suite)
   : $(.blake3-c-suite-requirements) <define>WEBCPP_TEST_BLAKE3_CORRUPTED ;
 
+# Botan's own tests of the modules webcpp::hash uses, its test program
+# /third_party//botan_test built with webcpp's build of Botan (natively and on
+# Emscripten, with exceptions) and run over its src/tests/data at the pin.
+# The suites, the names its --list-tests gives at 3.14.1 for hash's modules:
+# the hashes (hash_algos, hash_engine, hash_nist_mc, hash_rep,
+# hash_truncation, invalid_name_hash, keccak_helpers, bufcomp_base_api), the
+# XOFs (extendable_output_functions), the MACs (mac_algos), the KDFs (kdf_kat,
+# hkdf_expand_label), the PBKDFs (pbkdf_kat, pwdhash, scrypt, argon2) and the
+# password hashes (bcrypt, bcrypt_pbkdf). On Emscripten the program reads the
+# host's files (-sNODERAWFS=1, tools/webcpp-botan.jam).
+path-constant BOTAN_TEST_DATA : ../../../../third_party/libs/botan/src/tests/data ;
+.botan-test-data = [ regex.replace $(BOTAN_TEST_DATA) "\\\\" "/" ] ;
+.botan-suites = hash_algos hash_engine hash_nist_mc hash_rep hash_truncation
+    invalid_name_hash keccak_helpers bufcomp_base_api extendable_output_functions
+    mac_algos kdf_kat hkdf_expand_label pbkdf_kat pwdhash scrypt argon2 bcrypt
+    bcrypt_pbkdf ;
+webcpp.run botan_c_suite : /third_party//botan_test
+  : <testing.arg>"--data-dir=$(.botan-test-data)" <testing.arg>$(.botan-suites)
+    <exception-handling>on [ webcpp.data $(BOTAN_TEST_DATA) ]
+  : native emscripten ;
+
 # The lane names its targets, so that the CI runs it on each (an own lane that
 # names none runs natively alone, tools/webcpp.jam's lane rule).
 webcpp.lane c-suites : xkcp_unit_tests blake3_c_suite blake3_c_suite_corrupted
+    botan_c_suite
     sodium_$(.sodium-tests) sodium_writes_nothing
     : native wasip2 wasip3 emscripten ;

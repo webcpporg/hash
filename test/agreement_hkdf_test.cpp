@@ -6,9 +6,10 @@
 
 // Every linked backend that has HKDF over an hmac gives the same output as every other, on 1,000
 // seeded random cases per hmac, the empty inputs first (spec section 7.2). Per hmac, backend_has_v
-// and the program's links pick the backends: backends::hash2 always, then sodium, bearssl and
-// openssl as the Jamfile links them (OpenSSL is absent on Emscripten). Each backend's `hkdf` is
-// compared, and its `hkdf_extract` then `hkdf_expand` too, except BearSSL's, which has `hkdf`
+// and the program's links pick the backends: backends::hash2 always, then sodium, bearssl, openssl
+// and botan as the Jamfile links them (OpenSSL is absent on Emscripten; Botan is linked by
+// agreement_hkdf_botan alone, natively and on Emscripten, with exceptions). Each backend's `hkdf`
+// is compared, and its `hkdf_extract` then `hkdf_expand` too, except BearSSL's, which has `hkdf`
 // alone. A difference is a bug of webcpp's code. The lengths stay within every backend's limits,
 // beyond which a backend refuses before its library is called.
 
@@ -115,6 +116,7 @@ void agree(const char* hmac_name) {
     add_ways<Hmac, hash::backends::sodium>(ways, "sodium");
     add_ways<Hmac, hash::backends::bearssl>(ways, "bearssl");
     add_ways<Hmac, hash::backends::openssl>(ways, "openssl");
+    add_ways<Hmac, hash::backends::botan>(ways, "botan");
 
     // The backends compared against the table written out in agreement_expect.hpp, so that a
     // library lost from the Jamfile fails here instead of shrinking the comparison.

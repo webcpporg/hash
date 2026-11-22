@@ -1,0 +1,5 @@
+bcrypt $2a$05$CCCCCCCCCCCCCCCCCCCCC.E5YPO9kmyuRGyh0XouQYb4YMJKvyOeW
+U*U matches, U*V does not match
+73 bytes: an input is longer than the function accepts
+a zero byte: a parameter is outside the function's limits
+bcrypt_pbkdf 1ae42c05d487bc02f64921a4ebe4ea93bcacfe135fda99974c06b7b01fae149a

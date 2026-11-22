@@ -8,9 +8,11 @@
  The key derivations of NIST's and ANSI's standards, which formats and protocols name by their
  standard: `kbkdf`, SP 800-108's key-based KDF in counter mode over an HMAC; `sskdf`, SP 800-56C's
  one-step KDF over a digest (its hash form); and `x963kdf`, ANSI X9.63's KDF, which ECIES and the
- elliptic-curve key agreements of SEC 1 use. Each has `backends::openssl` alone (OpenSSL 3.5.9's
- `EVP_KDF` implementations "KBKDF", "SSKDF" and "X963KDF"), never a default (design D34): the call
- names it, and the program links `/webcpp/hash//openssl` (native, wasip2 and wasip3).
+ elliptic-curve key agreements of SEC 1 use. Each has `backends::openssl` (OpenSSL 3.5.9's
+ `EVP_KDF` implementations "KBKDF", "SSKDF" and "X963KDF"; the program links
+ `/webcpp/hash//openssl`, native, wasip2 and wasip3) and `backends::botan` (Botan 3.14.1's
+ "SP800-108-Counter", "SP800-56A" and "KDF2"; `/third_party//botan`, native and Emscripten, with
+ exceptions), and never a default (design D34): the call names its backend.
 
  None of them is for a password (Argon2id is) nor a better choice than HKDF for a new design: they
  are here to derive the bytes a standard, a smart card or another library derives.
@@ -266,7 +268,9 @@ inline constexpr std::uint64_t kbkdf_max_output_with_length = 0xffffffffULL / 8;
  Where approval matters, take HMAC over SHA-2 or SHA-3.
  @tparam Backend The backend; by default @ref default_backend of `kdfs::kbkdf_hmac`, which has
  none (design D34): the call names `backends::openssl`, which has every hmac of `hmac.hpp` but
- `hmac_ripemd_128`.
+ `hmac_ripemd_128`, or `backends::botan`, which has every one but `hmac_ripemd_128` and
+ `hmac_sha2_512_224` and writes the separator and L always (`unsupported_by_backend` without
+ either).
  @param output K_OUT, its size the length L: 1 byte up to (2^r - 1) digests, and, when
  `options.length`, at most 536,870,911 bytes (L in bits fits its 32 bits). It must not overlap the
  inputs.
@@ -304,6 +308,13 @@ template <class Hmac, class Backend = default_backend<kdfs::kbkdf_hmac, Hmac>>
             detail::exceeds(output.size(), engine::limits.max_output)) {
             return error::unsupported_by_backend;
         }
+        // A backend that writes one form of the fixed input alone (backends::botan: the
+        // separator and L, always) refuses the others.
+        if constexpr (requires { engine::accepts(options); }) {
+            if (!engine::accepts(options)) {
+                return error::unsupported_by_backend;
+            }
+        }
         auto derived = engine::derive(output, key, options);
         if (!derived) {
             detail::wipe(output);
@@ -327,7 +338,8 @@ template <class Hmac, class Backend = default_backend<kdfs::kbkdf_hmac, Hmac>>
  @tparam Digest An approved hash function: `digests::sha1`, a SHA-2 (`sha2_224` to
  `sha2_512_256`) or a SHA-3 (`sha3_224` to `sha3_512`); another refuses at compile time.
  @tparam Backend The backend; by default @ref default_backend of `kdfs::sskdf`, which has none
- (design D34): the call names `backends::openssl`.
+ (design D34): the call names `backends::openssl` or `backends::botan` (every digest but
+ SHA-512/224, which Botan lacks: refused at compile time).
  @param output The derived keying material: 1 byte to 2^32 - 1 digests (`backends::openssl`: at
  most 2^30 bytes). It must not overlap the inputs.
  @param secret Z, the shared secret: at least 1 byte (`backends::openssl`: at most 2^30).
@@ -387,7 +399,7 @@ template <class Digest, class Backend = default_backend<kdfs::sskdf>>
  this KDF (section 5.1): `digests::sha1`, `sha2_224`, `sha2_256`, `sha2_384` or `sha2_512`;
  another, SHA-512/224 and SHA-512/256 included, refuses at compile time.
  @tparam Backend The backend; by default @ref default_backend of `kdfs::x963kdf`, which has none
- (design D34): the call names `backends::openssl`.
+ (design D34): the call names `backends::openssl` or `backends::botan`.
  @param output The derived keying material: 1 byte to 2^32 - 1 digests less 1 byte (the standard
  refuses keydatalen >= hashlen (2^32 - 1); `backends::openssl`: at most 2^30 bytes). It must not
  overlap the inputs.
@@ -432,10 +444,14 @@ template <class Digest, class Backend = default_backend<kdfs::x963kdf>>
 
 }  // namespace webcpp::hash
 
-// backends::openssl, the one backend of these functions, when the program links OpenSSL: a program
-// that includes only this header gets its engines here.
+// The backends of these functions, backends::openssl when the program links OpenSSL and
+// backends::botan when it links Botan: a program that includes only this header gets their engines
+// here.
 #ifdef WEBCPP_HASH_HAS_OPENSSL
 #include <webcpp/hash/backends/openssl.hpp>
+#endif
+#ifdef WEBCPP_HASH_HAS_BOTAN
+#include <webcpp/hash/backends/botan.hpp>
 #endif
 
 #endif  // WEBCPP_HASH_KDF_STANDARDS_HPP

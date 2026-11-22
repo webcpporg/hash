@@ -42,6 +42,12 @@ SHA-3, SHAKE, TurboSHAKE, HMAC and `argon2` on `backends::sodium`
 digest or a MAC on `backends::openssl`
 | `/webcpp/hash//openssl`
 | native, wasip2, wasip3
+
+| `bcrypt`, `bcrypt_verify`, `bcrypt_pbkdf`, or HKDF, PBKDF2, scrypt, Argon2,
+KBKDF, the one-step KDF, the X9.63 KDF, a digest (Streebog, Whirlpool and
+Skein-512 among them) or a MAC on `backends::botan`
+| `/third_party//botan`, in a program built with exceptions
+| native, emscripten
 |===
 
 A program that hashes passwords with Argon2id and derives keys with HKDF on
@@ -59,6 +65,23 @@ the same copies webcpp::crypto links, so a program of both libraries links
 each once. On Emscripten `/third_party//sodium` also links the program with
 `-sALLOW_MEMORY_GROWTH=1`, since Argon2id and scrypt allocate more than
 Emscripten's fixed 16 MiB.
+
+Botan is the one library that needs exceptions: it reports its failures by
+throwing, so `/third_party//botan` stops the build of a program with
+`exception-handling=off`, and `<webcpp/hash/backends/botan.hpp>` declares
+nothing under `WEBCPP_HASH_NO_EXCEPTIONS`. It is built natively and for
+Emscripten, and stops the build on wasip2 and wasip3, which webcpp::crypto's
+Botan increment decides. webcpp builds it from its pinned sources, configured
+for each target by Botan's own `configure.py` with the modules
+`tools/botan/modules.txt` lists, hash's and webcpp::crypto's, one copy per
+program however many libraries use it; on Emscripten it links with
+`-sALLOW_MEMORY_GROWTH=1` too. A program that hashes with Botan's Streebog,
+for example, names:
+
+[source,bash]
+----
+exe app : app.cpp /webcpp/hash//hash /third_party//botan : <exception-handling>on ;
+----
 
 The library's own target, as `build.jam` declares it:
 
@@ -89,9 +112,32 @@ BearSSL, OpenSSL) and gives the whole Jamfile line, as
 | OpenSSL is not built for Emscripten: remove it; HKDF and PBKDF2 then run on
 `backends::hash2`.
 
+| `backends::botan` named in a program that does not link Botan
+| The message is "webcpp::hash: backends::botan needs Botan. Add
+/third_party//botan to the program's Jamfile (native and Emscripten, with
+exceptions): exe app : app.cpp /webcpp/hash//hash /third_party//botan ;": add
+that library.
+
+| `backends::botan` named in a program without exceptions
+| The message is "webcpp::hash: backends::botan needs exceptions: Botan reports
+its errors by throwing, and its header declares nothing without them. Build
+with exception-handling=on, or name another backend.": build with exceptions,
+or name another backend.
+
+| `/third_party//botan` with `exception-handling=off`, or on wasip2 or wasip3
+| b2 stops before building: Botan needs exceptions, and is built natively and
+for Emscripten alone. Build the program with `exception-handling=on`, or
+remove the library.
+
 | `pbkdf2` on `backends::sodium` or `backends::bearssl`
-| Neither library has PBKDF2: name `backends::hash2` (every hmac) or
-`backends::openssl` (every hmac but `hmac_ripemd_128`).
+| Neither library has PBKDF2: name `backends::hash2` (every hmac),
+`backends::openssl` (every hmac but `hmac_ripemd_128`) or `backends::botan`
+(every hmac but `hmac_ripemd_128` and `hmac_sha2_512_224`).
+
+| HKDF, PBKDF2 or `kbkdf` over `hmac_ripemd_128` or `hmac_sha2_512_224` on
+`backends::botan`, or `sskdf` over SHA-512/224 there
+| Botan 3.14.1 has neither RIPEMD-128 nor SHA-512/224: the message names the
+backends that have the hmac or the digest.
 
 | `hkdf_extract` or `hkdf_expand` on `backends::bearssl`
 | BearSSL's HKDF does both steps together: call `hkdf`, or name another
@@ -112,9 +158,21 @@ one asked for.
 | The message lists the digests the standard takes (SP 800-56C: SHA-1, SHA-2,
 SHA-3; ANSI X9.63: SHA-1, SHA-224 to SHA-512): name one.
 
-| `argon2id` or `scrypt` on another backend than `backends::sodium` or
-`backends::openssl`
-| Name one of them and add `/third_party//sodium` or `/webcpp/hash//openssl`.
+| `argon2id` or `scrypt` on another backend than `backends::sodium`,
+`backends::openssl` or `backends::botan`
+| Name one of them and add `/third_party//sodium`, `/webcpp/hash//openssl` or
+`/third_party//botan`.
+
+| `bcrypt`, `bcrypt_verify` or `bcrypt_pbkdf` without a backend, or on another
+backend than `backends::botan`
+| The message is "... has no default backend. Name one of: backends::botan."
+(or "... is not in this backend."): name `backends::botan` and add
+`/third_party//botan`.
+
+| `async_bcrypt`, `async_bcrypt_pbkdf` or `async_bcrypt_verify` in a build
+without threads
+| As the other heavy functions: natively remove `WEBCPP_HASH_NO_THREADS`; on
+Emscripten link with `-pthread`; Botan is not built for WASI.
 
 | `blake2b_subkey` on another backend than `backends::sodium`
 | Name `backends::sodium` and add `/third_party//sodium`.
@@ -183,8 +241,13 @@ exceptions. `<webcpp/hash/config.hpp>`, which every header of hash includes
 first, defines `WEBCPP_HASH_NO_EXCEPTIONS` when webcpp has none (the compiler
 has none, or the program defined `WEBCPP_NO_EXCEPTIONS` for every webcpp
 library), and a program may define it for hash alone. Boost.Hash2's types, on
-which every digest is built, do not throw either. Every test of hash runs
-twice, with exceptions and without.
+which every digest is built, do not throw either. One backend needs
+exceptions: `backends::botan`, since Botan reports its failures by throwing;
+hash catches every exception Botan throws at the boundary of the call and
+returns it as a value, so that none leaves hash, and a program without
+exceptions has no `backends::botan` (<<hash-jamfile-messages>>). Every test of
+hash runs twice, with exceptions and without, but Botan's, which run with
+them alone.
 
 [#hash-errors]
 == Errors
@@ -211,8 +274,9 @@ started zeroes the output, so that half a key is never used.
 |===
 
 `argon2id`, `argon2` and `scrypt` on every backend, `kbkdf`, `sskdf` and
-`x963kdf`, and every call on `backends::openssl` (a digest, a hasher, a MAC, a
-key derivation) also return `errc::not_enough_memory` of the generic category
-when the memory they need cannot be allocated: a program that handles the
-errors of hash checks that value too. A value that
+`x963kdf`, and every call on `backends::openssl` or `backends::botan` (a
+digest, a hasher, a MAC, a key derivation, bcrypt) also return
+`errc::not_enough_memory` of the generic category when the memory they need
+cannot be allocated: a program that handles the errors of hash checks that
+value too. A value that
 `error` does not define has the message "unknown webcpp.hash error".

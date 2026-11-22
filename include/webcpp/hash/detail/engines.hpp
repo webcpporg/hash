@@ -19,6 +19,7 @@
 #include <cstdint>
 #include <limits>
 #include <span>
+#include <string_view>
 #include <type_traits>
 
 namespace webcpp::hash {
@@ -56,6 +57,20 @@ namespace webcpp::hash::detail {
 /** False for every `T`: a `static_assert` that fires only when its template is instantiated. */
 template <class T>
 inline constexpr bool always_false = false;
+
+#ifdef WEBCPP_HASH_NO_EXCEPTIONS
+/**
+ Whether the build has no exceptions (`WEBCPP_HASH_NO_EXCEPTIONS`): then `backends::botan`, whose
+ library reports its errors by throwing, is refused with its own text, linked or not.
+*/
+inline constexpr bool botan_without_exceptions = true;
+#else
+/**
+ Whether the build has no exceptions (`WEBCPP_HASH_NO_EXCEPTIONS`): then `backends::botan`, whose
+ library reports its errors by throwing, is refused with its own text, linked or not.
+*/
+inline constexpr bool botan_without_exceptions = false;
+#endif
 
 /**
  The family's guards of a tag of `macs` (spec 2.15), defined in `mac.hpp`; declared here so that
@@ -159,10 +174,21 @@ struct hkdf_engine {
     static_assert(
         std::is_same_v<Backend, backends::webcrypto>,
         "webcpp::hash: this backend has no HKDF. The backends that have HKDF: "
-        "backends::hash2 (every hmac), backends::openssl (every hmac but "
-        "hmac_ripemd_128), backends::sodium (hmac_sha2_256, hmac_sha2_512) and "
-        "backends::bearssl (MD5, SHA-1, SHA-224, SHA-256, SHA-384, SHA-512; hkdf alone).");
+        "backends::hash2 (every hmac), backends::sodium (hmac_sha2_256, hmac_sha2_512), "
+        "backends::bearssl (MD5, SHA-1, SHA-224, SHA-256, SHA-384, SHA-512; hkdf alone), "
+        "backends::openssl (every hmac but hmac_ripemd_128) and backends::botan (every hmac "
+        "but hmac_ripemd_128 and hmac_sha2_512_224).");
 };
+
+/**
+ The most blocks of PBKDF2's output a backend derives: RFC 8018's 2^32 - 1, unless the backend's
+ header names fewer (backends::botan's 2^32 - 2); `pbkdf2` refuses a longer output with
+ `invalid_output_size`.
+
+ @tparam Backend A backend of `backends`.
+*/
+template <class Backend>
+inline constexpr std::uint64_t pbkdf2_max_blocks = 0xffffffffULL;
 
 /**
  The PBKDF2 of a backend over an hmac (spec section 2.12), specialised as @ref hkdf_engine is.
@@ -187,22 +213,25 @@ struct pbkdf2_engine {
     // clang-format on
     static_assert(std::is_same_v<Backend, backends::webcrypto>,
                   "webcpp::hash: this backend has no PBKDF2. The backends that have pbkdf2: "
-                  "backends::hash2 (every hmac) and backends::openssl (every hmac but "
-                  "hmac_ripemd_128).");
+                  "backends::hash2 (every hmac), backends::openssl (every hmac but "
+                  "hmac_ripemd_128) and backends::botan (every hmac but hmac_ripemd_128 and "
+                  "hmac_sha2_512_224).");
 };
 
 /** The costs an Argon2id engine accepts beyond spec section 2.10's lower bounds. */
 struct argon2id_limits {
     /**
      The most memory, in bytes (libsodium's `crypto_pwhash_argon2id_MEMLIMIT_MAX`; OpenSSL's m of
-     at most 2^32 - 1 KiB, within a `size_t`).
+     at most 2^32 - 1 KiB, within a `size_t`; Botan's 8 GiB, 2 GiB on wasm32).
     */
     std::uint64_t memory;
 };
 
 /**
- The costs a scrypt engine accepts beyond RFC 7914's conditions; `scrypt` refuses a cost past them
- with `invalid_parameters`.
+ The costs a scrypt engine accepts beyond RFC 7914's conditions: `scrypt` refuses a cost past `n`
+ or `rp` with `invalid_parameters` (a library's interface that holds it in a narrower type), and,
+ last, one past a partial cell's own bounds, the four `served_` members, with
+ `unsupported_by_backend` (ruling R41). Every member's default is no limit.
 */
 struct scrypt_limits {
     /** The largest N (libsodium's `_ll` refuses an N above `UINT32_MAX`). */
@@ -212,12 +241,20 @@ struct scrypt_limits {
      below 2^30, unless the engine names a narrower one.
     */
     std::uint64_t rp = no_limit;
+    /** The largest N the engine computes (Botan: 2^22). */
+    std::uint64_t served_n = no_limit;
+    /** The largest r the engine computes (Botan: 256). */
+    std::uint64_t served_r = no_limit;
+    /** The largest p the engine computes (Botan: 1,024). */
+    std::uint64_t served_p = no_limit;
+    /** The most memory, 128 r (N + p) bytes, the engine allocates (Botan: 8 GiB and 2 MiB). */
+    std::uint64_t served_memory = no_limit;
 };
 
 /**
- The Argon2id of a backend (spec sections 2.10 and 2.12), which `backends::sodium` and
- `backends::openssl` specialise. The primary template refuses every other backend with spec 3.3's
- text; its members exist so that the refusal is the only error.
+ The Argon2id of a backend (spec sections 2.10 and 2.12), which `backends::sodium`,
+ `backends::openssl` and `backends::botan` specialise. The primary template refuses every other
+ backend with spec 3.3's text; its members exist so that the refusal is the only error.
 
  A specialisation has a constant and a static member function, called by `argon2id` only after
  every guard of spec 2.10 has passed, the memory a multiple of 1,024 bytes within `limits`:
@@ -240,7 +277,9 @@ struct argon2id_engine {
     // backends::sodium, the default, reaches this template only when the program does not link
     // libsodium, whose header specialises it: the refusal is then sodium.hpp's own (spec 5.7).
     // backends::openssl reaches it only when the program does not link OpenSSL, whose header
-    // specialises it too: the refusal is then the one of every function on backends::openssl.
+    // specialises it too: the refusal is then the one of every function on backends::openssl;
+    // and backends::botan only when the program cannot have Botan (not linked, or no
+    // exceptions), as every function on it is refused.
     static_assert(!std::is_same_v<Backend, backends::sodium>,
                   "webcpp::hash: backends::sodium needs libsodium. Add /third_party//sodium to the "
                   "program's Jamfile: exe app : app.cpp /webcpp/hash//hash /third_party//sodium ;");
@@ -248,11 +287,18 @@ struct argon2id_engine {
                   "webcpp::hash: backends::openssl needs OpenSSL. Add /webcpp/hash//openssl to "
                   "the program's Jamfile (native, wasip2 and wasip3): exe app : app.cpp "
                   "/webcpp/hash//hash /webcpp/hash//openssl ;");
+    // clang-format off
+    static_assert(!(std::is_same_v<Backend, backends::botan> && !botan_without_exceptions),
+                  "webcpp::hash: backends::botan needs Botan. Add /third_party//botan to the program's Jamfile (native and Emscripten, with exceptions): exe app : app.cpp /webcpp/hash//hash /third_party//botan ;");
+    static_assert(!(std::is_same_v<Backend, backends::botan> && botan_without_exceptions),
+                  "webcpp::hash: backends::botan needs exceptions: Botan reports its errors by throwing, and its header declares nothing without them. Build with exception-handling=on, or name another backend.");
+    // clang-format on
     static_assert(std::is_same_v<Backend, backends::sodium> ||
-                      std::is_same_v<Backend, backends::openssl>,
-                  "webcpp::hash: argon2id is in backends::sodium and backends::openssl alone. "
-                  "Name one, and add /third_party//sodium or /webcpp/hash//openssl to the "
-                  "program's Jamfile.");
+                      std::is_same_v<Backend, backends::openssl> ||
+                      std::is_same_v<Backend, backends::botan>,
+                  "webcpp::hash: argon2id is in backends::sodium, backends::openssl and "
+                  "backends::botan alone. Name one, and add /third_party//sodium, "
+                  "/webcpp/hash//openssl or /third_party//botan to the program's Jamfile.");
 
     /** Never read: the refusal has stopped the build. */
     static constexpr argon2id_limits limits{0};
@@ -267,9 +313,10 @@ struct argon2id_engine {
 };
 
 /**
- The scrypt of a backend (spec sections 2.11 and 2.12), which `backends::sodium` and
- `backends::openssl` specialise, as @ref argon2id_engine is. A specialisation's `derive` is called
- by `scrypt` only after every guard of spec 2.11 has passed, N within `limits`:
+ The scrypt of a backend (spec sections 2.11 and 2.12), which `backends::sodium`,
+ `backends::openssl` and `backends::botan` specialise, as @ref argon2id_engine is. A
+ specialisation's `derive` is called by `scrypt` only after every guard of spec 2.11 has passed,
+ the costs within `limits`:
 
  @code
  static constexpr scrypt_limits limits{...};
@@ -286,7 +333,9 @@ struct scrypt_engine {
     // backends::sodium, the default, reaches this template only when the program does not link
     // libsodium, whose header specialises it: the refusal is then sodium.hpp's own (spec 5.7).
     // backends::openssl reaches it only when the program does not link OpenSSL, whose header
-    // specialises it too: the refusal is then the one of every function on backends::openssl.
+    // specialises it too: the refusal is then the one of every function on backends::openssl;
+    // and backends::botan only when the program cannot have Botan (not linked, or no
+    // exceptions), as every function on it is refused.
     static_assert(!std::is_same_v<Backend, backends::sodium>,
                   "webcpp::hash: backends::sodium needs libsodium. Add /third_party//sodium to the "
                   "program's Jamfile: exe app : app.cpp /webcpp/hash//hash /third_party//sodium ;");
@@ -294,11 +343,18 @@ struct scrypt_engine {
                   "webcpp::hash: backends::openssl needs OpenSSL. Add /webcpp/hash//openssl to "
                   "the program's Jamfile (native, wasip2 and wasip3): exe app : app.cpp "
                   "/webcpp/hash//hash /webcpp/hash//openssl ;");
+    // clang-format off
+    static_assert(!(std::is_same_v<Backend, backends::botan> && !botan_without_exceptions),
+                  "webcpp::hash: backends::botan needs Botan. Add /third_party//botan to the program's Jamfile (native and Emscripten, with exceptions): exe app : app.cpp /webcpp/hash//hash /third_party//botan ;");
+    static_assert(!(std::is_same_v<Backend, backends::botan> && botan_without_exceptions),
+                  "webcpp::hash: backends::botan needs exceptions: Botan reports its errors by throwing, and its header declares nothing without them. Build with exception-handling=on, or name another backend.");
+    // clang-format on
     static_assert(std::is_same_v<Backend, backends::sodium> ||
-                      std::is_same_v<Backend, backends::openssl>,
-                  "webcpp::hash: scrypt is in backends::sodium and backends::openssl alone. Name "
-                  "one, and add /third_party//sodium or /webcpp/hash//openssl to the program's "
-                  "Jamfile.");
+                      std::is_same_v<Backend, backends::openssl> ||
+                      std::is_same_v<Backend, backends::botan>,
+                  "webcpp::hash: scrypt is in backends::sodium, backends::openssl and "
+                  "backends::botan alone. Name one, and add /third_party//sodium, "
+                  "/webcpp/hash//openssl or /third_party//botan to the program's Jamfile.");
 
     /** Never read: the refusal has stopped the build. */
     static constexpr scrypt_limits limits{.n = 0};
@@ -408,6 +464,15 @@ template <>
 inline constexpr bool linked_v<backends::openssl> = true;
 #endif
 
+#if defined(WEBCPP_HASH_HAS_BOTAN) && !defined(WEBCPP_HASH_NO_EXCEPTIONS)
+/**
+ `/third_party//botan` defines `WEBCPP_HASH_HAS_BOTAN`; a build without exceptions cannot have
+ Botan, which reports its errors by throwing (`backends/botan.hpp` declares nothing then).
+*/
+template <>
+inline constexpr bool linked_v<backends::botan> = true;
+#endif
+
 /**
  The default backend of a tag that has none (spec 4.1, design D34): no backend of
  `backends::hash2`, `backends::xkcp`, `backends::blake3` and `backends::sodium` has it, so a call
@@ -416,14 +481,20 @@ inline constexpr bool linked_v<backends::openssl> = true;
 */
 struct no_default {};
 
-/** Whether `Backend` is the backend of a C library, which a program links by its Jamfile line. */
+/**
+ Whether `Backend` is the backend of a library, C's or Botan's, which a program links by its Jamfile
+ line.
+*/
 template <class Backend>
 inline constexpr bool library_backend_v =
     std::is_same_v<Backend, backends::xkcp> || std::is_same_v<Backend, backends::blake3> ||
     std::is_same_v<Backend, backends::sodium> || std::is_same_v<Backend, backends::bearssl> ||
-    std::is_same_v<Backend, backends::openssl>;
+    std::is_same_v<Backend, backends::openssl> || std::is_same_v<Backend, backends::botan>;
 
-/** Whether `Backend` is a C library's backend that the program does not link. */
+/**
+ Whether `Backend` is a library's backend that the program does not link, or, for
+ `backends::botan`, cannot have: one without `WEBCPP_HASH_HAS_BOTAN` or built without exceptions.
+*/
 template <class Backend>
 inline constexpr bool missing_library_v = library_backend_v<Backend> && !linked_v<Backend>;
 
@@ -440,9 +511,10 @@ inline constexpr bool refused_elsewhere_v =
     std::is_same_v<Backend, backends::webcrypto>;
 
 /**
- Stops a call of the families on a C library's backend that the program does not link, with the
+ Stops a call of the families on a library's backend that the program does not link, with the
  Jamfile line to add (spec 5.7), whichever tag the call names: the backend's header, which holds
- its engines, is included only when the program links it; and a call on `backends::webcrypto`,
+ its engines, is included only when the program links it; a call on `backends::botan` in a build
+ without exceptions, which Botan needs, whether linked or not; and a call on `backends::webcrypto`,
  which only the asynchronous family takes (spec 11.2), on every target. A base of each tag's
  refusal; it is empty for every other backend.
 
@@ -461,6 +533,10 @@ struct needs_library {
                   "webcpp::hash: backends::bearssl needs BearSSL. Add /third_party//bearssl to the program's Jamfile: exe app : app.cpp /webcpp/hash//hash /third_party//bearssl ;");
     static_assert(!(std::is_same_v<Backend, backends::openssl> && missing_library_v<Backend>),
                   "webcpp::hash: backends::openssl needs OpenSSL. Add /webcpp/hash//openssl to the program's Jamfile (native, wasip2 and wasip3): exe app : app.cpp /webcpp/hash//hash /webcpp/hash//openssl ;");
+    static_assert(!(std::is_same_v<Backend, backends::botan> && missing_library_v<Backend> && !botan_without_exceptions),
+                  "webcpp::hash: backends::botan needs Botan. Add /third_party//botan to the program's Jamfile (native and Emscripten, with exceptions): exe app : app.cpp /webcpp/hash//hash /third_party//botan ;");
+    static_assert(!(std::is_same_v<Backend, backends::botan> && botan_without_exceptions),
+                  "webcpp::hash: backends::botan needs exceptions: Botan reports its errors by throwing, and its header declares nothing without them. Build with exception-handling=on, or name another backend.");
     static_assert(!std::is_same_v<Backend, backends::webcrypto>,
                   "webcpp::hash: backends::webcrypto is asynchronous: call async_hkdf (or async_pbkdf2, async_digest, async_hmac) with a completion token, or name a synchronous backend.");
     // clang-format on
@@ -609,7 +685,7 @@ struct digest_engine<Backend, digests::md5> : refused_digest_engine<digests::md5
                                               needs_library<Backend> {
     static_assert(refused_elsewhere_v<Backend>,
                   "webcpp::hash: digests::md5 is not in this backend. Name one of: "
-                  "backends::hash2, backends::bearssl, backends::openssl.");
+                  "backends::hash2, backends::bearssl, backends::openssl, backends::botan.");
 };
 
 /** `digests::sha1` on a backend without it (spec 3.3, design D34). */
@@ -618,7 +694,7 @@ struct digest_engine<Backend, digests::sha1> : refused_digest_engine<digests::sh
                                                needs_library<Backend> {
     static_assert(refused_elsewhere_v<Backend>,
                   "webcpp::hash: digests::sha1 is not in this backend. Name one of: "
-                  "backends::hash2, backends::bearssl, backends::openssl.");
+                  "backends::hash2, backends::bearssl, backends::openssl, backends::botan.");
 };
 
 /** `digests::sha2_224` on a backend without it (spec 3.3, design D34). */
@@ -627,16 +703,17 @@ struct digest_engine<Backend, digests::sha2_224> : refused_digest_engine<digests
                                                    needs_library<Backend> {
     static_assert(refused_elsewhere_v<Backend>,
                   "webcpp::hash: digests::sha2_224 is not in this backend. Name one of: "
-                  "backends::hash2, backends::bearssl, backends::openssl.");
+                  "backends::hash2, backends::bearssl, backends::openssl, backends::botan.");
 };
 
 /** `digests::sha2_256` on a backend without it (spec 3.3, design D34). */
 template <class Backend>
 struct digest_engine<Backend, digests::sha2_256> : refused_digest_engine<digests::sha2_256>,
                                                    needs_library<Backend> {
-    static_assert(refused_elsewhere_v<Backend>,
-                  "webcpp::hash: digests::sha2_256 is not in this backend. Name one of: "
-                  "backends::hash2, backends::sodium, backends::bearssl, backends::openssl.");
+    static_assert(
+        refused_elsewhere_v<Backend>,
+        "webcpp::hash: digests::sha2_256 is not in this backend. Name one of: backends::hash2, "
+        "backends::sodium, backends::bearssl, backends::openssl, backends::botan.");
 };
 
 /** `digests::sha2_384` on a backend without it (spec 3.3, design D34). */
@@ -645,16 +722,17 @@ struct digest_engine<Backend, digests::sha2_384> : refused_digest_engine<digests
                                                    needs_library<Backend> {
     static_assert(refused_elsewhere_v<Backend>,
                   "webcpp::hash: digests::sha2_384 is not in this backend. Name one of: "
-                  "backends::hash2, backends::bearssl, backends::openssl.");
+                  "backends::hash2, backends::bearssl, backends::openssl, backends::botan.");
 };
 
 /** `digests::sha2_512` on a backend without it (spec 3.3, design D34). */
 template <class Backend>
 struct digest_engine<Backend, digests::sha2_512> : refused_digest_engine<digests::sha2_512>,
                                                    needs_library<Backend> {
-    static_assert(refused_elsewhere_v<Backend>,
-                  "webcpp::hash: digests::sha2_512 is not in this backend. Name one of: "
-                  "backends::hash2, backends::sodium, backends::bearssl, backends::openssl.");
+    static_assert(
+        refused_elsewhere_v<Backend>,
+        "webcpp::hash: digests::sha2_512 is not in this backend. Name one of: backends::hash2, "
+        "backends::sodium, backends::bearssl, backends::openssl, backends::botan.");
 };
 
 /** `digests::sha2_512_224` on a backend without it (spec 3.3, design D34). */
@@ -672,7 +750,7 @@ struct digest_engine<Backend, digests::sha2_512_256> : refused_digest_engine<dig
                                                        needs_library<Backend> {
     static_assert(refused_elsewhere_v<Backend>,
                   "webcpp::hash: digests::sha2_512_256 is not in this backend. Name one of: "
-                  "backends::hash2, backends::openssl.");
+                  "backends::hash2, backends::openssl, backends::botan.");
 };
 
 /** `digests::sha3_224` on a backend without it (spec 3.3, design D34). */
@@ -681,16 +759,17 @@ struct digest_engine<Backend, digests::sha3_224> : refused_digest_engine<digests
                                                    needs_library<Backend> {
     static_assert(refused_elsewhere_v<Backend>,
                   "webcpp::hash: digests::sha3_224 is not in this backend. Name one of: "
-                  "backends::hash2, backends::xkcp, backends::openssl.");
+                  "backends::hash2, backends::xkcp, backends::openssl, backends::botan.");
 };
 
 /** `digests::sha3_256` on a backend without it (spec 3.3, design D34). */
 template <class Backend>
 struct digest_engine<Backend, digests::sha3_256> : refused_digest_engine<digests::sha3_256>,
                                                    needs_library<Backend> {
-    static_assert(refused_elsewhere_v<Backend>,
-                  "webcpp::hash: digests::sha3_256 is not in this backend. Name one of: "
-                  "backends::hash2, backends::xkcp, backends::sodium, backends::openssl.");
+    static_assert(
+        refused_elsewhere_v<Backend>,
+        "webcpp::hash: digests::sha3_256 is not in this backend. Name one of: backends::hash2, "
+        "backends::xkcp, backends::sodium, backends::openssl, backends::botan.");
 };
 
 /** `digests::sha3_384` on a backend without it (spec 3.3, design D34). */
@@ -699,16 +778,17 @@ struct digest_engine<Backend, digests::sha3_384> : refused_digest_engine<digests
                                                    needs_library<Backend> {
     static_assert(refused_elsewhere_v<Backend>,
                   "webcpp::hash: digests::sha3_384 is not in this backend. Name one of: "
-                  "backends::hash2, backends::xkcp, backends::openssl.");
+                  "backends::hash2, backends::xkcp, backends::openssl, backends::botan.");
 };
 
 /** `digests::sha3_512` on a backend without it (spec 3.3, design D34). */
 template <class Backend>
 struct digest_engine<Backend, digests::sha3_512> : refused_digest_engine<digests::sha3_512>,
                                                    needs_library<Backend> {
-    static_assert(refused_elsewhere_v<Backend>,
-                  "webcpp::hash: digests::sha3_512 is not in this backend. Name one of: "
-                  "backends::hash2, backends::xkcp, backends::sodium, backends::openssl.");
+    static_assert(
+        refused_elsewhere_v<Backend>,
+        "webcpp::hash: digests::sha3_512 is not in this backend. Name one of: backends::hash2, "
+        "backends::xkcp, backends::sodium, backends::openssl, backends::botan.");
 };
 
 /** `digests::shake_128` on a backend without it (spec 3.3, design D34). */
@@ -717,8 +797,8 @@ struct digest_engine<Backend, digests::shake_128> : refused_digest_engine<digest
                                                     needs_library<Backend> {
     static_assert(
         refused_elsewhere_v<Backend>,
-        "webcpp::hash: digests::shake_128 is not in this backend. Name one of: "
-        "backends::hash2, backends::xkcp, backends::sodium, backends::bearssl, backends::openssl.");
+        "webcpp::hash: digests::shake_128 is not in this backend. Name one of: backends::hash2, "
+        "backends::xkcp, backends::sodium, backends::bearssl, backends::openssl, backends::botan.");
 };
 
 /** `digests::shake_256` on a backend without it (spec 3.3, design D34). */
@@ -727,8 +807,8 @@ struct digest_engine<Backend, digests::shake_256> : refused_digest_engine<digest
                                                     needs_library<Backend> {
     static_assert(
         refused_elsewhere_v<Backend>,
-        "webcpp::hash: digests::shake_256 is not in this backend. Name one of: "
-        "backends::hash2, backends::xkcp, backends::sodium, backends::bearssl, backends::openssl.");
+        "webcpp::hash: digests::shake_256 is not in this backend. Name one of: backends::hash2, "
+        "backends::xkcp, backends::sodium, backends::bearssl, backends::openssl, backends::botan.");
 };
 
 /** `digests::keccak_224` on a backend without it (spec 3.3, design D34). */
@@ -737,7 +817,7 @@ struct digest_engine<Backend, digests::keccak_224> : refused_digest_engine<diges
                                                      needs_library<Backend> {
     static_assert(refused_elsewhere_v<Backend>,
                   "webcpp::hash: digests::keccak_224 is not in this backend. Name one of: "
-                  "backends::xkcp, backends::openssl.");
+                  "backends::xkcp, backends::openssl, backends::botan.");
 };
 
 /** `digests::keccak_256` on a backend without it (spec 3.3, design D34). */
@@ -746,7 +826,7 @@ struct digest_engine<Backend, digests::keccak_256> : refused_digest_engine<diges
                                                      needs_library<Backend> {
     static_assert(refused_elsewhere_v<Backend>,
                   "webcpp::hash: digests::keccak_256 is not in this backend. Name one of: "
-                  "backends::xkcp, backends::openssl.");
+                  "backends::xkcp, backends::openssl, backends::botan.");
 };
 
 /** `digests::keccak_384` on a backend without it (spec 3.3, design D34). */
@@ -755,7 +835,7 @@ struct digest_engine<Backend, digests::keccak_384> : refused_digest_engine<diges
                                                      needs_library<Backend> {
     static_assert(refused_elsewhere_v<Backend>,
                   "webcpp::hash: digests::keccak_384 is not in this backend. Name one of: "
-                  "backends::xkcp, backends::openssl.");
+                  "backends::xkcp, backends::openssl, backends::botan.");
 };
 
 /** `digests::keccak_512` on a backend without it (spec 3.3, design D34). */
@@ -764,7 +844,7 @@ struct digest_engine<Backend, digests::keccak_512> : refused_digest_engine<diges
                                                      needs_library<Backend> {
     static_assert(refused_elsewhere_v<Backend>,
                   "webcpp::hash: digests::keccak_512 is not in this backend. Name one of: "
-                  "backends::xkcp, backends::openssl.");
+                  "backends::xkcp, backends::openssl, backends::botan.");
 };
 
 /** `digests::cshake_128` on a backend without it (spec 3.3, design D34). */
@@ -863,7 +943,7 @@ struct digest_engine<Backend, digests::blake2b> : refused_digest_engine<digests:
                                                   needs_library<Backend> {
     static_assert(refused_elsewhere_v<Backend>,
                   "webcpp::hash: digests::blake2b is not in this backend. Name one of: "
-                  "backends::hash2, backends::sodium, backends::openssl.");
+                  "backends::hash2, backends::sodium, backends::openssl, backends::botan.");
 };
 
 /** `digests::blake2s_256` on a backend without it (spec 3.3, design D34). */
@@ -872,7 +952,7 @@ struct digest_engine<Backend, digests::blake2s_256> : refused_digest_engine<dige
                                                       needs_library<Backend> {
     static_assert(refused_elsewhere_v<Backend>,
                   "webcpp::hash: digests::blake2s_256 is not in this backend. Name one of: "
-                  "backends::hash2, backends::openssl.");
+                  "backends::hash2, backends::openssl, backends::botan.");
 };
 
 /** `digests::blake3` on a backend without it (spec 3.3, design D34). */
@@ -890,7 +970,7 @@ struct digest_engine<Backend, digests::ripemd_160> : refused_digest_engine<diges
                                                      needs_library<Backend> {
     static_assert(refused_elsewhere_v<Backend>,
                   "webcpp::hash: digests::ripemd_160 is not in this backend. Name one of: "
-                  "backends::hash2, backends::openssl.");
+                  "backends::hash2, backends::openssl, backends::botan.");
 };
 
 /** `digests::md5_sha1` on a backend without it (spec 3.3, design D34). */
@@ -911,10 +991,10 @@ struct digest_engine<Backend, digests::sm3> : refused_digest_engine<digests::sm3
                                               needs_library<Backend> {
     static_assert(!std::is_same_v<Backend, no_default>,
                   "webcpp::hash: digests::sm3 has no default backend. Name one of: "
-                  "backends::openssl.");
+                  "backends::openssl, backends::botan.");
     static_assert(refused_elsewhere_v<Backend>,
                   "webcpp::hash: digests::sm3 is not in this backend. Name one of: "
-                  "backends::openssl.");
+                  "backends::openssl, backends::botan.");
 };
 
 /** `digests::streebog_256` on a backend without it (spec 3.3, design D34). */
@@ -922,10 +1002,11 @@ template <class Backend>
 struct digest_engine<Backend, digests::streebog_256> : refused_digest_engine<digests::streebog_256>,
                                                        needs_library<Backend> {
     static_assert(!std::is_same_v<Backend, no_default>,
-                  "webcpp::hash: digests::streebog_256 has no default backend, and no backend has "
-                  "it yet.");
+                  "webcpp::hash: digests::streebog_256 has no default backend. Name one of: "
+                  "backends::botan.");
     static_assert(refused_elsewhere_v<Backend>,
-                  "webcpp::hash: digests::streebog_256 is in no backend yet.");
+                  "webcpp::hash: digests::streebog_256 is not in this backend. Name one of: "
+                  "backends::botan.");
 };
 
 /** `digests::streebog_512` on a backend without it (spec 3.3, design D34). */
@@ -933,32 +1014,35 @@ template <class Backend>
 struct digest_engine<Backend, digests::streebog_512> : refused_digest_engine<digests::streebog_512>,
                                                        needs_library<Backend> {
     static_assert(!std::is_same_v<Backend, no_default>,
-                  "webcpp::hash: digests::streebog_512 has no default backend, and no backend has "
-                  "it yet.");
+                  "webcpp::hash: digests::streebog_512 has no default backend. Name one of: "
+                  "backends::botan.");
     static_assert(refused_elsewhere_v<Backend>,
-                  "webcpp::hash: digests::streebog_512 is in no backend yet.");
+                  "webcpp::hash: digests::streebog_512 is not in this backend. Name one of: "
+                  "backends::botan.");
 };
 
 /** `digests::whirlpool` on a backend without it (spec 3.3, design D34). */
 template <class Backend>
 struct digest_engine<Backend, digests::whirlpool> : refused_digest_engine<digests::whirlpool>,
                                                     needs_library<Backend> {
-    static_assert(!std::is_same_v<Backend, no_default>,
-                  "webcpp::hash: digests::whirlpool has no default backend, and no backend has it "
-                  "yet.");
-    static_assert(refused_elsewhere_v<Backend>,
-                  "webcpp::hash: digests::whirlpool is in no backend yet.");
+    static_assert(
+        !std::is_same_v<Backend, no_default>,
+        "webcpp::hash: digests::whirlpool has no default backend. Name one of: backends::botan.");
+    static_assert(
+        refused_elsewhere_v<Backend>,
+        "webcpp::hash: digests::whirlpool is not in this backend. Name one of: backends::botan.");
 };
 
 /** `digests::skein_512` on a backend without it (spec 3.3, design D34). */
 template <class Backend>
 struct digest_engine<Backend, digests::skein_512> : refused_digest_engine<digests::skein_512>,
                                                     needs_library<Backend> {
-    static_assert(!std::is_same_v<Backend, no_default>,
-                  "webcpp::hash: digests::skein_512 has no default backend, and no backend has it "
-                  "yet.");
-    static_assert(refused_elsewhere_v<Backend>,
-                  "webcpp::hash: digests::skein_512 is in no backend yet.");
+    static_assert(
+        !std::is_same_v<Backend, no_default>,
+        "webcpp::hash: digests::skein_512 has no default backend. Name one of: backends::botan.");
+    static_assert(
+        refused_elsewhere_v<Backend>,
+        "webcpp::hash: digests::skein_512 is not in this backend. Name one of: backends::botan.");
 };
 
 /**
@@ -1018,8 +1102,8 @@ struct mac_engine : refused_mac_engine<Mac> {
 
 /**
  HMAC over a digest no backend has HMAC over (spec 3.3): one without a standard HMAC
- (`digests::md5_sha1`, design D41), an extendable-output function, over which HMAC is not defined,
- or a digest in no backend.
+ (`digests::md5_sha1`, design D41), or an extendable-output function, over which HMAC is not
+ defined.
 */
 template <class Backend, class Digest>
 struct mac_engine<Backend, macs::hmac<Digest>> : refused_mac_engine<macs::hmac<Digest>>,
@@ -1039,7 +1123,7 @@ struct mac_engine<Backend, macs::hmac<digests::md5>> : refused_mac_engine<macs::
                                                        needs_library<Backend> {
     static_assert(refused_elsewhere_v<Backend>,
                   "webcpp::hash: macs::hmac<digests::md5> is not in this backend. Name one of: "
-                  "backends::hash2, backends::bearssl, backends::openssl.");
+                  "backends::hash2, backends::bearssl, backends::openssl, backends::botan.");
 };
 
 /** `macs::hmac<digests::sha1>` on a backend without it (spec 3.3, design D34). */
@@ -1048,7 +1132,7 @@ struct mac_engine<Backend, macs::hmac<digests::sha1>>
     : refused_mac_engine<macs::hmac<digests::sha1>>, needs_library<Backend> {
     static_assert(refused_elsewhere_v<Backend>,
                   "webcpp::hash: macs::hmac<digests::sha1> is not in this backend. Name one of: "
-                  "backends::hash2, backends::bearssl, backends::openssl.");
+                  "backends::hash2, backends::bearssl, backends::openssl, backends::botan.");
 };
 
 /** `macs::hmac<digests::sha2_224>` on a backend without it (spec 3.3, design D34). */
@@ -1057,7 +1141,7 @@ struct mac_engine<Backend, macs::hmac<digests::sha2_224>>
     : refused_mac_engine<macs::hmac<digests::sha2_224>>, needs_library<Backend> {
     static_assert(refused_elsewhere_v<Backend>,
                   "webcpp::hash: macs::hmac<digests::sha2_224> is not in this backend. Name one "
-                  "of: backends::hash2, backends::bearssl, backends::openssl.");
+                  "of: backends::hash2, backends::bearssl, backends::openssl, backends::botan.");
 };
 
 /** `macs::hmac<digests::sha2_256>` on a backend without it (spec 3.3, design D34). */
@@ -1066,7 +1150,8 @@ struct mac_engine<Backend, macs::hmac<digests::sha2_256>>
     : refused_mac_engine<macs::hmac<digests::sha2_256>>, needs_library<Backend> {
     static_assert(refused_elsewhere_v<Backend>,
                   "webcpp::hash: macs::hmac<digests::sha2_256> is not in this backend. Name one "
-                  "of: backends::hash2, backends::sodium, backends::bearssl, backends::openssl.");
+                  "of: backends::hash2, backends::sodium, backends::bearssl, backends::openssl, "
+                  "backends::botan.");
 };
 
 /** `macs::hmac<digests::sha2_384>` on a backend without it (spec 3.3, design D34). */
@@ -1075,7 +1160,7 @@ struct mac_engine<Backend, macs::hmac<digests::sha2_384>>
     : refused_mac_engine<macs::hmac<digests::sha2_384>>, needs_library<Backend> {
     static_assert(refused_elsewhere_v<Backend>,
                   "webcpp::hash: macs::hmac<digests::sha2_384> is not in this backend. Name one "
-                  "of: backends::hash2, backends::bearssl, backends::openssl.");
+                  "of: backends::hash2, backends::bearssl, backends::openssl, backends::botan.");
 };
 
 /** `macs::hmac<digests::sha2_512>` on a backend without it (spec 3.3, design D34). */
@@ -1084,7 +1169,8 @@ struct mac_engine<Backend, macs::hmac<digests::sha2_512>>
     : refused_mac_engine<macs::hmac<digests::sha2_512>>, needs_library<Backend> {
     static_assert(refused_elsewhere_v<Backend>,
                   "webcpp::hash: macs::hmac<digests::sha2_512> is not in this backend. Name one "
-                  "of: backends::hash2, backends::sodium, backends::bearssl, backends::openssl.");
+                  "of: backends::hash2, backends::sodium, backends::bearssl, backends::openssl, "
+                  "backends::botan.");
 };
 
 /** `macs::hmac<digests::sha2_512_224>` on a backend without it (spec 3.3, design D34). */
@@ -1102,7 +1188,7 @@ struct mac_engine<Backend, macs::hmac<digests::sha2_512_256>>
     : refused_mac_engine<macs::hmac<digests::sha2_512_256>>, needs_library<Backend> {
     static_assert(refused_elsewhere_v<Backend>,
                   "webcpp::hash: macs::hmac<digests::sha2_512_256> is not in this backend. Name "
-                  "one of: backends::hash2, backends::openssl.");
+                  "one of: backends::hash2, backends::openssl, backends::botan.");
 };
 
 /** `macs::hmac<digests::sha3_224>` on a backend without it (spec 3.3, design D34). */
@@ -1111,7 +1197,7 @@ struct mac_engine<Backend, macs::hmac<digests::sha3_224>>
     : refused_mac_engine<macs::hmac<digests::sha3_224>>, needs_library<Backend> {
     static_assert(refused_elsewhere_v<Backend>,
                   "webcpp::hash: macs::hmac<digests::sha3_224> is not in this backend. Name one "
-                  "of: backends::hash2, backends::openssl.");
+                  "of: backends::hash2, backends::openssl, backends::botan.");
 };
 
 /** `macs::hmac<digests::sha3_256>` on a backend without it (spec 3.3, design D34). */
@@ -1120,7 +1206,7 @@ struct mac_engine<Backend, macs::hmac<digests::sha3_256>>
     : refused_mac_engine<macs::hmac<digests::sha3_256>>, needs_library<Backend> {
     static_assert(refused_elsewhere_v<Backend>,
                   "webcpp::hash: macs::hmac<digests::sha3_256> is not in this backend. Name one "
-                  "of: backends::hash2, backends::openssl.");
+                  "of: backends::hash2, backends::openssl, backends::botan.");
 };
 
 /** `macs::hmac<digests::sha3_384>` on a backend without it (spec 3.3, design D34). */
@@ -1129,7 +1215,7 @@ struct mac_engine<Backend, macs::hmac<digests::sha3_384>>
     : refused_mac_engine<macs::hmac<digests::sha3_384>>, needs_library<Backend> {
     static_assert(refused_elsewhere_v<Backend>,
                   "webcpp::hash: macs::hmac<digests::sha3_384> is not in this backend. Name one "
-                  "of: backends::hash2, backends::openssl.");
+                  "of: backends::hash2, backends::openssl, backends::botan.");
 };
 
 /** `macs::hmac<digests::sha3_512>` on a backend without it (spec 3.3, design D34). */
@@ -1138,7 +1224,7 @@ struct mac_engine<Backend, macs::hmac<digests::sha3_512>>
     : refused_mac_engine<macs::hmac<digests::sha3_512>>, needs_library<Backend> {
     static_assert(refused_elsewhere_v<Backend>,
                   "webcpp::hash: macs::hmac<digests::sha3_512> is not in this backend. Name one "
-                  "of: backends::hash2, backends::openssl.");
+                  "of: backends::hash2, backends::openssl, backends::botan.");
 };
 
 /** `macs::hmac<digests::ripemd_160>` on a backend without it (spec 3.3, design D34). */
@@ -1147,7 +1233,7 @@ struct mac_engine<Backend, macs::hmac<digests::ripemd_160>>
     : refused_mac_engine<macs::hmac<digests::ripemd_160>>, needs_library<Backend> {
     static_assert(refused_elsewhere_v<Backend>,
                   "webcpp::hash: macs::hmac<digests::ripemd_160> is not in this backend. Name one "
-                  "of: backends::hash2, backends::openssl.");
+                  "of: backends::hash2, backends::openssl, backends::botan.");
 };
 
 /** `macs::hmac<digests::blake2b>` on a backend without it (spec 3.3, design D34). */
@@ -1155,8 +1241,8 @@ template <class Backend>
 struct mac_engine<Backend, macs::hmac<digests::blake2b>>
     : refused_mac_engine<macs::hmac<digests::blake2b>>, needs_library<Backend> {
     static_assert(refused_elsewhere_v<Backend>,
-                  "webcpp::hash: macs::hmac<digests::blake2b> is not in this backend. Name one "
-                  "of: backends::hash2, backends::openssl.");
+                  "webcpp::hash: macs::hmac<digests::blake2b> is not in this backend. Name one of: "
+                  "backends::hash2, backends::openssl, backends::botan.");
 };
 
 /** `macs::hmac<digests::blake2s_256>` on a backend without it (spec 3.3, design D34). */
@@ -1164,8 +1250,8 @@ template <class Backend>
 struct mac_engine<Backend, macs::hmac<digests::blake2s_256>>
     : refused_mac_engine<macs::hmac<digests::blake2s_256>>, needs_library<Backend> {
     static_assert(refused_elsewhere_v<Backend>,
-                  "webcpp::hash: macs::hmac<digests::blake2s_256> is not in this backend. Name "
-                  "one of: backends::hash2, backends::openssl.");
+                  "webcpp::hash: macs::hmac<digests::blake2s_256> is not in this backend. Name one "
+                  "of: backends::hash2, backends::openssl, backends::botan.");
 };
 
 /** `macs::hmac<digests::keccak_224>` on a backend without it (spec 3.3, design D34). */
@@ -1174,10 +1260,10 @@ struct mac_engine<Backend, macs::hmac<digests::keccak_224>>
     : refused_mac_engine<macs::hmac<digests::keccak_224>>, needs_library<Backend> {
     static_assert(!std::is_same_v<Backend, no_default>,
                   "webcpp::hash: macs::hmac<digests::keccak_224> has no default backend. Name one "
-                  "of: backends::openssl.");
+                  "of: backends::openssl, backends::botan.");
     static_assert(refused_elsewhere_v<Backend>,
                   "webcpp::hash: macs::hmac<digests::keccak_224> is not in this backend. Name one "
-                  "of: backends::openssl.");
+                  "of: backends::openssl, backends::botan.");
 };
 
 /** `macs::hmac<digests::keccak_256>` on a backend without it (spec 3.3, design D34). */
@@ -1186,10 +1272,10 @@ struct mac_engine<Backend, macs::hmac<digests::keccak_256>>
     : refused_mac_engine<macs::hmac<digests::keccak_256>>, needs_library<Backend> {
     static_assert(!std::is_same_v<Backend, no_default>,
                   "webcpp::hash: macs::hmac<digests::keccak_256> has no default backend. Name one "
-                  "of: backends::openssl.");
+                  "of: backends::openssl, backends::botan.");
     static_assert(refused_elsewhere_v<Backend>,
                   "webcpp::hash: macs::hmac<digests::keccak_256> is not in this backend. Name one "
-                  "of: backends::openssl.");
+                  "of: backends::openssl, backends::botan.");
 };
 
 /** `macs::hmac<digests::keccak_384>` on a backend without it (spec 3.3, design D34). */
@@ -1198,10 +1284,10 @@ struct mac_engine<Backend, macs::hmac<digests::keccak_384>>
     : refused_mac_engine<macs::hmac<digests::keccak_384>>, needs_library<Backend> {
     static_assert(!std::is_same_v<Backend, no_default>,
                   "webcpp::hash: macs::hmac<digests::keccak_384> has no default backend. Name one "
-                  "of: backends::openssl.");
+                  "of: backends::openssl, backends::botan.");
     static_assert(refused_elsewhere_v<Backend>,
                   "webcpp::hash: macs::hmac<digests::keccak_384> is not in this backend. Name one "
-                  "of: backends::openssl.");
+                  "of: backends::openssl, backends::botan.");
 };
 
 /** `macs::hmac<digests::keccak_512>` on a backend without it (spec 3.3, design D34). */
@@ -1210,10 +1296,10 @@ struct mac_engine<Backend, macs::hmac<digests::keccak_512>>
     : refused_mac_engine<macs::hmac<digests::keccak_512>>, needs_library<Backend> {
     static_assert(!std::is_same_v<Backend, no_default>,
                   "webcpp::hash: macs::hmac<digests::keccak_512> has no default backend. Name one "
-                  "of: backends::openssl.");
+                  "of: backends::openssl, backends::botan.");
     static_assert(refused_elsewhere_v<Backend>,
                   "webcpp::hash: macs::hmac<digests::keccak_512> is not in this backend. Name one "
-                  "of: backends::openssl.");
+                  "of: backends::openssl, backends::botan.");
 };
 
 /** `macs::hmac<digests::sm3>` on a backend without it (spec 3.3, design D34). */
@@ -1221,11 +1307,59 @@ template <class Backend>
 struct mac_engine<Backend, macs::hmac<digests::sm3>> : refused_mac_engine<macs::hmac<digests::sm3>>,
                                                        needs_library<Backend> {
     static_assert(!std::is_same_v<Backend, no_default>,
-                  "webcpp::hash: macs::hmac<digests::sm3> has no default backend. Name one "
-                  "of: backends::openssl.");
+                  "webcpp::hash: macs::hmac<digests::sm3> has no default backend. Name one of: "
+                  "backends::openssl, backends::botan.");
     static_assert(refused_elsewhere_v<Backend>,
-                  "webcpp::hash: macs::hmac<digests::sm3> is not in this backend. Name one "
-                  "of: backends::openssl.");
+                  "webcpp::hash: macs::hmac<digests::sm3> is not in this backend. Name one of: "
+                  "backends::openssl, backends::botan.");
+};
+
+/** `macs::hmac<digests::streebog_256>` on a backend without it (spec 3.3, design D34). */
+template <class Backend>
+struct mac_engine<Backend, macs::hmac<digests::streebog_256>>
+    : refused_mac_engine<macs::hmac<digests::streebog_256>>, needs_library<Backend> {
+    static_assert(!std::is_same_v<Backend, no_default>,
+                  "webcpp::hash: macs::hmac<digests::streebog_256> has no default backend. Name "
+                  "one of: backends::botan.");
+    static_assert(refused_elsewhere_v<Backend>,
+                  "webcpp::hash: macs::hmac<digests::streebog_256> is not in this backend. Name "
+                  "one of: backends::botan.");
+};
+
+/** `macs::hmac<digests::streebog_512>` on a backend without it (spec 3.3, design D34). */
+template <class Backend>
+struct mac_engine<Backend, macs::hmac<digests::streebog_512>>
+    : refused_mac_engine<macs::hmac<digests::streebog_512>>, needs_library<Backend> {
+    static_assert(!std::is_same_v<Backend, no_default>,
+                  "webcpp::hash: macs::hmac<digests::streebog_512> has no default backend. Name "
+                  "one of: backends::botan.");
+    static_assert(refused_elsewhere_v<Backend>,
+                  "webcpp::hash: macs::hmac<digests::streebog_512> is not in this backend. Name "
+                  "one of: backends::botan.");
+};
+
+/** `macs::hmac<digests::whirlpool>` on a backend without it (spec 3.3, design D34). */
+template <class Backend>
+struct mac_engine<Backend, macs::hmac<digests::whirlpool>>
+    : refused_mac_engine<macs::hmac<digests::whirlpool>>, needs_library<Backend> {
+    static_assert(!std::is_same_v<Backend, no_default>,
+                  "webcpp::hash: macs::hmac<digests::whirlpool> has no default backend. Name one "
+                  "of: backends::botan.");
+    static_assert(refused_elsewhere_v<Backend>,
+                  "webcpp::hash: macs::hmac<digests::whirlpool> is not in this backend. Name one "
+                  "of: backends::botan.");
+};
+
+/** `macs::hmac<digests::skein_512>` on a backend without it (spec 3.3, design D34). */
+template <class Backend>
+struct mac_engine<Backend, macs::hmac<digests::skein_512>>
+    : refused_mac_engine<macs::hmac<digests::skein_512>>, needs_library<Backend> {
+    static_assert(!std::is_same_v<Backend, no_default>,
+                  "webcpp::hash: macs::hmac<digests::skein_512> has no default backend. Name one "
+                  "of: backends::botan.");
+    static_assert(refused_elsewhere_v<Backend>,
+                  "webcpp::hash: macs::hmac<digests::skein_512> is not in this backend. Name one "
+                  "of: backends::botan.");
 };
 
 /** `macs::kmac_128` on a backend without it (spec 3.3, design D34). */
@@ -1234,7 +1368,7 @@ struct mac_engine<Backend, macs::kmac_128> : refused_mac_engine<macs::kmac_128>,
                                              needs_library<Backend> {
     static_assert(refused_elsewhere_v<Backend>,
                   "webcpp::hash: macs::kmac_128 is not in this backend. Name one of: "
-                  "backends::xkcp, backends::openssl.");
+                  "backends::xkcp, backends::openssl, backends::botan.");
 };
 
 /** `macs::kmac_256` on a backend without it (spec 3.3, design D34). */
@@ -1243,7 +1377,7 @@ struct mac_engine<Backend, macs::kmac_256> : refused_mac_engine<macs::kmac_256>,
                                              needs_library<Backend> {
     static_assert(refused_elsewhere_v<Backend>,
                   "webcpp::hash: macs::kmac_256 is not in this backend. Name one of: "
-                  "backends::xkcp, backends::openssl.");
+                  "backends::xkcp, backends::openssl, backends::botan.");
 };
 
 /** `macs::siphash_2_4` on a backend without it (spec 3.3, design D34). */
@@ -1252,7 +1386,7 @@ struct mac_engine<Backend, macs::siphash_2_4> : refused_mac_engine<macs::siphash
                                                 needs_library<Backend> {
     static_assert(refused_elsewhere_v<Backend>,
                   "webcpp::hash: macs::siphash_2_4 is not in this backend. Name one of: "
-                  "backends::hash2, backends::sodium, backends::openssl.");
+                  "backends::hash2, backends::sodium, backends::openssl, backends::botan.");
 };
 
 /** `macs::siphash_2_4x` on a backend without it (spec 3.3, design D34). */
@@ -1270,7 +1404,7 @@ struct mac_engine<Backend, macs::blake2b_mac> : refused_mac_engine<macs::blake2b
                                                 needs_library<Backend> {
     static_assert(refused_elsewhere_v<Backend>,
                   "webcpp::hash: macs::blake2b_mac is not in this backend. Name one of: "
-                  "backends::sodium, backends::openssl.");
+                  "backends::sodium, backends::openssl, backends::botan.");
 };
 
 /** `macs::blake2s_mac` on a backend without it (spec 3.3, design D34). */
@@ -1366,10 +1500,10 @@ struct argon2_engine<Backend, kdfs::argon2d> : refused_argon2_engine<kdfs::argon
                                                needs_library<Backend> {
     static_assert(!std::is_same_v<Backend, no_default>,
                   "webcpp::hash: kdfs::argon2d has no default backend. Name one of: "
-                  "backends::openssl.");
+                  "backends::openssl, backends::botan.");
     static_assert(refused_elsewhere_v<Backend>,
                   "webcpp::hash: kdfs::argon2d is not in this backend. Name one of: "
-                  "backends::openssl.");
+                  "backends::openssl, backends::botan.");
 };
 
 /** `kdfs::argon2i` on a backend without it (spec 3.3, design D34). */
@@ -1378,7 +1512,7 @@ struct argon2_engine<Backend, kdfs::argon2i> : refused_argon2_engine<kdfs::argon
                                                needs_library<Backend> {
     static_assert(refused_elsewhere_v<Backend>,
                   "webcpp::hash: kdfs::argon2i is not in this backend. Name one of: "
-                  "backends::sodium, backends::openssl.");
+                  "backends::sodium, backends::openssl, backends::botan.");
 };
 
 /** `kdfs::argon2id` on a backend without it (spec 3.3, design D34). */
@@ -1387,7 +1521,7 @@ struct argon2_engine<Backend, kdfs::argon2id> : refused_argon2_engine<kdfs::argo
                                                 needs_library<Backend> {
     static_assert(refused_elsewhere_v<Backend>,
                   "webcpp::hash: kdfs::argon2id is not in this backend. Name one of: "
-                  "backends::sodium, backends::openssl.");
+                  "backends::sodium, backends::openssl, backends::botan.");
 };
 
 /**
@@ -1406,15 +1540,19 @@ struct kdf_standard_limits {
 
 /**
  SP 800-108's KBKDF in counter mode over an hmac on a backend, behind `kbkdf`, which the
- backend's header specialises for each hmac it has (`backends::openssl` alone). The primary
- template is reached by every other backend, and by `kbkdf`'s default, which has none (design
- D34); it refuses at compile time, and its members exist so that the refusal is the only error.
+ backend's header specialises for each hmac it has (`backends::openssl`, `backends::botan`). The
+ primary template is reached by every other backend, and by `kbkdf`'s default, which has none
+ (design D34); it refuses at compile time, and its members exist so that the refusal is the only
+ error.
 
  A specialisation has a constant and a static member function, called by `kbkdf` only after every
- guard of SP 800-108 and every limit of `limits` has passed:
+ guard of SP 800-108 and every limit of `limits` has passed, and, where it declares one, a
+ `constexpr` `accepts`, whose false is `unsupported_by_backend` (a fixed input the backend cannot
+ write):
 
  @code
  static constexpr kdf_standard_limits limits{...};
+ static constexpr bool accepts(kbkdf_options const& options) noexcept;  // optional
  // K_OUT, output.size() bytes, from K_IN, key, and the fixed input options states.
  static boost::system::result<void> derive(std::span<std::uint8_t> output,
                                            std::span<std::uint8_t const> key,
@@ -1430,10 +1568,10 @@ template <class Backend, class Hmac>
 struct kbkdf_engine : needs_library<Backend> {
     static_assert(!std::is_same_v<Backend, no_default>,
                   "webcpp::hash: kdfs::kbkdf_hmac has no default backend. Name one of: "
-                  "backends::openssl.");
+                  "backends::openssl, backends::botan.");
     static_assert(refused_elsewhere_v<Backend>,
                   "webcpp::hash: kdfs::kbkdf_hmac is not in this backend. Name one of: "
-                  "backends::openssl.");
+                  "backends::openssl, backends::botan.");
 
     /** Never read: the refusal has stopped the build. */
     static constexpr kdf_standard_limits limits{};
@@ -1464,8 +1602,8 @@ struct refused_digest_kdf_engine {
 
 /**
  SP 800-56C's one-step KDF over a digest (its hash form) on a backend, behind `sskdf`, which the
- backend's header specialises for the digests it has (`backends::openssl` alone). The primary
- template refuses every other backend, and `sskdf`'s default, which has none (design D34).
+ backend's header specialises for the digests it has (`backends::openssl`, `backends::botan`). The
+ primary template refuses every other backend, and `sskdf`'s default, which has none (design D34).
 
  A specialisation has a constant and a static member function, called by `sskdf` only after every
  guard of SP 800-56C and every limit of `limits` has passed:
@@ -1487,10 +1625,10 @@ template <class Backend, class Digest>
 struct sskdf_engine : refused_digest_kdf_engine, needs_library<Backend> {
     static_assert(!std::is_same_v<Backend, no_default>,
                   "webcpp::hash: kdfs::sskdf has no default backend. Name one of: "
-                  "backends::openssl.");
+                  "backends::openssl, backends::botan.");
     static_assert(refused_elsewhere_v<Backend>,
                   "webcpp::hash: kdfs::sskdf is not in this backend. Name one of: "
-                  "backends::openssl.");
+                  "backends::openssl, backends::botan.");
 };
 
 /**
@@ -1510,10 +1648,99 @@ template <class Backend, class Digest>
 struct x963kdf_engine : refused_digest_kdf_engine, needs_library<Backend> {
     static_assert(!std::is_same_v<Backend, no_default>,
                   "webcpp::hash: kdfs::x963kdf has no default backend. Name one of: "
-                  "backends::openssl.");
+                  "backends::openssl, backends::botan.");
     static_assert(refused_elsewhere_v<Backend>,
                   "webcpp::hash: kdfs::x963kdf is not in this backend. Name one of: "
-                  "backends::openssl.");
+                  "backends::openssl, backends::botan.");
+};
+
+/**
+ bcrypt on a backend (OpenBSD's password hash, as its modular crypt string), behind `bcrypt` and
+ `bcrypt_verify` (`bcrypt.hpp`), which the backend's header specialises (`backends::botan` alone).
+ The primary template is reached by every other backend, and by the default of `kdfs::bcrypt`,
+ which has none (design D34); it refuses at compile time, and its members exist so that the
+ refusal is the only error.
+
+ A specialisation has a constant and two static member functions, called by `bcrypt.hpp` only after
+ every guard of its function has passed, and each a cost within `max_cost`:
+
+ @code
+ // The highest cost the backend computes; a higher one, within bcrypt's 31, is
+ // unsupported_by_backend.
+ static constexpr std::uint32_t max_cost = ...;
+ // The 60 characters of password's bcrypt under the 16-byte salt, of cost (4 to max_cost) and
+ // version ('a', 'b' or 'y'): the password of at most 72 bytes, without a zero byte.
+ static boost::system::result<void> generate(std::span<char> output,
+                                             std::span<std::uint8_t const> password,
+                                             std::span<std::uint8_t const> salt,
+                                             std::uint32_t cost, char version) noexcept;
+ // Whether password gives hash, 60 characters of bcrypt's form, compared in constant time.
+ static boost::system::result<bool> verify(std::span<std::uint8_t const> password,
+                                           std::string_view hash) noexcept;
+ @endcode
+
+ A failure is `error::backend_failure`, or `errc::not_enough_memory` when the library could not
+ allocate; `bcrypt` then zeroes the output.
+
+ @tparam Backend A backend of `backends`, or `no_default`.
+*/
+template <class Backend>
+struct bcrypt_engine : needs_library<Backend> {
+    static_assert(!std::is_same_v<Backend, no_default>,
+                  "webcpp::hash: kdfs::bcrypt has no default backend. Name one of: "
+                  "backends::botan.");
+    static_assert(refused_elsewhere_v<Backend>,
+                  "webcpp::hash: kdfs::bcrypt is not in this backend. Name one of: "
+                  "backends::botan.");
+
+    /** Never read: the refusal has stopped the build. */
+    static constexpr std::uint32_t max_cost = 0;
+
+    /** Never called: the refusal has stopped the build. @return backend_failure. */
+    [[nodiscard]] static boost::system::result<void> generate(
+        std::span<char> /*output*/, std::span<std::uint8_t const> /*password*/,
+        std::span<std::uint8_t const> /*salt*/, std::uint32_t /*cost*/, char /*version*/) noexcept {
+        return error::backend_failure;
+    }
+
+    /** Never called: the refusal has stopped the build. @return backend_failure. */
+    [[nodiscard]] static boost::system::result<bool> verify(
+        std::span<std::uint8_t const> /*password*/, std::string_view /*hash*/) noexcept {
+        return error::backend_failure;
+    }
+};
+
+/**
+ OpenBSD's bcrypt_pbkdf on a backend, behind `bcrypt_pbkdf` (`bcrypt.hpp`), which the backend's
+ header specialises (`backends::botan` alone), as @ref bcrypt_engine is. A specialisation's
+ `derive` is called only after every guard of `bcrypt_pbkdf` (OpenBSD's limits) has passed:
+
+ @code
+ // output.size() bytes (1 to 1,024) from password (1 byte or more) and salt (1 to 1,048,576
+ // bytes), by rounds (1 or more) of bcrypt's hash.
+ static boost::system::result<void> derive(std::span<std::uint8_t> output,
+                                           std::span<std::uint8_t const> password,
+                                           std::span<std::uint8_t const> salt,
+                                           std::uint32_t rounds) noexcept;
+ @endcode
+
+ @tparam Backend A backend of `backends`, or `no_default`.
+*/
+template <class Backend>
+struct bcrypt_pbkdf_engine : needs_library<Backend> {
+    static_assert(!std::is_same_v<Backend, no_default>,
+                  "webcpp::hash: kdfs::bcrypt_pbkdf has no default backend. Name one of: "
+                  "backends::botan.");
+    static_assert(refused_elsewhere_v<Backend>,
+                  "webcpp::hash: kdfs::bcrypt_pbkdf is not in this backend. Name one of: "
+                  "backends::botan.");
+
+    /** Never called: the refusal has stopped the build. @return backend_failure. */
+    [[nodiscard]] static boost::system::result<void> derive(
+        std::span<std::uint8_t> /*output*/, std::span<std::uint8_t const> /*password*/,
+        std::span<std::uint8_t const> /*salt*/, std::uint32_t /*rounds*/) noexcept {
+        return error::backend_failure;
+    }
 };
 
 }  // namespace webcpp::hash::detail

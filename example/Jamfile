@@ -14,6 +14,10 @@ import webcpp ;
 
 webcpp.targets native wasip2 wasip3 emscripten ;
 
+# Botan's examples: its library, with exceptions, without which it is not built
+# (design D45).
+.botan = <library>/third_party//botan <exception-handling>on ;
+
 # Digests.
 webcpp.example sha256.cpp ;
 webcpp.example sha3_shake.cpp ;
@@ -30,6 +34,10 @@ webcpp.example md5_sha1.cpp : <library>/third_party//bearssl ;
 # OpenSSL is built for native, wasip2 and wasip3, never for Emscripten.
 webcpp.example sm3.cpp : <library>/webcpp/hash//openssl : native wasip2 wasip3 ;
 webcpp.example digest_family.cpp ;
+# Botan is built for native and Emscripten, and only with exceptions.
+webcpp.example streebog.cpp : $(.botan) : native emscripten ;
+webcpp.example whirlpool.cpp : $(.botan) : native emscripten ;
+webcpp.example skein.cpp : $(.botan) : native emscripten ;
 
 # Message authentication: a MAC is compared with webcpp::crypto::equal, and a
 # hash table's key comes from webcpp::crypto::random_device.
@@ -44,6 +52,7 @@ webcpp.example blake2b_mac_sodium.cpp : <library>/third_party//sodium
 webcpp.example kmac.cpp : <library>/webcpp/crypto//crypto
   <library>/third_party//xkcp ;
 webcpp.example macs_openssl.cpp : <library>/webcpp/hash//openssl : native wasip2 wasip3 ;
+webcpp.example macs_botan.cpp : $(.botan) : native emscripten ;
 
 # Key derivation.
 webcpp.example hkdf.cpp ;
@@ -54,6 +63,7 @@ webcpp.example blake2b_subkey.cpp : <library>/third_party//sodium ;
 webcpp.example kbkdf.cpp : <library>/webcpp/hash//openssl : native wasip2 wasip3 ;
 webcpp.example sskdf.cpp : <library>/webcpp/hash//openssl : native wasip2 wasip3 ;
 webcpp.example x963kdf.cpp : <library>/webcpp/hash//openssl : native wasip2 wasip3 ;
+webcpp.example kdfs_botan.cpp : $(.botan) : native emscripten ;
 
 # Password hashing.
 webcpp.example argon2id.cpp : <library>/third_party//sodium ;
@@ -63,6 +73,8 @@ webcpp.example argon2_openssl.cpp : <library>/webcpp/hash//openssl
   : native wasip2 wasip3 ;
 webcpp.example scrypt_openssl.cpp : <library>/webcpp/hash//openssl
   : native wasip2 wasip3 ;
+webcpp.example argon2_botan.cpp : $(.botan) : native emscripten ;
+webcpp.example bcrypt.cpp : $(.botan) : native emscripten ;
 
 # Asynchronous calls, over webcpp::asio's event loop: a cheap function on every
 # target; a heavy one on a thread pool where the program has threads,
@@ -72,6 +84,9 @@ webcpp.example async_hkdf.cpp : <library>/webcpp/asio//asio ;
 webcpp.example async_argon2id.cpp : <library>/webcpp/asio//asio
   <library>/third_party//sodium <threading>multi
   <toolset>emscripten:<linkflags>-sPTHREAD_POOL_SIZE=1
+  : native emscripten ;
+webcpp.example async_bcrypt.cpp : <library>/webcpp/asio//asio $(.botan)
+  <threading>multi <toolset>emscripten:<linkflags>-sPTHREAD_POOL_SIZE=1
   : native emscripten ;
 # backends::webcrypto, the browser's WebCrypto, on Emscripten alone.
 webcpp.example async_webcrypto.cpp : <library>/webcpp/asio//asio : emscripten ;

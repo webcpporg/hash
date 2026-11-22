@@ -1,0 +1,4 @@
+hmac streebog_256 a1aa5f7de402d7b3d323f2991c8d4534013137010a83754fd0af6d7cd4922ed9
+kmac_128 3b1fba963cd8b0b59e8c1a6d71888b7143651af8ba0a7070c0979e2811324aa5
+10,000-byte key: same
+193-byte KMAC key: the backend does not take this parameter; name a backend that does

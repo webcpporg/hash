@@ -811,6 +811,32 @@
             ],
             "choose": "When a format demands scrypt; otherwise Argon2id."
         },
+        "bcrypt": {
+            "summary": "bcrypt: OpenBSD's password hash, the modular crypt string \"$2b$\" that systems store, on a backend the call names (it has no default).",
+            "output": "60 characters: the version, the cost, the salt and the hash",
+            "security": "each guess costs 2^cost rounds of Blowfish's key schedule in 4 KiB of memory; it reads at most 72 bytes of a password",
+            "status": "legacy",
+            "webcrypto": null,
+            "anchor": "hash-bcrypt",
+            "uses": [
+                {"text": "OpenBSD's password hashes, and those of the many systems that store its strings", "source": "https://man.openbsd.org/bcrypt.3"},
+                {"text": "OWASP: for legacy systems where Argon2id and scrypt are not available, a cost of 10 or more", "source": "https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html"}
+            ],
+            "choose": "To check or make the bcrypt strings a system already stores; Argon2id for a new design."
+        },
+        "bcrypt_pbkdf": {
+            "summary": "bcrypt_pbkdf: OpenBSD's key derivation over bcrypt's hash, which OpenSSH's private key files use, on a backend the call names (it has no default).",
+            "output": "1 to 1,024 bytes",
+            "security": "each round costs a bcrypt key schedule; its output blocks are interleaved, so that an attacker computes them all",
+            "status": "legacy",
+            "webcrypto": null,
+            "anchor": "hash-bcrypt",
+            "uses": [
+                {"text": "OpenSSH's private key files, their kdfname bcrypt", "source": "https://github.com/openssh/openssh-portable/blob/master/PROTOCOL.key"},
+                {"text": "OpenBSD's bcrypt_pbkdf(3)", "source": "https://man.openbsd.org/bcrypt_pbkdf.3"}
+            ],
+            "choose": "To read or write OpenSSH's encrypted private keys; Argon2id for a new design."
+        },
         "digests::md5": {
             "standard": "RFC 1321",
             "summary": "MD5, a 128-bit digest, broken: kept to read existing data and protocols, as the tag of digest_of and hasher: one call, or pieces with one final result, on any backend that has it.",
@@ -1250,7 +1276,58 @@
                 {"text": "RFC 8998, ShangMi cipher suites for TLS 1.3", "source": "https://www.rfc-editor.org/rfc/rfc8998"},
                 {"text": "ISO/IEC 10118-3:2018, dedicated hash functions", "source": "https://www.iso.org/standard/67116.html"}
             ],
-            "choose": "Where a Chinese standard or a regulator requires it (SM2 signatures, the ShangMi suites of TLS 1.3), naming backends::openssl; SHA-256 everywhere else."
+            "choose": "Where a Chinese standard or a regulator requires it (SM2 signatures, the ShangMi suites of TLS 1.3), naming backends::openssl or backends::botan; SHA-256 everywhere else."
+        },
+        "digests::streebog_256": {
+            "summary": "Streebog-256, Russia's national 256-bit digest (GOST R 34.11-2012, RFC 6986), as the tag of digest_of and hasher, on a backend the call names (it has no default).",
+            "output": "256 bits",
+            "security": "128-bit collision resistance; Botan warns that its S-box has a hidden structure",
+            "status": "legacy",
+            "webcrypto": null,
+            "anchor": "hash-streebog",
+            "uses": [
+                {"text": "RFC 6986, GOST R 34.11-2012: Hash Function", "source": "https://www.rfc-editor.org/rfc/rfc6986"},
+                {"text": "RFC 7836, the guidelines of the GOST algorithms, which build HMAC and KDFs over it", "source": "https://www.rfc-editor.org/rfc/rfc7836"}
+            ],
+            "choose": "Only where a Russian standard requires GOST R 34.11-2012, naming backends::botan; SHA-256 everywhere else."
+        },
+        "digests::streebog_512": {
+            "summary": "Streebog-512, Russia's national 512-bit digest (GOST R 34.11-2012, RFC 6986), as the tag of digest_of and hasher, on a backend the call names (it has no default).",
+            "output": "512 bits",
+            "security": "256-bit collision resistance; Botan warns that its S-box has a hidden structure",
+            "status": "legacy",
+            "webcrypto": null,
+            "anchor": "hash-streebog",
+            "uses": [
+                {"text": "RFC 6986, GOST R 34.11-2012: Hash Function", "source": "https://www.rfc-editor.org/rfc/rfc6986"},
+                {"text": "RFC 7836, the guidelines of the GOST algorithms", "source": "https://www.rfc-editor.org/rfc/rfc7836"}
+            ],
+            "choose": "Only where a Russian standard requires GOST R 34.11-2012, naming backends::botan; SHA-512 everywhere else."
+        },
+        "digests::whirlpool": {
+            "summary": "Whirlpool, a 512-bit digest of ISO/IEC 10118-3 and NESSIE, as the tag of digest_of and hasher, on a backend the call names (it has no default).",
+            "output": "512 bits",
+            "security": "256-bit collision resistance",
+            "status": "legacy",
+            "webcrypto": null,
+            "anchor": "hash-whirlpool",
+            "uses": [
+                {"text": "ISO/IEC 10118-3:2018, dedicated hash functions", "source": "https://www.iso.org/standard/67116.html"},
+                {"text": "VeraCrypt's header key derivation, PBKDF2 over HMAC-Whirlpool", "source": "https://veracrypt.io/en/Header%20Key%20Derivation.html"}
+            ],
+            "choose": "Only to read what a format hashed with it, naming backends::botan; SHA-512 or SHA3-512 everywhere else."
+        },
+        "digests::skein_512": {
+            "summary": "Skein-512 with a 512-bit digest (Skein 1.3, a finalist of the SHA-3 competition), as the tag of digest_of and hasher, on a backend the call names (it has no default).",
+            "output": "512 bits",
+            "security": "256-bit collision resistance",
+            "status": "legacy",
+            "webcrypto": null,
+            "anchor": "hash-skein",
+            "uses": [
+                {"text": "The Skein Hash Function Family, version 1.3", "source": "https://www.schneier.com/academic/skein/"}
+            ],
+            "choose": "Only to read what a format hashed with it, naming backends::botan; SHA3-512 or BLAKE2b everywhere else."
         },
         "macs::hmac<digests::md5>": {
             "summary": "HMAC over MD5, legacy, as the tag of mac: the tag of a message under a key in one call, cut to 10 bytes or more if needed, on any backend that has it.",
@@ -1493,7 +1570,55 @@
                 {"text": "RFC 8998, ShangMi cipher suites for TLS 1.3, whose HKDF runs HMAC-SM3", "source": "https://www.rfc-editor.org/rfc/rfc8998"},
                 {"text": "GM/T 0042-2015's HMAC-SM3 test cases, in OpenSSL's evpmac_sm3.txt", "source": "https://github.com/openssl/openssl/blob/openssl-3.5.9/test/recipes/30-test_evp_data/evpmac_sm3.txt"}
             ],
-            "choose": "Where a Chinese standard or a regulator requires SM3, naming backends::openssl; HMAC-SHA-256 everywhere else."
+            "choose": "Where a Chinese standard or a regulator requires SM3, naming backends::openssl or backends::botan; HMAC-SHA-256 everywhere else."
+        },
+        "macs::hmac<digests::streebog_256>": {
+            "summary": "HMAC over Streebog-256 (HMAC_GOSTR3411_2012_256, RFC 7836), as the tag of mac: the tag of a message under a key in one call, cut to 10 bytes or more if needed, on a backend the call names (it has no default).",
+            "output": "256 bits",
+            "security": "128 bits and more",
+            "status": "legacy",
+            "webcrypto": null,
+            "anchor": "hash-macs-botan",
+            "uses": [
+                {"text": "RFC 7836 section 4.1.1, HMAC_GOSTR3411_2012_256", "source": "https://www.rfc-editor.org/rfc/rfc7836"}
+            ],
+            "choose": "Only where a Russian standard requires it, naming backends::botan; HMAC-SHA-256 everywhere else."
+        },
+        "macs::hmac<digests::streebog_512>": {
+            "summary": "HMAC over Streebog-512 (HMAC_GOSTR3411_2012_512, RFC 7836), as the tag of mac: the tag of a message under a key in one call, cut to 10 bytes or more if needed, on a backend the call names (it has no default).",
+            "output": "512 bits",
+            "security": "256 bits and more",
+            "status": "legacy",
+            "webcrypto": null,
+            "anchor": "hash-macs-botan",
+            "uses": [
+                {"text": "RFC 7836 section 4.1.2, HMAC_GOSTR3411_2012_512", "source": "https://www.rfc-editor.org/rfc/rfc7836"}
+            ],
+            "choose": "Only where a Russian standard requires it, naming backends::botan; HMAC-SHA-512 everywhere else."
+        },
+        "macs::hmac<digests::whirlpool>": {
+            "summary": "HMAC over Whirlpool, as the tag of mac: the tag of a message under a key in one call, cut to 10 bytes or more if needed, on a backend the call names (it has no default).",
+            "output": "512 bits",
+            "security": "256 bits and more",
+            "status": "legacy",
+            "webcrypto": null,
+            "anchor": "hash-macs-botan",
+            "uses": [
+                {"text": "VeraCrypt's header key derivation, PBKDF2 over HMAC-Whirlpool", "source": "https://veracrypt.io/en/Header%20Key%20Derivation.html"}
+            ],
+            "choose": "Only where a format names HMAC over Whirlpool, naming backends::botan; HMAC-SHA-512 everywhere else."
+        },
+        "macs::hmac<digests::skein_512>": {
+            "summary": "HMAC over Skein-512, as the tag of mac: the tag of a message under a key in one call, cut to 10 bytes or more if needed, on a backend the call names (it has no default).",
+            "output": "512 bits",
+            "security": "256 bits and more",
+            "status": "legacy",
+            "webcrypto": null,
+            "anchor": "hash-macs-botan",
+            "uses": [
+                {"text": "The Skein Hash Function Family, version 1.3, whose hash HMAC's generic construction takes", "source": "https://www.schneier.com/academic/skein/"}
+            ],
+            "choose": "Only where a format names HMAC over Skein-512, naming backends::botan; HMAC-SHA-512 everywhere else."
         },
         "macs::siphash_2_4": {
             "standard": "SipHash-2-4 (Aumasson, Bernstein)",
@@ -1580,10 +1705,11 @@
         {"need": "prove a message comes from someone who holds a shared secret key (an API request, a cookie, a webhook)", "use": "hmac_sha2_256, checked with webcpp::crypto::equal", "function": "hmac_sha2_256", "backend": "none: one backend", "example": "hmac_sha256.cpp", "anchor": "hash-hmac"},
         {"need": "store users' passwords for a login", "use": "argon2id with argon2id_interactive or stronger, a random 16-byte salt per user", "function": "argon2id", "backend": "link /third_party//sodium", "example": "password_storage.cpp", "anchor": "hash-privacy-passwords"},
         {"need": "turn a password into an encryption key (a password manager, an encrypted backup)", "use": "argon2id with argon2id_moderate or argon2id_sensitive, then hkdf for each purpose", "function": "argon2id", "backend": "link /third_party//sodium", "example": "argon2id.cpp", "anchor": "hash-argon2id"},
+        {"need": "check or make the bcrypt strings a system already stores, or read and write OpenSSH's encrypted private keys", "use": "bcrypt and bcrypt_verify at a cost of 10 or more (bcrypt_pbkdf for OpenSSH's keys); argon2id for a new design", "function": "bcrypt", "backend": "name backends::botan and link /third_party//botan, with exceptions", "example": "bcrypt.cpp", "anchor": "hash-bcrypt"},
         {"need": "turn a shared secret (an ECDH result) into keys", "use": "hkdf over hmac_sha2_256, one info label per key", "function": "hkdf", "backend": "the default; name a backend only to match another program's", "example": "hkdf.cpp", "anchor": "hash-hkdf"},
-        {"need": "derive the key JOSE's ECDH-ES (a JWE) or another NIST SP 800-56C protocol derives from a shared secret", "use": "sskdf over digests::sha2_256, the fixed info as the protocol writes it", "function": "sskdf", "backend": "name backends::openssl and link /webcpp/hash//openssl", "example": "sskdf.cpp", "anchor": "hash-sskdf"},
-        {"need": "derive the keys of ECIES or of a smart card's key agreement (ANSI X9.63)", "use": "x963kdf over digests::sha2_256, the shared info as the scheme writes it", "function": "x963kdf", "backend": "name backends::openssl and link /webcpp/hash//openssl", "example": "x963kdf.cpp", "anchor": "hash-x963kdf"},
-        {"need": "derive keys from a key as NIST SP 800-108 or Kerberos does (a label and a context)", "use": "kbkdf over hmac_sha2_256 with the label and the context", "function": "kbkdf", "backend": "name backends::openssl and link /webcpp/hash//openssl", "example": "kbkdf.cpp", "anchor": "hash-kbkdf"},
+        {"need": "derive the key JOSE's ECDH-ES (a JWE) or another NIST SP 800-56C protocol derives from a shared secret", "use": "sskdf over digests::sha2_256, the fixed info as the protocol writes it", "function": "sskdf", "backend": "name backends::openssl (or backends::botan) and link its library, /webcpp/hash//openssl (or /third_party//botan)", "example": "sskdf.cpp", "anchor": "hash-sskdf"},
+        {"need": "derive the keys of ECIES or of a smart card's key agreement (ANSI X9.63)", "use": "x963kdf over digests::sha2_256, the shared info as the scheme writes it", "function": "x963kdf", "backend": "name backends::openssl (or backends::botan) and link its library, /webcpp/hash//openssl (or /third_party//botan)", "example": "x963kdf.cpp", "anchor": "hash-x963kdf"},
+        {"need": "derive keys from a key as NIST SP 800-108 or Kerberos does (a label and a context)", "use": "kbkdf over hmac_sha2_256 with the label and the context", "function": "kbkdf", "backend": "name backends::openssl (or backends::botan) and link its library, /webcpp/hash//openssl (or /third_party//botan)", "example": "kbkdf.cpp", "anchor": "hash-kbkdf"},
         {"need": "derive many keys from one master key, one per purpose", "use": "hkdf_expand (or hkdf) with distinct info labels, blake2b_subkey (libsodium's crypto_kdf) by id, or blake3::derive_key with a context string", "function": "hkdf_expand", "backend": "the default", "example": "subkeys.cpp", "anchor": "hash-privacy-subkeys"},
         {"need": "build a hash table, set or Bloom filter whose keys come from the network", "use": "siphash_64 keyed with 16 random bytes per process", "function": "siphash_64", "backend": "none: one backend", "example": "siphash.cpp", "anchor": "hash-siphash"},
         {"need": "build a hash table of my own trusted keys, or a fast checksum", "use": "xxh3_128 or fnv1a_64", "function": "xxh3_128", "backend": "none: one backend", "example": "checksums.cpp", "anchor": "hash-non-cryptographic-functions"},

@@ -5,9 +5,11 @@
 // https://www.boost.org/LICENSE_1_0.txt)
 
 // async_argon2id at libsodium's interactive costs (2 passes over 64 MiB) on a thread pool, while
-// the program's event loop goes on: a timer of 1 ms on the loop fires before the tag is ready. The
-// tag is argon2id.cpp's, the same password and salt. Built where the program has threads: natively,
-// and on Emscripten with -pthread (b2's threading=multi).
+// the program's event loop goes on: a timer of 1 ms on the loop fires while the derivation is still
+// to run, and its handler then lets the pool go on to it, so that the loop's turn comes before the
+// tag is ready whatever the scheduler does. The tag is argon2id.cpp's, the same password and salt.
+// Built where the program has threads: natively, and on Emscripten with -pthread (b2's
+// threading=multi).
 
 // tag::example[]
 #include "hex.hpp"
@@ -17,6 +19,7 @@
 
 #include <webcpp/asio/bind_executor.hpp>
 #include <webcpp/asio/io_context.hpp>
+#include <webcpp/asio/post.hpp>
 #include <webcpp/asio/steady_timer.hpp>
 #include <webcpp/asio/thread_pool.hpp>
 
@@ -26,6 +29,7 @@
 #include <chrono>
 #include <cstdint>
 #include <iostream>
+#include <latch>
 
 int main() {
     auto const salt = example::from_hex("000102030405060708090a0b0c0d0e0f");
@@ -35,6 +39,11 @@ int main() {
     webcpp::asio::thread_pool pool(1);
     std::array<std::uint8_t, 32> tag{};
     bool ticked = false;
+
+    // The pool's only thread first waits for the timer's handler, so that the derivation, queued
+    // behind it, cannot finish before the loop has run, however late the loop's thread is.
+    std::latch tick(1);
+    webcpp::asio::post(pool.get_executor(), [&tick] { tick.wait(); });
 
     // The work runs on the pool's thread; bind_executor brings the completion back to the loop's.
     webcpp::hash::async_argon2id(
@@ -49,7 +58,10 @@ int main() {
         }));
 
     webcpp::asio::steady_timer timer(loop, std::chrono::milliseconds(1));
-    timer.async_wait([&](boost::system::error_code code) { ticked = !code; });
+    timer.async_wait([&](boost::system::error_code code) {
+        ticked = !code;
+        tick.count_down();
+    });
     loop.run();  // lint-run: the program's event loop
     pool.join();
 }

@@ -346,9 +346,10 @@ struct hkdf_engine<backends::sodium, Hmac> {
     static_assert(
         always_false<Hmac>,
         "webcpp::hash: backends::sodium has HKDF over hmac_sha2_256 and hmac_sha2_512 alone. "
-        "Over this hmac, name backends::hash2 (every hmac), backends::openssl (every hmac but "
-        "hmac_ripemd_128) or backends::bearssl (MD5, SHA-1, SHA-224, SHA-256, SHA-384, SHA-512; "
-        "hkdf alone).");
+        "Over this hmac, name backends::hash2 (every hmac), backends::bearssl (MD5, SHA-1, "
+        "SHA-224, SHA-256, SHA-384, SHA-512; hkdf alone), backends::openssl (every hmac but "
+        "hmac_ripemd_128) or backends::botan (every hmac but hmac_ripemd_128 and "
+        "hmac_sha2_512_224).");
 
     /** Never called: the refusal has stopped the build. */
     [[nodiscard]] static boost::system::result<typename Hmac::result_type> extract(
@@ -383,8 +384,9 @@ template <class Hmac>
 struct pbkdf2_engine<backends::sodium, Hmac> {
     static_assert(always_false<Hmac>,
                   "webcpp::hash: pbkdf2 is not in backends::sodium: libsodium has no PBKDF2. The "
-                  "backends that have pbkdf2: backends::hash2 (every hmac) and backends::openssl "
-                  "(every hmac but hmac_ripemd_128).");
+                  "backends that have pbkdf2: backends::hash2 (every hmac), backends::openssl "
+                  "(every hmac but hmac_ripemd_128) and backends::botan (every hmac but "
+                  "hmac_ripemd_128 and hmac_sha2_512_224).");
 
     /** Never called: the refusal has stopped the build. */
     [[nodiscard]] static boost::system::result<void> derive(

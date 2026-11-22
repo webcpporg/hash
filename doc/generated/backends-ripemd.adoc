@@ -40,11 +40,19 @@
 | native, wasip2, wasip3
 | -
 | not stated
+
+| `digests::ripemd_160`
+| `botan` (with exceptions only)
+| `/third_party//botan`
+| native, emscripten
+| -
+| not stated
 |===
 
 What each backend states on constant time, as the capability table read it:
 
+* `botan`: Botan 3.14.1: doc/api_ref/hash.rst states no constant-time property of this hash, and its source (src/lib/hash/) none.
 * `hash2`: Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property.
 * `openssl`: OpenSSL 3.5.9: doc/man7/EVP_MD-*.pod, doc/man3/EVP_DigestInit.pod and providers/implementations/digests/ state no constant-time property.
 
-The default of `digests::ripemd_160`: `hash2` on every target, whatever the program links; `openssl` only where the call names it, as its second template argument (<<hash-default-backend>>).
+The default of `digests::ripemd_160`: `hash2` on every target, whatever the program links; `botan`, `openssl` only where the call names it, as its second template argument (<<hash-default-backend>>).

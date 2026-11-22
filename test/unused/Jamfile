@@ -29,3 +29,12 @@ webcpp.same-program unused_bearssl : app.cpp : /third_party//bearssl
   : : <library>/webcpp/hash//hash ;
 webcpp.same-program unused_openssl : app.cpp : /webcpp/hash//openssl
   : native wasip2 wasip3 : <library>/webcpp/hash//hash ;
+webcpp.same-program unused_botan : app.cpp : /third_party//botan
+  : native : <library>/webcpp/hash//hash <exception-handling>on ;
+# On Emscripten /third_party//botan links its programs with
+# -sALLOW_MEMORY_GROWTH=1 (tools/webcpp-botan.jam), as libsodium does: the
+# program without the library gets the flag explicitly, and the two must be
+# the same bytes.
+webcpp.same-program unused_botan_emscripten : app.cpp : /third_party//botan
+  : emscripten : <library>/webcpp/hash//hash <exception-handling>on
+    <linkflags>-sALLOW_MEMORY_GROWTH=1 ;

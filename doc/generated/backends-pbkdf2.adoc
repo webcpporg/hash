@@ -28,6 +28,13 @@
 | not stated
 
 | `pbkdf2`
+| `botan` (with exceptions only) (partial: an iteration count above 2^32 - 1 on wasm32 (invalid_iterations): Botan counts iterations in a size_t; an output of more than 2^32 - 2 digests (invalid_output_size), where RFC 8018 allows 2^32 - 1: Botan's PBKDF2 derives at most 2^32 - 2 blocks (pbkdf2.cpp))
+| `/third_party//botan`
+| native, emscripten
+| `hmac_md5_128`, `hmac_sha1_160`, `hmac_sha2_224`, `hmac_sha2_256`, `hmac_sha2_384`, `hmac_sha2_512`, `hmac_sha2_512_256`, `hmac_sha3_224`, `hmac_sha3_256`, `hmac_sha3_384`, `hmac_sha3_512`, `hmac_ripemd_160`, `hmac_blake2b_512`, `hmac_blake2s_256`
+| not stated
+
+| `pbkdf2`
 | `webcrypto` (asynchronous family only) (partial: an iteration count above 2^32 - 1 (invalid_iterations) and an output longer than (2^32 - 1) / 8 bytes (invalid_output_size): WebCrypto's deriveBits counts iterations and bits in 32 bits)
 | `/webcpp/asio//asio`
 | emscripten
@@ -37,10 +44,11 @@
 
 What each backend states on constant time, as the capability table read it:
 
+* `botan`: Botan 3.14.1: doc/api_ref/pbkdf.rst states no constant-time property of PBKDF2, and its source (src/lib/pbkdf/pbkdf2/) none.
 * `hash2`: Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property.
 * `openssl`: OpenSSL 3.5.9: doc/man7/EVP_KDF-HKDF.pod and EVP_KDF-PBKDF2.pod state no constant-time property.
 * `webcrypto`: The Web Cryptography API (W3C Recommendation, 2017) states no constant-time property of digest, sign or deriveBits; each JavaScript runtime's implementation decides, and webcpp reads none.
 
-The default of `pbkdf2`: `hash2` on every target, whatever the program links; `openssl` only where the call names it, as its second template argument (<<hash-default-backend>>).
+The default of `pbkdf2`: `hash2` on every target, whatever the program links; `botan`, `openssl` only where the call names it, as its second template argument (<<hash-default-backend>>).
 
 `webcrypto` serves the asynchronous family alone, on Emscripten, where the type of its asynchronous call names it (<<hash-async-webcrypto>>).

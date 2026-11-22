@@ -25,10 +25,15 @@ namespace webcpp::hash {
 
 /**
  Whether `Backend` has the key derivation `Kdf` over `Hmac`, or the algorithm of a family's tag: a
- property of the library behind it (spec sections 3.2 and 3.5), whether or not the program links it.
+ property of the library behind it (spec sections 3.2 and 3.5), whether or not the program links it,
+ `backends::botan` excepted.
 
  A backend that has a tag only in part (a partial cell of `doc/capabilities.json`, as
  `backends::hash2`'s BLAKE2b, its 64-byte output alone) has it.
+
+ `backends::botan`'s cells are declared by `<webcpp/hash/backends/botan.hpp>`, which every header
+ of the families includes when the program links Botan, and which declares nothing in a build
+ without exceptions: for it the answer is false in a program that cannot have Botan.
 
  @tparam Backend A backend of `backends`. @tparam Kdf `kdfs::hkdf`, `kdfs::pbkdf2` or another
  tag of `kdfs`; or a tag of `digests` or `macs`; or, for `argon2`, `kdfs::argon2d`,
@@ -1451,14 +1456,14 @@ struct default_of<kdfs::x963kdf> {
  The backend a function of `Algorithm` uses when the call names none (spec 4.1).
 
  `backends::hash2` for `hkdf_extract`, `hkdf_expand`, `hkdf` and `pbkdf2`, on every target and
- whatever the program links; `backends::sodium` for `argon2id`, `scrypt` (which
- `backends::openssl` also has, named in the call) and `blake2b_subkey`, which stops the build with
- the line to add to the Jamfile when the program does not link libsodium. A tag of the families
+ whatever the program links; `backends::sodium` for `argon2id`, `scrypt` (which `backends::openssl`
+ and `backends::botan` also have, named in the call) and `blake2b_subkey`, which stops the build
+ with the line to add to the Jamfile when the program does not link libsodium. A tag of the families
  defaults to the first of `backends::hash2`, `backends::xkcp`, `backends::blake3` and
  `backends::sodium` that has it (design D34), or to `detail::no_default`, which refuses: the call
- names its backend. `backends::bearssl` and `backends::openssl` are never a default. No define
- changes it: another backend is chosen by naming it in the call, as `hkdf<hmac_sha2_256,
- backends::openssl>`.
+ names its backend. `backends::bearssl`, `backends::openssl` and `backends::botan` are never a
+ default. No define changes it: another backend is chosen by naming it in the call, as
+ `hkdf<hmac_sha2_256, backends::openssl>`.
 
  @tparam Algorithm A tag of `kdfs` (`hkdf`, `hkdf_extract`, `hkdf_expand`, `pbkdf2`, `argon2id`,
  `scrypt`, `blake2b_subkey`, ...), `digests` or `macs`.

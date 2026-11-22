@@ -4,11 +4,11 @@
 // accompanying file LICENSE_1_0.txt or copy at
 // https://www.boost.org/LICENSE_1_0.txt)
 
-// argon2id on another backend than backends::sodium and backends::openssl stops with spec section
-// 3.3's text.
+// argon2id on another backend than backends::sodium, backends::openssl and backends::botan stops
+// with spec section 3.3's text.
 
 // clang-format off
-// expected-error@webcpp/hash/detail/engines.hpp:* {{webcpp::hash: argon2id is in backends::sodium and backends::openssl alone. Name one, and add /third_party//sodium or /webcpp/hash//openssl to the program's Jamfile.}}
+// expected-error@webcpp/hash/detail/engines.hpp:* {{webcpp::hash: argon2id is in backends::sodium, backends::openssl and backends::botan alone. Name one, and add /third_party//sodium, /webcpp/hash//openssl or /third_party//botan to the program's Jamfile.}}
 // clang-format on
 #include <webcpp/hash/argon2.hpp>
 #include <webcpp/hash/backends/hash2.hpp>

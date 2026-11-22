@@ -33,8 +33,13 @@ and what each cost and allocated when it was measured.
 
 | `argon2id`, `scrypt`, `blake2b_subkey`
 | `sodium`
-| the first of the order that has them (OpenSSL has `argon2id` and `scrypt`
-too, never a default); a program links `/third_party//sodium`
+| the first of the order that has them (OpenSSL and Botan have `argon2id` and
+`scrypt` too, never a default); a program links `/third_party//sodium`
+
+| `kbkdf`, `sskdf`, `x963kdf`, `bcrypt`, `bcrypt_verify`, `bcrypt_pbkdf`
+| none
+| no backend of the order has them: the call names `backends::openssl` or
+`backends::botan` (`bcrypt` and `bcrypt_pbkdf`: `backends::botan` alone)
 
 | a tag of `digest_of`, `hasher`, `mac` and `argon2`
 | the first of `hash2`, `xkcp`, `blake3`, `sodium` that has it
@@ -47,16 +52,17 @@ The families' defaults follow one rule and never change: the first of
 `backends::sodium` whose capability table, once increments 2 to 7 have
 landed, has the tag whole (every option and output size the family accepts),
 else the first of them that has it in part; `backends::bearssl`,
-`backends::openssl` and the later backends are never a default. SHA-2's
-and SHAKE's default is `hash2`, Keccak-256's `xkcp`, BLAKE3's `blake3`,
-BLAKE2b's `sodium`; a tag none of the four has (SM3, Whirlpool, Argon2d) has
-none, and its call names its backend. Every default has its engine: a program
+`backends::openssl`, `backends::botan` and `backends::webcrypto` are never a
+default. SHA-2's and SHAKE's default is `hash2`, Keccak-256's `xkcp`, BLAKE3's
+`blake3`, BLAKE2b's `sodium`; a tag none of the four has (SM3, Streebog,
+Whirlpool, Skein-512, their HMACs, Argon2d) has none, and its call names its
+backend. Every default has its engine: a program
 that does not link the default's library gets the message that names the line
 to add.
 
 The default is the same on every target, whatever the program links: linking
-libsodium, BearSSL or OpenSSL makes their backends available to a call that
-names them, never the default. `backends::hash2` is the default because it is
+libsodium, BearSSL, OpenSSL or Botan makes their backends available to a call
+that names them, never the default. `backends::hash2` is the default because it is
 the only backend that covers every hmac, operation and target; it is
 header-only, so a program carries only the functions it calls and shares the
 SHA code it already uses for its digests; and the differences the reference
@@ -66,8 +72,9 @@ default: a program that wants another backend names it in the call, as the
 second template argument, `hkdf<hmac_sha2_256, backends::openssl>`;
 <<hash-kdfs-backends>> shows a program that does. A backend named in a call
 that it lacks, or that the program does not link, stops the build with a
-message that says what to do (<<hash-jamfile-messages>>), and so does OpenSSL
-on Emscripten. `default_backend<Algorithm>` names the default at compile time.
+message that says what to do (<<hash-jamfile-messages>>), and so do OpenSSL
+on Emscripten, Botan on wasip2 and wasip3, and Botan in a program built
+without exceptions. `default_backend<Algorithm>` names the default at compile time.
 
 [#hash-backend-conditions]
 === What each backend does with secrets and memory
@@ -133,6 +140,25 @@ reads OpenSSL's configuration file. It holds some lengths in an `int`, so hash
 refuses, before OpenSSL is called, a PBKDF2 output (`invalid_output_size`), a
 PBKDF2 password or salt, or an HKDF salt (`input_too_long`) of more than
 `INT_MAX` bytes. It is not built for Emscripten.
+
+| `botan`
+| Botan 3.14.1, natively and on Emscripten, in a program built with
+exceptions: Botan reports its failures by throwing, and hash catches every
+exception at the boundary of each call (`errc::not_enough_memory` for an
+allocation, `backend_failure` for anything else, the output zeroed), so that
+no exception leaves hash. Botan makes its objects (a hash, a MAC, a KDF, a
+password hash) with `operator new`, and the buffers that hold their state and
+secrets with the C library's `calloc`, through its secure allocator, which
+overwrites each buffer before freeing it; hash clears each object it holds
+(the object of a `hasher` from `make` until it finishes, is destroyed or is
+moved from) and frees it before the call returns. Argon2's matrix and scrypt's buffer come
+from `calloc` too, the memory their costs name. Botan does not state that it
+wipes its temporaries on the stack. No RNG of Botan's is loaded: bcrypt's salt is the
+caller's. Its HMAC takes a key of at most 8,192 bytes and its KMAC of at most
+192, its Argon2 at most 128 lanes and 8 GiB (2 GiB on wasm32), its scrypt N of
+at most 2^22^, its bcrypt a cost of at most 18, and its PBKDF2 and KDF2 at
+most 2^32^ - 2 blocks: hash hashes a longer HMAC key first, as RFC 2104 does,
+and refuses the others before Botan is called.
 
 | `xkcp`
 | Allocates nothing. KMAC's keyed state and every hash's state live on the

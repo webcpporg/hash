@@ -6,8 +6,8 @@
 
 /**
  scrypt, RFC 7914: `scrypt`, on `backends::sodium` (libsodium's
- `crypto_pwhash_scryptsalsa208sha256_ll`, the default) and `backends::openssl` (OpenSSL's
- "SCRYPT", its own memory limit lifted).
+ `crypto_pwhash_scryptsalsa208sha256_ll`, the default), `backends::openssl` (OpenSSL's "SCRYPT",
+ its own memory limit lifted) and `backends::botan` (Botan's "Scrypt", in part).
 
  Every guard runs before any work, and a guard's refusal leaves the output as it was; a backend's
  failure zeroes it. The backend allocates the 128 r (N + p) bytes the costs name.
@@ -120,6 +120,14 @@ template <class Backend>
         exceeds(salt_size, limits::scrypt_salt)) {
         return error::input_too_long;
     }
+    // Last, a partial cell's own bounds (ruling R41): costs the backend does not compute.
+    if (exceeds(cost_n, engine::limits.served_n) ||
+        exceeds(block_size_r, engine::limits.served_r) ||
+        exceeds(parallelism_p, engine::limits.served_p) ||
+        exceeds(block_bytes_count * block_size_r * (cost_n + parallelism_p),
+                engine::limits.served_memory)) {
+        return error::unsupported_by_backend;
+    }
     return {};
 }
 
@@ -129,17 +137,20 @@ template <class Backend>
  scrypt (RFC 7914): fills `output_bytes` from `password_bytes` and `salt_bytes`.
 
  @tparam Backend The backend; by default @ref default_backend of `kdfs::scrypt` (spec 4.1),
- `backends::sodium`; or `backends::openssl`, named.
+ `backends::sodium`; or `backends::openssl` or `backends::botan`, named.
  @param output_bytes The derived key, 1 to (2^32 - 1) times 32 bytes; it must not overlap
  `password_bytes` or `salt_bytes`.
  @param password_bytes The password. @param salt_bytes The salt.
  @param cost_parameters The costs.
  @return Success, or the error of the first guard that fails (`invalid_output_size`,
- `invalid_parameters`, `input_too_long`), `output_bytes` untouched; or `errc::not_enough_memory`
- when the 128 r N bytes cannot be allocated, or `backend_failure`, `output_bytes` zeroed.
+ `invalid_parameters`, `input_too_long`, `unsupported_by_backend`), `output_bytes` untouched; or
+ `errc::not_enough_memory` when the 128 r N bytes cannot be allocated, or `backend_failure`,
+ `output_bytes` zeroed.
  @note Each backend's narrower limits are refused as the spec's are: on `backends::sodium` an N
  above 2^32 - 1 (`invalid_parameters`); on `backends::openssl` an r p of 2^24 or more
- (`invalid_parameters`) and a password, salt or output of more than `INT_MAX` bytes.
+ (`invalid_parameters`) and a password, salt or output of more than `INT_MAX` bytes. On
+ `backends::botan`, a partial cell, an N above 2^22, an r above 256, a p above 1,024 or more than
+ 8 GiB and 2 MiB of memory (2 GiB and 2 MiB on wasm32) are `unsupported_by_backend`.
 */
 template <class Backend = default_backend<kdfs::scrypt>>
 [[nodiscard]] boost::system::result<void> scrypt(std::span<std::uint8_t> output_bytes,
@@ -163,12 +174,16 @@ template <class Backend = default_backend<kdfs::scrypt>>
 }  // namespace webcpp::hash
 
 // backends::sodium when the program links libsodium: a program that includes only this header
-// gets scrypt's default backend complete here; and backends::openssl when it links OpenSSL.
+// gets scrypt's default backend complete here; backends::openssl when it links OpenSSL, and
+// backends::botan when it links Botan.
 #ifdef WEBCPP_HASH_HAS_SODIUM
 #include <webcpp/hash/backends/sodium.hpp>
 #endif
 #ifdef WEBCPP_HASH_HAS_OPENSSL
 #include <webcpp/hash/backends/openssl.hpp>
+#endif
+#ifdef WEBCPP_HASH_HAS_BOTAN
+#include <webcpp/hash/backends/botan.hpp>
 #endif
 
 #endif  // WEBCPP_HASH_SCRYPT_HPP

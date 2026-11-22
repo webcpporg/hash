@@ -49,7 +49,7 @@ release publishes one (<<hash-upstream>>), with no change to any result.
 [#hash-departures-c-libraries]
 === What the C libraries allocate
 
-hash's own code allocates nothing, but two of its C libraries do, outside any
+hash's own code allocates nothing, but three of its libraries do, outside any
 allocator of the program, and hash records it rather than hides it:
 
 * *libsodium's Argon2id and scrypt* allocate the memory their costs name, with
@@ -65,6 +65,13 @@ it returns, and a `hasher` owns them, its own and no other's, until it
 finishes or is destroyed. A MAC allocates an `EVP_MAC_CTX`
 (`EVP_MAC_CTX_new`) and the MAC's context, which `mac` frees before it
 returns.
+* *Botan* makes its objects with the global `operator new` in every call on
+`backends::botan`, and the buffers of their state and secrets with the C
+library's `calloc`, which it overwrites before freeing them; webcpp keeps no
+Botan object between calls but the one of a `hasher`, which it owns from
+`make` until it finishes, is destroyed or is moved from. Botan also throws: hash catches
+every exception at each call's boundary, so that a program sees a value, and
+a program without exceptions has no `backends::botan`.
 
 The counting test of allocations proves that hash's own code allocates
 nothing, on every backend and target, and measures what these libraries

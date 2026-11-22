@@ -9,9 +9,9 @@
 // clang's -verify reads a directive from one comment line: wrapped, it checks nothing, so the
 // whole text stays on one line.
 // clang-format off
-// expected-error@webcpp/hash/detail/engines.hpp:* {{webcpp::hash: kdfs::kbkdf_hmac is not in this backend. Name one of: backends::openssl.}}
-// expected-error@webcpp/hash/detail/engines.hpp:* {{webcpp::hash: kdfs::sskdf is not in this backend. Name one of: backends::openssl.}}
-// expected-error@webcpp/hash/detail/engines.hpp:* {{webcpp::hash: kdfs::x963kdf is not in this backend. Name one of: backends::openssl.}}
+// expected-error@webcpp/hash/detail/engines.hpp:* {{webcpp::hash: kdfs::kbkdf_hmac is not in this backend. Name one of: backends::openssl, backends::botan.}}
+// expected-error@webcpp/hash/detail/engines.hpp:* {{webcpp::hash: kdfs::sskdf is not in this backend. Name one of: backends::openssl, backends::botan.}}
+// expected-error@webcpp/hash/detail/engines.hpp:* {{webcpp::hash: kdfs::x963kdf is not in this backend. Name one of: backends::openssl, backends::botan.}}
 // clang-format on
 #include <webcpp/hash/hmac.hpp>
 #include <webcpp/hash/kdf_standards.hpp>

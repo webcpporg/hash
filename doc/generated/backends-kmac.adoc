@@ -27,6 +27,13 @@
 | -
 | not stated
 
+| `macs::kmac_128`
+| `botan` (with exceptions only) (partial: a key over 192 bytes, or the XOF form (xof): Botan's KMAC limits its key to 192 bytes and has no KMACXOF (kmac.cpp))
+| `/third_party//botan`
+| native, emscripten
+| -
+| not stated
+
 | `macs::kmac_256`
 | `xkcp`
 | `/third_party//xkcp`
@@ -40,11 +47,19 @@
 | native, wasip2, wasip3
 | -
 | not stated
+
+| `macs::kmac_256`
+| `botan` (with exceptions only) (partial: a key over 192 bytes, or the XOF form (xof): Botan's KMAC limits its key to 192 bytes and has no KMACXOF (kmac.cpp))
+| `/third_party//botan`
+| native, emscripten
+| -
+| not stated
 |===
 
 What each backend states on constant time, as the capability table read it:
 
+* `botan`: Botan 3.14.1: doc/api_ref/message_auth_codes.rst states no constant-time property of this MAC, and its source (src/lib/mac/) none.
 * `openssl`: OpenSSL 3.5.9: doc/man3/EVP_MAC.pod, doc/man7/EVP_MAC-HMAC.pod, EVP_MAC-KMAC.pod, EVP_MAC-BLAKE2.pod, EVP_MAC-Siphash.pod and providers/implementations/macs/ state no constant-time property.
 * `xkcp`: XKCP at d20c8fc: README.markdown, lib/low/KeccakP-1600 and lib/high/Keccak (KeccakSponge, FIPS202/KeccakHash, SP800-185) state no constant-time property.
 
-The default of `macs::kmac_128` and `macs::kmac_256`: `xkcp` on every target, whatever the program links; `openssl` only where the call names it, as its second template argument (<<hash-default-backend>>).
+The default of `macs::kmac_128` and `macs::kmac_256`: `xkcp` on every target, whatever the program links; `botan`, `openssl` only where the call names it, as its second template argument (<<hash-default-backend>>).

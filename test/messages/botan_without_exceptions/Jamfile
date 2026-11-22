@@ -1,0 +1,16 @@
+# Copyright (c) 2026 WebCpp.org
+#
+# Distributed under the Boost Software License, Version 1.0. (See
+# accompanying file LICENSE_1_0.txt or copy at
+# https://www.boost.org/LICENSE_1_0.txt)
+
+project : requirements <library>/webcpp/hash//hash ;
+
+import webcpp ;
+
+# Botan linked, which needs exceptions on, and the developer's
+# WEBCPP_HASH_NO_EXCEPTIONS: the targets /third_party//botan is built for.
+webcpp.compile-diagnostic botan_without_exceptions : botan_without_exceptions.cpp
+  : <library>/third_party//botan <exception-handling>on
+    <define>WEBCPP_HASH_NO_EXCEPTIONS
+  : native ;

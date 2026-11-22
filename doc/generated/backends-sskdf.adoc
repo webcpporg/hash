@@ -19,10 +19,18 @@
 | native, wasip2, wasip3
 | -
 | not stated
+
+| `sskdf`
+| `botan` (with exceptions only)
+| `/third_party//botan`
+| native, emscripten
+| -
+| not stated
 |===
 
 What each backend states on constant time, as the capability table read it:
 
+* `botan`: Botan 3.14.1: doc/api_ref/kdf.rst states no constant-time property of its KDFs, and their source (src/lib/kdf/) none.
 * `openssl`: OpenSSL 3.5.9: doc/man7/EVP_KDF-SS.pod states no constant-time property.
 
 `sskdf` has no default backend: the call names one of its backends, as its second template argument (<<hash-default-backend>>).

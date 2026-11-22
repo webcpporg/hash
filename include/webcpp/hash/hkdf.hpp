@@ -45,6 +45,9 @@
 #ifdef WEBCPP_HASH_HAS_OPENSSL
 #include <webcpp/hash/backends/openssl.hpp>
 #endif
+#ifdef WEBCPP_HASH_HAS_BOTAN
+#include <webcpp/hash/backends/botan.hpp>
+#endif
 
 #include <boost/system/result.hpp>
 

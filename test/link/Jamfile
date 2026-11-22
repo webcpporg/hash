@@ -31,6 +31,11 @@ webcpp.link-fail canary_sodium_missing : sodium.cpp
 webcpp.link-fail canary_bearssl_missing : bearssl.cpp
   : <define>WEBCPP_HASH_HAS_BEARSSL=1
     <include>$(HASH_TEST_THIRD_PARTY)/bearssl/inc ;
+# Botan's headers and define come from /third_party//botan's usage requirements
+# alone (<use>, which builds the library and links nothing of it), with
+# exceptions, natively and on Emscripten, where it is built.
+webcpp.link-fail canary_botan_missing : botan.cpp
+  : <use>/third_party//botan <exception-handling>on : native emscripten ;
 webcpp.link-fail canary_blake3_other_commit : blake3.cpp
   : <library>/third_party//blake3
     <define>WEBCPP_HASH_BLAKE3_CANARY_COMMIT=0000000 ;

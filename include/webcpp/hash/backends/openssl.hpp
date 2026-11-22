@@ -1581,7 +1581,7 @@ template <class Hmac>
 struct kbkdf_engine<backends::openssl, Hmac> {
     static_assert(openssl_hmac_v<Hmac>,
                   "webcpp::hash: backends::openssl has kbkdf over the hmacs of hmac.hpp alone, "
-                  "hmac_ripemd_128 excepted, and no other backend has kbkdf.");
+                  "hmac_ripemd_128 excepted, and no backend has kbkdf over this hmac.");
 
     /** HMAC's key length is an `int` in OpenSSL. */
     static constexpr kdf_standard_limits limits{.max_key = openssl_int_max};

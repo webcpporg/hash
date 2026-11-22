@@ -6,9 +6,10 @@
 
 // Every linked backend that has PBKDF2 over an hmac gives the same output as every other, on 1,000
 // seeded random cases per hmac, the empty inputs first (spec section 7.2). Per hmac, backend_has_v
-// and the program's links pick the backends: backends::hash2 always, then openssl where the
-// Jamfile links it (sodium and BearSSL have no PBKDF2; OpenSSL is absent on Emscripten, where
-// backends::hash2 alone remains: the test asserts that, and compares nothing there). A difference
+// and the program's links pick the backends: backends::hash2 always, then openssl and botan where
+// the Jamfile links them (sodium and BearSSL have no PBKDF2; OpenSSL is absent on Emscripten, where
+// backends::hash2 alone remains without Botan: the test asserts that, and compares nothing there;
+// Botan is linked by agreement_pbkdf2_botan alone, natively and on Emscripten). A difference
 // is a bug of webcpp's code. The lengths stay within every backend's limits, beyond which a
 // backend refuses before its library is called.
 
@@ -94,6 +95,7 @@ void agree(const char* hmac_name) {
     add_way<Hmac, hash::backends::sodium>(ways, "sodium");
     add_way<Hmac, hash::backends::bearssl>(ways, "bearssl");
     add_way<Hmac, hash::backends::openssl>(ways, "openssl");
+    add_way<Hmac, hash::backends::botan>(ways, "botan");
 
     // The backends compared against the table written out in agreement_expect.hpp. On Emscripten
     // that is backends::hash2 alone (no other library has PBKDF2 there): the test expects exactly

@@ -23,11 +23,44 @@ rule hash-run ( name : sources + : requirements * : targets * )
       : $(requirements) <exception-handling>off : $(targets) ;
 }
 
+# Botan's tests (design D42, D43): Botan reports its errors by throwing,
+# so a test of backends::botan has exceptions on and no _no_exceptions twin,
+# on the targets /third_party//botan is built for.
+rule botan-run ( name : sources + : requirements * )
+{
+    webcpp.run $(name) : $(sources)
+      : $(requirements) <library>/third_party//botan <exception-handling>on
+      : native emscripten ;
+}
+
+# The libraries of a test that links every library its target has: OpenSSL
+# where webcpp builds it, which is not Emscripten.
+rule openssl-off-emscripten ( properties * )
+{
+    if [ webcpp-target.target-of $(properties) ] != emscripten
+    {
+        return <library>/webcpp/hash//openssl ;
+    }
+}
+
+# Botan in a native build with exceptions, and in no other: the headers-alone
+# unit of backends/openssl.hpp (native, wasip2 and wasip3) links every library
+# its target has, and Botan has no WASI build.
+rule botan-native-with-exceptions ( properties * )
+{
+    if [ webcpp-target.target-of $(properties) ] = native
+      && ! ( <exception-handling>off in $(properties) )
+    {
+        return <library>/third_party//botan ;
+    }
+}
+
 webcpp.headers-alone hash : ../include :
     hash.hpp
     hash/algorithms.hpp
     hash/argon2.hpp
     hash/backends/hash2.hpp
+    hash/bcrypt.hpp
     hash/blake2b_subkey.hpp
     hash/config.hpp
     hash/detail/engines.hpp
@@ -74,14 +107,22 @@ webcpp.headers-alone hash : ../include : hash/backends/sodium.hpp
 
 # backends/openssl.hpp compiles alone only with /webcpp/hash//openssl, which
 # defines WEBCPP_HASH_HAS_OPENSSL, on the targets where webcpp builds OpenSSL.
-# Every other C library is linked too, and webcpp::asio, so that every public
-# header compiles with these options (the lint's aggregate translation unit,
-# tools/lint/compile_commands.py).
+# Every other library is linked too (Botan natively), and webcpp::asio, so
+# that every public header compiles with these options (the lint's aggregate
+# translation unit, tools/lint/compile_commands.py).
 webcpp.headers-alone hash : ../include : hash/backends/openssl.hpp
   : <library>/webcpp/hash//openssl <library>/third_party//xkcp
     <library>/third_party//blake3 <library>/third_party//bearssl
     <library>/third_party//sodium <library>/webcpp/asio//asio
+    <conditional>@botan-native-with-exceptions
   : native wasip2 wasip3 ;
+
+# backends/botan.hpp compiles alone with Botan, whose target defines
+# WEBCPP_HASH_HAS_BOTAN, natively and on Emscripten, with exceptions (without
+# the library it stops with its message; without exceptions it declares
+# nothing).
+webcpp.headers-alone hash : ../include : hash/backends/botan.hpp
+  : <library>/third_party//botan <exception-handling>on : native emscripten ;
 
 # config.hpp defines WEBCPP_HASH_NO_EXCEPTIONS exactly when webcpp has no
 # exceptions, keeps it when a developer defines it, defines it when
@@ -324,6 +365,88 @@ hash-run openssl_limits : openssl_limits_test.cpp
 hash-run openssl_one_copy : openssl_one_copy_test.cpp
   : <library>/webcpp/hash//openssl <library>/webcpp/crypto//openssl
   : native wasip2 wasip3 ;
+# The digests of backends::botan (Botan 3.14.1's HashFunction and XOF), through
+# digest_of and hasher: Boost.Hash2 on seeded random inputs and FIPS 180-4's
+# "abc", XKCP's SHA-3 KAT files and the Keccak team's digests, OpenSSL's
+# evpmd_sha.txt for SHAKE, BLAKE2's vectors and libsodium for BLAKE2b and
+# BLAKE2s, GB/T 32905's SM3, RFC 6986's Streebog, the Whirlpool authors' and
+# the Skein paper's vectors and Botan's own whirlpool.vec and skein.vec.
+botan-run digests_botan : digests_botan_test.cpp
+  : <library>/third_party//xkcp_vectors <library>/third_party//blake2_vectors
+    <library>/third_party//openssl_evp_data <library>/third_party//botan_vectors
+    <library>/third_party//sodium <library>/webcpp//boost_json ;
+# The MACs of backends::botan (its MessageAuthenticationCode), through mac:
+# HMAC over every digest against Boost.Hash2's hmac<H>, RFC 4231 and RFC 7836;
+# KMAC against NIST's samples (evpmac_common.txt) and backends::xkcp; SipHash
+# against Wycheproof and backends::hash2; keyed BLAKE2b against BLAKE2's KAT
+# and libsodium.
+botan-run macs_botan : macs_botan_test.cpp
+  : <library>/third_party//wycheproof <library>/third_party//openssl_evp_data
+    <library>/third_party//blake2_vectors <library>/third_party//sodium
+    <library>/third_party//xkcp <library>/webcpp//boost_json ;
+# The read of Botan's canary survives optimisation: with the library it links
+# and runs; with another commit's canary it does not link.
+botan-run botan_canary : botan_canary_test.cpp : <optimization>speed ;
+webcpp.link-fail botan_canary_other_commit : botan_canary_test.cpp
+  : <library>/third_party//botan <exception-handling>on <optimization>speed
+    <define>WEBCPP_HASH_BOTAN_CANARY_COMMIT=0000000
+  : native emscripten ;
+# A failure of Botan, a name it does not know (Lookup_Error), through the seam
+# WEBCPP_HASH_DETAIL_TEST_BOTAN_NAME: backend_failure, the output zeroed.
+botan-run botan_failure : botan_failure_test.cpp
+  : <define>"\"WEBCPP_HASH_DETAIL_TEST_BOTAN_NAME=\\\"NO-SUCH-HASH\\\"\"" ;
+# Without exceptions (the developer's WEBCPP_HASH_NO_EXCEPTIONS, Botan linked
+# with them on) backends/botan.hpp declares nothing.
+webcpp.compile botan_no_exceptions : botan_no_exceptions_test.cpp
+  : <library>/third_party//botan <exception-handling>on
+    <define>WEBCPP_HASH_NO_EXCEPTIONS
+  : native emscripten ;
+# HKDF and PBKDF2 on backends::botan: RFC 5869's seven cases, RFC 6070's and
+# RFC 7914's, the guards at their limits, keys past Botan's HMAC's 8,192 bytes,
+# and 1,000 seeded cases each against backends::hash2 over every hmac Botan has.
+botan-run kdfs_botan : kdfs_botan_test.cpp ;
+# Argon2 on backends::botan: RFC 9106's three cases through the family,
+# libsodium's table through argon2id, argon2_ctx on random cases with lanes, a
+# secret and associated data, libsodium at one lane, and Botan's limits (129
+# lanes, m past 8 GiB) answering unsupported_by_backend.
+botan-run argon2_botan : argon2_botan_test.cpp
+  : <library>/third_party//sodium <library>/third_party//sodium-test-config ;
+# scrypt on backends::botan: RFC 7914's first three cases, libsodium's scrypt
+# on random cases, and Botan's bounds answering unsupported_by_backend; the
+# fourth case, 1 GiB, natively and on Emscripten (Botan's memory growth).
+botan-run scrypt_botan : scrypt_botan_test.cpp : <library>/third_party//sodium ;
+botan-run scrypt_botan_large : scrypt_botan_large_test.cpp ;
+# bcrypt on backends::botan: the cases of Botan's passhash/bcrypt.vec of
+# jBCrypt, openwall's and OpenBSD's code, computed from their salt and cost and
+# verified, and the guards, a cost past Botan's 18 unsupported_by_backend.
+botan-run bcrypt_botan : bcrypt_botan_test.cpp : <library>/third_party//botan_vectors ;
+# bcrypt_pbkdf on backends::botan: every case of Botan's bcrypt_pbkdf.vec, of
+# OpenBSD's code and dchest's Go package, and the guards at OpenBSD's limits.
+botan-run bcrypt_pbkdf_botan : bcrypt_pbkdf_botan_test.cpp
+  : <library>/third_party//botan_vectors ;
+# KBKDF, SSKDF and the X9.63 KDF on backends::botan: OpenSSL's evpkdf files
+# (NIST CAVP's KBKDF cases, without the separator and L, refused), Botan's
+# kdf/sp800_108_ctr.vec cases with L, a second implementation over Boost.Hash2,
+# and natively backends::openssl on random cases.
+botan-run kdf_standards_botan : kdf_standards_botan_test.cpp
+  : <library>/third_party//openssl_evp_data <library>/third_party//botan_vectors
+    <conditional>@openssl-off-emscripten ;
+# The heavy functions on backends::botan on a thread_pool's thread, natively
+# and on Emscripten with -pthread (PTHREAD_POOL_SIZE, as async_heavy's).
+botan-run async_heavy_botan : async_heavy_botan_test.cpp
+  : <library>/webcpp/asio//asio <threading>multi
+    <toolset>emscripten:<linkflags>-sPTHREAD_POOL_SIZE=3 ;
+# Botan's allocations per call of every entry point of backends::botan,
+# through operator new (and the C library where the target counts it),
+# printed and never bounded; none for a refusal by a guard.
+botan-run allocation_botan : allocation_botan_test.cpp ;
+# The families across backends with Botan: every tag Botan has against every
+# other backend of its row.
+botan-run agreement_families_botan : agreement_families_test.cpp
+  : <library>/third_party//xkcp <library>/third_party//blake3
+    <library>/third_party//sodium <library>/third_party//bearssl
+    <conditional>@openssl-off-emscripten ;
+
 # Agreement between backends (spec section 7.2): on 1,000 seeded random cases
 # per hmac, the empty inputs first, every linked backend that has the key
 # derivation gives the output of every other. Native, wasip2 and wasip3 link
@@ -338,6 +461,14 @@ hash-run agreement_pbkdf2 : agreement_pbkdf2_test.cpp
     <library>/webcpp/hash//openssl : native wasip2 wasip3 ;
 hash-run agreement_pbkdf2_emscripten : agreement_pbkdf2_test.cpp
   : <library>/third_party//sodium <library>/third_party//bearssl : emscripten ;
+# The same with Botan, natively and on Emscripten, with exceptions: its HKDF and
+# PBKDF2 against every other backend of their rows.
+botan-run agreement_hkdf_botan : agreement_hkdf_test.cpp
+  : <library>/third_party//sodium <library>/third_party//bearssl
+    <conditional>@openssl-off-emscripten ;
+botan-run agreement_pbkdf2_botan : agreement_pbkdf2_test.cpp
+  : <library>/third_party//sodium <library>/third_party//bearssl
+    <conditional>@openssl-off-emscripten ;
 # The families across increments: every tag two backends or more have, and
 # every tag of backends::openssl, through digest_of, hasher, mac and argon2,
 # on seeded cases (1,000 per digest and MAC, 100 per Argon2 variant), against
@@ -513,6 +644,7 @@ path-constant HASH_TEST_INCLUDE : ../include ;
     <dependency>../include/webcpp/hash/detail/engines.hpp
     <dependency>../include/webcpp/hash/kdf.hpp
     <dependency>../include/webcpp/hash/backends/bearssl.hpp
+    <dependency>../include/webcpp/hash/backends/botan.hpp
     <dependency>../include/webcpp/hash/backends/openssl.hpp
     <dependency>../include/webcpp/hash/backends/sodium.hpp
     <dependency>../include/webcpp/hash/backends/webcrypto.hpp ;
@@ -529,6 +661,14 @@ hash-run capabilities_emscripten : capabilities_test.cpp
     <library>/third_party//xkcp <library>/third_party//blake3
     <library>/third_party//sodium <library>/third_party//bearssl
   : emscripten ;
+# The same with Botan, which a build with exceptions alone has: Botan's cells
+# against backend_has_v and its refusal texts against the rows (the two
+# programs above check that backend_has_v has no cell of Botan's there).
+botan-run capabilities_botan : capabilities_test.cpp
+  : $(.hash-tables) <library>/webcpp/asio//asio
+    <library>/third_party//xkcp <library>/third_party//blake3
+    <library>/third_party//sodium <library>/third_party//bearssl
+    <conditional>@openssl-off-emscripten ;
 
 # No allocation in webcpp's code (spec section 7.7): operator new and, where
 # the target counts it, the C library's allocator are called zero times by

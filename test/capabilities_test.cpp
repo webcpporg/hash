@@ -16,6 +16,9 @@
 // mac compile and run on it. backends::webcrypto, a backend of the asynchronous family alone
 // ("asynchronous_only"), has the cells of async.hpp's WebCrypto traits, never one of backend_has_v,
 // builds on Emscripten alone, and is left out of the rows the synchronous refusals name.
+// backends::botan, which a build without exceptions cannot have ("exceptions_only"), has cells only
+// in a program that links Botan with exceptions (capabilities_botan): in any other, backend_has_v
+// is false on every tag of it, and its targets need not hold this one.
 
 #include <webcpp/hash/algorithms.hpp>
 #include <webcpp/hash/argon2.hpp>
@@ -71,9 +74,17 @@ std::string read_text(std::string const& path) {
     return {std::istreambuf_iterator<char>(in), std::istreambuf_iterator<char>()};
 }
 
-using backend_tags =
-    std::tuple<hash::backends::hash2, hash::backends::xkcp, hash::backends::blake3,
-               hash::backends::sodium, hash::backends::bearssl, hash::backends::openssl>;
+using backend_tags = std::tuple<hash::backends::hash2, hash::backends::xkcp, hash::backends::blake3,
+                                hash::backends::sodium, hash::backends::bearssl,
+                                hash::backends::openssl, hash::backends::botan>;
+
+// Whether backend_has_v holds the file's cells of Backend in this program: always, but for
+// backends::botan, whose header declares its cells only where the program links Botan with
+// exceptions; elsewhere it has none.
+template <class Backend>
+constexpr bool cells_here() {
+    return !std::is_same_v<Backend, hash::backends::botan> || hash::detail::linked_v<Backend>;
+}
 
 // The functions with a Backend parameter: those over an hmac (increment 1's and kbkdf), and those
 // over none (sskdf and x963kdf take a digest, which no column of the table names).
@@ -86,8 +97,8 @@ struct joined<std::tuple<First...>, std::tuple<Second...>> {
 };
 
 using hmac_functions = joined<test::kdf_operations, std::tuple<kdfs::kbkdf_hmac>>::type;
-using plain_functions =
-    std::tuple<kdfs::argon2id, kdfs::scrypt, kdfs::blake2b_subkey, kdfs::sskdf, kdfs::x963kdf>;
+using plain_functions = std::tuple<kdfs::argon2id, kdfs::scrypt, kdfs::blake2b_subkey, kdfs::sskdf,
+                                   kdfs::x963kdf, kdfs::bcrypt, kdfs::bcrypt_pbkdf>;
 
 template <class Function>
 constexpr std::string_view function_name() {
@@ -103,6 +114,10 @@ constexpr std::string_view function_name() {
         return "sskdf";
     } else if constexpr (std::is_same_v<Function, kdfs::x963kdf>) {
         return "x963kdf";
+    } else if constexpr (std::is_same_v<Function, kdfs::bcrypt>) {
+        return "bcrypt";
+    } else if constexpr (std::is_same_v<Function, kdfs::bcrypt_pbkdf>) {
+        return "bcrypt_pbkdf";
     } else {
         return test::name_of_operation<Function>();
     }
@@ -268,6 +283,13 @@ constexpr std::string_view this_target() {
 #endif
 }
 
+// Whether a backend of the file has its cells only in a build with exceptions (backends::botan):
+// its "exceptions_only" field, absent or false for every other.
+bool is_exceptions_only(json::object const& backend) {
+    auto const* const field = backend.if_contains("exceptions_only");
+    return field != nullptr && field->is_bool() && field->as_bool();
+}
+
 // Whether a backend of the file serves the asynchronous family alone (backends::webcrypto): its
 // "asynchronous_only" field, absent or false for every other.
 bool is_asynchronous_only(json::object const& backend) {
@@ -315,7 +337,12 @@ void check_backend_fields(json::object const& table) {
         bool const here = is_asynchronous_only(b.as_object())
                               ? b.at("macro").is_null() && this_target() == "emscripten"
                               : linked_here(b.at("macro").as_string());
-        if (!BOOST_TEST_EQ(on_this_target, here)) {
+        // A backend with exceptions only is linked by a program of its own Jamfile line, which
+        // the program without it leaves out on a target the backend has: linked here, it holds
+        // this target.
+        bool const agrees =
+            is_exceptions_only(b.as_object()) ? !here || on_this_target : on_this_target == here;
+        if (!BOOST_TEST(agrees)) {
             std::cerr << "  the targets of " << name << " on " << this_target() << '\n';
         }
         if (!b.at("tag").is_null()) {
@@ -386,7 +413,7 @@ void check_cell_fields(json::object const& table, names const& tagged) {
 }
 
 // Every tag of the families (spec 2.15), with its qualified name: a row of the file has it as its
-// name. `macs::hmac` over whirlpool stands for the hmacs no backend has yet.
+// name. `macs::hmac` over md5_sha1 stands for the hmacs no backend has.
 using digest_tags =
     std::tuple<digests::md5, digests::sha1, digests::sha2_224, digests::sha2_256, digests::sha2_384,
                digests::sha2_512, digests::sha2_512_224, digests::sha2_512_256, digests::sha3_224,
@@ -447,9 +474,10 @@ using mac_tags = std::tuple<
     macs::hmac<digests::blake2s_256>, macs::hmac<digests::keccak_224>,
     macs::hmac<digests::keccak_256>, macs::hmac<digests::keccak_384>,
     macs::hmac<digests::keccak_512>, macs::hmac<digests::md5_sha1>, macs::hmac<digests::sm3>,
-    macs::hmac<digests::whirlpool>, macs::kmac_128, macs::kmac_256, macs::siphash_2_4,
-    macs::siphash_2_4x, macs::blake2b_mac, macs::blake2s_mac>;
-constexpr std::array<std::string_view, 28> mac_names{
+    macs::hmac<digests::streebog_256>, macs::hmac<digests::streebog_512>,
+    macs::hmac<digests::whirlpool>, macs::hmac<digests::skein_512>, macs::kmac_128, macs::kmac_256,
+    macs::siphash_2_4, macs::siphash_2_4x, macs::blake2b_mac, macs::blake2s_mac>;
+constexpr std::array<std::string_view, 31> mac_names{
     "macs::hmac<digests::md5>",
     "macs::hmac<digests::sha1>",
     "macs::hmac<digests::sha2_224>",
@@ -471,7 +499,10 @@ constexpr std::array<std::string_view, 28> mac_names{
     "macs::hmac<digests::keccak_512>",
     "macs::hmac<digests::md5_sha1>",
     "macs::hmac<digests::sm3>",
+    "macs::hmac<digests::streebog_256>",
+    "macs::hmac<digests::streebog_512>",
     "macs::hmac<digests::whirlpool>",
+    "macs::hmac<digests::skein_512>",
     "macs::kmac_128",
     "macs::kmac_256",
     "macs::siphash_2_4",
@@ -512,10 +543,15 @@ bool some_backend_has() {
 }
 
 // The names of the family rows the file must hold: every tag some backend has.
-names family_rows() {
+// A row that names backends::botan in a program without Botan's cells is one too: there the test
+// cannot tell its cells, which capabilities_botan checks.
+names family_rows(json::object const& table) {
     names rows;
     auto const each = [&]<class Tag>(std::string_view name) {
-        if (some_backend_has<Tag>()) {
+        auto const* const row = find_row(table, name);
+        bool const botan_elsewhere = !cells_here<hash::backends::botan>() && row != nullptr &&
+                                     row->at("backends").as_object().contains("botan");
+        if (some_backend_has<Tag>() || botan_elsewhere) {
             rows.emplace(name);
         }
     };
@@ -596,7 +632,7 @@ void check_names(json::object const& table) {
         backends.emplace_back(backend.at("name").as_string());
     }
     BOOST_TEST((backends == std::vector<std::string>{"hash2", "xkcp", "blake3", "sodium", "bearssl",
-                                                     "openssl", "webcrypto"}));
+                                                     "openssl", "botan", "webcrypto"}));
 
     std::vector<std::string> hmacs;
     for (auto const& hmac : table.at("hmacs").as_array()) {
@@ -621,13 +657,13 @@ void check_names(json::object const& table) {
         }
     }
     names known_functions{
-        "hkdf_extract", "hkdf_expand",    "hkdf",  "pbkdf2", "argon2id",
-        "scrypt",       "blake2b_subkey", "kbkdf", "sskdf",  "x963kdf",
+        "hkdf_extract",   "hkdf_expand", "hkdf",  "pbkdf2",  "argon2id", "scrypt",
+        "blake2b_subkey", "kbkdf",       "sskdf", "x963kdf", "bcrypt",   "bcrypt_pbkdf",
     };
     for (auto const& row : type_rows()) {
         known_functions.emplace(row.name);
     }
-    known_functions.merge(family_rows());
+    known_functions.merge(family_rows(table));
     if (!BOOST_TEST((functions == known_functions))) {
         report_differences(functions, known_functions);
     }
@@ -637,7 +673,8 @@ template <class Backend, class Function, class Hmac>
 void check_cell(json::object const& table) {
     std::string_view const hmac = std::is_void_v<Hmac> ? "" : test::name_of_hmac<Hmac>();
     bool const in_file =
-        cell(function_row(table, function_name<Function>()), test::name_of<Backend>(), hmac);
+        cell(function_row(table, function_name<Function>()), test::name_of<Backend>(), hmac) &&
+        cells_here<Backend>();
     if (!BOOST_TEST_EQ(in_file, (hash::backend_has_v<Backend, Function, Hmac>))) {
         std::cerr << "  cell " << function_name<Function>() << " / " << test::name_of<Backend>()
                   << " / " << (hmac.empty() ? "(no hmac)" : hmac) << '\n';
@@ -764,14 +801,15 @@ std::vector<refusal> const& refusals() {
         },
         {
             .header = "detail/engines.hpp",
-            .start = "argon2id is in backends::sodium and backends::openssl alone.",
+            .start =
+                "argon2id is in backends::sodium, backends::openssl and backends::botan alone.",
             .backend = "",
             .functions = {"argon2id"},
             .hmacs = {},
         },
         {
             .header = "detail/engines.hpp",
-            .start = "scrypt is in backends::sodium and backends::openssl alone.",
+            .start = "scrypt is in backends::sodium, backends::openssl and backends::botan alone.",
             .backend = "",
             .functions = {"scrypt"},
             .hmacs = {},
@@ -834,6 +872,20 @@ std::vector<refusal> const& refusals() {
         },
         {
             .header = "detail/engines.hpp",
+            .start = "backends::botan needs Botan.",
+            .backend = "botan",
+            .functions = {},
+            .hmacs = {},
+        },
+        {
+            .header = "detail/engines.hpp",
+            .start = "backends::botan needs exceptions:",
+            .backend = "botan",
+            .functions = {},
+            .hmacs = {},
+        },
+        {
+            .header = "detail/engines.hpp",
             .start = "backends::webcrypto is asynchronous: call async_hkdf",
             .backend = "webcrypto",
             .functions = {},
@@ -891,6 +943,27 @@ std::vector<refusal> const& refusals() {
         {
             .header = "async.hpp",
             .start = "async_scrypt runs on another thread",
+            .backend = "",
+            .functions = {},
+            .hmacs = {},
+        },
+        {
+            .header = "async.hpp",
+            .start = "async_bcrypt runs on another thread",
+            .backend = "",
+            .functions = {},
+            .hmacs = {},
+        },
+        {
+            .header = "async.hpp",
+            .start = "async_bcrypt_pbkdf runs on another thread",
+            .backend = "",
+            .functions = {},
+            .hmacs = {},
+        },
+        {
+            .header = "async.hpp",
+            .start = "async_bcrypt_verify runs on another thread",
             .backend = "",
             .functions = {},
             .hmacs = {},
@@ -971,6 +1044,27 @@ std::vector<refusal> const& refusals() {
             .backend = "openssl",
             .functions = {"kbkdf"},
             .hmacs = {"lacks"},
+        },
+        {
+            .header = "backends/botan.hpp",
+            .start = "backends::botan has HKDF and PBKDF2 over every hmac of hmac.hpp but",
+            .backend = "botan",
+            .functions = {"hkdf", "pbkdf2"},
+            .hmacs = {"lacks"},
+        },
+        {
+            .header = "backends/botan.hpp",
+            .start = "backends::botan has kbkdf over the hmacs of hmac.hpp alone",
+            .backend = "botan",
+            .functions = {"kbkdf"},
+            .hmacs = {"lacks"},
+        },
+        {
+            .header = "backends/botan.hpp",
+            .start = "backends::botan has no SHA-512/224",
+            .backend = "botan",
+            .functions = {"sskdf"},
+            .hmacs = {},
         },
         {
             .header = "kdf_standards.hpp",
@@ -1154,7 +1248,8 @@ void check_family_tag(json::object const& table, std::vector<std::string> const&
     [&]<class... Backend>(std::tuple<Backend...>*) {
         (
             [&] {
-                bool const in_file = row != nullptr && cell(*row, test::name_of<Backend>(), "");
+                bool const in_file = row != nullptr && cell(*row, test::name_of<Backend>(), "") &&
+                                     cells_here<Backend>();
                 if (!BOOST_TEST_EQ(in_file, (hash::backend_has_v<Backend, Tag, family_key<Tag>>))) {
                     std::cerr << "  cell " << name << " / " << test::name_of<Backend>() << '\n';
                 }

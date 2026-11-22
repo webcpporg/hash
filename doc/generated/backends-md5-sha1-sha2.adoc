@@ -90,6 +90,13 @@
 | -
 | not stated
 
+| `digests::md5`
+| `botan` (with exceptions only)
+| `/third_party//botan`
+| native, emscripten
+| -
+| not stated
+
 | `digests::sha1`
 | `hash2`
 | `/webcpp/hash//hash`
@@ -108,6 +115,13 @@
 | `openssl`
 | `/webcpp/hash//openssl`
 | native, wasip2, wasip3
+| -
+| not stated
+
+| `digests::sha1`
+| `botan` (with exceptions only)
+| `/third_party//botan`
+| native, emscripten
 | -
 | not stated
 
@@ -136,6 +150,13 @@
 | `openssl`
 | `/webcpp/hash//openssl`
 | native, wasip2, wasip3
+| -
+| not stated
+
+| `digests::sha2_224`
+| `botan` (with exceptions only)
+| `/third_party//botan`
+| native, emscripten
 | -
 | not stated
 
@@ -168,6 +189,13 @@
 | not stated
 
 | `digests::sha2_256`
+| `botan` (with exceptions only)
+| `/third_party//botan`
+| native, emscripten
+| -
+| not stated
+
+| `digests::sha2_256`
 | `webcrypto` (asynchronous family only)
 | `/webcpp/asio//asio`
 | emscripten
@@ -192,6 +220,13 @@
 | `openssl`
 | `/webcpp/hash//openssl`
 | native, wasip2, wasip3
+| -
+| not stated
+
+| `digests::sha2_384`
+| `botan` (with exceptions only)
+| `/third_party//botan`
+| native, emscripten
 | -
 | not stated
 
@@ -227,6 +262,13 @@
 | `openssl`
 | `/webcpp/hash//openssl`
 | native, wasip2, wasip3
+| -
+| not stated
+
+| `digests::sha2_512`
+| `botan` (with exceptions only)
+| `/third_party//botan`
+| native, emscripten
 | -
 | not stated
 
@@ -262,6 +304,13 @@
 | `openssl`
 | `/webcpp/hash//openssl`
 | native, wasip2, wasip3
+| -
+| not stated
+
+| `digests::sha2_512_256`
+| `botan` (with exceptions only)
+| `/third_party//botan`
+| native, emscripten
 | -
 | not stated
 
@@ -283,6 +332,7 @@
 What each backend states on constant time, as the capability table read it:
 
 * `bearssl`: BearSSL at 7bea48e (v0.6-39): bearssl_hash.h states constant time for its GHASH implementations alone, not for br_md5_*, br_sha1_*, br_sha224_* to br_sha512_* or br_md5sha1_*.
+* `botan`: Botan 3.14.1: doc/api_ref/hash.rst states no constant-time property of this hash, and its source (src/lib/hash/) none.
 * `hash2`: Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property.
 * `openssl`: OpenSSL 3.5.9: doc/man7/EVP_MD-*.pod, doc/man3/EVP_DigestInit.pod and providers/implementations/digests/ state no constant-time property.
 * `sodium`: libsodium 1.0.22: its headers state constant time for comparisons (sodium/utils.h) alone, not for its hashing, MAC, key derivation and password hashing functions (crypto_hash_*, crypto_xof_*, crypto_generichash_*, crypto_shorthash_*, crypto_auth_*, crypto_kdf_*, crypto_pwhash_*).
@@ -290,10 +340,12 @@ What each backend states on constant time, as the capability table read it:
 
 `digests::md5_sha1` has no default backend: the call names one of its backends, as its second template argument (<<hash-default-backend>>).
 
-The default of `digests::md5`, `digests::sha1`, `digests::sha2_224` and `digests::sha2_384`: `hash2` on every target, whatever the program links; `bearssl`, `openssl` only where the call names it, as its second template argument (<<hash-default-backend>>).
+The default of `digests::md5`, `digests::sha1`, `digests::sha2_224` and `digests::sha2_384`: `hash2` on every target, whatever the program links; `bearssl`, `botan`, `openssl` only where the call names it, as its second template argument (<<hash-default-backend>>).
 
-The default of `digests::sha2_256` and `digests::sha2_512`: `hash2` on every target, whatever the program links; `bearssl`, `openssl`, `sodium` only where the call names it, as its second template argument (<<hash-default-backend>>).
+The default of `digests::sha2_256` and `digests::sha2_512`: `hash2` on every target, whatever the program links; `bearssl`, `botan`, `openssl`, `sodium` only where the call names it, as its second template argument (<<hash-default-backend>>).
 
-The default of `digests::sha2_512_224` and `digests::sha2_512_256`: `hash2` on every target, whatever the program links; `openssl` only where the call names it, as its second template argument (<<hash-default-backend>>).
+The default of `digests::sha2_512_224`: `hash2` on every target, whatever the program links; `openssl` only where the call names it, as its second template argument (<<hash-default-backend>>).
+
+The default of `digests::sha2_512_256`: `hash2` on every target, whatever the program links; `botan`, `openssl` only where the call names it, as its second template argument (<<hash-default-backend>>).
 
 `webcrypto` serves the asynchronous family alone, on Emscripten, where the type of its asynchronous call names it (<<hash-async-webcrypto>>).

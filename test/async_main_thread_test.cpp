@@ -8,9 +8,12 @@
 // async_argon2id of 64 MiB (libsodium's interactive costs) on a webcpp::asio::thread_pool, whose
 // threads are Web Workers, its completion bound to the executor of
 // webcpp::asio::browser::main_thread_context, the page's thread. While the workers derive, a
-// timer of the main thread's io_context keeps firing, every 5 ms: the page never blocks. The
-// handler runs on the main browser thread, after the call has returned, with the synchronous
-// function's result; and a refusal of a guard reaches the main thread the same way.
+// timer of the main thread's io_context keeps firing, every 5 ms: the page never blocks. The pool's
+// threads first wait for a latch which the timer opens at its third tick, so that the derivation,
+// queued behind them, cannot complete before the timer has fired three times, whatever the
+// scheduler does with the main thread. The handler runs on the main browser thread, after the call
+// has returned, with the synchronous function's result; and a refusal of a guard reaches the main
+// thread the same way.
 
 #include <webcpp/hash/argon2.hpp>
 #include <webcpp/hash/async.hpp>
@@ -36,6 +39,7 @@
 #include <chrono>
 #include <cstdint>
 #include <functional>
+#include <latch>
 #include <span>
 #include <string_view>
 
@@ -62,11 +66,18 @@ struct completion {
     boost::system::error_code code;
 };
 
+// The threads of the pool of main: check_derivation holds each of them until the timer has ticked
+// `required_ticks` times.
+constexpr int pool_threads = 2;
+constexpr int required_ticks = 3;
+
 // Runs `start(handler)` with a handler bound to `main`'s executor while `loop`, the main thread's
 // io_context, fires a timer every 5 ms until the handler has run; returns what the handler saw.
+// When `gate` is not null, the timer opens it, once, at its `required_ticks`th tick or when it
+// stops, whatever the error code.
 template <class Start>
 completion on_main_thread(asio::io_context& loop, asio::browser::main_thread_context& main,
-                          int& ticks, Start start) {
+                          int& ticks, std::latch* gate, Start start) {
     completion seen;
     bool returned = false;
     auto work = asio::make_work_guard(loop);
@@ -83,11 +94,23 @@ completion on_main_thread(asio::io_context& loop, asio::browser::main_thread_con
     returned = true;
 
     asio::steady_timer timer(loop);
+    // Opens the gate once, on whichever path ends the ticking first, so that no thread of the pool
+    // stays blocked (a latch counted down past zero is undefined).
+    bool gate_opened = false;
+    auto open_gate = [&] {
+        if (gate != nullptr && !gate_opened) {
+            gate_opened = true;
+            gate->count_down();
+        }
+    };
     std::function<void(boost::system::error_code)> tick = [&](boost::system::error_code code) {
         if (code || seen.calls != 0) {
+            open_gate();
             return;
         }
-        ++ticks;
+        if (++ticks == required_ticks) {
+            open_gate();
+        }
         timer.expires_after(std::chrono::milliseconds(5));
         timer.async_wait(tick);
     };
@@ -107,7 +130,13 @@ void check_derivation(asio::io_context& loop, asio::browser::main_thread_context
     };
     std::array<std::uint8_t, 32> output{};
     int ticks = 0;
-    auto const seen = on_main_thread(loop, main, ticks, [&](auto handler) {
+    // Each thread of the pool waits for the timer's third tick, so that the derivation, queued
+    // behind them, starts only after the timer has fired three times, however late the loop runs.
+    std::latch gate(1);
+    for (int thread = 0; thread < pool_threads; ++thread) {
+        asio::post(pool.get_executor(), [&gate] { gate.wait(); });
+    }
+    auto const seen = on_main_thread(loop, main, ticks, &gate, [&](auto handler) {
         hash::async_argon2id(pool.get_executor(), output, password, salt,
                              hash::argon2id_interactive, std::move(handler));
     });
@@ -115,9 +144,8 @@ void check_derivation(asio::io_context& loop, asio::browser::main_thread_context
     BOOST_TEST(seen.on_main);
     BOOST_TEST(seen.after_return);
     BOOST_TEST(!seen.code);
-    // Argon2id of 64 MiB takes a worker hundreds of milliseconds; the page's timer fired
-    // meanwhile.
-    BOOST_TEST_GE(seen.ticks_then, 3);
+    // The derivation started after the third tick, so the page's timer fired meanwhile.
+    BOOST_TEST_GE(seen.ticks_then, required_ticks);
 
     std::array<std::uint8_t, 32> expected{};
     BOOST_TEST(hash::argon2id(expected, password, salt, hash::argon2id_interactive).has_value());
@@ -130,7 +158,7 @@ void check_refusal(asio::io_context& loop, asio::browser::main_thread_context& m
     std::array<std::uint8_t, 32> output{};
     output.fill(0x5a);
     int ticks = 0;
-    auto const seen = on_main_thread(loop, main, ticks, [&](auto handler) {
+    auto const seen = on_main_thread(loop, main, ticks, nullptr, [&](auto handler) {
         hash::async_argon2id(pool.get_executor(), output, bytes_of("password"), short_salt,
                              hash::argon2id_interactive, std::move(handler));
     });
@@ -146,7 +174,7 @@ void check_refusal(asio::io_context& loop, asio::browser::main_thread_context& m
 int main() {
     asio::io_context loop;
     asio::browser::main_thread_context main;
-    asio::thread_pool pool(2);
+    asio::thread_pool pool(pool_threads);
     check_derivation(loop, main, pool);
     check_refusal(loop, main, pool);
     pool.join();

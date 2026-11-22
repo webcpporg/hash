@@ -67,6 +67,8 @@ constexpr std::string_view name_of() {
         return "xkcp";
     } else if constexpr (std::is_same_v<Backend, backends::blake3>) {
         return "blake3";
+    } else if constexpr (std::is_same_v<Backend, backends::botan>) {
+        return "botan";
     } else {
         return "?";
     }
@@ -86,6 +88,8 @@ constexpr std::string_view name_of_macro() {
         return "XKCP";
     } else if constexpr (std::is_same_v<Backend, backends::blake3>) {
         return "BLAKE3";
+    } else if constexpr (std::is_same_v<Backend, backends::botan>) {
+        return "BOTAN";
     } else {
         return "?";
     }
@@ -159,6 +163,12 @@ inline constexpr bool blake3_linked = true;
 #else
 inline constexpr bool blake3_linked = false;
 #endif
+// Botan is a program's only with exceptions (backends/botan.hpp declares nothing without them).
+#if defined(WEBCPP_HASH_HAS_BOTAN) && !defined(WEBCPP_HASH_NO_EXCEPTIONS)
+inline constexpr bool botan_linked = true;
+#else
+inline constexpr bool botan_linked = false;
+#endif
 
 // Whether the program links Backend.
 template <class Backend>
@@ -168,7 +178,8 @@ constexpr bool linked() {
            (std::is_same_v<Backend, backends::bearssl> && bearssl_linked) ||
            (std::is_same_v<Backend, backends::openssl> && openssl_linked) ||
            (std::is_same_v<Backend, backends::xkcp> && xkcp_linked) ||
-           (std::is_same_v<Backend, backends::blake3> && blake3_linked);
+           (std::is_same_v<Backend, backends::blake3> && blake3_linked) ||
+           (std::is_same_v<Backend, backends::botan> && botan_linked);
 }
 
 // Calls check.template operator()<Operation, Hmac>() for every cell of the key derivations.
