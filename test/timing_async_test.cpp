@@ -105,9 +105,11 @@ void reset_this_thread() {
 }
 
 record read_this_thread() {
-    return {.entries = test::timing_entries,
-            .first = test::timing_first_entry != nullptr ? test::timing_first_entry : "",
-            .dit_off = !hash::detail::dit_is_set()};
+    return {
+        .entries = test::timing_entries,
+        .first = test::timing_first_entry != nullptr ? test::timing_first_entry : "",
+        .dit_off = !hash::detail::dit_is_set(),
+    };
 }
 
 // Runs a probe on the pool's thread and waits for its answer through a future.
@@ -164,11 +166,15 @@ bool entered_first(record const& seen, std::string_view function) {
     return !seen.first.empty() && test::names_function(seen.first, test::function_named(function));
 }
 
-// A heavy form: the pool's thread enters the guard of `function` first, the calling thread none,
-// and both threads are back to DIT off after the completion.
+// The thread a form computes on: the pool's for a heavy form, the caller's (during the
+// initiation) for a cheap one on a synchronous backend.
+enum class computes_on { pool, caller };
+
+// A form computing on `where`: that thread enters the guard of `function` first, the other none,
+// and both threads are back to DIT off after the completion. Returns what the completion saw.
 template <class Start>
-void heavy(std::string_view name, std::string_view function, asio::io_context& context,
-           asio::thread_pool& pool, Start start) {
+completion form_on(computes_on where, std::string_view name, std::string_view function,
+                   asio::io_context& context, asio::thread_pool& pool, Start start) {
     reset_pool_thread(pool);
     reset_this_thread();
     completion seen;
@@ -176,38 +182,32 @@ void heavy(std::string_view name, std::string_view function, asio::io_context& c
     run_to_completion(context);
     record const caller = read_this_thread();
     record const worker = read_pool_thread(pool);
+    record const& computing = where == computes_on::pool ? worker : caller;
+    record const& other = where == computes_on::pool ? caller : worker;
     std::string const label(name);
     expect(seen.called, label);
     expect(!seen.code, label + ": " + seen.code.message());
-    expect(worker.entries >= 1, label);
-    expect(entered_first(worker, function), label + " entered " + worker.first);
-    expect(caller.entries == 0,
-           label + ": " + std::to_string(caller.entries) + " guards entered on the wrong thread");
+    expect(computing.entries >= 1, label);
+    expect(entered_first(computing, function), label + " entered " + computing.first);
+    expect(other.entries == 0,
+           label + ": " + std::to_string(other.entries) + " guards entered on the wrong thread");
     expect(worker.dit_off, label);
     expect(caller.dit_off, label);
+    return seen;
 }
 
-// A cheap form on a synchronous backend: the calling thread enters the guard of `function` first
-// during the initiation, the pool's thread none.
+// A heavy form: the pool's thread computes.
 template <class Start>
-void cheap(std::string_view name, std::string_view function, asio::io_context& context,
-           asio::thread_pool& pool, Start start) {
-    reset_pool_thread(pool);
-    reset_this_thread();
-    completion seen;
-    start(recording_handler(context, seen));
-    run_to_completion(context);
-    record const caller = read_this_thread();
-    record const worker = read_pool_thread(pool);
-    std::string const label(name);
-    expect(seen.called, label);
-    expect(!seen.code, label + ": " + seen.code.message());
-    expect(caller.entries >= 1, label);
-    expect(entered_first(caller, function), label + " entered " + caller.first);
-    expect(worker.entries == 0,
-           label + ": " + std::to_string(worker.entries) + " guards entered on the wrong thread");
-    expect(caller.dit_off, label);
-    expect(worker.dit_off, label);
+completion heavy(std::string_view name, std::string_view function, asio::io_context& context,
+                 asio::thread_pool& pool, Start start) {
+    return form_on(computes_on::pool, name, function, context, pool, std::move(start));
+}
+
+// A cheap form on a synchronous backend: the calling thread computes, during the initiation.
+template <class Start>
+completion cheap(std::string_view name, std::string_view function, asio::io_context& context,
+                 asio::thread_pool& pool, Start start) {
+    return form_on(computes_on::caller, name, function, context, pool, std::move(start));
 }
 
 void check_heavy(asio::io_context& context, asio::thread_pool& pool) {
@@ -239,10 +239,12 @@ void check_heavy(asio::io_context& context, asio::thread_pool& pool) {
         hash::async_bcrypt<bcrypt_backend>(work, stored, password, salt, {.cost = 4},
                                            std::move(handler));
     });
-    heavy("async_bcrypt_verify", "hash::bcrypt_verify", context, pool, [&](auto handler) {
-        hash::async_bcrypt_verify<bcrypt_backend>(
-            work, password, std::string_view(stored.data(), stored.size()), std::move(handler));
-    });
+    auto const verified =
+        heavy("async_bcrypt_verify", "hash::bcrypt_verify", context, pool, [&](auto handler) {
+            hash::async_bcrypt_verify<bcrypt_backend>(
+                work, password, std::string_view(stored.data(), stored.size()), std::move(handler));
+        });
+    expect(verified.same, "async_bcrypt_verify: the password does not match its own hash");
     heavy("async_bcrypt_pbkdf", "hash::bcrypt_pbkdf", context, pool, [&](auto handler) {
         hash::async_bcrypt_pbkdf<bcrypt_backend>(work, output, password, salt, 4,
                                                  std::move(handler));
