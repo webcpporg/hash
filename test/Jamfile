@@ -747,6 +747,11 @@ hash-run timing_keyed : timing_keyed_test.cpp
 hash-run timing_keyed_openssl : timing_keyed_openssl_test.cpp
   : <library>/webcpp/hash//openssl : native wasip2 wasip3 ;
 botan-run timing_keyed_botan : timing_keyed_botan_test.cpp ;
+# Botan failing inside a guard (a name it does not know, through the seam of
+# botan_failure): mac, hkdf_extract, hkdf_expand, hkdf and pbkdf2 enter their
+# own guard, answer backend_failure and leave DIT as they found it.
+botan-run timing_botan_failure : timing_botan_failure_test.cpp
+  : <define>"\"WEBCPP_HASH_DETAIL_TEST_BOTAN_NAME=\\\"NO-SUCH-HASH\\\"\"" ;
 
 # One coverage test per backend, driven by doc/capabilities.json: every keyed
 # cell of the backend (support/timing_coverage.hpp: macs, key derivations and
