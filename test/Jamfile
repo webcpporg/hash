@@ -710,6 +710,19 @@ hash-run timing_unseamed : timing_unseamed_test.cpp ;
 webcpp.run timing_unseamed_release : timing_unseamed_test.cpp
   : <variant>release <define>WEBCPP_TEST_TIMING_READ_SELF : native ;
 
+# The asynchronous forms set DIT on the thread that computes: the pool's for a
+# heavy function (the synchronous function's guard, no initiating function holds
+# one), the caller's for a cheap one; timing_async_botan the same for Botan's
+# heavy forms and async_bcrypt, async_bcrypt_verify and async_bcrypt_pbkdf.
+hash-run timing_async : timing_async_test.cpp
+  : <library>/webcpp/asio//asio <library>/third_party//sodium <threading>multi
+    <toolset>emscripten:<linkflags>-sPTHREAD_POOL_SIZE=3
+  : native emscripten ;
+botan-run timing_async_botan : timing_async_test.cpp
+  : <library>/webcpp/asio//asio <threading>multi
+    <define>WEBCPP_TEST_TIMING_ASYNC_BOTAN
+    <toolset>emscripten:<linkflags>-sPTHREAD_POOL_SIZE=3 ;
+
 # mac and the keyed modes of BLAKE2b (digest_of, hasher with a key) and of
 # BLAKE3 (keyed, derive_key and the seeds that key) hold detail::timing_guard; a
 # call that is not keyed holds none; no output changes.
