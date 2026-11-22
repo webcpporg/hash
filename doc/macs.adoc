@@ -22,7 +22,8 @@ is a signature's job, webcpp::crypto's.
 synchronous backend, on 64-bit ARM under Apple's systems and Linux where the
 CPU has FEAT_DIT, and leaves the thread's DIT as it found it: a program does nothing (<<hash-backends-dit>>). Boost.Hash2's types that
 hash names by alias, `hmac<H>` and its `hmac_*` aliases, `siphash_32` and
-`siphash_64`, set none (<<hash-hmac>>).
+`siphash_64`, set none (<<hash-hmac>>): for HMAC with DIT, call
+`mac<macs::hmac<D>>`, and for SipHash with DIT, `mac<macs::siphash_2_4>`.
 
 include::generated/compare-macs.adoc[]
 
