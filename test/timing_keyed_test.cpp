@@ -60,35 +60,35 @@ using webcpp::hash::blake3;
 using hmac_sha256 = macs::hmac<digests::sha2_256>;
 using blake2b_options = hash::digest_options<digests::blake2b>;
 
-constexpr std::array<std::uint8_t, 32> key = [] {
+constexpr std::array<std::uint8_t, 32> test_key = [] {
     std::array<std::uint8_t, 32> bytes{};
     for (std::size_t i = 0; i < bytes.size(); ++i) {
         bytes[i] = static_cast<std::uint8_t>(i + 1);
     }
     return bytes;
 }();
-std::array<std::uint8_t, 24> const input{9, 8, 7, 6, 5, 4, 3, 2, 1};
+std::array<std::uint8_t, 24> const test_input{9, 8, 7, 6, 5, 4, 3, 2, 1};
 
 // mac enters its own guard on the default backend and on sodium, and still does when the output's
 // size is wrong, since the guard precedes the checks.
 void mac_enters() {
     std::array<std::uint8_t, 32> tag{};
     test::require_enters("hash::mac of hmac_sha256 on hash2", [&] {
-        auto const done = hash::mac<hmac_sha256, backends::hash2>(tag, key, input);
+        auto const done = hash::mac<hmac_sha256, backends::hash2>(tag, test_key, test_input);
         BOOST_TEST(done.has_value());
     });
     test::require_enters("hash::mac of blake2b_mac on sodium", [&] {
-        auto const done = hash::mac<macs::blake2b_mac, backends::sodium>(tag, key, input);
+        auto const done = hash::mac<macs::blake2b_mac, backends::sodium>(tag, test_key, test_input);
         BOOST_TEST(done.has_value());
     });
     std::array<std::uint8_t, 1> wrong{};
     test::require_enters("hash::mac with a tag of the wrong size on hash2", [&] {
-        auto const done = hash::mac<hmac_sha256, backends::hash2>(wrong, key, input);
+        auto const done = hash::mac<hmac_sha256, backends::hash2>(wrong, test_key, test_input);
         BOOST_TEST(!done.has_value());
     });
     test::require_enters("hash::mac with a key of the wrong size on sodium", [&] {
         auto const done = hash::mac<macs::blake2b_mac, backends::sodium>(
-            tag, std::span<std::uint8_t const>{}, input);
+            tag, std::span<std::uint8_t const>{}, test_input);
         BOOST_TEST(!done.has_value());
     });
 }
@@ -98,25 +98,26 @@ void mac_leaves_set_state() {
     std::array<std::uint8_t, 32> tag{};
     test::force_dit(true);
     BOOST_TEST_EQ(detail::dit_is_set(), detail::cpu_has_dit());
-    BOOST_TEST((hash::mac<hmac_sha256, backends::hash2>(tag, key, input)).has_value());
+    BOOST_TEST((hash::mac<hmac_sha256, backends::hash2>(tag, test_key, test_input)).has_value());
     BOOST_TEST_EQ(detail::dit_is_set(), detail::cpu_has_dit());
     test::force_dit(false);
     BOOST_TEST(!detail::dit_is_set());
-    BOOST_TEST((hash::mac<hmac_sha256, backends::hash2>(tag, key, input)).has_value());
+    BOOST_TEST((hash::mac<hmac_sha256, backends::hash2>(tag, test_key, test_input)).has_value());
     BOOST_TEST(!detail::dit_is_set());
 }
 
 // digest_of with a key, and hasher's make, update and finish of a keyed hasher, each enter their
 // own guard; the output is the one of the unguarded computation, the same on the unkeyed call.
 void keyed_blake2b() {
-    blake2b_options const keyed{.key = key};
+    blake2b_options const keyed{.key = test_key};
     std::array<std::uint8_t, 64> once{};
     test::require_enters("hash::digest_of with a key on sodium", [&] {
-        BOOST_TEST((hash::digest_of<digests::blake2b>(once, input, keyed)).has_value());
+        BOOST_TEST((hash::digest_of<digests::blake2b>(once, test_input, keyed)).has_value());
     });
     // The same tag by mac, and by hasher.
     std::array<std::uint8_t, 64> by_mac{};
-    BOOST_TEST((hash::mac<macs::blake2b_mac, backends::sodium>(by_mac, key, input)).has_value());
+    BOOST_TEST(
+        (hash::mac<macs::blake2b_mac, backends::sodium>(by_mac, test_key, test_input)).has_value());
     BOOST_TEST(once == by_mac);
 
     std::optional<hash::hasher<digests::blake2b>> hashing;
@@ -130,7 +131,7 @@ void keyed_blake2b() {
         return;
     }
     test::require_enters("hash::hasher::update of a keyed hasher",
-                         [&] { BOOST_TEST(hashing->update(input).has_value()); });
+                         [&] { BOOST_TEST(hashing->update(test_input).has_value()); });
     std::array<std::uint8_t, 64> pieces{};
     test::require_enters("hash::hasher::finish of a keyed hasher",
                          [&] { BOOST_TEST(hashing->finish(pieces).has_value()); });
@@ -141,7 +142,7 @@ void keyed_blake2b() {
 void unkeyed_blake2b_enters_none() {
     std::array<std::uint8_t, 64> out{};
     test::uncovered("hash::digest_of of blake2b without a key", [&] {
-        BOOST_TEST((hash::digest_of<digests::blake2b>(out, input)).has_value());
+        BOOST_TEST((hash::digest_of<digests::blake2b>(out, test_input)).has_value());
     });
     std::optional<hash::hasher<digests::blake2b>> hashing;
     test::uncovered("hash::hasher::make of blake2b without a key", [&] {
@@ -154,19 +155,20 @@ void unkeyed_blake2b_enters_none() {
         return;
     }
     test::uncovered("hash::hasher::update of blake2b without a key",
-                    [&] { BOOST_TEST(hashing->update(input).has_value()); });
+                    [&] { BOOST_TEST(hashing->update(test_input).has_value()); });
     test::uncovered("hash::hasher::finish of blake2b without a key",
                     [&] { BOOST_TEST(hashing->finish(out).has_value()); });
     std::array<std::uint8_t, 32> id{};
     test::uncovered("hash::digest_of of sha2_256 on hash2", [&] {
-        BOOST_TEST((hash::digest_of<digests::sha2_256, backends::hash2>(id, input)).has_value());
+        BOOST_TEST(
+            (hash::digest_of<digests::sha2_256, backends::hash2>(id, test_input)).has_value());
     });
 }
 
 // A keyed hasher moved into another still holds its guards, and so does one assigned to; an
 // unkeyed one moved holds none. Moving enters no guard of its own.
 void moved_keyed_hasher() {
-    blake2b_options const keyed{.key = key};
+    blake2b_options const keyed{.key = test_key};
     auto made = hash::hasher<digests::blake2b>::make(keyed);
     if (!BOOST_TEST(made.has_value())) {
         return;
@@ -174,7 +176,7 @@ void moved_keyed_hasher() {
     std::optional<hash::hasher<digests::blake2b>> moved;
     test::uncovered("moving a keyed hasher", [&] { moved.emplace(std::move(*made)); });
     test::require_enters("hash::hasher::update of a moved keyed hasher",
-                         [&] { BOOST_TEST(moved->update(input).has_value()); });
+                         [&] { BOOST_TEST(moved->update(test_input).has_value()); });
     auto other = hash::hasher<digests::blake2b>::make();
     if (!BOOST_TEST(other.has_value())) {
         return;
@@ -192,7 +194,7 @@ void moved_keyed_hasher() {
     std::optional<hash::hasher<digests::blake2b>> plain_moved;
     plain_moved.emplace(std::move(*plain));
     test::uncovered("hash::hasher::update of a moved unkeyed hasher",
-                    [&] { BOOST_TEST(plain_moved->update(input).has_value()); });
+                    [&] { BOOST_TEST(plain_moved->update(test_input).has_value()); });
     // The destructor of a keyed hasher wipes and holds no guard.
     auto dying = hash::hasher<digests::blake2b>::make(keyed);
     if (BOOST_TEST(dying.has_value())) {
@@ -257,7 +259,7 @@ void blake3_vectors_unchanged() {
 void blake3_modes() {
     std::array<std::uint8_t, 40> const bytes{1, 2, 3, 4, 5, 6, 7, 8, 9};
     std::optional<blake3> keyed;
-    test::require_enters("blake3::keyed", [&] { keyed.emplace(blake3::keyed(key)); });
+    test::require_enters("blake3::keyed", [&] { keyed.emplace(blake3::keyed(test_key)); });
     test::require_enters("blake3::update(void const*) of a keyed object", [&] {
         keyed->update(static_cast<void const*>(bytes.data()), bytes.size());
     });
@@ -355,7 +357,7 @@ void hkdf_enters() {
     using prk_type = hmac_sha2_256::result_type;
     std::optional<prk_type> prk;
     test::require_enters("hash::hkdf_extract of a salt on hash2", [&] {
-        auto const made = hash::hkdf_extract<hmac_sha2_256, backends::hash2>(salt16, key);
+        auto const made = hash::hkdf_extract<hmac_sha2_256, backends::hash2>(salt16, test_key);
         if (BOOST_TEST(made.has_value())) {
             prk.emplace(*made);
         }
@@ -366,30 +368,31 @@ void hkdf_enters() {
     std::array<std::uint8_t, 42> okm{};
     test::require_enters("hash::hkdf_expand of a prk on hash2", [&] {
         BOOST_TEST(
-            (hash::hkdf_expand<hmac_sha2_256, backends::hash2>(okm, *prk, input)).has_value());
+            (hash::hkdf_expand<hmac_sha2_256, backends::hash2>(okm, *prk, test_input)).has_value());
     });
     test::require_enters("hash::hkdf_expand with a prk of the wrong size on hash2", [&] {
         BOOST_TEST(!(hash::hkdf_expand<hmac_sha2_256, backends::hash2>(
-                         okm, std::span<std::uint8_t const>{key}.first(5), input))
+                         okm, std::span<std::uint8_t const>{test_key}.first(5), test_input))
                         .has_value());
     });
     std::array<std::uint8_t, 42> whole{};
     test::require_enters("hash::hkdf of a salt on hash2", [&] {
-        BOOST_TEST(
-            (hash::hkdf<hmac_sha2_256, backends::hash2>(whole, salt16, key, input)).has_value());
+        BOOST_TEST((hash::hkdf<hmac_sha2_256, backends::hash2>(whole, salt16, test_key, test_input))
+                       .has_value());
     });
     // The two steps give what hkdf gives: the guards change no byte.
     std::array<std::uint8_t, 42> stepped{};
-    auto const extracted = hash::hkdf_extract<hmac_sha2_256, backends::hash2>(salt16, key);
+    auto const extracted = hash::hkdf_extract<hmac_sha2_256, backends::hash2>(salt16, test_key);
     if (BOOST_TEST(extracted.has_value())) {
-        BOOST_TEST((hash::hkdf_expand<hmac_sha2_256, backends::hash2>(stepped, *extracted, input))
-                       .has_value());
+        BOOST_TEST(
+            (hash::hkdf_expand<hmac_sha2_256, backends::hash2>(stepped, *extracted, test_input))
+                .has_value());
         BOOST_TEST(stepped == whole);
     }
     std::array<std::uint8_t, 0> none{};
     test::require_enters("hash::hkdf with an output of no byte on hash2", [&] {
-        BOOST_TEST(
-            !(hash::hkdf<hmac_sha2_256, backends::hash2>(none, salt16, key, input)).has_value());
+        BOOST_TEST(!(hash::hkdf<hmac_sha2_256, backends::hash2>(none, salt16, test_key, test_input))
+                        .has_value());
     });
 }
 
@@ -397,18 +400,18 @@ void hkdf_enters() {
 void pbkdf2_enters() {
     std::array<std::uint8_t, 32> derived{};
     test::require_enters("hash::pbkdf2 of 1000 iterations on hash2", [&] {
-        BOOST_TEST(
-            (hash::pbkdf2<hmac_sha2_256, backends::hash2>(derived, key, salt16, 1000)).has_value());
+        BOOST_TEST((hash::pbkdf2<hmac_sha2_256, backends::hash2>(derived, test_key, salt16, 1000))
+                       .has_value());
     });
     std::array<std::uint8_t, 32> again{};
     test::require_enters("hash::pbkdf2 with the same arguments on hash2", [&] {
-        BOOST_TEST(
-            (hash::pbkdf2<hmac_sha2_256, backends::hash2>(again, key, salt16, 1000)).has_value());
+        BOOST_TEST((hash::pbkdf2<hmac_sha2_256, backends::hash2>(again, test_key, salt16, 1000))
+                       .has_value());
     });
     BOOST_TEST(derived == again);
     test::require_enters("hash::pbkdf2 of 0 iterations on hash2", [&] {
-        BOOST_TEST(
-            !(hash::pbkdf2<hmac_sha2_256, backends::hash2>(derived, key, salt16, 0)).has_value());
+        BOOST_TEST(!(hash::pbkdf2<hmac_sha2_256, backends::hash2>(derived, test_key, salt16, 0))
+                        .has_value());
     });
 }
 
@@ -418,49 +421,53 @@ void sodium_derivations_enter() {
     std::array<std::uint8_t, 8> const context{'c', 't', 'x', '_', 't', 'e', 's', 't'};
     std::array<std::uint8_t, 32> subkey{};
     test::require_enters("hash::blake2b_subkey on sodium", [&] {
-        BOOST_TEST((hash::blake2b_subkey<backends::sodium>(subkey, key, 7, context)).has_value());
+        BOOST_TEST(
+            (hash::blake2b_subkey<backends::sodium>(subkey, test_key, 7, context)).has_value());
     });
     std::array<std::uint8_t, 8> tiny{};
     test::require_enters("hash::blake2b_subkey with an output too small on sodium", [&] {
-        BOOST_TEST(!(hash::blake2b_subkey<backends::sodium>(tiny, key, 7, context)).has_value());
+        BOOST_TEST(
+            !(hash::blake2b_subkey<backends::sodium>(tiny, test_key, 7, context)).has_value());
     });
 
     std::array<std::uint8_t, 32> derived{};
     hash::argon2id_parameters const cheapest{.passes = 1, .memory = 8192};
     test::require_enters("hash::argon2id of the minimum parameters on sodium", [&] {
-        BOOST_TEST((hash::argon2id<backends::sodium>(derived, key, salt16, cheapest)).has_value());
+        BOOST_TEST(
+            (hash::argon2id<backends::sodium>(derived, test_key, salt16, cheapest)).has_value());
     });
     std::array<std::uint8_t, 4> const short_salt{1, 2, 3, 4};
     test::require_enters("hash::argon2id with a salt of the wrong size on sodium", [&] {
-        BOOST_TEST(
-            !(hash::argon2id<backends::sodium>(derived, key, short_salt, cheapest)).has_value());
+        BOOST_TEST(!(hash::argon2id<backends::sodium>(derived, test_key, short_salt, cheapest))
+                        .has_value());
     });
 
     hash::argon2_parameters const family{.passes = 3, .memory_kib = 8};
     test::require_enters("hash::argon2 of argon2id on sodium", [&] {
-        BOOST_TEST(
-            (hash::argon2<hash::kdfs::argon2id, backends::sodium>(derived, key, salt16, family))
-                .has_value());
+        BOOST_TEST((hash::argon2<hash::kdfs::argon2id, backends::sodium>(derived, test_key, salt16,
+                                                                         family))
+                       .has_value());
     });
     test::require_enters("hash::argon2 of argon2i on sodium", [&] {
         BOOST_TEST(
-            (hash::argon2<hash::kdfs::argon2i, backends::sodium>(derived, key, salt16, family))
+            (hash::argon2<hash::kdfs::argon2i, backends::sodium>(derived, test_key, salt16, family))
                 .has_value());
     });
     test::require_enters("hash::argon2 with a salt too short on sodium", [&] {
-        BOOST_TEST(!(hash::argon2<hash::kdfs::argon2id, backends::sodium>(derived, key, short_salt,
-                                                                          family))
+        BOOST_TEST(!(hash::argon2<hash::kdfs::argon2id, backends::sodium>(derived, test_key,
+                                                                          short_salt, family))
                         .has_value());
     });
 
     hash::scrypt_parameters const small{.n = 16, .r = 1, .p = 1};
     test::require_enters("hash::scrypt of N = 16 on sodium", [&] {
-        BOOST_TEST((hash::scrypt<backends::sodium>(derived, key, salt16, small)).has_value());
+        BOOST_TEST((hash::scrypt<backends::sodium>(derived, test_key, salt16, small)).has_value());
     });
     test::require_enters("hash::scrypt of N = 1 on sodium", [&] {
-        BOOST_TEST(!(hash::scrypt<backends::sodium>(
-                         derived, key, salt16, hash::scrypt_parameters{.n = 1, .r = 1, .p = 1}))
-                        .has_value());
+        BOOST_TEST(
+            !(hash::scrypt<backends::sodium>(derived, test_key, salt16,
+                                             hash::scrypt_parameters{.n = 1, .r = 1, .p = 1}))
+                 .has_value());
     });
 }
 

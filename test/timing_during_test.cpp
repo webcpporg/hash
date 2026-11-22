@@ -144,9 +144,11 @@ namespace backends = webcpp::hash::backends;
 
 using probe_hmac = hash::hmac<test::dit_probe>;
 
-constexpr std::array<std::uint8_t, 32> key{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16};
-constexpr std::array<std::uint8_t, 16> salt{16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1};
-constexpr std::array<std::uint8_t, 8> info{'c', 'o', 'n', 't', 'e', 'x', 't', 0};
+constexpr std::array<std::uint8_t, 32> test_key{1, 2,  3,  4,  5,  6,  7,  8,
+                                                9, 10, 11, 12, 13, 14, 15, 16};
+constexpr std::array<std::uint8_t, 16> test_salt{16, 15, 14, 13, 12, 11, 10, 9,
+                                                 8,  7,  6,  5,  4,  3,  2,  1};
+constexpr std::array<std::uint8_t, 8> test_info{'c', 'o', 'n', 't', 'e', 'x', 't', 0};
 
 // Reports, by `name`, a probe that never ran, an update before any guard, an update with DIT
 // other than the CPU gives under a guard, or a thread left with DIT set.
@@ -182,38 +184,42 @@ void during(std::string const& name, Call call) {
 
 void synchronous() {
     during("hkdf_extract", [] {
-        BOOST_TEST((hash::hkdf_extract<probe_hmac, backends::hash2>(salt, key)).has_value());
+        BOOST_TEST(
+            (hash::hkdf_extract<probe_hmac, backends::hash2>(test_salt, test_key)).has_value());
     });
-    auto const prk = hash::hkdf_extract<probe_hmac, backends::hash2>(salt, key);
+    auto const prk = hash::hkdf_extract<probe_hmac, backends::hash2>(test_salt, test_key);
     if (!BOOST_TEST(prk.has_value())) {
         return;
     }
     std::array<std::uint8_t, 42> okm{};
     during("hkdf_expand", [&] {
-        BOOST_TEST((hash::hkdf_expand<probe_hmac, backends::hash2>(okm, *prk, info)).has_value());
+        BOOST_TEST(
+            (hash::hkdf_expand<probe_hmac, backends::hash2>(okm, *prk, test_info)).has_value());
     });
     during("hkdf", [&] {
-        BOOST_TEST((hash::hkdf<probe_hmac, backends::hash2>(okm, salt, key, info)).has_value());
+        BOOST_TEST((hash::hkdf<probe_hmac, backends::hash2>(okm, test_salt, test_key, test_info))
+                       .has_value());
     });
     std::array<std::uint8_t, 32> derived{};
     during("pbkdf2", [&] {
-        BOOST_TEST((hash::pbkdf2<probe_hmac, backends::hash2>(derived, key, salt, 3)).has_value());
+        BOOST_TEST((hash::pbkdf2<probe_hmac, backends::hash2>(derived, test_key, test_salt, 3))
+                       .has_value());
     });
     // The probe computes SHA-256: pbkdf2 over it gives the bytes of pbkdf2 over hmac_sha2_256.
     std::array<std::uint8_t, 32> plain{};
-    BOOST_TEST(
-        (hash::pbkdf2<hash::hmac_sha2_256, backends::hash2>(plain, key, salt, 3)).has_value());
+    BOOST_TEST((hash::pbkdf2<hash::hmac_sha2_256, backends::hash2>(plain, test_key, test_salt, 3))
+                   .has_value());
     BOOST_TEST(derived == plain);
 
     std::array<std::uint8_t, 32> tag{};
     during("mac", [&] {
         BOOST_TEST((hash::mac<hash::macs::hmac<hash::digests::sha2_256>, test::dit_probe_backend>(
-                        tag, key, info))
+                        tag, test_key, test_info))
                        .has_value());
     });
     std::array<std::uint8_t, 32> plain_tag{};
-    BOOST_TEST((hash::mac<hash::macs::hmac<hash::digests::sha2_256>, backends::hash2>(plain_tag,
-                                                                                      key, info))
+    BOOST_TEST((hash::mac<hash::macs::hmac<hash::digests::sha2_256>, backends::hash2>(
+                    plain_tag, test_key, test_info))
                    .has_value());
     BOOST_TEST(tag == plain_tag);
 }
@@ -245,7 +251,7 @@ void on_the_pool() {
     bool called = false;
     boost::system::error_code code;
     hash::async_pbkdf2<probe_hmac, backends::hash2>(
-        pool.get_executor(), derived, key, salt, 3,
+        pool.get_executor(), derived, test_key, test_salt, 3,
         asio::bind_executor(context.get_executor(), [&](boost::system::error_code done) {
             called = true;
             code = done;

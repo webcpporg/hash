@@ -42,8 +42,8 @@ using hash::backends::botan;
 using hmac = hash::hmac_sha2_256;
 
 std::array<std::uint8_t, 3> const abc{0x61, 0x62, 0x63};
-std::array<std::uint8_t, 16> const salt{1};
-std::array<std::uint8_t, 32> const key{2};
+std::array<std::uint8_t, 16> const test_salt{1};
+std::array<std::uint8_t, 32> const test_key{2};
 
 bool backend_failed(boost::system::result<void> const& outcome) {
     return outcome.has_error() && outcome.error() == hash::error::backend_failure;
@@ -62,24 +62,24 @@ void fails_inside_guard(bool set) {
     std::array<std::uint8_t, 32> output{};
     test::require_enters("hash::mac of hmac_sha2_256 on botan", [&] {
         BOOST_TEST(backend_failed(
-            hash::mac<hash::macs::hmac<hash::digests::sha2_256>, botan>(output, key, abc)));
+            hash::mac<hash::macs::hmac<hash::digests::sha2_256>, botan>(output, test_key, abc)));
     });
     restored("mac");
     test::require_enters("hash::hkdf_extract on botan", [&] {
-        auto const prk = hash::hkdf_extract<hmac, botan>(salt, abc);
+        auto const prk = hash::hkdf_extract<hmac, botan>(test_salt, abc);
         BOOST_TEST(prk.has_error() && prk.error() == hash::error::backend_failure);
     });
     restored("hkdf_extract");
     test::require_enters("hash::hkdf_expand on botan", [&] {
-        BOOST_TEST(backend_failed(hash::hkdf_expand<hmac, botan>(output, key, abc)));
+        BOOST_TEST(backend_failed(hash::hkdf_expand<hmac, botan>(output, test_key, abc)));
     });
     restored("hkdf_expand");
     test::require_enters("hash::hkdf on botan", [&] {
-        BOOST_TEST(backend_failed(hash::hkdf<hmac, botan>(output, salt, abc, abc)));
+        BOOST_TEST(backend_failed(hash::hkdf<hmac, botan>(output, test_salt, abc, abc)));
     });
     restored("hkdf");
     test::require_enters("hash::pbkdf2 on botan", [&] {
-        BOOST_TEST(backend_failed(hash::pbkdf2<hmac, botan>(output, abc, salt, 2)));
+        BOOST_TEST(backend_failed(hash::pbkdf2<hmac, botan>(output, abc, test_salt, 2)));
     });
     restored("pbkdf2");
     test::force_dit(false);

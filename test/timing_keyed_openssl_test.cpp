@@ -38,41 +38,45 @@ namespace kdfs = webcpp::hash::kdfs;
 using hash::backends::openssl;
 using hmac_sha2_256 = hash::hmac_sha2_256;
 
-constexpr std::array<std::uint8_t, 32> key = [] {
+constexpr std::array<std::uint8_t, 32> test_key = [] {
     std::array<std::uint8_t, 32> bytes{};
     for (std::size_t i = 0; i < bytes.size(); ++i) {
         bytes[i] = static_cast<std::uint8_t>(i + 1);
     }
     return bytes;
 }();
-std::array<std::uint8_t, 24> const info{9, 8, 7, 6, 5, 4, 3, 2, 1};
-std::array<std::uint8_t, 16> const salt{16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1};
+std::array<std::uint8_t, 24> const test_info{9, 8, 7, 6, 5, 4, 3, 2, 1};
+std::array<std::uint8_t, 16> const test_salt{16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1};
 
 // kbkdf, sskdf and x963kdf each enter their own guard; a call that a guard refuses (a counter
 // width of 7 bits, an output of no byte) enters it too, and the guard changes no byte.
 void standards_enter() {
     std::array<std::uint8_t, 40> derived{};
     test::require_enters("hash::kbkdf of hmac_sha2_256 on openssl", [&] {
-        BOOST_TEST(
-            (hash::kbkdf<hmac_sha2_256, openssl>(derived, key, {.label = info, .context = salt}))
-                .has_value());
+        BOOST_TEST((hash::kbkdf<hmac_sha2_256, openssl>(derived, test_key,
+                                                        {.label = test_info, .context = test_salt}))
+                       .has_value());
     });
     test::require_enters("hash::kbkdf with a counter of 7 bits on openssl", [&] {
-        BOOST_TEST(
-            !(hash::kbkdf<hmac_sha2_256, openssl>(derived, key, {.counter_bits = 7})).has_value());
+        BOOST_TEST(!(hash::kbkdf<hmac_sha2_256, openssl>(derived, test_key, {.counter_bits = 7}))
+                        .has_value());
     });
     test::require_enters("hash::sskdf of sha2_256 on openssl", [&] {
-        BOOST_TEST((hash::sskdf<digests::sha2_256, openssl>(derived, key, info)).has_value());
+        BOOST_TEST(
+            (hash::sskdf<digests::sha2_256, openssl>(derived, test_key, test_info)).has_value());
     });
     std::array<std::uint8_t, 0> none{};
     test::require_enters("hash::sskdf with an output of no byte on openssl", [&] {
-        BOOST_TEST(!(hash::sskdf<digests::sha2_256, openssl>(none, key, info)).has_value());
+        BOOST_TEST(
+            !(hash::sskdf<digests::sha2_256, openssl>(none, test_key, test_info)).has_value());
     });
     test::require_enters("hash::x963kdf of sha2_256 on openssl", [&] {
-        BOOST_TEST((hash::x963kdf<digests::sha2_256, openssl>(derived, key, info)).has_value());
+        BOOST_TEST(
+            (hash::x963kdf<digests::sha2_256, openssl>(derived, test_key, test_info)).has_value());
     });
     test::require_enters("hash::x963kdf with an output of no byte on openssl", [&] {
-        BOOST_TEST(!(hash::x963kdf<digests::sha2_256, openssl>(none, key, info)).has_value());
+        BOOST_TEST(
+            !(hash::x963kdf<digests::sha2_256, openssl>(none, test_key, test_info)).has_value());
     });
 }
 
@@ -83,7 +87,7 @@ void hkdf_enters() {
     using prk_type = hmac_sha2_256::result_type;
     std::optional<prk_type> prk;
     test::require_enters("hash::hkdf_extract of a salt on openssl", [&] {
-        auto const made = hash::hkdf_extract<hmac_sha2_256, openssl>(salt, key);
+        auto const made = hash::hkdf_extract<hmac_sha2_256, openssl>(test_salt, test_key);
         if (BOOST_TEST(made.has_value())) {
             prk.emplace(*made);
         }
@@ -91,11 +95,12 @@ void hkdf_enters() {
     if (prk) {
         test::require_enters("hash::hkdf_expand of a prk on openssl", [&] {
             BOOST_TEST(
-                (hash::hkdf_expand<hmac_sha2_256, openssl>(derived, *prk, info)).has_value());
+                (hash::hkdf_expand<hmac_sha2_256, openssl>(derived, *prk, test_info)).has_value());
         });
     }
     test::require_enters("hash::hkdf of a salt on openssl", [&] {
-        BOOST_TEST((hash::hkdf<hmac_sha2_256, openssl>(derived, salt, key, info)).has_value());
+        BOOST_TEST((hash::hkdf<hmac_sha2_256, openssl>(derived, test_salt, test_key, test_info))
+                       .has_value());
     });
 }
 
@@ -104,32 +109,38 @@ void hkdf_enters() {
 void derivations_enter() {
     std::array<std::uint8_t, 32> derived{};
     test::require_enters("hash::pbkdf2 of 1000 iterations on openssl", [&] {
-        BOOST_TEST((hash::pbkdf2<hmac_sha2_256, openssl>(derived, key, salt, 1000)).has_value());
+        BOOST_TEST(
+            (hash::pbkdf2<hmac_sha2_256, openssl>(derived, test_key, test_salt, 1000)).has_value());
     });
     test::require_enters("hash::pbkdf2 of 0 iterations on openssl", [&] {
-        BOOST_TEST(!(hash::pbkdf2<hmac_sha2_256, openssl>(derived, key, salt, 0)).has_value());
+        BOOST_TEST(
+            !(hash::pbkdf2<hmac_sha2_256, openssl>(derived, test_key, test_salt, 0)).has_value());
     });
     test::require_enters("hash::argon2id of the minimum parameters on openssl", [&] {
-        BOOST_TEST((hash::argon2id<openssl>(derived, key, salt, {.passes = 1, .memory = 8192}))
-                       .has_value());
+        BOOST_TEST(
+            (hash::argon2id<openssl>(derived, test_key, test_salt, {.passes = 1, .memory = 8192}))
+                .has_value());
     });
     hash::argon2_parameters const family{.passes = 1, .memory_kib = 8};
     test::require_enters("hash::argon2 of argon2d on openssl", [&] {
-        BOOST_TEST((hash::argon2<kdfs::argon2d, openssl>(derived, key, salt, family)).has_value());
+        BOOST_TEST((hash::argon2<kdfs::argon2d, openssl>(derived, test_key, test_salt, family))
+                       .has_value());
     });
     test::require_enters("hash::argon2 of argon2i on openssl", [&] {
-        BOOST_TEST((hash::argon2<kdfs::argon2i, openssl>(derived, key, salt, family)).has_value());
+        BOOST_TEST((hash::argon2<kdfs::argon2i, openssl>(derived, test_key, test_salt, family))
+                       .has_value());
     });
     test::require_enters("hash::argon2 of argon2id on openssl", [&] {
-        BOOST_TEST((hash::argon2<kdfs::argon2id, openssl>(derived, key, salt, family)).has_value());
+        BOOST_TEST((hash::argon2<kdfs::argon2id, openssl>(derived, test_key, test_salt, family))
+                       .has_value());
     });
     test::require_enters("hash::scrypt of N = 16 on openssl", [&] {
-        BOOST_TEST(
-            (hash::scrypt<openssl>(derived, key, salt, {.n = 16, .r = 1, .p = 1})).has_value());
+        BOOST_TEST((hash::scrypt<openssl>(derived, test_key, test_salt, {.n = 16, .r = 1, .p = 1}))
+                       .has_value());
     });
     test::require_enters("hash::scrypt of N = 1 on openssl", [&] {
-        BOOST_TEST(
-            !(hash::scrypt<openssl>(derived, key, salt, {.n = 1, .r = 1, .p = 1})).has_value());
+        BOOST_TEST(!(hash::scrypt<openssl>(derived, test_key, test_salt, {.n = 1, .r = 1, .p = 1}))
+                        .has_value());
     });
 }
 

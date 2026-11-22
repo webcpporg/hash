@@ -40,52 +40,53 @@ namespace kdfs = webcpp::hash::kdfs;
 using hash::backends::botan;
 using hmac_sha2_256 = hash::hmac_sha2_256;
 
-constexpr std::array<std::uint8_t, 32> key = [] {
+constexpr std::array<std::uint8_t, 32> test_key = [] {
     std::array<std::uint8_t, 32> bytes{};
     for (std::size_t i = 0; i < bytes.size(); ++i) {
         bytes[i] = static_cast<std::uint8_t>(i + 1);
     }
     return bytes;
 }();
-std::array<std::uint8_t, 24> const info{9, 8, 7, 6, 5, 4, 3, 2, 1};
-std::array<std::uint8_t, 16> const salt{16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1};
+std::array<std::uint8_t, 24> const test_info{9, 8, 7, 6, 5, 4, 3, 2, 1};
+std::array<std::uint8_t, 16> const test_salt{16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1};
 
 // bcrypt, bcrypt_verify and bcrypt_pbkdf each enter their own guard, at the lowest cost; a call
 // that a guard refuses (a salt of 8 bytes, a malformed string, 0 rounds) enters it too.
 void bcrypt_enters() {
     std::array<char, hash::bcrypt_hash_size> made{};
     test::require_enters("hash::bcrypt of cost 4 on botan", [&] {
-        BOOST_TEST((hash::bcrypt<botan>(made, key, salt, {.cost = 4})).has_value());
+        BOOST_TEST((hash::bcrypt<botan>(made, test_key, test_salt, {.cost = 4})).has_value());
     });
     std::array<char, hash::bcrypt_hash_size> again{};
     test::require_enters("hash::bcrypt with the same arguments on botan", [&] {
-        BOOST_TEST((hash::bcrypt<botan>(again, key, salt, {.cost = 4})).has_value());
+        BOOST_TEST((hash::bcrypt<botan>(again, test_key, test_salt, {.cost = 4})).has_value());
     });
     BOOST_TEST(made == again);
     test::require_enters("hash::bcrypt with a salt of 8 bytes on botan", [&] {
         BOOST_TEST(
-            !(hash::bcrypt<botan>(again, key, std::span{salt}.first(8), {.cost = 4})).has_value());
+            !(hash::bcrypt<botan>(again, test_key, std::span{test_salt}.first(8), {.cost = 4}))
+                 .has_value());
     });
 
     std::string_view const text{made.data(), made.size()};
     test::require_enters("hash::bcrypt_verify of the right password on botan", [&] {
-        auto const checked = hash::bcrypt_verify<botan>(key, text);
+        auto const checked = hash::bcrypt_verify<botan>(test_key, text);
         BOOST_TEST(checked.has_value() && *checked);
     });
     test::require_enters("hash::bcrypt_verify of the wrong password on botan", [&] {
-        auto const checked = hash::bcrypt_verify<botan>(salt, text);
+        auto const checked = hash::bcrypt_verify<botan>(test_salt, text);
         BOOST_TEST(checked.has_value() && !*checked);
     });
     test::require_enters("hash::bcrypt_verify of a string of the wrong form on botan", [&] {
-        BOOST_TEST(!hash::bcrypt_verify<botan>(key, "not a bcrypt string").has_value());
+        BOOST_TEST(!hash::bcrypt_verify<botan>(test_key, "not a bcrypt string").has_value());
     });
 
     std::array<std::uint8_t, 32> derived{};
     test::require_enters("hash::bcrypt_pbkdf of 1 round on botan", [&] {
-        BOOST_TEST((hash::bcrypt_pbkdf<botan>(derived, key, salt, 1)).has_value());
+        BOOST_TEST((hash::bcrypt_pbkdf<botan>(derived, test_key, test_salt, 1)).has_value());
     });
     test::require_enters("hash::bcrypt_pbkdf of 0 rounds on botan", [&] {
-        BOOST_TEST(!(hash::bcrypt_pbkdf<botan>(derived, key, salt, 0)).has_value());
+        BOOST_TEST(!(hash::bcrypt_pbkdf<botan>(derived, test_key, test_salt, 0)).has_value());
     });
 }
 
@@ -97,21 +98,24 @@ void hkdf_enters() {
     using prk_type = hmac_sha2_256::result_type;
     std::optional<prk_type> prk;
     test::require_enters("hash::hkdf_extract of a salt on botan", [&] {
-        auto const made = hash::hkdf_extract<hmac_sha2_256, botan>(salt, key);
+        auto const made = hash::hkdf_extract<hmac_sha2_256, botan>(test_salt, test_key);
         if (BOOST_TEST(made.has_value())) {
             prk.emplace(*made);
         }
     });
     if (prk) {
         test::require_enters("hash::hkdf_expand of a prk on botan", [&] {
-            BOOST_TEST((hash::hkdf_expand<hmac_sha2_256, botan>(derived, *prk, info)).has_value());
+            BOOST_TEST(
+                (hash::hkdf_expand<hmac_sha2_256, botan>(derived, *prk, test_info)).has_value());
         });
     }
     test::require_enters("hash::hkdf of a salt on botan", [&] {
-        BOOST_TEST((hash::hkdf<hmac_sha2_256, botan>(derived, salt, key, info)).has_value());
+        BOOST_TEST((hash::hkdf<hmac_sha2_256, botan>(derived, test_salt, test_key, test_info))
+                       .has_value());
     });
     test::require_enters("hash::hkdf with an output of no byte on botan", [&] {
-        BOOST_TEST(!(hash::hkdf<hmac_sha2_256, botan>(none, salt, key, info)).has_value());
+        BOOST_TEST(
+            !(hash::hkdf<hmac_sha2_256, botan>(none, test_salt, test_key, test_info)).has_value());
     });
 }
 
@@ -120,47 +124,55 @@ void hkdf_enters() {
 void derivations_enter() {
     std::array<std::uint8_t, 32> derived{};
     test::require_enters("hash::pbkdf2 of 1000 iterations on botan", [&] {
-        BOOST_TEST((hash::pbkdf2<hmac_sha2_256, botan>(derived, key, salt, 1000)).has_value());
+        BOOST_TEST(
+            (hash::pbkdf2<hmac_sha2_256, botan>(derived, test_key, test_salt, 1000)).has_value());
     });
     test::require_enters("hash::pbkdf2 of 0 iterations on botan", [&] {
-        BOOST_TEST(!(hash::pbkdf2<hmac_sha2_256, botan>(derived, key, salt, 0)).has_value());
+        BOOST_TEST(
+            !(hash::pbkdf2<hmac_sha2_256, botan>(derived, test_key, test_salt, 0)).has_value());
     });
     test::require_enters("hash::kbkdf of hmac_sha2_256 on botan", [&] {
-        BOOST_TEST(
-            (hash::kbkdf<hmac_sha2_256, botan>(derived, key, {.label = info, .context = salt}))
-                .has_value());
+        BOOST_TEST((hash::kbkdf<hmac_sha2_256, botan>(derived, test_key,
+                                                      {.label = test_info, .context = test_salt}))
+                       .has_value());
     });
     test::require_enters("hash::kbkdf with a counter of 7 bits on botan", [&] {
-        BOOST_TEST(
-            !(hash::kbkdf<hmac_sha2_256, botan>(derived, key, {.counter_bits = 7})).has_value());
+        BOOST_TEST(!(hash::kbkdf<hmac_sha2_256, botan>(derived, test_key, {.counter_bits = 7}))
+                        .has_value());
     });
     test::require_enters("hash::sskdf of sha2_256 on botan", [&] {
-        BOOST_TEST((hash::sskdf<digests::sha2_256, botan>(derived, key, info)).has_value());
+        BOOST_TEST(
+            (hash::sskdf<digests::sha2_256, botan>(derived, test_key, test_info)).has_value());
     });
     test::require_enters("hash::x963kdf of sha2_256 on botan", [&] {
-        BOOST_TEST((hash::x963kdf<digests::sha2_256, botan>(derived, key, info)).has_value());
+        BOOST_TEST(
+            (hash::x963kdf<digests::sha2_256, botan>(derived, test_key, test_info)).has_value());
     });
     test::require_enters("hash::argon2id of the minimum parameters on botan", [&] {
         BOOST_TEST(
-            (hash::argon2id<botan>(derived, key, salt, {.passes = 1, .memory = 8192})).has_value());
+            (hash::argon2id<botan>(derived, test_key, test_salt, {.passes = 1, .memory = 8192}))
+                .has_value());
     });
     hash::argon2_parameters const family{.passes = 1, .memory_kib = 8};
     test::require_enters("hash::argon2 of argon2d on botan", [&] {
-        BOOST_TEST((hash::argon2<kdfs::argon2d, botan>(derived, key, salt, family)).has_value());
+        BOOST_TEST(
+            (hash::argon2<kdfs::argon2d, botan>(derived, test_key, test_salt, family)).has_value());
     });
     test::require_enters("hash::argon2 of argon2i on botan", [&] {
-        BOOST_TEST((hash::argon2<kdfs::argon2i, botan>(derived, key, salt, family)).has_value());
+        BOOST_TEST(
+            (hash::argon2<kdfs::argon2i, botan>(derived, test_key, test_salt, family)).has_value());
     });
     test::require_enters("hash::argon2 of argon2id on botan", [&] {
-        BOOST_TEST((hash::argon2<kdfs::argon2id, botan>(derived, key, salt, family)).has_value());
+        BOOST_TEST((hash::argon2<kdfs::argon2id, botan>(derived, test_key, test_salt, family))
+                       .has_value());
     });
     test::require_enters("hash::scrypt of N = 16 on botan", [&] {
-        BOOST_TEST(
-            (hash::scrypt<botan>(derived, key, salt, {.n = 16, .r = 1, .p = 1})).has_value());
+        BOOST_TEST((hash::scrypt<botan>(derived, test_key, test_salt, {.n = 16, .r = 1, .p = 1}))
+                       .has_value());
     });
     test::require_enters("hash::scrypt of N = 1 on botan", [&] {
-        BOOST_TEST(
-            !(hash::scrypt<botan>(derived, key, salt, {.n = 1, .r = 1, .p = 1})).has_value());
+        BOOST_TEST(!(hash::scrypt<botan>(derived, test_key, test_salt, {.n = 1, .r = 1, .p = 1}))
+                        .has_value());
     });
 }
 

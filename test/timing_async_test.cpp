@@ -88,8 +88,9 @@ using scrypt_backend = hash::default_backend<kdfs::scrypt>;
 constexpr std::uint32_t argon2_lanes = 1;
 #endif
 
-constexpr std::array<std::uint8_t, 8> password{'p', 'a', 's', 's', 'w', 'o', 'r', 'd'};
-constexpr std::array<std::uint8_t, 16> salt{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16};
+constexpr std::array<std::uint8_t, 8> test_password{'p', 'a', 's', 's', 'w', 'o', 'r', 'd'};
+constexpr std::array<std::uint8_t, 16> test_salt{1, 2,  3,  4,  5,  6,  7,  8,
+                                                 9, 10, 11, 12, 13, 14, 15, 16};
 
 // What a thread recorded through the seam, and whether it was back to DIT off when it was read.
 struct record {
@@ -208,38 +209,39 @@ void check_heavy(asio::io_context& context, asio::thread_pool& pool) {
     std::array<std::uint8_t, 32> output{};
 
     heavy("async_pbkdf2", "hash::pbkdf2", context, pool, [&](auto handler) {
-        hash::async_pbkdf2<hash::hmac_sha2_256, pbkdf2_backend>(work, output, password, salt, 100,
-                                                                std::move(handler));
+        hash::async_pbkdf2<hash::hmac_sha2_256, pbkdf2_backend>(work, output, test_password,
+                                                                test_salt, 100, std::move(handler));
     });
     heavy("async_argon2id", "hash::argon2id", context, pool, [&](auto handler) {
-        hash::async_argon2id<argon2id_backend>(work, output, password, salt,
+        hash::async_argon2id<argon2id_backend>(work, output, test_password, test_salt,
                                                {.passes = 2, .memory = 65536}, std::move(handler));
     });
     heavy("async_argon2", "hash::argon2", context, pool, [&](auto handler) {
         hash::async_argon2<std::conditional_t<std::is_same_v<argon2_backend, hash::backends::botan>,
                                               kdfs::argon2id, kdfs::argon2i>,
-                           argon2_backend>(work, output, password, salt,
+                           argon2_backend>(work, output, test_password, test_salt,
                                            {.passes = 3, .memory_kib = 64, .lanes = argon2_lanes},
                                            std::move(handler));
     });
     heavy("async_scrypt", "hash::scrypt", context, pool, [&](auto handler) {
-        hash::async_scrypt<scrypt_backend>(work, output, password, salt,
+        hash::async_scrypt<scrypt_backend>(work, output, test_password, test_salt,
                                            {.n = 1024, .r = 8, .p = 1}, std::move(handler));
     });
 #ifdef WEBCPP_TEST_TIMING_ASYNC_BOTAN
     std::array<char, hash::bcrypt_hash_size> stored{};
     heavy("async_bcrypt", "hash::bcrypt", context, pool, [&](auto handler) {
-        hash::async_bcrypt<bcrypt_backend>(work, stored, password, salt, {.cost = 4},
+        hash::async_bcrypt<bcrypt_backend>(work, stored, test_password, test_salt, {.cost = 4},
                                            std::move(handler));
     });
     auto const verified =
         heavy("async_bcrypt_verify", "hash::bcrypt_verify", context, pool, [&](auto handler) {
             hash::async_bcrypt_verify<bcrypt_backend>(
-                work, password, std::string_view(stored.data(), stored.size()), std::move(handler));
+                work, test_password, std::string_view(stored.data(), stored.size()),
+                std::move(handler));
         });
     expect(verified.same, "async_bcrypt_verify: the password does not match its own hash");
     heavy("async_bcrypt_pbkdf", "hash::bcrypt_pbkdf", context, pool, [&](auto handler) {
-        hash::async_bcrypt_pbkdf<bcrypt_backend>(work, output, password, salt, 4,
+        hash::async_bcrypt_pbkdf<bcrypt_backend>(work, output, test_password, test_salt, 4,
                                                  std::move(handler));
     });
 #endif
@@ -260,10 +262,10 @@ void check_cheap(asio::io_context& context, asio::thread_pool& pool) {
     key.fill(0x0b);
 
     cheap("async_hmac", "hash::mac", context, pool, [&](auto handler) {
-        hash::async_hmac<hash::hmac_sha2_256>(loop, output, key, password, std::move(handler));
+        hash::async_hmac<hash::hmac_sha2_256>(loop, output, key, test_password, std::move(handler));
     });
     cheap("async_hkdf", "hash::hkdf", context, pool, [&](auto handler) {
-        hash::async_hkdf<hash::hmac_sha2_256>(loop, output, salt, key, password,
+        hash::async_hkdf<hash::hmac_sha2_256>(loop, output, test_salt, key, test_password,
                                               std::move(handler));
     });
 
@@ -271,7 +273,7 @@ void check_cheap(asio::io_context& context, asio::thread_pool& pool) {
     reset_pool_thread(pool);
     reset_this_thread();
     completion seen;
-    hash::async_digest<hash::digests::sha2_256>(loop, output, password,
+    hash::async_digest<hash::digests::sha2_256>(loop, output, test_password,
                                                 recording_handler(context, seen));
     run_to_completion(context);
     record const caller = read_this_thread();
@@ -311,25 +313,25 @@ void check_cancelled_before(asio::io_context& context) {
         BOOST_TEST(seen.code == asio::error::operation_aborted);
     };
     cancelled([&](auto handler) {
-        hash::async_pbkdf2<hash::hmac_sha2_256, pbkdf2_backend>(work, output, password, salt, 100,
-                                                                std::move(handler));
+        hash::async_pbkdf2<hash::hmac_sha2_256, pbkdf2_backend>(work, output, test_password,
+                                                                test_salt, 100, std::move(handler));
     });
     cancelled([&](auto handler) {
-        hash::async_argon2id<argon2id_backend>(work, output, password, salt,
+        hash::async_argon2id<argon2id_backend>(work, output, test_password, test_salt,
                                                {.passes = 2, .memory = 65536}, std::move(handler));
     });
     cancelled([&](auto handler) {
-        hash::async_scrypt<scrypt_backend>(work, output, password, salt,
+        hash::async_scrypt<scrypt_backend>(work, output, test_password, test_salt,
                                            {.n = 1024, .r = 8, .p = 1}, std::move(handler));
     });
 #ifdef WEBCPP_TEST_TIMING_ASYNC_BOTAN
     std::array<char, hash::bcrypt_hash_size> stored{};
     cancelled([&](auto handler) {
-        hash::async_bcrypt<bcrypt_backend>(work, stored, password, salt, {.cost = 4},
+        hash::async_bcrypt<bcrypt_backend>(work, stored, test_password, test_salt, {.cost = 4},
                                            std::move(handler));
     });
     cancelled([&](auto handler) {
-        hash::async_bcrypt_pbkdf<bcrypt_backend>(work, output, password, salt, 4,
+        hash::async_bcrypt_pbkdf<bcrypt_backend>(work, output, test_password, test_salt, 4,
                                                  std::move(handler));
     });
 #endif
