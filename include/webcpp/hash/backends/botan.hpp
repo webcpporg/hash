@@ -139,11 +139,11 @@ struct backend_limits<backends::botan> {
     /** HKDF's salt. */
     static constexpr std::uint64_t hkdf_salt = no_limit;
     /** HKDF's input keying material. */
-    static constexpr std::uint64_t hkdf_ikm = no_limit;
+    static constexpr std::uint64_t hkdf_input_key_material = no_limit;
     /** HKDF's pseudorandom key. */
-    static constexpr std::uint64_t hkdf_prk = no_limit;
+    static constexpr std::uint64_t hkdf_pseudorandom_key = no_limit;
     /** HKDF's info. */
-    static constexpr std::uint64_t hkdf_info = no_limit;
+    static constexpr std::uint64_t hkdf_application_info = no_limit;
     /** HKDF's output. */
     static constexpr std::uint64_t hkdf_output = no_limit;
     /** PBKDF2's password. */
@@ -1191,23 +1191,24 @@ struct botan_refused_hmac_kdf {
 
     /** Never called: the refusal has stopped the build. */
     [[nodiscard]] static boost::system::result<typename Hmac::result_type> extract(
-        std::span<std::uint8_t const> /*salt_bytes*/,
-        std::span<std::uint8_t const> /*ikm_bytes*/) noexcept {
+        std::span<std::uint8_t const> /*salt*/,
+        std::span<std::uint8_t const> /*input_key_material*/) noexcept {
         return error::backend_failure;
     }
 
     /** Never called: the refusal has stopped the build. */
     [[nodiscard]] static boost::system::result<void> expand(
-        std::span<std::uint8_t> /*output_bytes*/, std::span<std::uint8_t const> /*prk_bytes*/,
-        std::span<std::uint8_t const> /*info_bytes*/) noexcept {
+        std::span<std::uint8_t> /*output_key_material*/,
+        std::span<std::uint8_t const> /*pseudorandom_key*/,
+        std::span<std::uint8_t const> /*application_info*/) noexcept {
         return error::backend_failure;
     }
 
     /** Never called: the refusal has stopped the build. */
     [[nodiscard]] static boost::system::result<void> extract_and_expand(
-        std::span<std::uint8_t> /*output_bytes*/, std::span<std::uint8_t const> /*salt_bytes*/,
-        std::span<std::uint8_t const> /*ikm_bytes*/,
-        std::span<std::uint8_t const> /*info_bytes*/) noexcept {
+        std::span<std::uint8_t> /*output_key_material*/, std::span<std::uint8_t const> /*salt*/,
+        std::span<std::uint8_t const> /*input_key_material*/,
+        std::span<std::uint8_t const> /*application_info*/) noexcept {
         return error::backend_failure;
     }
 
@@ -1236,55 +1237,57 @@ struct botan_hkdf_engine {
     /**
      RFC 5869, 2.2: the PRK, HashLen bytes; an empty salt is HashLen zeros, as Botan keys it.
 
-     @param salt_bytes The salt. @param ikm_bytes The input keying material.
+     @param salt The salt. @param input_key_material The input keying material.
      @return The PRK, or Botan's failure.
     */
     [[nodiscard]] static boost::system::result<digest_type> extract(
-        std::span<std::uint8_t const> salt_bytes,
-        std::span<std::uint8_t const> ikm_bytes) noexcept {
+        std::span<std::uint8_t const> salt,
+        std::span<std::uint8_t const> input_key_material) noexcept {
         // The PRK is derived into the result returned, whose wiping is the caller's.
-        boost::system::result<digest_type> prk_bytes{boost::system::in_place_value};
-        digest_type& prk = prk_bytes.unsafe_value();
+        boost::system::result<digest_type> pseudorandom_key{boost::system::in_place_value};
+        digest_type& pseudorandom_key_digest = pseudorandom_key.unsafe_value();
         auto const derived =
-            botan_keyed<digest>(salt_bytes, [&](std::span<std::uint8_t const> key) noexcept {
+            botan_keyed<digest>(salt, [&](std::span<std::uint8_t const> key) noexcept {
                 return botan_kdf({"HKDF-Extract(HMAC(", botan_hash_name<digest>::value, "))"},
-                                 std::span<std::uint8_t>(prk.data(), prk.size()), ikm_bytes, key,
-                                 {});
+                                 std::span<std::uint8_t>(pseudorandom_key_digest.data(),
+                                                         pseudorandom_key_digest.size()),
+                                 input_key_material, key, {});
             });
         if (!derived) {
-            wipe_object(prk);
-            prk_bytes = derived.error();
+            wipe_object(pseudorandom_key_digest);
+            pseudorandom_key = derived.error();
         }
-        return prk_bytes;
+        return pseudorandom_key;
     }
 
     /**
      RFC 5869, 2.3: the PRK as the secret, the info as the label.
 
-     @param output_bytes The OKM. @param prk_bytes The PRK. @param info_bytes The info.
+     @param output_key_material The OKM. @param pseudorandom_key The PRK. @param application_info
+     The info.
      @return Success, or Botan's failure.
     */
     [[nodiscard]] static boost::system::result<void> expand(
-        std::span<std::uint8_t> output_bytes, std::span<std::uint8_t const> prk_bytes,
-        std::span<std::uint8_t const> info_bytes) noexcept {
-        return botan_kdf({"HKDF-Expand(HMAC(", botan_hash_name<digest>::value, "))"}, output_bytes,
-                         prk_bytes, {}, info_bytes);
+        std::span<std::uint8_t> output_key_material, std::span<std::uint8_t const> pseudorandom_key,
+        std::span<std::uint8_t const> application_info) noexcept {
+        return botan_kdf({"HKDF-Expand(HMAC(", botan_hash_name<digest>::value, "))"},
+                         output_key_material, pseudorandom_key, {}, application_info);
     }
 
     /**
      RFC 5869, 2: both steps, the PRK inside Botan's KDF.
 
-     @param output_bytes The OKM. @param salt_bytes The salt. @param ikm_bytes The input keying
-     material. @param info_bytes The info.
+     @param output_key_material The OKM. @param salt The salt. @param input_key_material The input
+     keying material. @param application_info The info.
      @return Success, or Botan's failure.
     */
     [[nodiscard]] static boost::system::result<void> extract_and_expand(
-        std::span<std::uint8_t> output_bytes, std::span<std::uint8_t const> salt_bytes,
-        std::span<std::uint8_t const> ikm_bytes,
-        std::span<std::uint8_t const> info_bytes) noexcept {
-        return botan_keyed<digest>(salt_bytes, [&](std::span<std::uint8_t const> key) noexcept {
-            return botan_kdf({"HKDF(HMAC(", botan_hash_name<digest>::value, "))"}, output_bytes,
-                             ikm_bytes, key, info_bytes);
+        std::span<std::uint8_t> output_key_material, std::span<std::uint8_t const> salt,
+        std::span<std::uint8_t const> input_key_material,
+        std::span<std::uint8_t const> application_info) noexcept {
+        return botan_keyed<digest>(salt, [&](std::span<std::uint8_t const> key) noexcept {
+            return botan_kdf({"HKDF(HMAC(", botan_hash_name<digest>::value, "))"},
+                             output_key_material, input_key_material, key, application_info);
         });
     }
 };
@@ -1316,16 +1319,17 @@ struct botan_pbkdf2_engine {
     /**
      RFC 8018, 5.2.
 
-     @param output_bytes DK. @param password_bytes P. @param salt_bytes S. @param iteration_count c.
+     @param output_key_material DK. @param password_bytes P. @param salt S. @param iteration_count
+     c.
      @return Success, or Botan's failure.
     */
     [[nodiscard]] static boost::system::result<void> derive(
-        std::span<std::uint8_t> output_bytes, std::span<std::uint8_t const> password_bytes,
-        std::span<std::uint8_t const> salt_bytes, std::uint64_t iteration_count) noexcept {
+        std::span<std::uint8_t> output_key_material, std::span<std::uint8_t const> password_bytes,
+        std::span<std::uint8_t const> salt, std::uint64_t iteration_count) noexcept {
         return botan_keyed<digest>(password_bytes, [&](std::span<std::uint8_t const> key) noexcept {
             return botan_password_hash({"PBKDF2(HMAC(", botan_hash_name<digest>::value, "))"},
                                        {static_cast<std::size_t>(iteration_count), 0, 0},
-                                       output_bytes, key, salt_bytes);
+                                       output_key_material, key, salt);
         });
     }
 };
@@ -1337,7 +1341,7 @@ struct pbkdf2_engine<backends::botan, Hmac>
                          botan_refused_hmac_kdf<Hmac>> {};
 
 /** The most memory of Botan's Argon2, in KiB: 8 GiB, 2 GiB on wasm32 (`MAX_ARGON_MEMORY_GB`). */
-inline constexpr std::uint32_t botan_argon2_max_memory_kib =
+inline constexpr std::uint32_t botan_argon2_max_memory_kibibytes =
     (sizeof(std::size_t) == 4 ? 2U : 8U) * 1024U * 1024U;
 
 /** Botan's most lanes of Argon2 (`Argon2::Argon2`'s check, `m_p <= 128`). */
@@ -1383,9 +1387,9 @@ struct botan_argon2_name<kdfs::argon2id> {
 */
 template <class Variant>
 struct botan_argon2_engine {
-    /** RFC 9106's bounds, but at most 128 lanes and `botan_argon2_max_memory_kib`. */
+    /** RFC 9106's bounds, but at most 128 lanes and `botan_argon2_max_memory_kibibytes`. */
     static constexpr argon2_limits limits{
-        .max_memory_kib = botan_argon2_max_memory_kib,
+        .max_memory_kibibytes = botan_argon2_max_memory_kibibytes,
         .max_lanes = botan_argon2_max_lanes,
     };
 
@@ -1399,10 +1403,10 @@ struct botan_argon2_engine {
     [[nodiscard]] static boost::system::result<void> derive(
         std::span<std::uint8_t> output_bytes, std::span<std::uint8_t const> password_bytes,
         std::span<std::uint8_t const> salt_bytes, argon2_parameters const& parameters) noexcept {
-        return botan_password_hash({botan_argon2_name<Variant>::value},
-                                   {parameters.memory_kib, parameters.passes, parameters.lanes},
-                                   output_bytes, password_bytes, salt_bytes,
-                                   parameters.associated_data, parameters.secret);
+        return botan_password_hash(
+            {botan_argon2_name<Variant>::value},
+            {parameters.memory_kibibytes, parameters.passes, parameters.lanes}, output_bytes,
+            password_bytes, salt_bytes, parameters.associated_data, parameters.secret);
     }
 };
 
@@ -1426,7 +1430,7 @@ template <>
 struct argon2id_engine<backends::botan> {
     /** Botan's 8 GiB, 2 GiB on wasm32, in bytes. */
     static constexpr argon2id_limits limits{
-        .memory = std::uint64_t{botan_argon2_max_memory_kib} * argon2id_memory_unit,
+        .memory = std::uint64_t{botan_argon2_max_memory_kibibytes} * argon2id_memory_unit,
     };
 
     /**

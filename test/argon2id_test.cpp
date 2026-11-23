@@ -192,24 +192,26 @@ void test_against_argon2_ctx() {
         std::array<std::uint8_t, hash::argon2id_salt_size> salt{};
         std::ranges::generate(salt, [&] { return static_cast<std::uint8_t>(between(0, 255)); });
         std::uint32_t const passes = between(1, 3);
-        std::uint32_t const memory_kib = between(8, 256);
+        std::uint32_t const memory_kibibytes = between(8, 256);
         std::size_t const tag_size = between(16, 80);
 
         std::vector<std::uint8_t> expected(tag_size);
-        int const code = webcpp::test::argon2_reference(expected, {
-                                                                      .password = password,
-                                                                      .salt = salt,
-                                                                      .secret = {},
-                                                                      .associated_data = {},
-                                                                      .passes = passes,
-                                                                      .memory_kib = memory_kib,
-                                                                      .lanes = 1,
-                                                                  });
+        int const code =
+            webcpp::test::argon2_reference(expected, {
+                                                         .password = password,
+                                                         .salt = salt,
+                                                         .secret = {},
+                                                         .associated_data = {},
+                                                         .passes = passes,
+                                                         .memory_kibibytes = memory_kibibytes,
+                                                         .lanes = 1,
+                                                     });
         BOOST_TEST_EQ(code, ARGON2_OK);
 
         std::vector<std::uint8_t> tag(tag_size);
-        auto const done = hash::argon2id(
-            tag, password, salt, {.passes = passes, .memory = std::size_t{memory_kib} * 1024});
+        auto const done =
+            hash::argon2id(tag, password, salt,
+                           {.passes = passes, .memory = std::size_t{memory_kibibytes} * 1024});
         BOOST_TEST(done.has_value());
         BOOST_TEST_EQ(to_hex(tag), to_hex(expected));
     }
@@ -257,7 +259,7 @@ void test_output_guard() {
                                                             .secret = {},
                                                             .associated_data = {},
                                                             .passes = 1,
-                                                            .memory_kib = 8,
+                                                            .memory_kibibytes = 8,
                                                             .lanes = 1}),
                   ARGON2_OK);
     BOOST_TEST_EQ(to_hex(buffer), to_hex(expected));

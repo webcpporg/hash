@@ -101,11 +101,11 @@ struct backend_limits {
     /** HKDF's salt (`hkdf_extract`, `hkdf`). */
     static constexpr std::uint64_t hkdf_salt = no_limit;
     /** HKDF's input keying material (`hkdf_extract`, `hkdf`). */
-    static constexpr std::uint64_t hkdf_ikm = no_limit;
+    static constexpr std::uint64_t hkdf_input_key_material = no_limit;
     /** HKDF's pseudorandom key (`hkdf_expand`). */
-    static constexpr std::uint64_t hkdf_prk = no_limit;
-    /** HKDF's info (`hkdf_expand`, `hkdf`), within `hkdf_max_info_size`. */
-    static constexpr std::uint64_t hkdf_info = no_limit;
+    static constexpr std::uint64_t hkdf_pseudorandom_key = no_limit;
+    /** HKDF's info (`hkdf_expand`, `hkdf`), within `hkdf_max_application_info_size`. */
+    static constexpr std::uint64_t hkdf_application_info = no_limit;
     /** HKDF's output (`hkdf_expand`, `hkdf`), within 255 digests. */
     static constexpr std::uint64_t hkdf_output = no_limit;
     /** PBKDF2's password. */
@@ -144,19 +144,21 @@ struct backend_limits {
 
  @code
  using digest_type = typename Hmac::result_type;
- // RFC 5869 2.2: the PRK of `ikm` under `salt` (empty: HashLen zeros).
+ // RFC 5869 2.2: the PRK of `input_key_material` under `salt` (empty: HashLen zeros).
  static boost::system::result<digest_type> extract(std::span<std::uint8_t const> salt,
-                                                   std::span<std::uint8_t const> ikm) noexcept;
- // RFC 5869 2.3: `output` (1 to 255 digests) from `prk` (one digest) and `info` (at most
- // hkdf_max_info_size bytes).
- static boost::system::result<void> expand(std::span<std::uint8_t> output,
-                                           std::span<std::uint8_t const> prk,
-                                           std::span<std::uint8_t const> info) noexcept;
+                                                   std::span<std::uint8_t const> input_key_material)
+ noexcept;
+ // RFC 5869 2.3: `output_key_material` (1 to 255 digests) from `pseudorandom_key` (one digest) and
+ `application_info` (at most
+ // hkdf_max_application_info_size bytes).
+ static boost::system::result<void> expand(std::span<std::uint8_t> output_key_material,
+                                           std::span<std::uint8_t const> pseudorandom_key,
+                                           std::span<std::uint8_t const> application_info) noexcept;
  // Both steps.
- static boost::system::result<void> extract_and_expand(std::span<std::uint8_t> output,
+ static boost::system::result<void> extract_and_expand(std::span<std::uint8_t> output_key_material,
                                                        std::span<std::uint8_t const> salt,
-                                                       std::span<std::uint8_t const> ikm,
-                                                       std::span<std::uint8_t const> info) noexcept;
+                                                       std::span<std::uint8_t const>
+ input_key_material, std::span<std::uint8_t const> application_info) noexcept;
  @endcode
 
  A failure is `error::backend_failure`, or `errc::not_enough_memory` when the library could not
@@ -1425,7 +1427,7 @@ struct argon2_limits {
     /** The fewest passes, t (RFC 9106: 1). */
     std::uint32_t min_passes = 1;
     /** The most memory, m, in KiB (RFC 9106: 2^32 - 1). */
-    std::uint32_t max_memory_kib = 0xffffffffU;
+    std::uint32_t max_memory_kibibytes = 0xffffffffU;
     /** The most lanes, p (RFC 9106: 2^24 - 1). */
     std::uint32_t max_lanes = 0xffffffU;
     /** The shortest tag, in bytes (RFC 9106: 4). */

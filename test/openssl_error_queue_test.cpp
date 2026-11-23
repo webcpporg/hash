@@ -89,14 +89,18 @@ void call_each() {
     BOOST_TEST((hash::mac<macs::siphash_2_4, openssl>(short_tag, key, ikm)));
 
     std::array<std::uint8_t, 16> const password_salt{1, 2, 3};
-    BOOST_TEST(
-        (hash::argon2<hash::kdfs::argon2d, openssl>(
-             digest, ikm, password_salt,
-             {.passes = 1, .memory_kib = 16, .lanes = 2, .secret = key, .associated_data = info})
-             .has_value()));
+    BOOST_TEST((hash::argon2<hash::kdfs::argon2d, openssl>(digest, ikm, password_salt,
+                                                           {.passes = 1,
+                                                            .memory_kibibytes = 16,
+                                                            .lanes = 2,
+                                                            .secret = key,
+                                                            .associated_data = info})
+                    .has_value()));
     BOOST_TEST((hash::argon2id<openssl>(digest, ikm, password_salt, {.passes = 1, .memory = 8192})
                     .has_value()));
-    BOOST_TEST((hash::scrypt<openssl>(digest, ikm, salt, {.n = 16, .r = 1, .p = 1}).has_value()));
+    BOOST_TEST(
+        (hash::scrypt<openssl>(digest, ikm, salt, {.cost = 16, .block_size = 1, .parallelism = 1})
+             .has_value()));
 
     BOOST_TEST(
         (hash::kbkdf<hmac, openssl>(output, ikm, {.label = salt, .context = info}).has_value()));

@@ -568,7 +568,7 @@ struct argon2_case {
     bytes secret;
     bytes associated_data;
     std::uint32_t passes = 1;
-    std::uint32_t memory_kib = 8;
+    std::uint32_t memory_kibibytes = 8;
     std::uint32_t lanes = 1;
     std::size_t output = 0;
 };
@@ -604,7 +604,7 @@ argon2_case next_argon2_case(random_source& rnd, std::size_t index) {
     c.output = rnd.between(0, 3) == 0 ? rnd.between(4, sodium_shortest_tag - 1)
                                       : rnd.between(sodium_shortest_tag, 80);
     c.passes = static_cast<std::uint32_t>(rnd.between(1, 4));
-    c.memory_kib = static_cast<std::uint32_t>(rnd.between(std::size_t{8} * c.lanes, 256));
+    c.memory_kibibytes = static_cast<std::uint32_t>(rnd.between(std::size_t{8} * c.lanes, 256));
     return c;
 }
 
@@ -614,7 +614,7 @@ boost::system::result<void> argon2_of(bytes& out, argon2_case const& c) {
     return hash::argon2<Variant, Backend>(out, c.password, c.salt,
                                           {
                                               .passes = c.passes,
-                                              .memory_kib = c.memory_kib,
+                                              .memory_kibibytes = c.memory_kibibytes,
                                               .lanes = c.lanes,
                                               .secret = c.secret,
                                               .associated_data = c.associated_data,

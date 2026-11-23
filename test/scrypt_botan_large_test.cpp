@@ -24,9 +24,9 @@ int main() {
     namespace test = webcpp::test;
     auto const& c = test::rfc7914_large;
     std::array<std::uint8_t, 64> output{};
-    BOOST_TEST(hash::scrypt<hash::backends::botan>(output, test::bytes_of(c.password),
-                                                   test::bytes_of(c.salt),
-                                                   {.n = c.n, .r = c.r, .p = c.p})
+    BOOST_TEST(hash::scrypt<hash::backends::botan>(
+                   output, test::bytes_of(c.password), test::bytes_of(c.salt),
+                   {.cost = c.n, .block_size = c.r, .parallelism = c.p})
                    .has_value());
     BOOST_TEST_EQ(test::to_hex(output), std::string(c.output));
     return webcpp::test::exit_status(boost::report_errors());

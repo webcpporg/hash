@@ -183,7 +183,7 @@ void hkdf_allocates_nothing(char const* name) {
     std::array<std::uint8_t, 42> okm{};
     std::span<std::uint8_t> const no_output;
     // One byte over the limit, in a real buffer: the guard refuses on the size alone.
-    static std::array<std::uint8_t, hash::hkdf_max_info_size + 1> const long_buffer{};
+    static std::array<std::uint8_t, hash::hkdf_max_application_info_size + 1> const long_buffer{};
     std::span<std::uint8_t const> const long_info(long_buffer);
     allocates_nothing(name, [&] {
         auto const full = hash::hkdf<Hmac, Backend>(okm, message_input.first(20), message_input,
@@ -437,8 +437,8 @@ void sodium_memory_hard() {
                 webcpp::test::target_name, argon.news(), argon.cs(),
                 webcpp::test::c_allocations_counted ? 1 : 0);
     window const scr;
-    auto const scrypt_done = hash::scrypt<backends::sodium>(out, message_input.first(20), salt,
-                                                            {.n = 1024, .r = 8, .p = 1});
+    auto const scrypt_done = hash::scrypt<backends::sodium>(
+        out, message_input.first(20), salt, {.cost = 1024, .block_size = 8, .parallelism = 1});
     BOOST_TEST(scrypt_done.has_value());
     BOOST_TEST_EQ(scr.news(), 0U);
     std::printf("record operation=scrypt backend=sodium target=%s new=%zu c=%zu counted=%d\n",
@@ -690,7 +690,7 @@ template <class Variant>
 void argon2_family_on_sodium(char const* name, std::uint32_t passes) {
     std::array<std::uint8_t, 32> out{};
     std::array<std::uint8_t, 16> const salt{};
-    hash::argon2_parameters const cheapest{.passes = passes, .memory_kib = 8};
+    hash::argon2_parameters const cheapest{.passes = passes, .memory_kibibytes = 8};
     // Each call in its own window; the two counts are libsodium's, printed one after the other.
     for (bool const by_default : {false, true}) {
         window const w;
@@ -706,8 +706,9 @@ void argon2_family_on_sodium(char const* name, std::uint32_t passes) {
             name, by_default ? "default" : "named", webcpp::test::target_name, w.news(), w.cs());
     }
     allocates_nothing(name, [&] {
-        BOOST_TEST(!(hash::argon2<Variant>(out, message_input.first(20), salt,
-                                           {.passes = passes, .memory_kib = 32, .lanes = 4})));
+        BOOST_TEST(
+            !(hash::argon2<Variant>(out, message_input.first(20), salt,
+                                    {.passes = passes, .memory_kibibytes = 32, .lanes = 4})));
     });
 }
 #endif
@@ -984,15 +985,15 @@ void async_heavy() {
     });
     heavy_allocates_nothing("async_argon2_argon2id", context, [&](auto handler) {
         hash::async_argon2<hash::kdfs::argon2id>(
-            work, out, password, salt, {.passes = 1, .memory_kib = 8}, std::move(handler));
+            work, out, password, salt, {.passes = 1, .memory_kibibytes = 8}, std::move(handler));
     });
     heavy_allocates_nothing("async_argon2_argon2i", context, [&](auto handler) {
-        hash::async_argon2<hash::kdfs::argon2i>(work, out, password, salt,
-                                                {.passes = 3, .memory_kib = 8}, std::move(handler));
+        hash::async_argon2<hash::kdfs::argon2i>(
+            work, out, password, salt, {.passes = 3, .memory_kibibytes = 8}, std::move(handler));
     });
     heavy_allocates_nothing("async_scrypt", context, [&](auto handler) {
-        hash::async_scrypt(work, out, password, salt, {.n = 1024, .r = 8, .p = 1},
-                           std::move(handler));
+        hash::async_scrypt(work, out, password, salt,
+                           {.cost = 1024, .block_size = 8, .parallelism = 1}, std::move(handler));
     });
     pool.join();
     BOOST_TEST_EQ(calls_made - before, 5U);

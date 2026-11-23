@@ -30,7 +30,7 @@ int main() {
     auto const password = example::bytes("correct horse battery staple");
 
     // The family counts memory in KiB, as RFC 9106 does: 19,456 KiB are 19 MiB.
-    hash::argon2_parameters const login{.passes = 2, .memory_kib = 19456};
+    hash::argon2_parameters const login{.passes = 2, .memory_kibibytes = 19456};
     std::array<std::uint8_t, 32> tag{};
     if (!hash::argon2<hash::kdfs::argon2id>(tag, password, salt, login)) {
         return 1;
@@ -47,14 +47,14 @@ int main() {
     // Argon2i, only to check tags a system already stored with it; libsodium takes 3 passes or
     // more.
     if (!hash::argon2<hash::kdfs::argon2i>(tag, password, salt,
-                                           {.passes = 4, .memory_kib = 32768})) {
+                                           {.passes = 4, .memory_kibibytes = 32768})) {
         return 1;
     }
     std::cout << "argon2i  " << example::hex(tag) << '\n';
 
     // Four lanes are RFC 9106's, not libsodium's: refused before any work, the tag untouched.
     auto const refused = hash::argon2<hash::kdfs::argon2id>(
-        tag, password, salt, {.passes = 2, .memory_kib = 19456, .lanes = 4});
+        tag, password, salt, {.passes = 2, .memory_kibibytes = 19456, .lanes = 4});
     if (refused || refused.error() != hash::error::unsupported_by_backend) {
         return 1;
     }

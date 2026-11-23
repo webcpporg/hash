@@ -403,8 +403,8 @@ struct hkdf_engine<backends::bearssl, Hmac> {
      @return Never: the program does not compile.
     */
     [[nodiscard]] static boost::system::result<digest_type> extract(
-        std::span<std::uint8_t const> /*salt_bytes*/,
-        std::span<std::uint8_t const> /*ikm_bytes*/) noexcept {
+        std::span<std::uint8_t const> /*salt*/,
+        std::span<std::uint8_t const> /*input_key_material*/) noexcept {
         static_assert(always_false<Hmac>,
                       "webcpp::hash: hkdf_extract and hkdf_expand are not in backends::bearssl, "
                       "whose HKDF does both steps together: call hkdf, or name backends::hash2, "
@@ -418,8 +418,9 @@ struct hkdf_engine<backends::bearssl, Hmac> {
      @return Never: the program does not compile.
     */
     [[nodiscard]] static boost::system::result<void> expand(
-        std::span<std::uint8_t> /*output_bytes*/, std::span<std::uint8_t const> /*prk_bytes*/,
-        std::span<std::uint8_t const> /*info_bytes*/) noexcept {
+        std::span<std::uint8_t> /*output_key_material*/,
+        std::span<std::uint8_t const> /*pseudorandom_key*/,
+        std::span<std::uint8_t const> /*application_info*/) noexcept {
         static_assert(always_false<Hmac>,
                       "webcpp::hash: hkdf_extract and hkdf_expand are not in backends::bearssl, "
                       "whose HKDF does both steps together: call hkdf, or name backends::hash2, "
@@ -430,28 +431,27 @@ struct hkdf_engine<backends::bearssl, Hmac> {
     /**
      RFC 5869, 2, by BearSSL: `br_hkdf_init` with the hash and the salt (an empty one of length
      0, which HMAC pads with zeros to the block, RFC 5869's HashLen zeros), `br_hkdf_inject`,
-     `br_hkdf_flip`, `br_hkdf_produce` into `output_bytes`; then the context is wiped.
+     `br_hkdf_flip`, `br_hkdf_produce` into `output_key_material`; then the context is wiped.
 
-     @param output_bytes The OKM. @param salt_bytes The salt. @param ikm_bytes The input keying
-     material.
-     @param info_bytes The info.
+     @param output_key_material The OKM. @param salt The salt. @param input_key_material The input
+     keying material.
+     @param application_info The info.
      @return Success, or `error::backend_failure` when BearSSL produced fewer bytes than asked.
     */
     [[nodiscard]] static boost::system::result<void> extract_and_expand(
-        std::span<std::uint8_t> output_bytes, std::span<std::uint8_t const> salt_bytes,
-        std::span<std::uint8_t const> ikm_bytes,
-        std::span<std::uint8_t const> info_bytes) noexcept {
+        std::span<std::uint8_t> output_key_material, std::span<std::uint8_t const> salt,
+        std::span<std::uint8_t const> input_key_material,
+        std::span<std::uint8_t const> application_info) noexcept {
         touch_bearssl_canary();
         br_hkdf_context hkdf_context;
-        br_hkdf_init(&hkdf_context, bearssl_hash_class<Hmac>::vtable(), nonnull(salt_bytes),
-                     salt_bytes.size());
-        br_hkdf_inject(&hkdf_context, nonnull(ikm_bytes), ikm_bytes.size());
+        br_hkdf_init(&hkdf_context, bearssl_hash_class<Hmac>::vtable(), nonnull(salt), salt.size());
+        br_hkdf_inject(&hkdf_context, nonnull(input_key_material), input_key_material.size());
         br_hkdf_flip(&hkdf_context);
         const std::size_t produced_count =
-            br_hkdf_produce(&hkdf_context, nonnull(info_bytes), info_bytes.size(),
-                            output_bytes.data(), output_bytes.size());
+            br_hkdf_produce(&hkdf_context, nonnull(application_info), application_info.size(),
+                            output_key_material.data(), output_key_material.size());
         wipe_object(hkdf_context);
-        return produced_count == output_bytes.size()
+        return produced_count == output_key_material.size()
                    ? boost::system::result<void>()
                    : boost::system::result<void>(error::backend_failure);
     }

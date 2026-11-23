@@ -51,14 +51,14 @@ constexpr std::size_t past = static_cast<std::size_t>(INT_MAX) + 1;
 using limits = hash::detail::backend_limits<openssl>;
 static_assert(limits::pbkdf2_output == INT_MAX && limits::pbkdf2_password == INT_MAX &&
               limits::pbkdf2_salt == INT_MAX && limits::hkdf_salt == INT_MAX &&
-              limits::hkdf_prk == INT_MAX);
+              limits::hkdf_pseudorandom_key == INT_MAX);
 static_assert(limits::scrypt_password == INT_MAX && limits::scrypt_salt == INT_MAX &&
               limits::scrypt_output == INT_MAX);
 // Argon2's lengths are OpenSSL's uint32_t, RFC 9106's own bound, which argon2id's guards keep.
 static_assert(limits::argon2id_password == 0xffffffffU && limits::argon2id_salt == 0xffffffffU &&
               limits::argon2id_output == 0xffffffffU);
-static_assert(limits::hkdf_ikm == hash::detail::no_limit &&
-              limits::hkdf_info == hash::detail::no_limit &&
+static_assert(limits::hkdf_input_key_material == hash::detail::no_limit &&
+              limits::hkdf_application_info == hash::detail::no_limit &&
               limits::hkdf_output == hash::detail::no_limit);
 // backends::hash2 has no limit of its own.
 static_assert(hash::detail::backend_limits<hash::backends::hash2>::pbkdf2_output ==
@@ -140,7 +140,7 @@ void scrypt_limits(std::span<std::uint8_t const> few) {
     std::array<std::uint8_t, 32> output{};
     output.fill(untouched);
     const std::span<std::uint8_t const> long_input(few.data(), past);
-    constexpr hash::scrypt_parameters cheap{.n = 16, .r = 1, .p = 1};
+    constexpr hash::scrypt_parameters cheap{.cost = 16, .block_size = 1, .parallelism = 1};
 
     auto refused =
         hash::scrypt<openssl>(std::span<std::uint8_t>(output.data(), past), few, few, cheap);
@@ -152,7 +152,8 @@ void scrypt_limits(std::span<std::uint8_t const> few) {
     BOOST_TEST(is_untouched(output));
 
     // The spec's own guards come first: N not a power of two.
-    refused = hash::scrypt<openssl>(output, long_input, few, {.n = 15, .r = 1, .p = 1});
+    refused = hash::scrypt<openssl>(output, long_input, few,
+                                    {.cost = 15, .block_size = 1, .parallelism = 1});
     BOOST_TEST(refused.has_error() && refused.error() == hash::error::invalid_parameters);
     BOOST_TEST(is_untouched(output));
 

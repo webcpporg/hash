@@ -41,7 +41,7 @@ int main() {
     auto const password = bytes_of("password");
     std::array<std::uint8_t, hash::argon2id_salt_size> const salt{0x5a};
     hash::argon2id_parameters const costs{.passes = 1, .memory = 32768};
-    hash::scrypt_parameters const scrypt_costs{.n = 16, .r = 1, .p = 1};
+    hash::scrypt_parameters const scrypt_costs{.cost = 16, .block_size = 1, .parallelism = 1};
 
     std::array<std::uint8_t, 32> first{};
     std::array<std::uint8_t, 64> first_scrypt{};

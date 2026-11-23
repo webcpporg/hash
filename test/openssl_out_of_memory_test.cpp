@@ -211,19 +211,23 @@ void check_password_hashing() {
     std::array<std::uint8_t, 8> const secret{1, 2};
     std::array<std::uint8_t, 32> tag{};
     fail_each_allocation("argon2 argon2id, two lanes, secret and associated data", tag, [&] {
-        return hash::argon2<webcpp::hash::kdfs::argon2id, openssl>(
-            tag, secret, salt,
-            {.passes = 1, .memory_kib = 16, .lanes = 2, .secret = secret, .associated_data = salt});
+        return hash::argon2<webcpp::hash::kdfs::argon2id, openssl>(tag, secret, salt,
+                                                                   {.passes = 1,
+                                                                    .memory_kibibytes = 16,
+                                                                    .lanes = 2,
+                                                                    .secret = secret,
+                                                                    .associated_data = salt});
     });
     fail_each_allocation("argon2 argon2d", tag, [&] {
-        return hash::argon2<webcpp::hash::kdfs::argon2d, openssl>(tag, secret, salt,
-                                                                  {.passes = 1, .memory_kib = 8});
+        return hash::argon2<webcpp::hash::kdfs::argon2d, openssl>(
+            tag, secret, salt, {.passes = 1, .memory_kibibytes = 8});
     });
     fail_each_allocation("argon2id", tag, [&] {
         return hash::argon2id<openssl>(tag, secret, salt, {.passes = 1, .memory = 8192});
     });
     fail_each_allocation("scrypt", tag, [&] {
-        return hash::scrypt<openssl>(tag, secret, salt, {.n = 16, .r = 1, .p = 1});
+        return hash::scrypt<openssl>(tag, secret, salt,
+                                     {.cost = 16, .block_size = 1, .parallelism = 1});
     });
 }
 

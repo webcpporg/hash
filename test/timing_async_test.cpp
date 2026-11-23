@@ -225,13 +225,14 @@ void check_heavy(asio::io_context& context, asio::thread_pool& pool) {
     heavy("async_argon2", "hash::argon2", context, pool, [&](auto handler) {
         hash::async_argon2<std::conditional_t<std::is_same_v<argon2_backend, hash::backends::botan>,
                                               kdfs::argon2id, kdfs::argon2i>,
-                           argon2_backend>(work, output, test_password, test_salt,
-                                           {.passes = 3, .memory_kib = 64, .lanes = argon2_lanes},
-                                           std::move(handler));
+                           argon2_backend>(
+            work, output, test_password, test_salt,
+            {.passes = 3, .memory_kibibytes = 64, .lanes = argon2_lanes}, std::move(handler));
     });
     heavy("async_scrypt", "hash::scrypt", context, pool, [&](auto handler) {
         hash::async_scrypt<scrypt_backend>(work, output, test_password, test_salt,
-                                           {.n = 1024, .r = 8, .p = 1}, std::move(handler));
+                                           {.cost = 1024, .block_size = 8, .parallelism = 1},
+                                           std::move(handler));
     });
 #ifdef WEBCPP_TEST_TIMING_ASYNC_BOTAN
     std::array<char, hash::bcrypt_hash_size> stored{};
@@ -328,7 +329,8 @@ void check_cancelled_before(asio::io_context& context) {
     });
     cancelled([&](auto handler) {
         hash::async_scrypt<scrypt_backend>(work, output, test_password, test_salt,
-                                           {.n = 1024, .r = 8, .p = 1}, std::move(handler));
+                                           {.cost = 1024, .block_size = 8, .parallelism = 1},
+                                           std::move(handler));
     });
 #ifdef WEBCPP_TEST_TIMING_ASYNC_BOTAN
     std::array<char, hash::bcrypt_hash_size> stored{};

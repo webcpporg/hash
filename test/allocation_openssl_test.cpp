@@ -299,7 +299,7 @@ void measure_argon2(char const* name) {
             return hash::argon2<Variant, openssl>(output, input.first(20), input.first(16),
                                                   {
                                                       .passes = 1,
-                                                      .memory_kib = 64,
+                                                      .memory_kibibytes = 64,
                                                       .lanes = 2,
                                                       .secret = input.first(8),
                                                       .associated_data = input.last(12),
@@ -308,7 +308,7 @@ void measure_argon2(char const* name) {
         [&] {
             std::array<std::uint8_t, 32> tag{};
             return hash::argon2<Variant, openssl>(tag, input, input.first(16),
-                                                  {.passes = 0, .memory_kib = 64});
+                                                  {.passes = 0, .memory_kibibytes = 64});
         });
 }
 
@@ -339,11 +339,12 @@ void measure_kdfs() {
         "scrypt",
         [&](std::span<std::uint8_t> output) {
             return hash::scrypt<openssl>(output, input.first(20), salt,
-                                         {.n = 1024, .r = 8, .p = 1});
+                                         {.cost = 1024, .block_size = 8, .parallelism = 1});
         },
         [&] {
             std::array<std::uint8_t, 32> key{};
-            return hash::scrypt<openssl>(key, input, salt, {.n = 1000, .r = 8, .p = 1});
+            return hash::scrypt<openssl>(key, input, salt,
+                                         {.cost = 1000, .block_size = 8, .parallelism = 1});
         });
     auto const kbkdf = [&]<class Hmac>(char const* name) {
         measure_kdf(

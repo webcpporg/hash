@@ -200,7 +200,7 @@ void check_bcrypt_pbkdf(asio::io_context& context, asio::thread_pool& pool) {
 
 void check_families(asio::io_context& context, asio::thread_pool& pool) {
     auto work = pool.get_executor();
-    hash::argon2_parameters const family{.passes = 2, .memory_kib = 64, .lanes = 2};
+    hash::argon2_parameters const family{.passes = 2, .memory_kibibytes = 64, .lanes = 2};
     std::array<std::uint8_t, 32> argon2_expected{};
     BOOST_TEST((hash::argon2<hash::kdfs::argon2id, botan>(argon2_expected, password, salt, family)
                     .has_value()));
@@ -218,7 +218,7 @@ void check_families(asio::io_context& context, asio::thread_pool& pool) {
     });
     BOOST_TEST(argon2_output == argon2_expected);
 
-    hash::scrypt_parameters const costs{.n = 1024, .r = 8, .p = 1};
+    hash::scrypt_parameters const costs{.cost = 1024, .block_size = 8, .parallelism = 1};
     std::array<std::uint8_t, 64> scrypt_expected{};
     BOOST_TEST(hash::scrypt<botan>(scrypt_expected, password, salt, costs).has_value());
     std::array<std::uint8_t, 64> scrypt_output{};

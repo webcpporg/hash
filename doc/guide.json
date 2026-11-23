@@ -666,10 +666,10 @@
                 {"text": "TLS 1.3's key schedule", "source": "https://www.rfc-editor.org/rfc/rfc8446#section-7.1"},
                 {"text": "Signal's Double Ratchet", "source": "https://signal.org/docs/specifications/doubleratchet/"}
             ],
-            "choose": "Keys from a key that is already uniform (a master key), one per info label."
+            "choose": "Keys from a key that is already uniform (a master key), one per application_info label."
         },
         "hkdf": {
-            "summary": "HKDF, extract then expand: keys from a shared secret, each separated by its info label.",
+            "summary": "HKDF, extract then expand: keys from a shared secret, each separated by its application_info label.",
             "output": "1 to 255 times the digest size",
             "security": "that of the hmac, given input with enough entropy",
             "status": "recommended",
@@ -1706,11 +1706,11 @@
         {"need": "store users' passwords for a login", "use": "argon2id with argon2id_interactive or stronger, a random 16-byte salt per user", "function": "argon2id", "backend": "link /third_party//sodium", "example": "password_storage.cpp", "anchor": "hash-privacy-passwords"},
         {"need": "turn a password into an encryption key (a password manager, an encrypted backup)", "use": "argon2id with argon2id_moderate or argon2id_sensitive, then hkdf for each purpose", "function": "argon2id", "backend": "link /third_party//sodium", "example": "argon2id.cpp", "anchor": "hash-argon2id"},
         {"need": "check or make the bcrypt strings a system already stores, or read and write OpenSSH's encrypted private keys", "use": "bcrypt and bcrypt_verify at a cost of 10 or more (bcrypt_pbkdf for OpenSSH's keys); argon2id for a new design", "function": "bcrypt", "backend": "name backends::botan and link /third_party//botan, with exceptions", "example": "bcrypt.cpp", "anchor": "hash-bcrypt"},
-        {"need": "turn a shared secret (an ECDH result) into keys", "use": "hkdf over hmac_sha2_256, one info label per key", "function": "hkdf", "backend": "the default; name a backend only to match another program's", "example": "hkdf.cpp", "anchor": "hash-hkdf"},
+        {"need": "turn a shared secret (an ECDH result) into keys", "use": "hkdf over hmac_sha2_256, one application_info label per key", "function": "hkdf", "backend": "the default; name a backend only to match another program's", "example": "hkdf.cpp", "anchor": "hash-hkdf"},
         {"need": "derive the key JOSE's ECDH-ES (a JWE) or another NIST SP 800-56C protocol derives from a shared secret", "use": "sskdf over digests::sha2_256, the fixed info as the protocol writes it", "function": "sskdf", "backend": "name backends::openssl (or backends::botan) and link its library, /webcpp/hash//openssl (or /third_party//botan)", "example": "sskdf.cpp", "anchor": "hash-sskdf"},
         {"need": "derive the keys of ECIES or of a smart card's key agreement (ANSI X9.63)", "use": "x963kdf over digests::sha2_256, the shared info as the scheme writes it", "function": "x963kdf", "backend": "name backends::openssl (or backends::botan) and link its library, /webcpp/hash//openssl (or /third_party//botan)", "example": "x963kdf.cpp", "anchor": "hash-x963kdf"},
         {"need": "derive keys from a key as NIST SP 800-108 or Kerberos does (a label and a context)", "use": "kbkdf over hmac_sha2_256 with the label and the context", "function": "kbkdf", "backend": "name backends::openssl (or backends::botan) and link its library, /webcpp/hash//openssl (or /third_party//botan)", "example": "kbkdf.cpp", "anchor": "hash-kbkdf"},
-        {"need": "derive many keys from one master key, one per purpose", "use": "hkdf_expand (or hkdf) with distinct info labels, blake2b_subkey (libsodium's crypto_kdf) by id, or blake3::derive_key with a context string", "function": "hkdf_expand", "backend": "the default", "example": "subkeys.cpp", "anchor": "hash-privacy-subkeys"},
+        {"need": "derive many keys from one master key, one per purpose", "use": "hkdf_expand (or hkdf) with distinct application_info labels, blake2b_subkey (libsodium's crypto_kdf) by id, or blake3::derive_key with a context string", "function": "hkdf_expand", "backend": "the default", "example": "subkeys.cpp", "anchor": "hash-privacy-subkeys"},
         {"need": "build a hash table, set or Bloom filter whose keys come from the network", "use": "siphash_64 keyed with 16 random bytes per process", "function": "siphash_64", "backend": "none: one backend", "example": "siphash.cpp", "anchor": "hash-siphash"},
         {"need": "build a hash table of my own trusted keys, or a fast checksum", "use": "xxh3_128 or fnv1a_64", "function": "xxh3_128", "backend": "none: one backend", "example": "checksums.cpp", "anchor": "hash-non-cryptographic-functions"},
         {"need": "compute a Bitcoin wallet's BIP39 seed from its words", "use": "pbkdf2 over hmac_sha2_512, 2,048 iterations (a domain library's step)", "function": "pbkdf2", "backend": "the default", "example": "bip39_seed.cpp", "anchor": "hash-crypto-bip39"},

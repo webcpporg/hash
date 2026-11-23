@@ -383,7 +383,7 @@ void check_refusal(asio::io_context& context, std::string_view name, std::size_t
 // The family's guards and WebCrypto's limits (ruling R74), each refused before any promise.
 void check_guards(asio::io_context& context) {
     static_assert(hash::detail::backend_limits<webcrypto>::pbkdf2_iterations == 0xffffffffULL);
-    static_assert(hash::detail::backend_limits<webcrypto>::hkdf_info == 1024);
+    static_assert(hash::detail::backend_limits<webcrypto>::hkdf_application_info == 1024);
     static_assert(hash::detail::backend_limits<webcrypto>::hkdf_output == 0xffffffffULL / 8);
     static_assert(hash::detail::backend_limits<webcrypto>::pbkdf2_output == 0xffffffffULL / 8);
     static_assert(hash::detail::backend_limits<hash::backends::hash2>::pbkdf2_iterations ==

@@ -80,7 +80,7 @@ struct rfc9106_inputs {
     [[nodiscard]] hash::argon2_parameters parameters() const {
         return {
             .passes = 3,
-            .memory_kib = 32,
+            .memory_kibibytes = 32,
             .lanes = 4,
             .secret = secret,
             .associated_data = associated_data,
@@ -202,7 +202,7 @@ void agree_with_reference(argon2_type type, std::string_view name) {
         auto const associated_data = index % 3 == 1 ? bytes{} : rnd.bytes(rnd.between(1, 32));
         auto const passes = static_cast<std::uint32_t>(rnd.between(1, 3));
         auto const lanes = static_cast<std::uint32_t>(rnd.between(1, 4));
-        auto const memory_kib =
+        auto const memory_kibibytes =
             static_cast<std::uint32_t>(rnd.between(std::size_t{8} * lanes, 256));
         std::size_t const tag_size = rnd.between(16, 80);
         bytes expected(tag_size);
@@ -212,7 +212,7 @@ void agree_with_reference(argon2_type type, std::string_view name) {
                                                               .secret = secret,
                                                               .associated_data = associated_data,
                                                               .passes = passes,
-                                                              .memory_kib = memory_kib,
+                                                              .memory_kibibytes = memory_kibibytes,
                                                               .lanes = lanes,
                                                               .variant = type,
                                                           });
@@ -220,7 +220,7 @@ void agree_with_reference(argon2_type type, std::string_view name) {
         auto const done = hash::argon2<Variant, botan>(tag, password, salt,
                                                        {
                                                            .passes = passes,
-                                                           .memory_kib = memory_kib,
+                                                           .memory_kibibytes = memory_kibibytes,
                                                            .lanes = lanes,
                                                            .secret = secret,
                                                            .associated_data = associated_data,
@@ -228,7 +228,7 @@ void agree_with_reference(argon2_type type, std::string_view name) {
         if (!BOOST_TEST_EQ(code, ARGON2_OK) || !BOOST_TEST(done.has_value()) ||
             !BOOST_TEST_EQ(test::to_hex(tag), test::to_hex(expected))) {
             std::cerr << "  " << name << " case " << index << ": t " << passes << ", m "
-                      << memory_kib << ", p " << lanes << ", tag " << tag_size << '\n';
+                      << memory_kibibytes << ", p " << lanes << ", tag " << tag_size << '\n';
         }
     }
 }
@@ -243,13 +243,14 @@ void agree_with_sodium() {
         auto const password = rnd.bytes(rnd.between(0, 64));
         auto const salt = rnd.bytes(hash::argon2id_salt_size);
         auto const passes = static_cast<std::uint32_t>(rnd.between(3, 4));
-        auto const memory_kib = static_cast<std::uint32_t>(rnd.between(8, 256));
+        auto const memory_kibibytes = static_cast<std::uint32_t>(rnd.between(8, 256));
         std::size_t const tag_size = rnd.between(16, 80);
         hash::argon2id_parameters const costs{
             .passes = passes,
-            .memory = std::size_t{memory_kib} * 1024,
+            .memory = std::size_t{memory_kibibytes} * 1024,
         };
-        hash::argon2_parameters const family{.passes = passes, .memory_kib = memory_kib};
+        hash::argon2_parameters const family{.passes = passes,
+                                             .memory_kibibytes = memory_kibibytes};
         bytes expected(tag_size);
         bytes tag(tag_size);
         bool agreed = hash::argon2id<sodium>(expected, password, salt, costs).has_value() &&
@@ -264,8 +265,8 @@ void agree_with_sodium() {
             hash::argon2<kdfs::argon2i, botan>(tag, password, salt, family).has_value() &&
             tag == expected;
         if (!BOOST_TEST(agreed)) {
-            std::cerr << "  libsodium case " << index << ": t " << passes << ", m " << memory_kib
-                      << ", tag " << tag_size << '\n';
+            std::cerr << "  libsodium case " << index << ": t " << passes << ", m "
+                      << memory_kibibytes << ", tag " << tag_size << '\n';
         }
     }
 }
@@ -293,13 +294,15 @@ void check_limits() {
                  return hash::argon2<kdfs::argon2id, botan>(out, {}, s, p);
              },
          }) {
-        BOOST_TEST(failed_with(call(tag, salt, {.passes = 1, .memory_kib = 8 * 129, .lanes = 129}),
-                               hash::error::unsupported_by_backend));
+        BOOST_TEST(
+            failed_with(call(tag, salt, {.passes = 1, .memory_kibibytes = 8 * 129, .lanes = 129}),
+                        hash::error::unsupported_by_backend));
         constexpr std::uint32_t past = ((sizeof(std::size_t) == 4 ? 2U : 8U) * 1024U * 1024U) + 1;
-        BOOST_TEST(failed_with(call(tag, salt, {.passes = 1, .memory_kib = past}),
+        BOOST_TEST(failed_with(call(tag, salt, {.passes = 1, .memory_kibibytes = past}),
                                hash::error::unsupported_by_backend));
         BOOST_TEST(all_of(tag, untouched));
-        BOOST_TEST(call(tag, salt, {.passes = 1, .memory_kib = 8 * 128, .lanes = 128}).has_value());
+        BOOST_TEST(
+            call(tag, salt, {.passes = 1, .memory_kibibytes = 8 * 128, .lanes = 128}).has_value());
         tag.fill(untouched);
     }
     constexpr std::uint64_t most = (sizeof(std::size_t) == 4 ? std::uint64_t{2} : 8) << 30U;

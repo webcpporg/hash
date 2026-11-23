@@ -105,7 +105,7 @@
 | not stated
 
 | `hkdf`
-| `webcrypto` (asynchronous family only) (partial: an info longer than 1,024 bytes, which completes with input_too_long: WebCrypto's limit as node has it, where the other backends take 32,768)
+| `webcrypto` (asynchronous family only) (partial: an application_info longer than 1,024 bytes, which completes with input_too_long: WebCrypto's limit as node has it, where the other backends take 32,768)
 | `/webcpp/asio//asio`
 | emscripten
 | `hmac_sha1_160`, `hmac_sha2_256`, `hmac_sha2_384`, `hmac_sha2_512`

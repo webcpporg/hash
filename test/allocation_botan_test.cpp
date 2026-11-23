@@ -175,21 +175,22 @@ void password_calls() {
         });
         counted("argon2", "kdfs::argon2d", round, [&] {
             return hash::argon2<hash::kdfs::argon2d, botan>(
-                       output, message, salt, {.passes = 1, .memory_kib = 16, .lanes = 2})
+                       output, message, salt, {.passes = 1, .memory_kibibytes = 16, .lanes = 2})
                 .has_value();
         });
         counted("argon2", "kdfs::argon2i", round, [&] {
             return hash::argon2<hash::kdfs::argon2i, botan>(
-                       output, message, salt, {.passes = 1, .memory_kib = 16, .lanes = 2})
+                       output, message, salt, {.passes = 1, .memory_kibibytes = 16, .lanes = 2})
                 .has_value();
         });
         counted("argon2", "kdfs::argon2id", round, [&] {
             return hash::argon2<hash::kdfs::argon2id, botan>(
-                       output, message, salt, {.passes = 1, .memory_kib = 16, .lanes = 2})
+                       output, message, salt, {.passes = 1, .memory_kibibytes = 16, .lanes = 2})
                 .has_value();
         });
         counted("scrypt", "kdfs::scrypt", round, [&] {
-            return hash::scrypt<botan>(output, message, salt, {.n = 16, .r = 1, .p = 1})
+            return hash::scrypt<botan>(output, message, salt,
+                                       {.cost = 16, .block_size = 1, .parallelism = 1})
                 .has_value();
         });
         counted("bcrypt", "kdfs::bcrypt", round,
@@ -209,12 +210,12 @@ void password_calls() {
     });
     refused_without_allocating("kdfs::argon2", [&] {
         auto const refused = hash::argon2<hash::kdfs::argon2id, botan>(
-            output, message, salt, {.passes = 1, .memory_kib = 8 * 129, .lanes = 129});
+            output, message, salt, {.passes = 1, .memory_kibibytes = 8 * 129, .lanes = 129});
         return refused.has_error() && refused.error() == hash::error::unsupported_by_backend;
     });
     refused_without_allocating("kdfs::scrypt", [&] {
-        auto const refused =
-            hash::scrypt<botan>(output, message, salt, {.n = 16, .r = 257, .p = 1});
+        auto const refused = hash::scrypt<botan>(output, message, salt,
+                                                 {.cost = 16, .block_size = 257, .parallelism = 1});
         return refused.has_error() && refused.error() == hash::error::unsupported_by_backend;
     });
     refused_without_allocating("kdfs::bcrypt", [&] {

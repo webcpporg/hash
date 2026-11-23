@@ -70,7 +70,7 @@ struct libsodium_case {
     std::string_view salt;
     std::size_t tag_size;
     std::uint32_t passes;
-    std::uint32_t memory_kib;
+    std::uint32_t memory_kibibytes;
 };
 
 // The table's first three cases, each of which its .exp shows succeeding.
@@ -83,7 +83,7 @@ constexpr std::array libsodium_cases{
         .salt = "5541fbc995d5c197ba290346d2c559de",
         .tag_size = 155,
         .passes = 5,
-        .memory_kib = 7086,  // 7256678 / 1024
+        .memory_kibibytes = 7086,  // 7256678 / 1024
     },
     libsodium_case{
         .password = "e125cee61c8cb7778d9e5ad0a6f5d978ce9f84de213a8556d9ffe202020ab4a6"
@@ -92,7 +92,7 @@ constexpr std::array libsodium_cases{
         .salt = "f1192dd5dc2368b9cd421338b2243345",
         .tag_size = 250,
         .passes = 4,
-        .memory_kib = 7665,  // 7849083 / 1024
+        .memory_kibibytes = 7665,  // 7849083 / 1024
     },
     libsodium_case{
         .password = "92263cbf6ac376499f68a4289d3bb59e5a22335eba63a32e6410249155b956b6"
@@ -104,7 +104,7 @@ constexpr std::array libsodium_cases{
         .salt = "3b840e20e9555e9fb031c4ba1f1747ce",
         .tag_size = 249,
         .passes = 3,
-        .memory_kib = 7807,  // 7994791 / 1024
+        .memory_kibibytes = 7807,  // 7994791 / 1024
     },
 };
 
@@ -116,7 +116,8 @@ void test_libsodium_table() {
         auto const& c = libsodium_cases[i];
         auto const password = test::from_hex(c.password);
         auto const salt = test::from_hex(c.salt);
-        hash::argon2_parameters const parameters{.passes = c.passes, .memory_kib = c.memory_kib};
+        hash::argon2_parameters const parameters{.passes = c.passes,
+                                                 .memory_kibibytes = c.memory_kibibytes};
         std::vector<std::uint8_t> named(c.tag_size);
         std::vector<std::uint8_t> by_default(c.tag_size);
         bool const computed =
@@ -147,7 +148,7 @@ void test_against_argon2_ctx(argon2_type variant, std::uint32_t fewest_passes) {
         std::array<std::uint8_t, 16> salt{};
         std::ranges::generate(salt, [&] { return static_cast<std::uint8_t>(between(0, 255)); });
         std::uint32_t const passes = between(fewest_passes, fewest_passes + 2);
-        std::uint32_t const memory_kib = between(8, 256);
+        std::uint32_t const memory_kibibytes = between(8, 256);
         std::size_t const tag_size = between(16, 80);
 
         std::vector<std::uint8_t> expected(tag_size);
@@ -157,7 +158,7 @@ void test_against_argon2_ctx(argon2_type variant, std::uint32_t fewest_passes) {
                                                               .secret = {},
                                                               .associated_data = {},
                                                               .passes = passes,
-                                                              .memory_kib = memory_kib,
+                                                              .memory_kibibytes = memory_kibibytes,
                                                               .lanes = 1,
                                                               .variant = variant,
                                                           });
@@ -165,10 +166,11 @@ void test_against_argon2_ctx(argon2_type variant, std::uint32_t fewest_passes) {
 
         std::vector<std::uint8_t> tag(tag_size);
         auto const done = hash::argon2<Variant, backends::sodium>(
-            tag, password, salt, {.passes = passes, .memory_kib = memory_kib, .lanes = 1});
+            tag, password, salt,
+            {.passes = passes, .memory_kibibytes = memory_kibibytes, .lanes = 1});
         if (!BOOST_TEST(done.has_value()) ||
             !BOOST_TEST_EQ(test::to_hex(tag), test::to_hex(expected))) {
-            std::cerr << "  case " << i << ": passes " << passes << ", memory " << memory_kib
+            std::cerr << "  case " << i << ": passes " << passes << ", memory " << memory_kibibytes
                       << " KiB, password " << password.size() << " bytes, tag " << tag_size << '\n';
         }
     }
@@ -182,14 +184,14 @@ const std::array<std::uint8_t, 16> sample_salt{
 
 // argon2<kdfs::argon2id> on libsodium is the function argon2id, whose memory counts bytes.
 void test_argon2id_function() {
-    for (std::uint32_t const memory_kib : {8U, 64U, 1024U}) {
+    for (std::uint32_t const memory_kibibytes : {8U, 64U, 1024U}) {
         std::array<std::uint8_t, 32> family{};
         std::array<std::uint8_t, 32> function{};
         BOOST_TEST(hash::argon2<kdfs::argon2id>(family, sample_password, sample_salt,
-                                                {.passes = 2, .memory_kib = memory_kib})
+                                                {.passes = 2, .memory_kibibytes = memory_kibibytes})
                        .has_value());
         BOOST_TEST(hash::argon2id(function, sample_password, sample_salt,
-                                  {.passes = 2, .memory = std::size_t{memory_kib} * 1024})
+                                  {.passes = 2, .memory = std::size_t{memory_kibibytes} * 1024})
                        .has_value());
         BOOST_TEST_EQ(test::to_hex(family), test::to_hex(function));
     }
@@ -214,24 +216,27 @@ void expect_refused(std::size_t output_size, std::span<std::uint8_t const> salt_
 template <class Variant>
 void test_unsupported(std::uint32_t fewest_passes) {
     constexpr auto unsupported = hash::error::unsupported_by_backend;
-    hash::argon2_parameters const cheapest{.passes = fewest_passes, .memory_kib = 32};
+    hash::argon2_parameters const cheapest{.passes = fewest_passes, .memory_kibibytes = 32};
     std::array<std::uint8_t, 8> secret{};
     secret.fill(0x03);
     std::array<std::uint8_t, 12> associated_data{};
     associated_data.fill(0x04);
     expect_refused<Variant>(32, sample_salt,
-                            {.passes = fewest_passes, .memory_kib = 32, .lanes = 4}, unsupported,
-                            "four lanes");
+                            {.passes = fewest_passes, .memory_kibibytes = 32, .lanes = 4},
+                            unsupported, "four lanes");
     expect_refused<Variant>(32, sample_salt,
-                            {.passes = fewest_passes, .memory_kib = 32, .lanes = 2}, unsupported,
-                            "two lanes");
-    expect_refused<Variant>(
-        32, sample_salt, {.passes = fewest_passes, .memory_kib = 32, .lanes = 1, .secret = secret},
-        unsupported, "a secret");
+                            {.passes = fewest_passes, .memory_kibibytes = 32, .lanes = 2},
+                            unsupported, "two lanes");
     expect_refused<Variant>(
         32, sample_salt,
-        {.passes = fewest_passes, .memory_kib = 32, .lanes = 1, .associated_data = associated_data},
-        unsupported, "associated data");
+        {.passes = fewest_passes, .memory_kibibytes = 32, .lanes = 1, .secret = secret},
+        unsupported, "a secret");
+    expect_refused<Variant>(32, sample_salt,
+                            {.passes = fewest_passes,
+                             .memory_kibibytes = 32,
+                             .lanes = 1,
+                             .associated_data = associated_data},
+                            unsupported, "associated data");
     // RFC 9106's shortest tag, 4 bytes, and up to libsodium's 16.
     for (std::size_t const size : {4U, 8U, 15U}) {
         expect_refused<Variant>(size, sample_salt, cheapest, unsupported, "a short tag");
@@ -245,23 +250,25 @@ void test_unsupported(std::uint32_t fewest_passes) {
     // On wasm32 libsodium's memory stops at 2 GiB, 2,097,152 KiB; natively at RFC 9106's own
     // bound, 2^32 - 1 KiB, which no uint32_t passes.
     if constexpr (std::numeric_limits<std::size_t>::max() == 0xffffffffU) {
-        expect_refused<Variant>(32, sample_salt, {.passes = fewest_passes, .memory_kib = 2097153},
-                                unsupported, "past 2 GiB on wasm32");
+        expect_refused<Variant>(32, sample_salt,
+                                {.passes = fewest_passes, .memory_kibibytes = 2097153}, unsupported,
+                                "past 2 GiB on wasm32");
     }
     // RFC 9106's guards come first: no lane is invalid_parameters, a salt of 7 bytes
     // invalid_salt_size, a tag of 3 bytes invalid_output_size.
     expect_refused<Variant>(32, sample_salt,
-                            {.passes = fewest_passes, .memory_kib = 32, .lanes = 0},
+                            {.passes = fewest_passes, .memory_kibibytes = 32, .lanes = 0},
                             hash::error::invalid_parameters, "no lane");
-    expect_refused<Variant>(32, sample_salt, {.passes = 0, .memory_kib = 32, .lanes = 4},
+    expect_refused<Variant>(32, sample_salt, {.passes = 0, .memory_kibibytes = 32, .lanes = 4},
                             hash::error::invalid_parameters, "no pass, four lanes");
     expect_refused<Variant>(32, sample_salt,
-                            {.passes = fewest_passes, .memory_kib = 31, .lanes = 4},
+                            {.passes = fewest_passes, .memory_kibibytes = 31, .lanes = 4},
                             hash::error::invalid_parameters, "under 8 KiB per lane");
     expect_refused<Variant>(32, std::span<std::uint8_t const>(sample_salt.data(), 7),
-                            {.passes = fewest_passes, .memory_kib = 32, .lanes = 4},
+                            {.passes = fewest_passes, .memory_kibibytes = 32, .lanes = 4},
                             hash::error::invalid_salt_size, "a salt of 7 bytes");
-    expect_refused<Variant>(3, sample_salt, {.passes = fewest_passes, .memory_kib = 32, .lanes = 4},
+    expect_refused<Variant>(3, sample_salt,
+                            {.passes = fewest_passes, .memory_kibibytes = 32, .lanes = 4},
                             hash::error::invalid_output_size, "a tag of 3 bytes");
 }
 
@@ -269,17 +276,17 @@ void test_unsupported(std::uint32_t fewest_passes) {
 // are unsupported_by_backend, and 3 runs.
 void test_argon2i_passes() {
     for (std::uint32_t const passes : {1U, 2U}) {
-        expect_refused<kdfs::argon2i>(32, sample_salt, {.passes = passes, .memory_kib = 32},
+        expect_refused<kdfs::argon2i>(32, sample_salt, {.passes = passes, .memory_kibibytes = 32},
                                       hash::error::unsupported_by_backend,
                                       "Argon2i, 1 or 2 passes");
     }
     std::array<std::uint8_t, 16> tag{};
     BOOST_TEST(hash::argon2<kdfs::argon2i>(tag, sample_password, sample_salt,
-                                           {.passes = 3, .memory_kib = 8})
+                                           {.passes = 3, .memory_kibibytes = 8})
                    .has_value());
     // Argon2id runs from 1 pass, as RFC 9106 has it.
     BOOST_TEST(hash::argon2<kdfs::argon2id>(tag, sample_password, sample_salt,
-                                            {.passes = 1, .memory_kib = 8})
+                                            {.passes = 1, .memory_kibibytes = 8})
                    .has_value());
 }
 

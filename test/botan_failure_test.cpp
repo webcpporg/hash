@@ -100,8 +100,8 @@ void kdfs_fail() {
     check(hash::pbkdf2<hmac, botan>(output, abc, salt, 2));
     check(hash::argon2id<botan>(output, abc, salt, {.passes = 1, .memory = 8192}));
     check(hash::argon2<hash::kdfs::argon2d, botan>(output, abc, salt,
-                                                   {.passes = 1, .memory_kib = 8}));
-    check(hash::scrypt<botan>(output, abc, salt, {.n = 16, .r = 1, .p = 1}));
+                                                   {.passes = 1, .memory_kibibytes = 8}));
+    check(hash::scrypt<botan>(output, abc, salt, {.cost = 16, .block_size = 1, .parallelism = 1}));
     check(hash::bcrypt_pbkdf<botan>(output, abc, salt, 2));
     check(hash::kbkdf<hmac, botan>(output, abc));
     check(hash::sskdf<digests::sha2_256, botan>(output, abc));

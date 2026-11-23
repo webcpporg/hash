@@ -192,8 +192,8 @@ template <class Backend = default_backend<kdfs::argon2id>>
 struct argon2_parameters {
     /** The number of passes over the memory, t: at least 1. */
     std::uint32_t passes;
-    /** The memory in KiB, m: at least 8 times the lanes. */
-    std::uint32_t memory_kib;
+    /** The memory in kibibytes (KiB), RFC 9106's m: at least 8 times the lanes. */
+    std::uint32_t memory_kibibytes;
     /** The degree of parallelism, p: 1 to 16,777,215. */
     std::uint32_t lanes = 1;
     /** The secret, K (a pepper): at most 4,294,967,295 bytes, empty for none. */
@@ -207,7 +207,7 @@ namespace detail {
 /** The most lanes, 2^24 - 1 (RFC 9106, section 3.1). */
 inline constexpr std::uint32_t argon2_max_lanes = 0xffffffU;
 /** The memory per lane at least, 8 KiB: m is at least 8p (RFC 9106, section 3.1). */
-inline constexpr std::uint64_t argon2_min_memory_kib_per_lane = 8;
+inline constexpr std::uint64_t argon2_min_memory_kibibytes_per_lane = 8;
 /** The shortest tag, 4 bytes (RFC 9106, section 3.1). */
 inline constexpr std::uint64_t argon2_min_output = 4;
 /** The shortest salt, 8 bytes (RFC 9106, section 3.1). */
@@ -226,7 +226,7 @@ bool argon2_engine_takes(std::size_t output_size, std::size_t salt_size,
     // Each bound through exceeds: a limit at the type's own bound would be a tautology.
     constexpr argon2_limits limits = Engine::limits;
     return !exceeds(limits.min_passes, parameters.passes) &&
-           !exceeds(parameters.memory_kib, limits.max_memory_kib) &&
+           !exceeds(parameters.memory_kibibytes, limits.max_memory_kibibytes) &&
            !exceeds(parameters.lanes, limits.max_lanes) &&
            !exceeds(limits.min_output, output_size) && !exceeds(limits.min_salt, salt_size) &&
            !exceeds(salt_size, limits.max_salt) && (limits.secret || parameters.secret.empty()) &&
@@ -259,7 +259,8 @@ template <class Variant, class Backend>
         return error::input_too_long;
     }
     if (parameters.passes < 1 || parameters.lanes < 1 || parameters.lanes > argon2_max_lanes ||
-        parameters.memory_kib < argon2_min_memory_kib_per_lane * std::uint64_t{parameters.lanes}) {
+        parameters.memory_kibibytes <
+            argon2_min_memory_kibibytes_per_lane * std::uint64_t{parameters.lanes}) {
         return error::invalid_parameters;
     }
     if (!argon2_engine_takes<engine>(output_size, salt_size, parameters)) {

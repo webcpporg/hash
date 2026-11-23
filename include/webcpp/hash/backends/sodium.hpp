@@ -188,29 +188,32 @@ struct sodium_hkdf_sha256 {
     /**
      `crypto_kdf_hkdf_sha256_extract`.
 
-     @param prk_bytes The PRK. @param salt_bytes The salt. @param ikm_bytes The input keying
-     material.
+     @param pseudorandom_key The PRK. @param salt The salt. @param input_key_material The input
+     keying material.
      @return libsodium's status, 0 on success.
     */
-    static int extract(std::uint8_t* prk_bytes, std::span<std::uint8_t const> salt_bytes,
-                       std::span<std::uint8_t const> ikm_bytes) noexcept {
+    static int extract(std::uint8_t* pseudorandom_key, std::span<std::uint8_t const> salt,
+                       std::span<std::uint8_t const> input_key_material) noexcept {
         // SHA-256's extract declares the IKM nonnull; an empty span's data() may be null.
-        return crypto_kdf_hkdf_sha256_extract(prk_bytes, salt_bytes.data(), salt_bytes.size(),
-                                              nonnull(ikm_bytes), ikm_bytes.size());
+        return crypto_kdf_hkdf_sha256_extract(pseudorandom_key, salt.data(), salt.size(),
+                                              nonnull(input_key_material),
+                                              input_key_material.size());
     }
 
     /**
      `crypto_kdf_hkdf_sha256_expand`, whose context is the info.
 
-     @param output_bytes The OKM. @param prk_bytes The PRK. @param info_bytes The info.
+     @param output_key_material The OKM. @param pseudorandom_key The PRK. @param application_info
+     The info.
      @return libsodium's status, 0 on success.
     */
-    static int expand(std::span<std::uint8_t> output_bytes, std::span<std::uint8_t const> prk_bytes,
-                      std::span<std::uint8_t const> info_bytes) noexcept {
+    static int expand(std::span<std::uint8_t> output_key_material,
+                      std::span<std::uint8_t const> pseudorandom_key,
+                      std::span<std::uint8_t const> application_info) noexcept {
         // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): libsodium types ctx as char
-        return crypto_kdf_hkdf_sha256_expand(output_bytes.data(), output_bytes.size(),
-                                             reinterpret_cast<char const*>(info_bytes.data()),
-                                             info_bytes.size(), prk_bytes.data());
+        return crypto_kdf_hkdf_sha256_expand(output_key_material.data(), output_key_material.size(),
+                                             reinterpret_cast<char const*>(application_info.data()),
+                                             application_info.size(), pseudorandom_key.data());
     }
 };
 
@@ -224,30 +227,33 @@ struct sodium_hkdf_sha512 {
     /**
      `crypto_kdf_hkdf_sha512_extract`.
 
-     @param prk_bytes The PRK. @param salt_bytes The salt. @param ikm_bytes The input keying
-     material.
+     @param pseudorandom_key The PRK. @param salt The salt. @param input_key_material The input
+     keying material.
      @return libsodium's status, 0 on success.
     */
-    static int extract(std::uint8_t* prk_bytes, std::span<std::uint8_t const> salt_bytes,
-                       std::span<std::uint8_t const> ikm_bytes) noexcept {
+    static int extract(std::uint8_t* pseudorandom_key, std::span<std::uint8_t const> salt,
+                       std::span<std::uint8_t const> input_key_material) noexcept {
         // SHA-512's extract declares no IKM nonnull; it is passed as SHA-256's is all the same, so
         // that the two traits are alike: a non-null pointer where null is allowed is harmless.
-        return crypto_kdf_hkdf_sha512_extract(prk_bytes, salt_bytes.data(), salt_bytes.size(),
-                                              nonnull(ikm_bytes), ikm_bytes.size());
+        return crypto_kdf_hkdf_sha512_extract(pseudorandom_key, salt.data(), salt.size(),
+                                              nonnull(input_key_material),
+                                              input_key_material.size());
     }
 
     /**
      `crypto_kdf_hkdf_sha512_expand`, whose context is the info.
 
-     @param output_bytes The OKM. @param prk_bytes The PRK. @param info_bytes The info.
+     @param output_key_material The OKM. @param pseudorandom_key The PRK. @param application_info
+     The info.
      @return libsodium's status, 0 on success.
     */
-    static int expand(std::span<std::uint8_t> output_bytes, std::span<std::uint8_t const> prk_bytes,
-                      std::span<std::uint8_t const> info_bytes) noexcept {
+    static int expand(std::span<std::uint8_t> output_key_material,
+                      std::span<std::uint8_t const> pseudorandom_key,
+                      std::span<std::uint8_t const> application_info) noexcept {
         // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): libsodium types ctx as char
-        return crypto_kdf_hkdf_sha512_expand(output_bytes.data(), output_bytes.size(),
-                                             reinterpret_cast<char const*>(info_bytes.data()),
-                                             info_bytes.size(), prk_bytes.data());
+        return crypto_kdf_hkdf_sha512_expand(output_key_material.data(), output_key_material.size(),
+                                             reinterpret_cast<char const*>(application_info.data()),
+                                             application_info.size(), pseudorandom_key.data());
     }
 };
 
@@ -266,37 +272,38 @@ struct sodium_hkdf_engine {
      RFC 5869, 2.2: PRK = HMAC-Hash(salt, IKM), by libsodium's `_extract`; an empty salt is
      HashLen zeros, which libsodium's hmac keys as zeros of the block, the same key.
 
-     @param salt_bytes The salt. @param ikm_bytes The input keying material.
+     @param salt The salt. @param input_key_material The input keying material.
      @return The PRK, or `error::backend_failure`.
     */
     [[nodiscard]] static boost::system::result<digest_type> extract(
-        std::span<std::uint8_t const> salt_bytes,
-        std::span<std::uint8_t const> ikm_bytes) noexcept {
+        std::span<std::uint8_t const> salt,
+        std::span<std::uint8_t const> input_key_material) noexcept {
         // The PRK is built in the result returned and libsodium writes into it: a single return
         // path of the one named object, so that the result is constructed in the caller's place
         // (no copy or move, which would leave a PRK behind that nothing wipes).
-        boost::system::result<digest_type> prk_bytes{boost::system::in_place_value};
-        if (!sodium_ready() ||
-            Traits::extract(prk_bytes.unsafe_value().data(), salt_bytes, ikm_bytes) != 0) {
-            wipe_object(prk_bytes.unsafe_value());
-            prk_bytes = boost::system::result<digest_type>(error::backend_failure);
+        boost::system::result<digest_type> pseudorandom_key{boost::system::in_place_value};
+        if (!sodium_ready() || Traits::extract(pseudorandom_key.unsafe_value().data(), salt,
+                                               input_key_material) != 0) {
+            wipe_object(pseudorandom_key.unsafe_value());
+            pseudorandom_key = boost::system::result<digest_type>(error::backend_failure);
         }
-        return prk_bytes;
+        return pseudorandom_key;
     }
 
     /**
      RFC 5869, 2.3, by libsodium's `_expand`.
 
-     @param output_bytes The OKM, its size L. @param prk_bytes The PRK. @param info_bytes The info.
+     @param output_key_material The OKM, its size L. @param pseudorandom_key The PRK. @param
+     application_info The info.
      @return Success, or `error::backend_failure`.
     */
     [[nodiscard]] static boost::system::result<void> expand(
-        std::span<std::uint8_t> output_bytes, std::span<std::uint8_t const> prk_bytes,
-        std::span<std::uint8_t const> info_bytes) noexcept {
+        std::span<std::uint8_t> output_key_material, std::span<std::uint8_t const> pseudorandom_key,
+        std::span<std::uint8_t const> application_info) noexcept {
         if (!sodium_ready()) {
             return error::backend_failure;
         }
-        if (Traits::expand(output_bytes, prk_bytes, info_bytes) != 0) {
+        if (Traits::expand(output_key_material, pseudorandom_key, application_info) != 0) {
             return error::backend_failure;
         }
         return {};
@@ -305,23 +312,23 @@ struct sodium_hkdf_engine {
     /**
      RFC 5869, 2: HKDF-Extract into a local PRK, HKDF-Expand, and the PRK wiped.
 
-     @param output_bytes The OKM. @param salt_bytes The salt. @param ikm_bytes The input keying
-     material.
-     @param info_bytes The info.
+     @param output_key_material The OKM. @param salt The salt. @param input_key_material The input
+     keying material.
+     @param application_info The info.
      @return Success, or `error::backend_failure`.
     */
     [[nodiscard]] static boost::system::result<void> extract_and_expand(
-        std::span<std::uint8_t> output_bytes, std::span<std::uint8_t const> salt_bytes,
-        std::span<std::uint8_t const> ikm_bytes,
-        std::span<std::uint8_t const> info_bytes) noexcept {
-        auto prk_bytes = extract(salt_bytes, ikm_bytes);
-        if (!prk_bytes) {
-            return prk_bytes.error();
+        std::span<std::uint8_t> output_key_material, std::span<std::uint8_t const> salt,
+        std::span<std::uint8_t const> input_key_material,
+        std::span<std::uint8_t const> application_info) noexcept {
+        auto pseudorandom_key = extract(salt, input_key_material);
+        if (!pseudorandom_key) {
+            return pseudorandom_key.error();
         }
-        digest_type& key_bytes = prk_bytes.unsafe_value();
-        auto derive_result =
-            expand(output_bytes, std::span<std::uint8_t const>(key_bytes.data(), key_bytes.size()),
-                   info_bytes);
+        digest_type& key_bytes = pseudorandom_key.unsafe_value();
+        auto derive_result = expand(
+            output_key_material, std::span<std::uint8_t const>(key_bytes.data(), key_bytes.size()),
+            application_info);
         wipe_object(key_bytes);
         return derive_result;
     }
@@ -353,23 +360,24 @@ struct hkdf_engine<backends::sodium, Hmac> {
 
     /** Never called: the refusal has stopped the build. */
     [[nodiscard]] static boost::system::result<typename Hmac::result_type> extract(
-        std::span<std::uint8_t const> /*salt_bytes*/,
-        std::span<std::uint8_t const> /*ikm_bytes*/) noexcept {
+        std::span<std::uint8_t const> /*salt*/,
+        std::span<std::uint8_t const> /*input_key_material*/) noexcept {
         return error::backend_failure;
     }
 
     /** Never called: the refusal has stopped the build. */
     [[nodiscard]] static boost::system::result<void> expand(
-        std::span<std::uint8_t> /*output_bytes*/, std::span<std::uint8_t const> /*prk_bytes*/,
-        std::span<std::uint8_t const> /*info_bytes*/) noexcept {
+        std::span<std::uint8_t> /*output_key_material*/,
+        std::span<std::uint8_t const> /*pseudorandom_key*/,
+        std::span<std::uint8_t const> /*application_info*/) noexcept {
         return error::backend_failure;
     }
 
     /** Never called: the refusal has stopped the build. */
     [[nodiscard]] static boost::system::result<void> extract_and_expand(
-        std::span<std::uint8_t> /*output_bytes*/, std::span<std::uint8_t const> /*salt_bytes*/,
-        std::span<std::uint8_t const> /*ikm_bytes*/,
-        std::span<std::uint8_t const> /*info_bytes*/) noexcept {
+        std::span<std::uint8_t> /*output_key_material*/, std::span<std::uint8_t const> /*salt*/,
+        std::span<std::uint8_t const> /*input_key_material*/,
+        std::span<std::uint8_t const> /*application_info*/) noexcept {
         return error::backend_failure;
     }
 };
@@ -1021,7 +1029,7 @@ struct sodium_argon2_engine {
     /** One lane, no secret, no associated data, libsodium's salt and shortest tag. */
     static constexpr argon2_limits limits{
         .min_passes = MinPasses,
-        .max_memory_kib = static_cast<std::uint32_t>(MaxMemory / argon2id_memory_unit),
+        .max_memory_kibibytes = static_cast<std::uint32_t>(MaxMemory / argon2id_memory_unit),
         .max_lanes = 1,
         .min_output = argon2id_min_output_size,
         .min_salt = argon2id_salt_size,
@@ -1050,7 +1058,7 @@ struct sodium_argon2_engine {
         // limits holds the memory to MaxMemory, a size_t, so the bytes never wrap.
         int const status_code =
             Hash(output.data(), output.size(), password_chars, password.size(), salt.data(),
-                 parameters.passes, std::size_t{parameters.memory_kib} * argon2id_memory_unit,
+                 parameters.passes, std::size_t{parameters.memory_kibibytes} * argon2id_memory_unit,
                  Algorithm);
         return sodium_pwhash_status(status_code, errno);
     }

@@ -775,7 +775,7 @@ auto async_hmac(Executor const& executor, std::span<std::uint8_t> output,
 
 /**
  HKDF (RFC 5869), extract and expand, asynchronously (spec 11), as @ref async_digest runs: the
- output of `hkdf<Hmac, Backend>`.
+ output keying material of `hkdf<Hmac, Backend>`.
 
  @tparam Hmac `hmac_sha1_160`, `hmac_sha2_256`, `hmac_sha2_384` or `hmac_sha2_512`, the hmacs
  WebCrypto has HKDF over; another refuses at compile time (`hkdf` has them all).
@@ -786,22 +786,25 @@ auto async_hmac(Executor const& executor, std::span<std::uint8_t> output,
  @param executor The executor the completion is posted to; on `backends::webcrypto`, that of an
  `io_context` run on the calling thread (see @ref async_pbkdf2), and a refusal of another goes to
  the handler's associated executor, this one unless the handler is bound to another.
- @param output The output keying material, 1 to 255 times the digest size.
- @param salt The salt. @param ikm The input keying material. @param info The context, at most
- `hkdf_max_info_size` bytes; on `backends::webcrypto` at most 1,024, WebCrypto's limit
+ @param output_key_material The output keying material, 1 to 255 times the digest size.
+ @param salt The salt. @param input_key_material The input keying material. @param application_info
+ The context, at most `hkdf_max_application_info_size` bytes; on `backends::webcrypto` at most
+ 1,024, WebCrypto's limit
  (`input_too_long` beyond). The spans are the caller's until completion.
  @param token The completion token, of signature `void(boost::system::error_code)`.
  @return What the completion token's `async_result` gives. The completion's code is empty on
- success, or `hkdf`'s error, `output` untouched by a guard's refusal and zeroed by a backend's
- failure. On `backends::webcrypto` also `invalid_parameters` (the executor), `output` untouched,
- `backend_failure` (a rejected promise, an unexpected result, no WebCrypto), `output` zeroed, and
- `operation_aborted` (a `terminal` or `partial` cancellation, at once), `output` zeroed.
+ success, or `hkdf`'s error, `output_key_material` untouched by a guard's refusal and zeroed by a
+ backend's failure. On `backends::webcrypto` also `invalid_parameters` (the executor),
+ `output_key_material` untouched, `backend_failure` (a rejected promise, an unexpected result, no
+ WebCrypto), `output_key_material` zeroed, and `operation_aborted` (a `terminal` or `partial`
+ cancellation, at once), `output_key_material` zeroed.
 */
 template <class Hmac, class Backend = default_async_backend<kdfs::hkdf, Hmac>, class Executor,
           class CompletionToken>
-auto async_hkdf(Executor const& executor, std::span<std::uint8_t> output,
-                std::span<std::uint8_t const> salt, std::span<std::uint8_t const> ikm,
-                std::span<std::uint8_t const> info, CompletionToken&& token) {
+auto async_hkdf(Executor const& executor, std::span<std::uint8_t> output_key_material,
+                std::span<std::uint8_t const> salt,
+                std::span<std::uint8_t const> input_key_material,
+                std::span<std::uint8_t const> application_info, CompletionToken&& token) {
     if constexpr (!detail::webcrypto_hmac_v<Hmac>) {
         static_assert(detail::always_false<Hmac>,
                       "webcpp::hash: async_hkdf takes hmac_sha1_160, hmac_sha2_256, "
@@ -809,11 +812,14 @@ auto async_hkdf(Executor const& executor, std::span<std::uint8_t> output,
                       "hkdf for the others.");
     } else if constexpr (detail::asynchronous_backend_v<Backend>) {
         return detail::async_engine<Backend>::template hkdf<Hmac>(
-            executor, output, salt, ikm, info, std::forward<CompletionToken>(token));
+            executor, output_key_material, salt, input_key_material, application_info,
+            std::forward<CompletionToken>(token));
     } else {
-        return detail::complete_by_post(executor, token, [output, salt, ikm, info] {
-            return hkdf<Hmac, Backend>(output, salt, ikm, info);
-        });
+        return detail::complete_by_post(
+            executor, token, [output_key_material, salt, input_key_material, application_info] {
+                return hkdf<Hmac, Backend>(output_key_material, salt, input_key_material,
+                                           application_info);
+            });
     }
 }
 

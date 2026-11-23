@@ -712,7 +712,7 @@ void cover_argon2id() {
 template <class Variant, class Backend>
 void cover_argon2(std::string_view variant) {
     std::string const on = " of " + std::string(variant) + coverage_on<Backend>();
-    hash::argon2_parameters const family{.passes = 3, .memory_kib = 8};
+    hash::argon2_parameters const family{.passes = 3, .memory_kibibytes = 8};
     std::array<std::uint8_t, 32> output{};
     covered("hash::argon2" + on, [&] {
         BOOST_TEST((hash::argon2<Variant, Backend>(output, coverage_key, coverage_salt, family))
@@ -731,14 +731,14 @@ void cover_scrypt() {
     std::string const on = coverage_on<Backend>();
     std::array<std::uint8_t, 32> output{};
     covered("hash::scrypt of N = 16" + on, [&] {
-        BOOST_TEST(
-            (hash::scrypt<Backend>(output, coverage_key, coverage_salt, {.n = 16, .r = 1, .p = 1}))
-                .has_value());
+        BOOST_TEST((hash::scrypt<Backend>(output, coverage_key, coverage_salt,
+                                          {.cost = 16, .block_size = 1, .parallelism = 1}))
+                       .has_value());
     });
     covered("hash::scrypt of N = 1" + on, [&] {
-        BOOST_TEST(
-            (hash::scrypt<Backend>(output, coverage_key, coverage_salt, {.n = 1, .r = 1, .p = 1}))
-                .error() == hash::error::invalid_parameters);
+        BOOST_TEST((hash::scrypt<Backend>(output, coverage_key, coverage_salt,
+                                          {.cost = 1, .block_size = 1, .parallelism = 1}))
+                       .error() == hash::error::invalid_parameters);
     });
 }
 

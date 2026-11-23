@@ -56,18 +56,18 @@ namespace webcpp::hash::detail {
  `deriveBits` takes its length in bits as an `unsigned long`, so an output of HKDF or PBKDF2 is at
  most (2^32 - 1) / 8 bytes; PBKDF2's iteration count is an `unsigned long`, at most 2^32 - 1;
  node refuses an HKDF info longer than 1,024 bytes ("algorithm.info must be at most 1024
- bytes"), where the other backends take `hkdf_max_info_size`. No limit elsewhere.
+ bytes"), where the other backends take `hkdf_max_application_info_size`. No limit elsewhere.
 */
 template <>
 struct backend_limits<backends::webcrypto> {
     /** HKDF's salt: no limit of WebCrypto's own. */
     static constexpr std::uint64_t hkdf_salt = no_limit;
     /** HKDF's input keying material: no limit of WebCrypto's own. */
-    static constexpr std::uint64_t hkdf_ikm = no_limit;
+    static constexpr std::uint64_t hkdf_input_key_material = no_limit;
     /** HKDF's pseudorandom key: WebCrypto has no `hkdf_expand` (no limit to state). */
-    static constexpr std::uint64_t hkdf_prk = no_limit;
+    static constexpr std::uint64_t hkdf_pseudorandom_key = no_limit;
     /** HKDF's info: node's 1,024 bytes (`input_too_long` beyond). */
-    static constexpr std::uint64_t hkdf_info = 1024;
+    static constexpr std::uint64_t hkdf_application_info = 1024;
     /** HKDF's output: `deriveBits`' length, (2^32 - 1) bits, in whole bytes. */
     static constexpr std::uint64_t hkdf_output = 0xffffffffULL / 8;
     /** PBKDF2's password: no limit of WebCrypto's own. */
@@ -370,8 +370,8 @@ struct webcrypto_hmac_request {
 };
 
 /**
- `importKey("raw", ikm, "HKDF", false, ["deriveBits"])`, then
- `deriveBits({name: "HKDF", hash, salt, info}, key, bits)`.
+ `importKey("raw", the input key material, "HKDF", false, ["deriveBits"])`, then
+ `deriveBits({name: "HKDF", hash, salt, info: application_info}, key, bits)`.
 */
 struct webcrypto_hkdf_request {
     /** WebCrypto's name of the hash. */
@@ -379,10 +379,10 @@ struct webcrypto_hkdf_request {
     /** The salt. */
     std::span<std::uint8_t const> salt;
     /** The input keying material. */
-    std::span<std::uint8_t const> ikm;
-    /** The info. */
-    std::span<std::uint8_t const> info;
-    /** The output's length in bits, within `backend_limits`. */
+    std::span<std::uint8_t const> input_key_material;
+    /** The application info. */
+    std::span<std::uint8_t const> application_info;
+    /** The output key material's length in bits, within `backend_limits`. */
     std::uint32_t bits;
 
     /** The call has two promises: the key, then the bits. */
@@ -390,9 +390,9 @@ struct webcrypto_hkdf_request {
 
     /** The key's promise. @param subtle `crypto.subtle`. @return The promise. */
     [[nodiscard]] emscripten::val first(emscripten::val const& subtle) const {
-        return subtle.call<emscripten::val>("importKey", emscripten::val("raw"),
-                                            webcrypto_bytes(ikm), emscripten::val("HKDF"),
-                                            emscripten::val(false), webcrypto_usages("deriveBits"));
+        return subtle.call<emscripten::val>(
+            "importKey", emscripten::val("raw"), webcrypto_bytes(input_key_material),
+            emscripten::val("HKDF"), emscripten::val(false), webcrypto_usages("deriveBits"));
     }
 
     /**
@@ -405,7 +405,7 @@ struct webcrypto_hkdf_request {
         algorithm.set("name", emscripten::val("HKDF"));
         algorithm.set("hash", emscripten::val(hash));
         algorithm.set("salt", webcrypto_bytes(salt));
-        algorithm.set("info", webcrypto_bytes(info));
+        algorithm.set("info", webcrypto_bytes(application_info));
         return subtle.call<emscripten::val>("deriveBits", algorithm, imported,
                                             emscripten::val(bits));
     }
@@ -669,26 +669,31 @@ struct async_engine<backends::webcrypto> {
      `async_hkdf`: `importKey`, then `deriveBits`.
 
      @tparam Hmac `hmac_sha1_160`, `hmac_sha2_256`, `hmac_sha2_384` or `hmac_sha2_512`.
-     @param executor The io_context's executor. @param output The output keying material.
-     @param salt The salt. @param ikm The input keying material. @param info The info.
+     @param executor The io_context's executor. @param output_key_material The output keying
+     material.
+     @param salt The salt. @param input_key_material The input keying material. @param
+     application_info The application info.
      @param token The completion token.
      @return What the completion token's `async_result` gives.
     */
     template <class Hmac, class Executor, class CompletionToken>
-    static auto hkdf(Executor const& executor, std::span<std::uint8_t> output,
-                     std::span<std::uint8_t const> salt, std::span<std::uint8_t const> ikm,
-                     std::span<std::uint8_t const> info, CompletionToken&& token) {
+    static auto hkdf(Executor const& executor, std::span<std::uint8_t> output_key_material,
+                     std::span<std::uint8_t const> salt,
+                     std::span<std::uint8_t const> input_key_material,
+                     std::span<std::uint8_t const> application_info, CompletionToken&& token) {
         using digest = digest_tag_of<Hmac>::type;
-        auto const guarded = hkdf_guards<Hmac, backends::webcrypto>(output.size(), salt.size(),
-                                                                    ikm.size(), info.size());
+        auto const guarded = hkdf_guards<Hmac, backends::webcrypto>(
+            output_key_material.size(), salt.size(), input_key_material.size(),
+            application_info.size());
         webcrypto_hkdf_request const request{
             .hash = webcrypto_hash_name<digest>,
             .salt = salt,
-            .ikm = ikm,
-            .info = info,
-            .bits = static_cast<std::uint32_t>(guarded ? output.size() * 8 : 0),
+            .input_key_material = input_key_material,
+            .application_info = application_info,
+            .bits = static_cast<std::uint32_t>(guarded ? output_key_material.size() * 8 : 0),
         };
-        return start_webcrypto(executor, output, output.size(), request, guarded, token);
+        return start_webcrypto(executor, output_key_material, output_key_material.size(), request,
+                               guarded, token);
     }
 
     /**

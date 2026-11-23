@@ -126,11 +126,12 @@ struct backend_limits<backends::openssl> {
     /** HKDF-Extract's salt is HMAC's key, whose length `HMAC_Init_ex` takes as an `int`. */
     static constexpr std::uint64_t hkdf_salt = openssl_int_max;
     /** HKDF's IKM goes to `HMAC_Update` and its parameter in `size_t`s. */
-    static constexpr std::uint64_t hkdf_ikm = no_limit;
+    static constexpr std::uint64_t hkdf_input_key_material = no_limit;
     /** HKDF-Expand's PRK is HMAC's key, as the salt is (always one digest). */
-    static constexpr std::uint64_t hkdf_prk = openssl_int_max;
-    /** HKDF's info stays in a `size_t`, within OpenSSL's 32,768 bytes, `hkdf_max_info_size`. */
-    static constexpr std::uint64_t hkdf_info = no_limit;
+    static constexpr std::uint64_t hkdf_pseudorandom_key = openssl_int_max;
+    /** HKDF's info stays in a `size_t`, within OpenSSL's 32,768 bytes,
+     * `hkdf_max_application_info_size`. */
+    static constexpr std::uint64_t hkdf_application_info = no_limit;
     /** HKDF-Expand's output stays in a `size_t`, within 255 digests. */
     static constexpr std::uint64_t hkdf_output = no_limit;
     /** PBKDF2's password is HMAC's key. */
@@ -561,75 +562,78 @@ struct hkdf_engine<backends::openssl, Hmac> {
      RFC 5869, 2.2, in extract-only mode, which writes the PRK, HashLen bytes, into the digest.
      An empty salt is HashLen zeros, as OpenSSL's HMAC pads it.
 
-     @param salt_bytes The salt. @param ikm_bytes The input keying material.
+     @param salt The salt. @param input_key_material The input keying material.
      @return The PRK, or OpenSSL's failure.
     */
     [[nodiscard]] static boost::system::result<digest_type> extract(
-        std::span<std::uint8_t const> salt_bytes,
-        std::span<std::uint8_t const> ikm_bytes) noexcept {
+        std::span<std::uint8_t const> salt,
+        std::span<std::uint8_t const> input_key_material) noexcept {
         int hkdf_mode = extract_only;
         std::array<OSSL_PARAM, 5> ossl_params{
             openssl_text("digest", openssl_digest<Hmac>()),
-            openssl_octets("key", ikm_bytes),
-            openssl_octets("salt", salt_bytes),
+            openssl_octets("key", input_key_material),
+            openssl_octets("salt", salt),
             OSSL_PARAM_construct_int("mode", &hkdf_mode),
             OSSL_PARAM_construct_end(),
         };
         // The PRK is derived into the result returned, whose wiping is the caller's: one return of
         // that one object, so that it is constructed in the caller's slot and no copy is left here.
-        boost::system::result<digest_type> prk_bytes{boost::system::in_place_value};
-        digest_type& prk = prk_bytes.unsafe_value();
-        const auto derive_result =
-            openssl_kdf("HKDF", std::span<std::uint8_t>(prk.data(), prk.size()), ossl_params);
+        boost::system::result<digest_type> pseudorandom_key{boost::system::in_place_value};
+        digest_type& pseudorandom_key_digest = pseudorandom_key.unsafe_value();
+        const auto derive_result = openssl_kdf(
+            "HKDF",
+            std::span<std::uint8_t>(pseudorandom_key_digest.data(), pseudorandom_key_digest.size()),
+            ossl_params);
         if (!derive_result) {
-            wipe_object(prk);
-            prk_bytes = derive_result.error();
+            wipe_object(pseudorandom_key_digest);
+            pseudorandom_key = derive_result.error();
         }
-        return prk_bytes;
+        return pseudorandom_key;
     }
 
     /**
      RFC 5869, 2.3, in expand-only mode.
 
-     @param output_bytes The OKM, its size L. @param prk_bytes The PRK. @param info_bytes The info.
+     @param output_key_material The OKM, its size L. @param pseudorandom_key The PRK. @param
+     application_info The info.
      @return Success, or OpenSSL's failure.
     */
     [[nodiscard]] static boost::system::result<void> expand(
-        std::span<std::uint8_t> output_bytes, std::span<std::uint8_t const> prk_bytes,
-        std::span<std::uint8_t const> info_bytes) noexcept {
+        std::span<std::uint8_t> output_key_material, std::span<std::uint8_t const> pseudorandom_key,
+        std::span<std::uint8_t const> application_info) noexcept {
         int hkdf_mode = expand_only;
         std::array<OSSL_PARAM, 5> ossl_params{
             openssl_text("digest", openssl_digest<Hmac>()),
-            openssl_octets("key", prk_bytes),
-            openssl_octets("info", info_bytes),
+            openssl_octets("key", pseudorandom_key),
+            openssl_octets("info", application_info),
             OSSL_PARAM_construct_int("mode", &hkdf_mode),
             OSSL_PARAM_construct_end(),
         };
-        return openssl_kdf("HKDF", output_bytes, ossl_params);
+        return openssl_kdf("HKDF", output_key_material, ossl_params);
     }
 
     /**
      RFC 5869, 2, in extract-and-expand mode: the PRK stays inside OpenSSL's context.
 
-     @param output_bytes The OKM. @param salt_bytes The salt. @param ikm_bytes The input keying
-     material.
-     @param info_bytes The info.
+     @param output_key_material The OKM. @param salt The salt. @param input_key_material The input
+     keying material.
+     @param application_info The info.
      @return Success, or OpenSSL's failure.
     */
     [[nodiscard]] static boost::system::result<void> extract_and_expand(
-        std::span<std::uint8_t> output_bytes, std::span<std::uint8_t const> salt_bytes,
-        std::span<std::uint8_t const> ikm_bytes,
-        std::span<std::uint8_t const> info_bytes) noexcept {
+        std::span<std::uint8_t> output_key_material, std::span<std::uint8_t const> salt,
+        std::span<std::uint8_t const> input_key_material,
+        std::span<std::uint8_t const> application_info) noexcept {
         int hkdf_mode = both;
         std::array<OSSL_PARAM, 6> ossl_params{
             openssl_text("digest", openssl_digest<Hmac>()),
-            openssl_octets("key", ikm_bytes),
-            openssl_octets("salt", salt_bytes),
-            openssl_octets("info", info_bytes),
+            openssl_octets("key", input_key_material),
+            openssl_octets("salt", salt),
+            openssl_octets("info", application_info),
             OSSL_PARAM_construct_int("mode", &hkdf_mode),
             OSSL_PARAM_construct_end(),
         };
-        return openssl_kdf("HKDF", output_bytes, ossl_params);
+        return openssl_kdf("HKDF", output_key_material, ossl_params);
     }
 };
 
@@ -669,7 +673,7 @@ struct pbkdf2_engine<backends::openssl, Hmac> {
  The most memory OpenSSL's Argon2 takes, in KiB: m is a `uint32_t`, and the memory, m blocks of
  1 KiB, a `size_t` (4,194,303 KiB on wasm32, where a larger m overflows it).
 */
-inline constexpr std::uint32_t openssl_argon2_max_memory_kib = static_cast<std::uint32_t>(
+inline constexpr std::uint32_t openssl_argon2_max_memory_kibibytes = static_cast<std::uint32_t>(
     std::min<std::uint64_t>(0xffffffffULL, std::numeric_limits<std::size_t>::max() / 1024));
 
 /**
@@ -681,7 +685,7 @@ inline constexpr std::uint32_t openssl_argon2_max_memory_kib = static_cast<std::
  @param kdf_name "ARGON2D", "ARGON2I" or "ARGON2ID".
  @param output_bytes The tag. @param password_bytes The password. @param salt_bytes The salt.
  @param parameters t, m in KiB, p, the secret and the associated data, within RFC 9106's
- bounds and `openssl_argon2_max_memory_kib`.
+ bounds and `openssl_argon2_max_memory_kibibytes`.
  @return Success; `errc::not_enough_memory` when the memory cannot be allocated (OpenSSL raises
  its allocation's error, then its own "invalid memory size"); `error::backend_failure` otherwise.
 */
@@ -690,7 +694,7 @@ inline constexpr std::uint32_t openssl_argon2_max_memory_kib = static_cast<std::
     std::span<std::uint8_t const> password_bytes, std::span<std::uint8_t const> salt_bytes,
     argon2_parameters const& parameters) noexcept {
     std::uint32_t pass_count = parameters.passes;
-    std::uint32_t memory_kib = parameters.memory_kib;
+    std::uint32_t memory_kibibytes = parameters.memory_kibibytes;
     std::uint32_t lane_count = parameters.lanes;
     std::uint32_t thread_count = 1;
     // An empty secret or associated data is hashed as OpenSSL hashes none: its length, 0, alone.
@@ -700,7 +704,7 @@ inline constexpr std::uint32_t openssl_argon2_max_memory_kib = static_cast<std::
         openssl_octets("secret", parameters.secret),
         openssl_octets("ad", parameters.associated_data),
         OSSL_PARAM_construct_uint32("iter", &pass_count),
-        OSSL_PARAM_construct_uint32("memcost", &memory_kib),
+        OSSL_PARAM_construct_uint32("memcost", &memory_kibibytes),
         OSSL_PARAM_construct_uint32("lanes", &lane_count),
         OSSL_PARAM_construct_uint32("threads", &thread_count),
         OSSL_PARAM_construct_end(),
@@ -745,9 +749,9 @@ struct openssl_argon2_name<kdfs::argon2id> {
 */
 template <class Variant>
 struct openssl_argon2_engine {
-    /** RFC 9106's bounds, but the memory: at most `openssl_argon2_max_memory_kib`. */
+    /** RFC 9106's bounds, but the memory: at most `openssl_argon2_max_memory_kibibytes`. */
     static constexpr argon2_limits limits{
-        .max_memory_kib = openssl_argon2_max_memory_kib,
+        .max_memory_kibibytes = openssl_argon2_max_memory_kibibytes,
     };
 
     /**
@@ -786,7 +790,7 @@ struct argon2id_engine<backends::openssl> {
     /** OpenSSL's m of at most 2^32 - 1 KiB, in bytes, within a `size_t` (4 GiB less 1 KiB on
      * wasm32). */
     static constexpr argon2id_limits limits{
-        .memory = std::uint64_t{openssl_argon2_max_memory_kib} * argon2id_memory_unit,
+        .memory = std::uint64_t{openssl_argon2_max_memory_kibibytes} * argon2id_memory_unit,
     };
 
     /**
@@ -806,7 +810,7 @@ struct argon2id_engine<backends::openssl> {
             openssl_argon2_name<kdfs::argon2id>::value, output_bytes, password_bytes, salt_bytes,
             {
                 .passes = static_cast<std::uint32_t>(pass_count),
-                .memory_kib = static_cast<std::uint32_t>(memory_limit / argon2id_memory_unit),
+                .memory_kibibytes = static_cast<std::uint32_t>(memory_limit / argon2id_memory_unit),
             });
     }
 };
@@ -1638,17 +1642,17 @@ struct openssl_digest_kdf_engine {
      The KDF `kdf_name` over `Digest`.
 
      @param kdf_name "SSKDF" or "X963KDF". @param output_bytes The output, its whole size.
-     @param secret_bytes Z. @param info_bytes FixedInfo or SharedInfo.
+     @param secret_bytes Z. @param application_info FixedInfo or SharedInfo.
      @return Success, or OpenSSL's failure.
     */
     [[nodiscard]] static boost::system::result<void> derive_with(
         char const* kdf_name, std::span<std::uint8_t> output_bytes,
         std::span<std::uint8_t const> secret_bytes,
-        std::span<std::uint8_t const> info_bytes) noexcept {
+        std::span<std::uint8_t const> application_info) noexcept {
         std::array<OSSL_PARAM, 4> ossl_params{
             openssl_text("digest", openssl_md_name<Digest>::value),
             openssl_octets("secret", secret_bytes),
-            openssl_octets("info", info_bytes),
+            openssl_octets("info", application_info),
             OSSL_PARAM_construct_end(),
         };
         return openssl_kdf(kdf_name, output_bytes, ossl_params);

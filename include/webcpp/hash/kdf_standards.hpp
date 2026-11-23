@@ -209,15 +209,16 @@ inline constexpr std::uint64_t standard_kdf_counter_size = 4;
  Whether `counter || secret || info` (in either order) is longer than `Digest` hashes (SP 800-56C
  section 4.1 and ANSI X9.63 section 5.6.3 refuse it), computed without overflow.
 
- @param secret_size The shared secret's size. @param info_size The info's size.
+ @param secret_size The shared secret's size. @param fixed_info_size The fixed or shared info's
+ size.
  @return Whether the input is too long.
 */
 template <class Digest>
 constexpr bool standard_kdf_input_too_long(std::uint64_t secret_size,
-                                           std::uint64_t info_size) noexcept {
+                                           std::uint64_t fixed_info_size) noexcept {
     constexpr std::uint64_t room =
         standard_kdf_digest<Digest>::max_input - standard_kdf_counter_size;
-    return exceeds(secret_size, room) || exceeds(info_size, room - secret_size);
+    return exceeds(secret_size, room) || exceeds(fixed_info_size, room - secret_size);
 }
 
 /**

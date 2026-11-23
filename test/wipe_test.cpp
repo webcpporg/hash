@@ -159,8 +159,8 @@ void test_hkdf() {
     BOOST_TEST((taken() == std::vector<std::size_t>{mac}));
 
     // Each block's mac, T, the keyed hmac (apart from the blocks' macs).
-    const std::vector<std::uint8_t> prk_bytes(prk->begin(), prk->end());
-    BOOST_TEST((hash::hkdf_expand<hmac, backend>(output, prk_bytes, info).has_value()));
+    const std::vector<std::uint8_t> pseudorandom_key(prk->begin(), prk->end());
+    BOOST_TEST((hash::hkdf_expand<hmac, backend>(output, pseudorandom_key, info).has_value()));
     auto entries = taken_entries();
     BOOST_TEST((sizes_of(entries) == std::vector<std::size_t>{mac, mac, digest, mac}));
     if (entries.size() == 4) {
@@ -178,7 +178,7 @@ void test_hkdf() {
 
     // The longest output, 255 blocks: one mac per block, then T and the keyed hmac.
     std::vector<std::uint8_t> longest(255 * digest);
-    BOOST_TEST((hash::hkdf_expand<hmac, backend>(longest, prk_bytes, info).has_value()));
+    BOOST_TEST((hash::hkdf_expand<hmac, backend>(longest, pseudorandom_key, info).has_value()));
     std::vector<std::size_t> expected(255, mac);
     expected.push_back(digest);
     expected.push_back(mac);

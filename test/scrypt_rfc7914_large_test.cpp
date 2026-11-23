@@ -30,9 +30,9 @@ void test_large() {
     auto const& c = webcpp::test::rfc7914_large;
     std::array<std::uint8_t, 64> output{};
     auto const start = std::chrono::steady_clock::now();
-    auto const done =
-        webcpp::hash::scrypt(output, webcpp::test::bytes_of(c.password),
-                             webcpp::test::bytes_of(c.salt), {.n = c.n, .r = c.r, .p = c.p});
+    auto const done = webcpp::hash::scrypt(output, webcpp::test::bytes_of(c.password),
+                                           webcpp::test::bytes_of(c.salt),
+                                           {.cost = c.n, .block_size = c.r, .parallelism = c.p});
     auto const elapsed = std::chrono::steady_clock::now() - start;
     if (!BOOST_TEST(done.has_value())) {
         auto const message = done.error().message();

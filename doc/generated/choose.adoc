@@ -49,7 +49,7 @@
 | `example/bcrypt.cpp`
 
 | turn a shared secret (an ECDH result) into keys
-| <<hash-hkdf,hkdf over hmac_sha2_256, one info label per key>>
+| <<hash-hkdf,hkdf over hmac_sha2_256, one application_info label per key>>
 | `hash2`: `/webcpp/hash//hash`, `sodium`: `/third_party//sodium`, `bearssl`: `/third_party//bearssl`, `openssl`: `/webcpp/hash//openssl`, `botan` (with exceptions only): `/third_party//botan`, `webcrypto` (asynchronous family only): `/webcpp/asio//asio`
 | the default; name a backend only to match another program's
 | `example/hkdf.cpp`
@@ -73,7 +73,7 @@
 | `example/kbkdf.cpp`
 
 | derive many keys from one master key, one per purpose
-| <<hash-privacy-subkeys,hkdf_expand (or hkdf) with distinct info labels, blake2b_subkey (libsodium's crypto_kdf) by id, or blake3::derive_key with a context string>>
+| <<hash-privacy-subkeys,hkdf_expand (or hkdf) with distinct application_info labels, blake2b_subkey (libsodium's crypto_kdf) by id, or blake3::derive_key with a context string>>
 | `hash2`: `/webcpp/hash//hash`, `sodium`: `/third_party//sodium`, `openssl`: `/webcpp/hash//openssl`, `botan` (with exceptions only): `/third_party//botan`
 | the default
 | `example/subkeys.cpp`

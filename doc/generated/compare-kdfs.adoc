@@ -86,7 +86,7 @@
 | 489 ns (sodium)
 | 24,778 bytes (sodium)
 | link:https://www.rfc-editor.org/rfc/rfc8446#section-7.1[TLS 1.3's key schedule]; link:https://signal.org/docs/specifications/doubleratchet/[Signal's Double Ratchet]
-| Keys from a key that is already uniform (a master key), one per info label.
+| Keys from a key that is already uniform (a master key), one per application_info label.
 
 | <<hash-hkdf,`hkdf`>>
 | 980 ns (sodium)

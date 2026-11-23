@@ -70,49 +70,52 @@ struct hkdf_engine<backends::hash2, Hmac> {
      RFC 5869, 2.2: PRK = HMAC-Hash(salt, IKM). An empty salt is HashLen zeros, which Hash2's
      hmac keys as zeros of the block, the same key.
 
-     @param salt_bytes The salt. @param ikm_bytes The input keying material.
+     @param salt The salt. @param input_key_material The input keying material.
      @return The PRK.
     */
     [[nodiscard]] static boost::system::result<digest_type> extract(
-        std::span<std::uint8_t const> salt_bytes,
-        std::span<std::uint8_t const> ikm_bytes) noexcept {
-        Hmac mac_state(salt_bytes.data(), salt_bytes.size());
-        mac_state.update(ikm_bytes.data(), ikm_bytes.size());
+        std::span<std::uint8_t const> salt,
+        std::span<std::uint8_t const> input_key_material) noexcept {
+        Hmac mac_state(salt.data(), salt.size());
+        mac_state.update(input_key_material.data(), input_key_material.size());
         // The PRK is stored in the result returned, whose wiping is the caller's.
-        boost::system::result<digest_type> prk_bytes{
+        boost::system::result<digest_type> pseudorandom_key{
             boost::system::in_place_value,
             mac_state.result(),
         };
         wipe_object(mac_state);
-        return prk_bytes;
+        return pseudorandom_key;
     }
 
     /**
      RFC 5869, 2.3: T(0) = empty; T(i) = HMAC-Hash(PRK, T(i-1) | info | i); OKM = the first L
      octets of T(1) | T(2) | ... | T(N), N = ceil(L/HashLen).
 
-     @param output_bytes The OKM, its size L. @param prk_bytes The PRK. @param info_bytes The info.
+     @param output_key_material The OKM, its size L. @param pseudorandom_key The PRK. @param
+     application_info The info.
      @return Success.
     */
     [[nodiscard]] static boost::system::result<void> expand(
-        std::span<std::uint8_t> output_bytes, std::span<std::uint8_t const> prk_bytes,
-        std::span<std::uint8_t const> info_bytes) noexcept {
-        Hmac keyed_mac(prk_bytes.data(), prk_bytes.size());  // not const: it is wiped at the end
+        std::span<std::uint8_t> output_key_material, std::span<std::uint8_t const> pseudorandom_key,
+        std::span<std::uint8_t const> application_info) noexcept {
+        Hmac keyed_mac(pseudorandom_key.data(),
+                       pseudorandom_key.size());  // not const: it is wiped at the end
         digest_type t_block{};
         std::size_t written_count = 0;
-        for (unsigned block_counter = 1; written_count < output_bytes.size(); ++block_counter) {
+        for (unsigned block_counter = 1; written_count < output_key_material.size();
+             ++block_counter) {
             Hmac mac_state = keyed_mac;
             if (block_counter > 1) {
                 mac_state.update(t_block.data(), t_block.size());
             }
-            mac_state.update(info_bytes.data(), info_bytes.size());
+            mac_state.update(application_info.data(), application_info.size());
             const auto octet_value = static_cast<unsigned char>(block_counter);
             mac_state.update(&octet_value, 1);
             t_block = mac_state.result();
             wipe_object(mac_state);
             const std::size_t copied_count =
-                std::min(t_block.size(), output_bytes.size() - written_count);
-            std::memcpy(output_bytes.data() + written_count, t_block.data(), copied_count);
+                std::min(t_block.size(), output_key_material.size() - written_count);
+            std::memcpy(output_key_material.data() + written_count, t_block.data(), copied_count);
             written_count += copied_count;
         }
         wipe_object(t_block);
@@ -123,24 +126,25 @@ struct hkdf_engine<backends::hash2, Hmac> {
     /**
      RFC 5869, 2: HKDF-Extract, then HKDF-Expand; the PRK is wiped.
 
-     @param output_bytes The OKM. @param salt_bytes The salt. @param ikm_bytes The input keying
-     material.
-     @param info_bytes The info.
+     @param output_key_material The OKM. @param salt The salt. @param input_key_material The input
+     keying material.
+     @param application_info The info.
      @return Success.
     */
     [[nodiscard]] static boost::system::result<void> extract_and_expand(
-        std::span<std::uint8_t> output_bytes, std::span<std::uint8_t const> salt_bytes,
-        std::span<std::uint8_t const> ikm_bytes,
-        std::span<std::uint8_t const> info_bytes) noexcept {
-        auto prk_bytes = extract(salt_bytes, ikm_bytes);
-        if (!prk_bytes) {
-            return prk_bytes.error();
+        std::span<std::uint8_t> output_key_material, std::span<std::uint8_t const> salt,
+        std::span<std::uint8_t const> input_key_material,
+        std::span<std::uint8_t const> application_info) noexcept {
+        auto pseudorandom_key = extract(salt, input_key_material);
+        if (!pseudorandom_key) {
+            return pseudorandom_key.error();
         }
-        digest_type& prk_digest = prk_bytes.unsafe_value();
-        auto derive_result =
-            expand(output_bytes,
-                   std::span<std::uint8_t const>(prk_digest.data(), prk_digest.size()), info_bytes);
-        wipe_object(prk_digest);
+        digest_type& pseudorandom_key_digest = pseudorandom_key.unsafe_value();
+        auto derive_result = expand(output_key_material,
+                                    std::span<std::uint8_t const>(pseudorandom_key_digest.data(),
+                                                                  pseudorandom_key_digest.size()),
+                                    application_info);
+        wipe_object(pseudorandom_key_digest);
         return derive_result;
     }
 };

@@ -3591,7 +3591,7 @@
                                 "hmac_sha2_384",
                                 "hmac_sha2_512"
                             ],
-                            "partial": "an info longer than 1,024 bytes, which completes with input_too_long: WebCrypto's limit as node has it, where the other backends take 32,768",
+                            "partial": "an application_info longer than 1,024 bytes, which completes with input_too_long: WebCrypto's limit as node has it, where the other backends take 32,768",
                             "constant_time": {
                                 "value": "not stated",
                                 "source": "The Web Cryptography API (W3C Recommendation, 2017) states no constant-time property of digest, sign or deriveBits; each JavaScript runtime's implementation decides, and webcpp reads none."
