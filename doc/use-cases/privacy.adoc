@@ -44,8 +44,8 @@ one guess tests every user; tables of precomputed hashes of common passwords
 work at once.
 * *With a fast hash* (SHA-256, MD5) instead of Argon2id, a graphics card tests
 billions of guesses per second: most human passwords fall in hours.
-* *With `==`* instead of `webcpp::crypto::equal`, the time of the comparison
-tells an attacker at the network how much of a guessed tag is right.
+* *With `==`* instead of `webcpp::crypto::constant_time_equal`, the time of the
+comparison tells an attacker at the network how much of a guessed tag is right.
 * *Without the costs in the record,* the service cannot raise them later: the
 record must say which memory and passes made its tag, so that a login can
 verify an old tag and store a new one with today's costs.

@@ -6,12 +6,13 @@
 
 // KMAC128 with mac, on its default backend, XKCP, against NIST's KMAC sample #2 (the key 0x40 to
 // 0x5F, the message 00 01 02 03, S = "My Tagged Application"); the receiver's check with
-// webcpp::crypto::equal; and KMACXOF128 of the same inputs, another tag, NIST's KMACXOF sample #2.
+// webcpp::crypto::constant_time_equal; and KMACXOF128 of the same inputs, another tag, NIST's
+// KMACXOF sample #2.
 
 // tag::example[]
 #include "hex.hpp"
 
-#include <webcpp/crypto/equal.hpp>
+#include <webcpp/crypto/constant_time_equal.hpp>
 #include <webcpp/hash/mac.hpp>
 
 #include <array>
@@ -39,7 +40,7 @@ int main() {
     std::array<std::uint8_t, 32> expected{};
     bool const genuine =
         hash::mac<kmac_128>(expected, key, message, {.customisation = application}).has_value() &&
-        webcpp::crypto::equal(expected, tag);
+        webcpp::crypto::constant_time_equal(expected, tag);
     std::cout << "genuine: " << (genuine ? "yes" : "no") << '\n';
 
     // KMACXOF128: the same inputs, another tag.

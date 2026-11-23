@@ -10,7 +10,7 @@
 // tag::example[]
 #include "hex.hpp"
 
-#include <webcpp/crypto/equal.hpp>
+#include <webcpp/crypto/constant_time_equal.hpp>
 #include <webcpp/hash/hmac.hpp>
 
 #include <iostream>
@@ -42,12 +42,13 @@ int main() {
     // The receiver computes the tag again from the message it got, and compares it with the one
     // it got. Never with ==: memcmp stops at the first different byte, so an attacker who
     // measures how long the answer takes learns how many leading bytes of a guess are right,
-    // and guesses a valid tag one byte at a time. webcpp::crypto::equal reads every byte.
-    bool const genuine = webcpp::crypto::equal(tag_of(key, message), tag);
+    // and guesses a valid tag one byte at a time. crypto::constant_time_equal reads every byte.
+    bool const genuine = webcpp::crypto::constant_time_equal(tag_of(key, message), tag);
     std::cout << "genuine: " << (genuine ? "yes" : "no") << '\n';
 
     // One byte of the message changed in transit: the tags differ.
-    bool const forged = webcpp::crypto::equal(tag_of(key, "what do ya want for nothing!"), tag);
+    bool const forged =
+        webcpp::crypto::constant_time_equal(tag_of(key, "what do ya want for nothing!"), tag);
     std::cout << "tampered: " << (forged ? "accepted" : "refused") << '\n';
     if (!genuine || forged) {
         return 1;

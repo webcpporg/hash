@@ -5,12 +5,13 @@
 // https://www.boost.org/LICENSE_1_0.txt)
 
 // The MAC family: HMAC-SHA-256 with mac, in one call, against RFC 4231's test case 2; the
-// receiver's check with webcpp::crypto::equal; and a tag cut to 16 bytes, RFC 4231's test case 5.
+// receiver's check with webcpp::crypto::constant_time_equal; and a tag cut to 16 bytes, RFC 4231's
+// test case 5.
 
 // tag::example[]
 #include "hex.hpp"
 
-#include <webcpp/crypto/equal.hpp>
+#include <webcpp/crypto/constant_time_equal.hpp>
 #include <webcpp/hash/mac.hpp>
 
 #include <array>
@@ -36,7 +37,7 @@ int main() {
     // The receiver computes the tag again and compares it in constant time, never with ==.
     std::array<std::uint8_t, 32> expected{};
     bool const genuine = hash::mac<hmac_sha256>(expected, key, message).has_value() &&
-                         webcpp::crypto::equal(expected, tag);
+                         webcpp::crypto::constant_time_equal(expected, tag);
     std::cout << "genuine: " << (genuine ? "yes" : "no") << '\n';
 
     // A tag cut to 16 bytes is the digest's first 16 (RFC 2104, section 5); shorter than 10 is

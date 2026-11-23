@@ -39,8 +39,9 @@ webcpp.example streebog.cpp : $(.botan) : native emscripten ;
 webcpp.example whirlpool.cpp : $(.botan) : native emscripten ;
 webcpp.example skein.cpp : $(.botan) : native emscripten ;
 
-# Message authentication: a MAC is compared with webcpp::crypto::equal, and a
-# hash table's key comes from webcpp::crypto::random_device.
+# Message authentication: a MAC is compared with
+# webcpp::crypto::constant_time_equal, and a hash table's key comes from
+# webcpp::crypto::random_device.
 webcpp.example hmac_sha256.cpp : <library>/webcpp/crypto//crypto ;
 webcpp.example siphash.cpp : <library>/webcpp/crypto//crypto ;
 webcpp.example mac_family.cpp : <library>/webcpp/crypto//crypto ;
