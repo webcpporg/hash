@@ -222,11 +222,13 @@ void check_argon2_guards() {
 
     // An engine with every parameter takes them; a failure zeroes the output.
     auto const every = hash::argon2<kdfs::argon2d, mock>(rfc_shortest, password, rfc_salt,
-                                                         {.passes = 1,
-                                                          .memory_kibibytes = 16,
-                                                          .lanes = 2,
-                                                          .secret = extra,
-                                                          .associated_data = extra});
+                                                         {
+                                                             .passes = 1,
+                                                             .memory_kibibytes = 16,
+                                                             .lanes = 2,
+                                                             .secret = extra,
+                                                             .associated_data = extra,
+                                                         });
     BOOST_TEST(every.has_value());
     test::mock_control.derive = hash::error::backend_failure;
     BOOST_TEST(failed_with(hash::argon2<kdfs::argon2id, mock>(output, password, salt, fine),

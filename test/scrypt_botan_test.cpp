@@ -122,9 +122,11 @@ void check_limits() {
     // Refused for its memory alone: N 2^22 and r 32 natively, 16 GiB; on wasm32, where the spec's
     // guard already refuses what does not fit a size_t (invalid_parameters), N 2^22 and r 5,
     // 2.5 GiB.
-    refused({.cost = std::uint64_t{1} << 22U,
-             .block_size = sizeof(std::size_t) == 8 ? 32U : 5U,
-             .parallelism = 1});
+    refused({
+        .cost = std::uint64_t{1} << 22U,
+        .block_size = sizeof(std::size_t) == 8 ? 32U : 5U,
+        .parallelism = 1,
+    });
     std::array<std::uint8_t, 16> output{};
     BOOST_TEST(hash::scrypt<botan>(output, {}, {}, {.cost = 2, .block_size = 256, .parallelism = 1})
                    .has_value());

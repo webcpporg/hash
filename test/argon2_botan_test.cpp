@@ -249,8 +249,10 @@ void agree_with_sodium() {
             .passes = passes,
             .memory = std::size_t{memory_kibibytes} * 1024,
         };
-        hash::argon2_parameters const family{.passes = passes,
-                                             .memory_kibibytes = memory_kibibytes};
+        hash::argon2_parameters const family{
+            .passes = passes,
+            .memory_kibibytes = memory_kibibytes,
+        };
         bytes expected(tag_size);
         bytes tag(tag_size);
         bool agreed = hash::argon2id<sodium>(expected, password, salt, costs).has_value() &&

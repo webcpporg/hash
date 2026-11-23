@@ -116,8 +116,10 @@ void test_libsodium_table() {
         auto const& c = libsodium_cases[i];
         auto const password = test::from_hex(c.password);
         auto const salt = test::from_hex(c.salt);
-        hash::argon2_parameters const parameters{.passes = c.passes,
-                                                 .memory_kibibytes = c.memory_kibibytes};
+        hash::argon2_parameters const parameters{
+            .passes = c.passes,
+            .memory_kibibytes = c.memory_kibibytes,
+        };
         std::vector<std::uint8_t> named(c.tag_size);
         std::vector<std::uint8_t> by_default(c.tag_size);
         bool const computed =
@@ -232,10 +234,12 @@ void test_unsupported(std::uint32_t fewest_passes) {
         {.passes = fewest_passes, .memory_kibibytes = 32, .lanes = 1, .secret = secret},
         unsupported, "a secret");
     expect_refused<Variant>(32, sample_salt,
-                            {.passes = fewest_passes,
-                             .memory_kibibytes = 32,
-                             .lanes = 1,
-                             .associated_data = associated_data},
+                            {
+                                .passes = fewest_passes,
+                                .memory_kibibytes = 32,
+                                .lanes = 1,
+                                .associated_data = associated_data,
+                            },
                             unsupported, "associated data");
     // RFC 9106's shortest tag, 4 bytes, and up to libsodium's 16.
     for (std::size_t const size : {4U, 8U, 15U}) {

@@ -193,7 +193,10 @@ void test_parameters_guard_size() {
     // 128 r (N + p) past size_t: on wasm32 4 GiB and a KiB, which passes natively; everywhere
     // 2^67 bytes.
     constexpr hash::scrypt_parameters four_gib{
-        .cost = std::uint64_t{1} << 22U, .block_size = 8, .parallelism = 1};
+        .cost = std::uint64_t{1} << 22U,
+        .block_size = 8,
+        .parallelism = 1,
+    };
     if constexpr (std::numeric_limits<std::size_t>::max() == 0xffffffffU) {
         BOOST_TEST(refuses(four_gib, invalid_parameters));
         BOOST_TEST(refuses<test_backends::recording>(four_gib, invalid_parameters));
@@ -202,7 +205,10 @@ void test_parameters_guard_size() {
         BOOST_TEST(passes(four_gib));
     }
     constexpr hash::scrypt_parameters huge{
-        .cost = std::uint64_t{1} << 31U, .block_size = 1U << 29U, .parallelism = 1};
+        .cost = std::uint64_t{1} << 31U,
+        .block_size = 1U << 29U,
+        .parallelism = 1,
+    };
     BOOST_TEST(refuses<test_backends::recording>(huge, invalid_parameters));
     // libsodium's N is at most UINT32_MAX, its uint32_t: 2^32 with r = 3 is RFC 7914's, and
     // refused before the call (natively 1.5 TiB fit size_t; on wasm32 the size refuses first).

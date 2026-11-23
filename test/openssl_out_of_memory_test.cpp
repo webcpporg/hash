@@ -212,11 +212,13 @@ void check_password_hashing() {
     std::array<std::uint8_t, 32> tag{};
     fail_each_allocation("argon2 argon2id, two lanes, secret and associated data", tag, [&] {
         return hash::argon2<webcpp::hash::kdfs::argon2id, openssl>(tag, secret, salt,
-                                                                   {.passes = 1,
-                                                                    .memory_kibibytes = 16,
-                                                                    .lanes = 2,
-                                                                    .secret = secret,
-                                                                    .associated_data = salt});
+                                                                   {
+                                                                       .passes = 1,
+                                                                       .memory_kibibytes = 16,
+                                                                       .lanes = 2,
+                                                                       .secret = secret,
+                                                                       .associated_data = salt,
+                                                                   });
     });
     fail_each_allocation("argon2 argon2d", tag, [&] {
         return hash::argon2<webcpp::hash::kdfs::argon2d, openssl>(

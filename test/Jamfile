@@ -567,8 +567,8 @@ hash-run sodium_threads : sodium_threads_test.cpp
 
 # scrypt on backends::sodium: RFC 7914's first three cases and the guards.
 hash-run scrypt : scrypt_test.cpp : <library>/third_party//sodium ;
-# The spelled-out names (design D7): scrypt's cost, block_size and parallelism, argon2's
-# memory_kibibytes, hkdf_max_application_info_size.
+# The spelled-out names (design D7): scrypt's cost, block_size, parallelism,
+# argon2's memory_kibibytes and hkdf_max_application_info_size.
 hash-run names : names_test.cpp : <library>/third_party//sodium ;
 # RFC 7914's fourth case (1 GiB), on every target: it passed natively and on
 # wasip2, wasip3 and emscripten (with /third_party//sodium's memory growth),

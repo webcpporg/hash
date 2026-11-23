@@ -25,5 +25,5 @@ of every version are on webcpp's index page.
 * Added async.hpp, async_digest, async_hmac, async_hkdf, async_pbkdf2, async_argon2id, async_argon2 and async_scrypt over webcpp::asio, and backends::webcrypto, the browser's WebCrypto, for them on Emscripten.
 * Added the guide (chapters per family and use case, generated tables, llms.txt), measured tables from release builds that decide nothing, allocation tests, and a keccak_224-512 proposal to Boost.Hash2.
 * Added the families digest_of, hasher, mac and argon2 over digests, macs and kdfs tags on hash2, xkcp (Keccak, SHA-3, SHAKE, SP 800-185, KangarooTwelve, TurboSHAKE), blake3 and sodium, and error::invalid_state.
-* *Breaking change:* spelled out the public names: hkdf's input_key_material, pseudorandom_key, application_info, output_key_material and salt, hkdf_max_application_info_size, scrypt_parameters' cost, block_size and parallelism (from n, r, p) and argon2_parameters::memory_kibibytes.
+* *Breaking change:* Changed the public names: hkdf's input_key_material, pseudorandom_key, application_info, output_key_material and salt, hkdf_max_application_info_size, scrypt_parameters' cost, block_size and parallelism (from n, r, p) and argon2_parameters::memory_kibibytes.
 // end::unreleased[]

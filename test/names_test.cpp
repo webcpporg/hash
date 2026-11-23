@@ -40,7 +40,7 @@ int main() {
     auto const password = bytes("password");
     auto const salt = bytes("NaCl");
     // RFC 7914, section 12, the second vector: N = 1024, r = 8, p = 16.
-    auto done =
+    auto const done =
         hash::scrypt(output, password, salt, {.cost = 1024, .block_size = 8, .parallelism = 16});
     BOOST_TEST(done.has_value());
     BOOST_TEST_EQ(to_hex(output),
