@@ -38,8 +38,9 @@
     WEBCPP_HASH_DETAIL_MISMATCH_VALUE(botan, WEBCPP_HASH_BOTAN_COMMIT, WEBCPP_HASH_BOTAN_BUILT))
 #endif
 
-// The canary, constant, with C's linkage, as backends/botan.hpp declares it.
-extern "C" const char WEBCPP_HASH_DETAIL_CANARY(botan, WEBCPP_HASH_BOTAN_COMMIT,
-                                                WEBCPP_HASH_BOTAN_BUILT);
-extern "C" const char WEBCPP_HASH_DETAIL_CANARY(botan, WEBCPP_HASH_BOTAN_COMMIT,
-                                                WEBCPP_HASH_BOTAN_BUILT) = 0;
+// The canary, constant, with C's linkage, as backends/botan.hpp declares it: constinit there, so
+// constinit here too, on the initialising declaration, as the standard asks.
+extern "C" constinit const char WEBCPP_HASH_DETAIL_CANARY(botan, WEBCPP_HASH_BOTAN_COMMIT,
+                                                          WEBCPP_HASH_BOTAN_BUILT);
+extern "C" constinit const char WEBCPP_HASH_DETAIL_CANARY(botan, WEBCPP_HASH_BOTAN_COMMIT,
+                                                          WEBCPP_HASH_BOTAN_BUILT) = 0;
