@@ -48,7 +48,9 @@
                                                           WEBCPP_HASH_DETAIL_XKCP_CONFIGURATION))
 #endif
 
-extern "C" const char WEBCPP_HASH_DETAIL_XKCP_CANARY;
+// A declaration: src/canary_xkcp.c defines it, constant, in /third_party//xkcp, so its
+// initialisation is static, never dynamic; constinit, on this declaration, states it.
+extern "C" constinit const char WEBCPP_HASH_DETAIL_XKCP_CANARY;
 
 namespace webcpp::hash::detail {
 

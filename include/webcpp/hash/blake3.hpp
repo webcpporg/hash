@@ -63,9 +63,9 @@
                                       WEBCPP_HASH_DETAIL_BLAKE3_CONFIGURATION))
 #endif
 
-// A declaration: src/canary_blake3.c defines it, constant, in /third_party//blake3.
-// NOLINTNEXTLINE(bugprone-dynamic-static-initializers)
-extern "C" const char WEBCPP_HASH_DETAIL_BLAKE3_CANARY;
+// A declaration: src/canary_blake3.c defines it, constant, in /third_party//blake3, so its
+// initialisation is static, never dynamic; constinit, on this declaration, states it.
+extern "C" constinit const char WEBCPP_HASH_DETAIL_BLAKE3_CANARY;
 
 namespace webcpp::hash {
 
