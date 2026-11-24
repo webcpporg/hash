@@ -235,15 +235,17 @@ token)`, `async_hkdf_expand(executor, output_key_material, pseudorandom_key,
 application_info, token)` and `async_hkdf(executor, output_key_material, salt,
 input_key_material, application_info, token)`. Each also has a form over
 `byte_pieces` (<<hash-hkdf-pieces>>), with no limit on the pieces, whose
-pieces are read in the call: on a synchronous backend the synchronous function
+inputs are read in the call: on a synchronous backend the synchronous function
 over pieces runs in the call itself and only its error code is posted, and on
-`backends::webcrypto` the pieces are copied into JavaScript memory in the call.
-So a braced list written at the call, whose array dies at the end of the
-call's full expression, is safe with every completion token, a lazy one
-included: `async_hkdf(executor, key, salt, {hpke_v1, suite_id, label, ikm},
-{length, hpke_v1, suite_id, info_label, info}, token)` runs HPKE's
-LabeledExtract and LabeledExpand, as `hkdf_pieces.cpp` does
-(<<hash-hkdf-pieces>>), in one asynchronous call.
+`backends::webcrypto` the salt, the pseudorandom key and the pieces are copied
+into JavaScript memory in the call. So a braced list written at the call,
+whose array dies at the end of the call's full expression, is safe with every
+completion token, a lazy one included: `async_hkdf(executor, key, salt,
+{hpke_v1, suite_id, extract_label, ikm}, {length, hpke_v1, suite_id,
+expand_label, info}, token)` runs one HPKE LabeledExtract and one
+LabeledExpand in one asynchronous call. `hkdf_pieces.cpp`
+(<<hash-hkdf-pieces>>) calls `hkdf_extract` and `hkdf_expand` apart instead,
+since HPKE's key schedule expands one secret three times.
 
 *Pitfalls.*
 
@@ -253,7 +255,9 @@ program that counts or pools its allocations binds its own.
 * *The same spans rule.* The output and the inputs are the caller's until the
 completion, even though the work runs before the call returns: a backend
 named in the type may run later (WebCrypto does). The forms over pieces read
-their pieces and their list in the call; the output stays the caller's.
+every input in the call, on every backend: the salt, the pseudorandom key, the
+pieces and their list. Only the output stays the caller's until the
+completion.
 * *A lazy token does not delay the forms over pieces.* With `asio::deferred`,
 or the awaitable of `use_awaitable`, an operation normally starts when it is
 launched or awaited. The forms over pieces on a synchronous backend compute
@@ -330,18 +334,20 @@ WebCrypto's own HKDF, `deriveBits`, and an application_info longer than 1,024
 bytes (node's limit, where the other backends take 32,768) completes with
 `input_too_long`. The other HKDF functions run RFC 5869's steps on WebCrypto's
 HMAC: the single-buffer `async_hkdf_extract` and `async_hkdf_expand` keep the
-32,768 bytes of every backend, and the forms over pieces have no limit, so
-`async_hkdf` over `+byte_pieces{input_key_material}+` and `+byte_pieces{info}+`
-takes a longer info. PBKDF2's iteration count is at most 2^32 - 1
-(`invalid_iterations`); an output of HKDF or PBKDF2 is at most (2^32 - 1) / 8
-bytes. A program that needs more names a synchronous backend.
+32,768 bytes of every backend, and the forms over pieces have no limit of
+hash's own, so `async_hkdf` over `+byte_pieces{input_key_material}+` and
+`+byte_pieces{info}+` takes a longer info. PBKDF2's iteration count is at most
+2^32 - 1 (`invalid_iterations`); an output of HKDF or PBKDF2 is at most
+(2^32 - 1) / 8 bytes. A program that needs more names a synchronous backend.
 * *HKDF over HMAC is a promise per block.* `async_hkdf_extract` imports the
-salt and signs once; `async_hkdf_expand` imports the pseudorandom key and signs
-once per digest of output; `async_hkdf` over pieces does both. The pieces are
-gathered into JavaScript memory in the call, and every buffer of JavaScript
-that held a secret is zeroed when its promise settles. The keys WebCrypto
-imports (`CryptoKey`) cannot be zeroed, since WebCrypto has no way to, and
-neither can a tag that arrives after a cancellation, which is dropped unseen.
+salt and signs once; `async_hkdf_expand` imports the pseudorandom key and
+signs once per digest of output; `async_hkdf` over pieces does both. The
+inputs are gathered into JavaScript memory in the call, as long as the
+runtime will allocate a buffer that size (`backend_failure` beyond), and every
+buffer of JavaScript that held a secret is zeroed when its promise settles.
+The keys WebCrypto imports (`CryptoKey`) cannot be zeroed, since WebCrypto has
+no way to, and neither can a tag that arrives after a cancellation, which is
+dropped unseen.
 * *An empty HMAC key is one zero byte.* WebCrypto refuses an empty key; HMAC
 pads every key with zeros to its block (RFC 2104), so the two are the same
 key, and webcpp passes one zero byte: the tag is the other backends'.

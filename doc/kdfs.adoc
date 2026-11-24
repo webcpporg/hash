@@ -35,10 +35,11 @@ random inputs on every target.
 Every key derivation computes on a secret, and sets DIT (data-independent
 timing) around each call, on every synchronous backend, on 64-bit ARM under
 Apple's systems and Linux where the CPU has FEAT_DIT, leaving the thread's DIT
-as it found it (<<hash-backends-dit>>): `hkdf_extract`, `hkdf_expand`, `hkdf`
-(each also over byte pieces), `pbkdf2`, `blake2b_subkey`, `kbkdf`, `sskdf` and
-`x963kdf`. `hkdf` enters one guard and runs the whole derivation inside it, and
-HKDF and PBKDF2 on `backends::hash2` run Boost.Hash2's `hmac` there too.
+as it found it (<<hash-backends-dit>>): `hkdf_extract`, `hkdf_expand`,
+`hkdf` (each also over byte pieces), `pbkdf2`, `blake2b_subkey`, `kbkdf`,
+`sskdf` and `x963kdf`. `hkdf` enters one guard and runs the whole derivation
+inside it, and HKDF and PBKDF2 on `backends::hash2` run Boost.Hash2's `hmac`
+there too.
 
 include::generated/compare-kdfs.adoc[]
 
@@ -140,12 +141,16 @@ secret to wipe afterwards, or on the stack, with a size that someone must
 bound. `hkdf_extract`, `hkdf_expand` and `hkdf` each have a form over
 `byte_pieces` (`<webcpp/hash/byte_pieces.hpp>`, which
 `<webcpp/hash/hkdf.hpp>` includes) that takes the input keying material and
-the application info as a list of spans, read one after another as if joined,
-and feeds each piece to the backend's HMAC: no buffer, no copy of the secret.
+the application info as a list of spans, read one after another as if joined.
+On a synchronous backend each piece goes to the backend's HMAC: no buffer, no
+copy of the secret. WebCrypto's asynchronous forms copy the pieces into
+JavaScript memory instead (<<hash-async-webcrypto>>).
 
 * `hkdf_extract<Hmac, Backend>(salt, input_key_material)`
-* `hkdf_expand<Hmac, Backend>(output_key_material, pseudorandom_key, application_info)`
-* `hkdf<Hmac, Backend>(output_key_material, salt, input_key_material, application_info)`
+* `hkdf_expand<Hmac, Backend>(output_key_material, pseudorandom_key,
+application_info)`
+* `hkdf<Hmac, Backend>(output_key_material, salt, input_key_material,
+application_info)`
 
 The salt and the pseudorandom key stay one span each. The bytes are those of
 the single-buffer form over the parts joined: the tests check them against
@@ -163,7 +168,11 @@ piece longer than the backend's length type holds is fed in slices. On
 nothing, whatever the number and the size of the pieces (test `allocation`);
 OpenSSL's and Botan's allocations are theirs, counted in <<hash-allocation>>.
 Every HMAC state, every block and the pseudorandom key between the two steps
-are wiped, on success and on failure.
+are wiped, on success and on failure. `backends::webcrypto` is the exception:
+its asynchronous forms copy every input, the secret included, into JavaScript
+buffers in the call, zeroed when their promises settle, and a runtime that
+will not allocate a buffer that size completes with `backend_failure`
+(<<hash-async-webcrypto>>, <<hash-allocation>>).
 
 *Writing the pieces.*
 
@@ -171,22 +180,23 @@ are wiped, on success and on failure.
 `std::span<std::uint8_t const>` (a `std::array`, a `std::vector`, a span). Its
 array lives until the end of the call's full expression, after the call
 returns.
-* *One piece is `+byte_pieces{x}+`.* A braced list of one span, `+{x}+`, is that
-span (the language's rule), so `+hkdf_expand(okm, prk, {info})+` calls the
-single-buffer form, with its limit; `+hkdf_expand(okm, prk, byte_pieces{info})+`
-calls the form over pieces. `hkdf` takes both inputs as pieces or both as
-spans: beside a list, one buffer is written `+byte_pieces{input_key_material}+`.
+* *One piece is `+byte_pieces{x}+`.* A braced list of one span, `+{x}+`, is
+that span (the language's rule), so `+hkdf_expand(okm, prk, {info})+` calls
+the single-buffer form, with its limit;
+`+hkdf_expand(okm, prk, byte_pieces{info})+` calls the form over pieces.
+`hkdf` takes both inputs as pieces or both as spans: beside a list, one buffer
+is written `+byte_pieces{input_key_material}+`.
 * *`{}` and `+{x}+` of another type do not compile.* Where both forms take
 braces, a lone `{}`, or a braced list of one element that is not exactly a
-`std::span<std::uint8_t const>` (`+{vec}+`, `+{array}+`), matches both forms and
-the call is ambiguous: `hkdf(okm, salt, {}, {})` and `hkdf(okm, {}, {}, {})`,
-which compiled before the forms over pieces existed, no longer do. Pass `x`
-itself, an empty `std::span<std::uint8_t const>`, or `+byte_pieces{...}+`
-(`byte_pieces{}` for no piece). The asynchronous forms follow the same rule
-(<<hash-async-cheap>>).
-* *A list kept in a variable is a `std::array` of spans,* as
-`std::array<std::span<std::uint8_t const>, 3> const parts{prefix, label, secret};`,
-passed as it is (a `std::vector` or a span of spans too); never a
+`std::span<std::uint8_t const>` (`+{vec}+`, `+{array}+`), matches both forms
+and the call is ambiguous: `hkdf(okm, salt, {}, {})` and
+`hkdf(okm, {}, {}, {})`, which compiled before the forms over pieces existed,
+no longer do. Pass `x` itself, an empty `std::span<std::uint8_t const>`, or
+`+byte_pieces{...}+` (`byte_pieces{}` for no piece). The asynchronous forms
+follow the same rule (<<hash-async-cheap>>).
+* *A list kept in a variable is a `std::array` of spans,* as a
+`std::array<std::span<std::uint8_t const>, 3>` of `prefix`, `label` and
+`secret`, passed as it is (a `std::vector` or a span of spans too); never a
 `byte_pieces` variable. `byte_pieces parts{a, b};` points to its braced list's
 array, which dies at the end of the declaration; where the compiler has the
 `lifetimebound` attribute, it warns.
