@@ -562,6 +562,13 @@ hash-run async_post : async_post_test.cpp
 # cancellation and the handler's allocator.
 hash-run async_webcrypto : async_webcrypto_test.cpp
   : <library>/webcpp/asio//asio : emscripten ;
+# The same program with the bound of the bytes gathered into one JavaScript
+# buffer lowered from 2^53 - 1 to 100 by a test seam: it checks that refusal
+# alone (backend_failure, the output zeroed).
+hash-run async_webcrypto_gathered : async_webcrypto_test.cpp
+  : <library>/webcpp/asio//asio
+    <define>WEBCPP_HASH_DETAIL_TEST_WEBCRYPTO_MAX_GATHERED=100
+  : emscripten ;
 hash-run async_heavy : async_heavy_test.cpp
   : <library>/webcpp/asio//asio <library>/third_party//sodium <threading>multi
     <toolset>emscripten:<linkflags>-sPTHREAD_POOL_SIZE=3

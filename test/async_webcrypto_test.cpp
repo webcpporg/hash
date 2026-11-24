@@ -23,13 +23,17 @@
 // HKDF over pieces (the change hkdf-pieces) on WebCrypto's HMAC (importKey, then sign): async_hkdf,
 // async_hkdf_extract and async_hkdf_expand over byte_pieces and the single-buffer
 // async_hkdf_extract and async_hkdf_expand, RFC 5869's seven cases split into pieces with the three
-// completion tokens; 100 random cases of each against backends::hash2, inputs split into 0 to 8
-// pieces, empty pieces and empty salts among them, and node's own HKDF (deriveBits, through the
-// single-buffer async_hkdf) equal to the form over pieces for infos up to 1,024 bytes; an info of
-// 64 KiB in pieces, which the single-buffer async_hkdf refuses, and the single-buffer
-// async_hkdf_expand's 32,768 bytes (ruling R3); pieces overwritten after the call, with
-// asio::deferred and use_awaitable; the guards; every JavaScript buffer that held a secret zeroed
-// after a success and after a failure of each step; a cancellation during Expand's chain.
+// completion tokens over the four hashes (backends::hash2's bytes over the hashes the RFC does not
+// give); the empty list, one empty piece and {empty, a, empty} as each list; 100 random cases of
+// each against backends::hash2, inputs split into 0 to 8 pieces, empty pieces and empty salts among
+// them, and node's own HKDF (deriveBits, through the single-buffer async_hkdf) equal to the form
+// over pieces for infos up to 1,024 bytes; an info of 64 KiB in pieces, which the single-buffer
+// async_hkdf refuses, and the single-buffer async_hkdf_expand's 32,768 bytes (ruling R3); pieces
+// overwritten after the call, with asio::deferred and use_awaitable; the guards; every JavaScript
+// buffer that held a secret zeroed before the handler runs, after a success and after a failure of
+// each step; the runtime refusing a buffer while the pieces are gathered (backend_failure); a
+// cancellation during Expand's chain. Built with WEBCPP_HASH_DETAIL_TEST_WEBCRYPTO_MAX_GATHERED
+// (async_webcrypto_gathered), it checks the refusal of pieces longer than that bound alone.
 
 #include <webcpp/hash/async.hpp>
 #include <webcpp/hash/backends/hash2.hpp>
@@ -818,17 +822,30 @@ std::vector<byte_piece> random_split(webcpp::test::random_source& rnd, byte_piec
     return pieces;
 }
 
-// One of RFC 5869's cases through the five forms over Hmac, each with the three completion
-// tokens: the input keying material in two halves around an empty piece, the application info in
-// two halves between two empty pieces.
+// The inputs of one of RFC 5869's cases through the five forms over Hmac, each with the three
+// completion tokens: the input keying material in two halves around an empty piece, the
+// application info in two halves between two empty pieces. The pseudorandom key and the output
+// keying material expected are backends::hash2's, which over the case's own hash (`own`) are first
+// checked against the RFC's.
 template <class Hmac>
 void check_published_pieces(asio::io_context& context, std::string_view name,
-                            webcpp::test::rfc5869_case const& published) {
+                            webcpp::test::rfc5869_case const& published, bool own) {
+    using hash::backends::hash2;
     auto const executor = context.get_executor();
     auto const ikm = from_hex(published.ikm);
     auto const salt = from_hex(published.salt);
     auto const info = from_hex(published.info);
-    auto const prk = from_hex(published.prk);
+    auto const extracted = hash::hkdf_extract<Hmac, hash2>(salt, hash::byte_pieces{ikm});
+    BOOST_TEST(extracted.has_value());
+    std::vector<std::uint8_t> const prk(extracted->data(), extracted->data() + extracted->size());
+    std::vector<std::uint8_t> derived(published.length);
+    BOOST_TEST((hash::hkdf<Hmac, hash2>(derived, salt, ikm, info).has_value()));
+    std::string const prk_hex = to_hex(prk);
+    std::string const okm_hex = to_hex(derived);
+    if (own) {
+        BOOST_TEST_EQ(prk_hex, std::string(published.prk));
+        BOOST_TEST_EQ(okm_hex, std::string(published.okm));
+    }
     byte_piece const empty{};
     byte_piece const whole_ikm(ikm);
     byte_piece const whole_info(info);
@@ -844,54 +861,141 @@ void check_published_pieces(asio::io_context& context, std::string_view name,
         empty,
     };
     std::string const label(name);
-    check_published(context, label + ", async_hkdf over pieces", published.okm,
+    check_published(context, label + ", async_hkdf over pieces", okm_hex,
                     [&](std::span<std::uint8_t> output, auto token) {
                         return hash::async_hkdf<Hmac, webcrypto>(
                             executor, output, salt, hash::byte_pieces(ikm_pieces),
                             hash::byte_pieces(info_pieces), std::move(token));
                     });
-    check_published(context, label + ", async_hkdf_extract over pieces", published.prk,
+    check_published(context, label + ", async_hkdf_extract over pieces", prk_hex,
                     [&](std::span<std::uint8_t> output, auto token) {
                         return hash::async_hkdf_extract<Hmac, webcrypto>(
                             executor, output, salt, hash::byte_pieces(ikm_pieces),
                             std::move(token));
                     });
-    check_published(context, label + ", async_hkdf_expand over pieces", published.okm,
+    check_published(context, label + ", async_hkdf_expand over pieces", okm_hex,
                     [&](std::span<std::uint8_t> output, auto token) {
                         return hash::async_hkdf_expand<Hmac, webcrypto>(
                             executor, output, prk, hash::byte_pieces(info_pieces),
                             std::move(token));
                     });
-    check_published(context, label + ", async_hkdf_extract", published.prk,
+    check_published(context, label + ", async_hkdf_extract", prk_hex,
                     [&](std::span<std::uint8_t> output, auto token) {
                         return hash::async_hkdf_extract<Hmac, webcrypto>(executor, output, salt,
                                                                          ikm, std::move(token));
                     });
-    check_published(context, label + ", async_hkdf_expand", published.okm,
+    check_published(context, label + ", async_hkdf_expand", okm_hex,
                     [&](std::span<std::uint8_t> output, auto token) {
                         return hash::async_hkdf_expand<Hmac, webcrypto>(executor, output, prk, info,
                                                                         std::move(token));
                     });
 }
 
-// RFC 5869's seven cases: A.1 to A.3 over HMAC-SHA-256, A.4 to A.7 over HMAC-SHA-1.
-void check_published_hkdf_pieces(asio::io_context& context) {
+// RFC 5869's seven cases over Hash: their own bytes over the case's hash (SHA-256 for A.1 to A.3,
+// SHA-1 for A.4 to A.7), hash2's over the others.
+template <class Hash>
+void check_published_hkdf_pieces_over(asio::io_context& context, std::string_view hash_name) {
     namespace test = webcpp::test;
-    check_published_pieces<hash::hmac_sha2_256>(context, "RFC 5869 A.1", test::a1);
-    check_published_pieces<hash::hmac_sha2_256>(context, "RFC 5869 A.2", test::a2);
-    check_published_pieces<hash::hmac_sha2_256>(context, "RFC 5869 A.3", test::a3);
-    check_published_pieces<hash::hmac_sha1_160>(context, "RFC 5869 A.4", test::a4);
-    check_published_pieces<hash::hmac_sha1_160>(context, "RFC 5869 A.5", test::a5);
-    check_published_pieces<hash::hmac_sha1_160>(context, "RFC 5869 A.6", test::a6);
-    check_published_pieces<hash::hmac_sha1_160>(context, "RFC 5869 A.7", test::a7);
+    std::array<std::pair<std::string_view, test::rfc5869_case const*>, 7> const cases{{
+        {"A.1", &test::a1},
+        {"A.2", &test::a2},
+        {"A.3", &test::a3},
+        {"A.4", &test::a4},
+        {"A.5", &test::a5},
+        {"A.6", &test::a6},
+        {"A.7", &test::a7},
+    }};
+    for (auto const& [label, published] : cases) {
+        check_published_pieces<typename Hash::hmac>(
+            context, "RFC 5869 " + std::string(label) + " over " + std::string(hash_name),
+            *published, published->hash == hash_name);
+    }
+}
+
+// RFC 5869's seven cases over the four hmacs WebCrypto has (webcrypto_hmac_v).
+void check_published_hkdf_pieces(asio::io_context& context) {
+    static_assert(hash::detail::webcrypto_hmac_v<sha1::hmac> &&
+                  hash::detail::webcrypto_hmac_v<sha256::hmac> &&
+                  hash::detail::webcrypto_hmac_v<sha384::hmac> &&
+                  hash::detail::webcrypto_hmac_v<sha512::hmac>);
+    check_published_hkdf_pieces_over<sha1>(context, "sha1");
+    check_published_hkdf_pieces_over<sha256>(context, "sha256");
+    check_published_hkdf_pieces_over<sha384>(context, "sha384");
+    check_published_hkdf_pieces_over<sha512>(context, "sha512");
+}
+
+// Review Focus 5 of the change hkdf-pieces: the empty list, one empty piece and
+// {empty, a, empty}, as the input keying material's list and as the application info's, through
+// async_hkdf over pieces (each pair of the two), async_hkdf_extract and async_hkdf_expand over
+// pieces, over the four hashes, each against backends::hash2's synchronous result.
+template <class Hash>
+void check_empty_pieces_over(asio::io_context& context) {
+    using hmac = Hash::hmac;
+    using hash::backends::hash2;
+    auto const executor = context.get_executor();
+    auto const salt = bytes_of("salt");
+    auto const a = bytes_of("a");
+    byte_piece const empty{};
+    std::array<byte_piece, 1> const one_empty{empty};
+    std::array<byte_piece, 3> const around{empty, a, empty};
+    std::array<std::pair<std::string_view, hash::byte_pieces>, 3> const lists{{
+        {"{}", hash::byte_pieces{}},
+        {"{empty}", hash::byte_pieces(one_empty)},
+        {"{empty, a, empty}", hash::byte_pieces(around)},
+    }};
+    std::vector<std::uint8_t> const key(Hash::size, 0x0b);
+    std::size_t const size = (2 * Hash::size) + 3;
+    for (auto const& [ikm_name, ikm] : lists) {
+        for (auto const& [info_name, info] : lists) {
+            std::vector<std::uint8_t> expected(size);
+            BOOST_TEST((hash::hkdf<hmac, hash2>(expected, salt, ikm, info).has_value()));
+            std::vector<std::uint8_t> output(size);
+            auto const code = complete_by_callback(context, [&](auto token) {
+                hash::async_hkdf<hmac, webcrypto>(executor, output, salt, ikm, info,
+                                                  std::move(token));
+            });
+            compare("async_hkdf over " + std::string(ikm_name) + " and " + std::string(info_name),
+                    Hash::size, code, output, expected);
+        }
+
+        auto const extracted = hash::hkdf_extract<hmac, hash2>(salt, ikm);
+        BOOST_TEST(extracted.has_value());
+        std::vector<std::uint8_t> extract_output(Hash::size);
+        auto code = complete_by_callback(context, [&](auto token) {
+            hash::async_hkdf_extract<hmac, webcrypto>(executor, extract_output, salt, ikm,
+                                                      std::move(token));
+        });
+        compare("async_hkdf_extract over " + std::string(ikm_name), Hash::size, code,
+                extract_output, std::span(extracted->data(), extracted->size()));
+
+        auto const& info = ikm;
+        std::vector<std::uint8_t> expanded(size);
+        BOOST_TEST((hash::hkdf_expand<hmac, hash2>(expanded, key, info).has_value()));
+        std::vector<std::uint8_t> expand_output(size);
+        code = complete_by_callback(context, [&](auto token) {
+            hash::async_hkdf_expand<hmac, webcrypto>(executor, expand_output, key, info,
+                                                     std::move(token));
+        });
+        compare("async_hkdf_expand over " + std::string(ikm_name), Hash::size, code, expand_output,
+                expanded);
+    }
+}
+
+void check_empty_pieces(asio::io_context& context) {
+    check_empty_pieces_over<sha1>(context);
+    check_empty_pieces_over<sha256>(context);
+    check_empty_pieces_over<sha384>(context);
+    check_empty_pieces_over<sha512>(context);
 }
 
 static_assert(
     std::is_same_v<hash::default_backend<hash::kdfs::hkdf_pieces>, hash::backends::hash2>);
 
 // 100 random cases of each form against backends::hash2's, over SHA-1, SHA-256, SHA-384 and
-// SHA-512 in turn: the first four with every input empty (an empty salt, the empty piece list), the
-// next four with an application info of 1,024 bytes and the longest output (255 digests), then
+// SHA-512 in turn: the first four with every input empty (an empty salt, each empty input split
+// into 0 to 8 empty pieces: whether the empty list is drawn depends on the seed, so that
+// check_empty_pieces runs it, one empty piece and {empty, a, empty} deterministically), the next
+// four with an application info of 1,024 bytes and the longest output (255 digests), then
 // salts of 0 to 64 bytes, inputs of 0 to 100 bytes and infos of 0 to 2,048 bytes (beyond
 // deriveBits' 1,024), each split into 0 to 8 pieces. Where the info is 1,024 bytes or shorter,
 // node's own HKDF (deriveBits, through the single-buffer async_hkdf) gives the bytes of the form
@@ -1226,11 +1330,12 @@ EM_JS(int, unwiped_buffers, (), {
 });
 // clang-format on
 
-// Every JavaScript buffer that held a secret is zeroed once the operation has completed: the salt
-// and the pseudorandom key importKey read, the input keying material and the blocks sign read, and
-// each tag sign gave (each case records exactly the buffers of its calls), after a success of each
-// of the five forms and after each failure of a step (importKey or sign rejected), the failures
-// completing with backend_failure, the output zeroed, the first block of the output among it.
+// Every JavaScript buffer that held a secret is zeroed by the time the handler runs: the salt and
+// the pseudorandom key importKey read, the input keying material and the blocks sign read, and each
+// tag sign gave, the last one among them (each case records exactly the buffers of its calls),
+// after a success of each of the five forms and after each failure of a step (importKey or sign
+// rejected), the failures completing with backend_failure, the output zeroed, the first block of
+// the output among it.
 void check_secrets_wiped(asio::io_context& context) {
     auto const executor = context.get_executor();
     auto const salt = bytes_of("salt");
@@ -1240,11 +1345,18 @@ void check_secrets_wiped(asio::io_context& context) {
     auto const wiped = [&](std::string_view name, std::size_t size,
                            boost::system::error_code expected, int buffers, auto start) {
         std::vector<std::uint8_t> output(size, 0xa5);
-        auto const code = complete_by_callback(
-            context, [&](auto token) { start(std::span(output), std::move(token)); });
+        int unwiped_in_handler = -1;
+        auto const code = complete_by_callback(context, [&](auto token) {
+            start(std::span(output), [&unwiped_in_handler, token = std::move(token)](
+                                         boost::system::error_code done) mutable {
+                unwiped_in_handler = unwiped_buffers();
+                std::move(token)(done);
+            });
+        });
         bool const zeroed = std::ranges::all_of(output, [](std::uint8_t b) { return b == 0; });
         if (!BOOST_TEST(code == expected) || !BOOST_TEST_EQ(recorded_buffers(), buffers) ||
-            !BOOST_TEST_EQ(unwiped_buffers(), 0) || !BOOST_TEST(zeroed == bool(code))) {
+            !BOOST_TEST_EQ(unwiped_in_handler, 0) || !BOOST_TEST_EQ(unwiped_buffers(), 0) ||
+            !BOOST_TEST(zeroed == bool(code))) {
             std::cerr << "  " << name << ": " << code.message() << '\n';
         }
         restore_subtle();
@@ -1292,6 +1404,193 @@ void check_secrets_wiped(asio::io_context& context) {
     wiped("async_hkdf, the second block's sign rejected", 100, failure, 7, hkdf);
     stub_hmac_calls(0, 2, 0);
     wiped("async_hkdf_expand, the second block's sign rejected", 100, failure, 4, expand);
+}
+
+// The global Uint8Array replaced for one initiating call by a subclass that records the length of
+// every array made with a length and every such array, and throws a RangeError for the length
+// `refused` (-1: none), as a runtime refuses a buffer its memory cannot hold.
+// clang-format off
+EM_JS(void, stub_uint8array, (double refused), {
+    const original = globalThis.Uint8Array;
+    const state = {original, lengths: [], made: []};
+    globalThis.webcpp_test_bytes = state;
+    globalThis.Uint8Array = class extends original {
+        constructor(...args) {
+            const sized = typeof args[0] === "number";
+            if (sized) {
+                state.lengths.push(args[0]);
+                if (args[0] === refused) throw new RangeError("stubbed refusal");
+            }
+            super(...args);
+            if (sized) state.made.push(this);
+        }
+    };
+});
+
+EM_JS(void, restore_uint8array, (), {
+    globalThis.Uint8Array = globalThis.webcpp_test_bytes.original;
+});
+
+EM_JS(int, uint8arrays_of_length, (double length), {
+    return globalThis.webcpp_test_bytes.lengths.filter(made => made === length).length;
+});
+
+EM_JS(int, uint8arrays_made, (), { return globalThis.webcpp_test_bytes.made.length; });
+
+EM_JS(int, unwiped_uint8arrays, (), {
+    return globalThis.webcpp_test_bytes.made.filter(bytes => bytes.some(b => b !== 0)).length;
+});
+// clang-format on
+
+// `start(output, token)`, an output of `size` bytes, with the Uint8Array stub refusing `refused`
+// bytes during the initiating call: it completes through the loop with backend_failure, the output
+// zeroed, every buffer made zeroed and none of `skipped` bytes attempted; `made` arrays were made.
+template <class Start>
+void check_refused_gathering(asio::io_context& context, std::string_view name, std::size_t size,
+                             double refused, double skipped, int made, Start start) {
+    std::vector<std::uint8_t> output(size, 0xa5);
+    auto const code = complete_by_callback(context, [&](auto token) {
+        stub_uint8array(refused);
+        start(std::span(output), std::move(token));
+        restore_uint8array();
+    });
+    bool const zeroed = std::ranges::all_of(output, [](std::uint8_t b) { return b == 0; });
+    if (!BOOST_TEST(code == hash::error::backend_failure) || !BOOST_TEST(zeroed) ||
+        !BOOST_TEST_EQ(uint8arrays_of_length(refused), refused < 0 ? 0 : 1) ||
+        !BOOST_TEST_EQ(uint8arrays_of_length(skipped), 0) ||
+        !BOOST_TEST_EQ(uint8arrays_made(), made) || !BOOST_TEST_EQ(unwiped_uint8arrays(), 0)) {
+        std::cerr << "  " << name << ": " << code.message() << '\n';
+    }
+}
+
+// The runtime refusing a buffer while the pieces are gathered (a RangeError, or an out of memory,
+// from new Uint8Array) completes with backend_failure, the output zeroed and the buffers already
+// made zeroed, rather than end the program; async_hkdf gathers no application info once Extract's
+// inputs were not gathered. The salt is 4 bytes, the input keying material 77 and the info 100.
+void check_refused_gathering(asio::io_context& context) {
+    auto const executor = context.get_executor();
+    std::vector<std::uint8_t> const salt(4, 0x01);
+    std::vector<std::uint8_t> const ikm(77, 0x02);
+    std::vector<std::uint8_t> const info(100, 0x03);
+    std::vector<std::uint8_t> const key(32, 0x0b);
+    byte_piece const whole_ikm(ikm);
+    byte_piece const whole_info(info);
+    std::array<byte_piece, 2> const ikm_pieces{whole_ikm.first(40), whole_ikm.subspan(40)};
+    std::array<byte_piece, 2> const info_pieces{whole_info.first(50), whole_info.subspan(50)};
+    // Expand's block over SHA-256: 32 + 100 + 1 bytes.
+    constexpr double block = 133;
+    auto const hkdf = [&](std::span<std::uint8_t> output, auto token) {
+        hash::async_hkdf<hash::hmac_sha2_256, webcrypto>(
+            executor, output, salt, hash::byte_pieces(ikm_pieces), hash::byte_pieces(info_pieces),
+            std::move(token));
+    };
+    check_refused_gathering(context, "async_hkdf, the salt refused", 100, 4, block, 0, hkdf);
+    check_refused_gathering(context, "async_hkdf, the input keying material refused", 100, 77,
+                            block, 1, hkdf);
+    check_refused_gathering(context, "async_hkdf, the application info refused", 100, block, -1, 2,
+                            hkdf);
+    check_refused_gathering(context,
+                            "async_hkdf_extract over pieces, the input keying material "
+                            "refused",
+                            32, 77, -1, 1, [&](std::span<std::uint8_t> output, auto token) {
+                                hash::async_hkdf_extract<hash::hmac_sha2_256, webcrypto>(
+                                    executor, output, salt, hash::byte_pieces(ikm_pieces),
+                                    std::move(token));
+                            });
+    check_refused_gathering(context, "async_hkdf_extract, the input keying material refused", 32,
+                            77, -1, 1, [&](std::span<std::uint8_t> output, auto token) {
+                                hash::async_hkdf_extract<hash::hmac_sha2_256, webcrypto>(
+                                    executor, output, salt, ikm, std::move(token));
+                            });
+    check_refused_gathering(context, "async_hkdf_expand over pieces, the pseudorandom key refused",
+                            100, 32, block, 0, [&](std::span<std::uint8_t> output, auto token) {
+                                hash::async_hkdf_expand<hash::hmac_sha2_256, webcrypto>(
+                                    executor, output, key, hash::byte_pieces(info_pieces),
+                                    std::move(token));
+                            });
+    check_refused_gathering(context, "async_hkdf_expand over pieces, the application info refused",
+                            100, block, -1, 1, [&](std::span<std::uint8_t> output, auto token) {
+                                hash::async_hkdf_expand<hash::hmac_sha2_256, webcrypto>(
+                                    executor, output, key, hash::byte_pieces(info_pieces),
+                                    std::move(token));
+                            });
+    check_refused_gathering(context, "async_hkdf_expand, the application info refused", 100, block,
+                            -1, 1, [&](std::span<std::uint8_t> output, auto token) {
+                                hash::async_hkdf_expand<hash::hmac_sha2_256, webcrypto>(
+                                    executor, output, key, info, std::move(token));
+                            });
+
+    // Restored: the same call succeeds.
+    std::vector<std::uint8_t> expected(100);
+    BOOST_TEST(hash::hkdf<hash::hmac_sha2_256>(expected, salt, hash::byte_pieces(ikm_pieces),
+                                               hash::byte_pieces(info_pieces))
+                   .has_value());
+    std::vector<std::uint8_t> output(100);
+    auto const code = complete_by_callback(context, [&](auto token) { hkdf(output, token); });
+    compare("async_hkdf after the stub", 0, code, output, expected);
+}
+
+// The test seam lowers webcrypto_max_gathered (2^53 - 1 bytes otherwise, which no runtime holds) to
+// 100 bytes: an input keying material of 100 bytes in pieces gives hash2's bytes, one of 101 is
+// backend_failure, the output zeroed, before any buffer is made (async_hkdf then gathers no
+// application info); over SHA-256, Expand's block of 32 + 67 + 1 bytes is gathered, one of
+// 32 + 68 + 1 is backend_failure, every buffer made zeroed.
+void check_gathered_bound(asio::io_context& context) {
+    BOOST_TEST_EQ(hash::detail::webcrypto_max_gathered, 100U);
+    auto const executor = context.get_executor();
+    auto const salt = bytes_of("salt");
+    std::vector<std::uint8_t> const bytes(101, 0x5c);
+    std::vector<std::uint8_t> const key(32, 0x0b);
+    byte_piece const whole(bytes);
+    auto const split = [&](std::size_t size) {
+        return std::array<byte_piece, 2>{whole.first(size / 2),
+                                         whole.subspan(size / 2, size - (size / 2))};
+    };
+    auto const ikm_at = split(100);
+    auto const ikm_over = split(101);
+    auto const info_at = split(67);
+    auto const info_over = split(68);
+    auto const short_info = split(10);
+
+    auto const extracted = hash::hkdf_extract<hash::hmac_sha2_256>(salt, hash::byte_pieces(ikm_at));
+    BOOST_TEST(extracted.has_value());
+    std::vector<std::uint8_t> extract_output(32);
+    auto code = complete_by_callback(context, [&](auto token) {
+        hash::async_hkdf_extract<hash::hmac_sha2_256, webcrypto>(
+            executor, extract_output, salt, hash::byte_pieces(ikm_at), std::move(token));
+    });
+    compare("async_hkdf_extract over 100 bytes of pieces", 100, code, extract_output,
+            std::span(extracted->data(), extracted->size()));
+    check_refused_gathering(context, "async_hkdf_extract over 101 bytes of pieces", 32, -1, -1, 0,
+                            [&](std::span<std::uint8_t> output, auto token) {
+                                hash::async_hkdf_extract<hash::hmac_sha2_256, webcrypto>(
+                                    executor, output, salt, hash::byte_pieces(ikm_over),
+                                    std::move(token));
+                            });
+    // Expand's block over the short info: 32 + 10 + 1 bytes, which async_hkdf does not attempt.
+    check_refused_gathering(context, "async_hkdf over 101 bytes of pieces", 100, -1, 43, 0,
+                            [&](std::span<std::uint8_t> output, auto token) {
+                                hash::async_hkdf<hash::hmac_sha2_256, webcrypto>(
+                                    executor, output, salt, hash::byte_pieces(ikm_over),
+                                    hash::byte_pieces(short_info), std::move(token));
+                            });
+
+    std::vector<std::uint8_t> expanded(100);
+    BOOST_TEST(hash::hkdf_expand<hash::hmac_sha2_256>(expanded, key, hash::byte_pieces(info_at))
+                   .has_value());
+    std::vector<std::uint8_t> expand_output(100);
+    code = complete_by_callback(context, [&](auto token) {
+        hash::async_hkdf_expand<hash::hmac_sha2_256, webcrypto>(
+            executor, expand_output, key, hash::byte_pieces(info_at), std::move(token));
+    });
+    compare("async_hkdf_expand over 67 bytes of pieces", 67, code, expand_output, expanded);
+    // The pseudorandom key's buffer is made, then zeroed.
+    check_refused_gathering(context, "async_hkdf_expand over 68 bytes of pieces", 100, -1, -1, 1,
+                            [&](std::span<std::uint8_t> output, auto token) {
+                                hash::async_hkdf_expand<hash::hmac_sha2_256, webcrypto>(
+                                    executor, output, key, hash::byte_pieces(info_over),
+                                    std::move(token));
+                            });
 }
 
 // A cancellation during Expand's chain: async_hkdf_expand over pieces of three blocks, the second
@@ -1436,6 +1735,12 @@ void check_allocator(asio::io_context& context) {
 
 int main() {
     asio::io_context context;
+    // The seam's program (async_webcrypto_gathered) checks the bound's refusal alone, which the
+    // seam makes reachable; the others need the bound of 2^53 - 1 bytes.
+    if (hash::detail::webcrypto_max_gathered == 100) {
+        check_gathered_bound(context);
+        return webcpp::test::exit_status(boost::report_errors());
+    }
     check_published_cases(context);
     check_random_digests(context);
     check_random_hmacs(context);
@@ -1453,11 +1758,13 @@ int main() {
     check_cancellation_between_promises(context);
     check_allocator(context);
     check_published_hkdf_pieces(context);
+    check_empty_pieces(context);
     check_random_hkdf_pieces(context);
     check_long_application_info(context);
     check_pieces_read_in_call(context);
     check_hkdf_pieces_guards(context);
     check_secrets_wiped(context);
+    check_refused_gathering(context);
     check_cancellation_in_expand(context);
     return webcpp::test::exit_status(boost::report_errors());
 }

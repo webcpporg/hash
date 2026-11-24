@@ -131,6 +131,7 @@ struct backend_limits<backends::webcrypto> {
 #include <webcpp/asio/query.hpp>
 #include <webcpp/asio/strand.hpp>
 
+#include <emscripten/em_asm.h>
 #include <emscripten/val.h>
 
 #include <boost/system/error_code.hpp>
@@ -706,13 +707,44 @@ private:
     emscripten::val bytes_ = emscripten::val::undefined();
 };
 
+#ifdef WEBCPP_HASH_DETAIL_TEST_WEBCRYPTO_MAX_GATHERED
+// The test seam's value; the Doc Comment is in the #else branch, the one the reference reads.
+inline constexpr std::uint64_t webcrypto_max_gathered =
+    WEBCPP_HASH_DETAIL_TEST_WEBCRYPTO_MAX_GATHERED;
+#else
 /**
  The longest buffer the pieces are gathered into, 2^53 - 1 bytes: a typed array's length is a
- JavaScript Number, exact up to there, and a runtime refuses a longer one. Pieces whose total, with
- Expand's block around the info, is longer fail with `backend_failure`, the output zeroed; no
- runtime holds that much memory.
+ JavaScript Number, exact up to there, so that the sum of the pieces' sizes is never rounded. Pieces
+ whose total, with Expand's block around the info, is longer fail with `backend_failure`, the output
+ zeroed, before any buffer is made. A runtime refuses far shorter buffers, as its memory allows:
+ that refusal is caught (@ref webcrypto_new_bytes) and fails likewise. The test seam
+ `WEBCPP_HASH_DETAIL_TEST_WEBCRYPTO_MAX_GATHERED` lowers it, so that a test reaches the refusal.
 */
 inline constexpr std::uint64_t webcrypto_max_gathered = (std::uint64_t{1} << 53U) - 1;
+#endif
+// Expand's block is HashLen + |info| + 1 bytes, HashLen at most 64: the bound holds its two ends.
+static_assert(webcrypto_max_gathered > 64 + 1,
+              "WEBCPP_HASH_DETAIL_TEST_WEBCRYPTO_MAX_GATHERED is more than 65");
+
+/**
+ A new JavaScript `Uint8Array` of `length` zero bytes, or `undefined` when the runtime refuses it
+ (a `RangeError`, or an out of memory, as its memory allows). The refusal is caught in JavaScript,
+ before it can cross a WebAssembly frame, where it would end the program.
+
+ @param length The length, at most @ref webcrypto_max_gathered. @return The array, or `undefined`.
+*/
+inline emscripten::val webcrypto_new_bytes(double length) {
+    // EM_ASM supports a definition in an inline function across translation units.
+    // clang-format off
+    return emscripten::val::take_ownership(reinterpret_cast<emscripten::EM_VAL>(EM_ASM_PTR({
+        try {
+            return Emval.toHandle(new Uint8Array($0));
+        } catch (error) {
+            return Emval.toHandle(undefined);
+        }
+    }, length)));
+    // clang-format on
+}
 
 /**
  The pieces gathered into one JavaScript `Uint8Array` of its own `ArrayBuffer`, of `prefix +
@@ -722,12 +754,16 @@ inline constexpr std::uint64_t webcrypto_max_gathered = (std::uint64_t{1} << 53U
  then reads no view of the program's memory, which a build with threads shares.
 
  @param pieces The pieces. @param prefix The zeros before them. @param suffix The zeros after them,
- the total within @ref webcrypto_max_gathered. @return The buffer.
+ the total within @ref webcrypto_max_gathered. @return The buffer, none (`undefined`) when the
+ runtime refuses to make it (@ref webcrypto_new_bytes).
 */
 inline webcrypto_secret webcrypto_gather(byte_pieces pieces, std::size_t prefix,
                                          std::size_t suffix) {
-    auto const length = static_cast<double>(prefix + pieces.total_size() + suffix);
-    webcrypto_secret gathered(emscripten::val::global("Uint8Array").new_(length));
+    webcrypto_secret gathered(
+        webcrypto_new_bytes(static_cast<double>(prefix + pieces.total_size() + suffix)));
+    if (gathered.bytes().isUndefined()) {
+        return gathered;
+    }
     auto offset = static_cast<double>(prefix);
     for (auto const piece : pieces) {
         if (!piece.empty()) {
@@ -772,8 +808,12 @@ struct webcrypto_hmac_hkdf_request {
      gathered at offset HashLen.
     */
     webcrypto_secret blocks;
-    /** Whether the pieces fit in a JavaScript buffer (@ref webcrypto_max_gathered). */
-    bool fits = true;
+    /**
+     Whether every input is in JavaScript memory: false once the pieces are longer than
+     @ref webcrypto_max_gathered or the runtime has refused a buffer, after which nothing more is
+     gathered and the operation fails with `backend_failure`.
+    */
+    bool gathered = true;
 
     /**
      Gathers Extract's inputs: the salt (HashLen zeros for an empty one) and the input keying
@@ -784,25 +824,49 @@ struct webcrypto_hmac_hkdf_request {
     void gather_extract(std::span<std::uint8_t const> salt_bytes,
                         byte_pieces input_key_material_pieces) {
         if (input_key_material_pieces.total_size() > webcrypto_max_gathered) {
-            fits = false;
+            gathered = false;
             return;
         }
-        salt = salt_bytes.empty() ? webcrypto_gather({}, digest_length, 0)
-                                  : webcrypto_gather({salt_bytes}, 0, 0);
-        input_key_material = webcrypto_gather(input_key_material_pieces, 0, 0);
+        if (salt_bytes.empty()) {
+            gather(salt, {}, digest_length, 0);
+        } else {
+            gather(salt, {salt_bytes}, 0, 0);
+        }
+        gather(input_key_material, input_key_material_pieces, 0, 0);
     }
 
     /**
-     Gathers Expand's message buffer around the application info's pieces.
+     Gathers Expand's HMAC key, the caller's pseudorandom key (Expand alone).
+
+     @param key The pseudorandom key.
+    */
+    void gather_pseudorandom_key(std::span<std::uint8_t const> key) {
+        gather(pseudorandom_key, {key}, 0, 0);
+    }
+
+    /**
+     Gathers Expand's message buffer around the application info's pieces; nothing once an earlier
+     input was not gathered (Extract's, for `hkdf`), since the operation fails then.
 
      @param application_info The application info.
     */
     void gather_expand(byte_pieces application_info) {
-        if (application_info.total_size() > webcrypto_max_gathered - digest_length - 1) {
-            fits = false;
+        if (gathered &&
+            application_info.total_size() > webcrypto_max_gathered - digest_length - 1) {
+            gathered = false;
             return;
         }
-        blocks = webcrypto_gather(application_info, digest_length, 1);
+        gather(blocks, application_info, digest_length, 1);
+    }
+
+private:
+    // `pieces` into `buffer` (webcrypto_gather) while every earlier input has been gathered.
+    void gather(webcrypto_secret& buffer, byte_pieces pieces, std::size_t prefix,
+                std::size_t suffix) {
+        if (gathered) {
+            buffer = webcrypto_gather(pieces, prefix, suffix);
+            gathered = !buffer.bytes().isUndefined();
+        }
     }
 };
 
@@ -887,6 +951,7 @@ public:
                 if (request_.steps == webcrypto_hkdf_steps::extract) {
                     webcrypto_secret tag(uint8_array(value));
                     copy(tag.bytes(), 0, output_.size());
+                    tag.wipe();
                     self.complete(finish());
                     return;
                 }
@@ -932,6 +997,7 @@ private:
         copy(tag.bytes(), written_, size);
         written_ += size;
         if (written_ == output_.size()) {
+            tag.wipe();
             self.complete(finish());
             return;
         }
@@ -1031,9 +1097,10 @@ private:
 };
 
 /**
- The initiation of HKDF over WebCrypto's HMAC: @ref webcrypto_refusal, then whether the pieces fit
- (`backend_failure`, the output zeroed, else); a refusal is posted to the handler's associated
- executor, the request's buffers zeroed as it is dropped; else the composed operation starts.
+ The initiation of HKDF over WebCrypto's HMAC: @ref webcrypto_refusal, then whether every input was
+ gathered (`backend_failure`, the output zeroed, else); a refusal is posted to the handler's
+ associated executor, the request's buffers zeroed as it is dropped; else the composed operation
+ starts.
 */
 struct webcrypto_hmac_hkdf_initiation {
     /**
@@ -1048,7 +1115,7 @@ struct webcrypto_hmac_hkdf_initiation {
                     webcrypto_hmac_hkdf_request request,
                     boost::system::result<void> const& guarded) const {
         auto refusal = webcrypto_refusal(executor, output, guarded);
-        if (!refusal && !request.fits) {
+        if (!refusal && !request.gathered) {
             wipe(output);
             refusal = error::backend_failure;
         }
@@ -1228,6 +1295,7 @@ public:
         auto request = webcrypto_hmac_hkdf_of<Hmac>(webcrypto_hkdf_steps::extract_and_expand);
         if (guarded) {
             request.gather_extract(salt, input_key_material);
+            // Nothing when Extract's inputs were not gathered: the operation fails then.
             request.gather_expand(application_info);
         }
         return start_webcrypto_hmac_hkdf(executor, output_key_material, std::move(request), guarded,
@@ -1314,7 +1382,7 @@ public:
         }
         auto request = webcrypto_hmac_hkdf_of<Hmac>(webcrypto_hkdf_steps::expand);
         if (guarded) {
-            request.pseudorandom_key = webcrypto_gather({pseudorandom_key}, 0, 0);
+            request.gather_pseudorandom_key(pseudorandom_key);
             request.gather_expand({application_info});
         }
         return start_webcrypto_hmac_hkdf(executor, output_key_material, std::move(request), guarded,
@@ -1340,7 +1408,7 @@ public:
             expand_guards<Hmac>(output_key_material.size(), pseudorandom_key.size());
         auto request = webcrypto_hmac_hkdf_of<Hmac>(webcrypto_hkdf_steps::expand);
         if (guarded) {
-            request.pseudorandom_key = webcrypto_gather({pseudorandom_key}, 0, 0);
+            request.gather_pseudorandom_key(pseudorandom_key);
             request.gather_expand(application_info);
         }
         return start_webcrypto_hmac_hkdf(executor, output_key_material, std::move(request), guarded,
