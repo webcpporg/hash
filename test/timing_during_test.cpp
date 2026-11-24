@@ -352,13 +352,13 @@ void pieces_in_the_call() {
     std::array<std::uint8_t, 32> prk{};
     std::array<std::uint8_t, 42> okm{};
     during("async_hkdf_extract over pieces", [&] {
-        through_the_event_loop([&](auto executor, auto handler) {
+        through_the_event_loop([&](auto const& executor, auto handler) {
             hash::async_hkdf_extract<hash::hmac_sha2_256, test::dit_probe_backend>(
                 executor, prk, test_salt, {key_bytes.first(10), key_bytes.subspan(10)}, handler);
         });
     });
     during("async_hkdf_expand over pieces", [&] {
-        through_the_event_loop([&](auto executor, auto handler) {
+        through_the_event_loop([&](auto const& executor, auto handler) {
             hash::async_hkdf_expand<hash::hmac_sha2_256, test::dit_probe_backend>(
                 executor, okm, prk, {info_bytes.first(3), info_bytes.subspan(3)}, handler);
         });
@@ -366,7 +366,7 @@ void pieces_in_the_call() {
     std::array<std::uint8_t, 42> const expanded = okm;
     okm = {};
     during("async_hkdf over pieces", [&] {
-        through_the_event_loop([&](auto executor, auto handler) {
+        through_the_event_loop([&](auto const& executor, auto handler) {
             hash::async_hkdf<hash::hmac_sha2_256, test::dit_probe_backend>(
                 executor, okm, test_salt, {key_bytes.first(10), key_bytes.subspan(10)},
                 {info_bytes.first(3), info_bytes.subspan(3)}, handler);
