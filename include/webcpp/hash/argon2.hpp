@@ -59,12 +59,12 @@ namespace webcpp::hash {
 */
 struct argon2id_parameters {
     /** The number of passes over the memory, t: 1 to 4,294,967,295. */
-    std::uint64_t passes;
+    std::uint64_t passes{};
     /**
      The memory in bytes, m times 1,024: at least 8,192, a multiple of 1,024, at most 4 TiB less
      1 KiB (2 GiB on wasm32).
     */
-    std::size_t memory;
+    std::size_t memory{};
 };
 
 /** libsodium's interactive costs: 2 passes over 64 MiB. */
@@ -191,9 +191,9 @@ template <class Backend = default_backend<kdfs::argon2id>>
 */
 struct argon2_parameters {
     /** The number of passes over the memory, t: at least 1. */
-    std::uint32_t passes;
+    std::uint32_t passes{};
     /** The memory in kibibytes (KiB), RFC 9106's m: at least 8 times the lanes. */
-    std::uint32_t memory_kibibytes;
+    std::uint32_t memory_kibibytes{};
     /** The degree of parallelism, p: 1 to 16,777,215. */
     std::uint32_t lanes = 1;
     /** The secret, K (a pepper): at most 4,294,967,295 bytes, empty for none. */

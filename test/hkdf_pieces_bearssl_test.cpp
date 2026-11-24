@@ -91,7 +91,7 @@ void check_extract_scenario() {
     if (by_bearssl && by_hash2) {
         BOOST_TEST(std::ranges::equal(*by_bearssl, *by_hash2));
     }
-    static_cast<void>(test::wiped_sizes());
+    test::clear_wipes();
 }
 
 // The wipes of the three steps over Hmac, with an output of two blocks: Extract wipes its HMAC
@@ -109,7 +109,7 @@ void check_wipes() {
     std::array<piece, 3> const ikm_pieces{piece(ikm).first(5), piece{}, piece(ikm).subspan(5)};
     std::array<piece, 2> const info_pieces{piece(info).first(3), piece(info).subspan(3)};
     std::vector<std::uint8_t> output(digest + 10);
-    static_cast<void>(test::wiped_sizes());
+    test::clear_wipes();
 
     auto const prk = hash::hkdf_extract<Hmac, bearssl>(salt, ikm_pieces);
     BOOST_TEST(prk.has_value());

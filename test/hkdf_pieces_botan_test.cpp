@@ -96,7 +96,7 @@ void check_wipes() {
     std::array<piece, 3> const ikm_pieces{piece(ikm).first(5), piece{}, piece(ikm).subspan(5)};
     std::array<piece, 2> const info_pieces{piece(info).first(3), piece(info).subspan(3)};
     std::vector<std::uint8_t> output(digest + 10);
-    static_cast<void>(test::wiped_sizes());
+    test::clear_wipes();
 
     auto const prk = hash::hkdf_extract<Hmac, botan>(salt, ikm_pieces);
     BOOST_TEST(prk.has_value());
@@ -136,7 +136,7 @@ void check_long_salt() {
     BOOST_TEST((hash::hkdf<Hmac, botan>(whole_by_botan, salt, ikm_pieces, info_pieces)));
     BOOST_TEST((hash::hkdf<Hmac, hash::backends::hash2>(whole_by_hash2, salt, ikm, info)));
     BOOST_TEST(whole_by_botan == whole_by_hash2);
-    static_cast<void>(test::wiped_sizes());
+    test::clear_wipes();
 }
 
 }  // namespace
