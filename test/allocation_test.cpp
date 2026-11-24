@@ -915,7 +915,10 @@ void async_cheap() {
                                               std::move(handler));
     });
     std::array<std::span<std::uint8_t const>, 3> const pieces{
-        message_input.first(5), std::span<std::uint8_t const>{}, message_input.subspan(5)};
+        message_input.first(5),
+        std::span<std::uint8_t const>{},
+        message_input.subspan(5),
+    };
     std::span<std::uint8_t const> const prk = message_input.first(32);
     async_allocates_nothing("async_hkdf over pieces", context, fine, [&](auto handler) {
         hash::async_hkdf<hash::hmac_sha2_256>(executor, out, {}, pieces, pieces,

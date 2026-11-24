@@ -348,7 +348,10 @@ void check_hkdf_steps(asio::io_context& context) {
     std::span<std::uint8_t const> const ikm(a1.input_key_material);
     std::span<std::uint8_t const> const info(a1.application_info);
     std::array<std::span<std::uint8_t const>, 3> const ikm_pieces{
-        ikm.first(5), std::span<std::uint8_t const>{}, ikm.subspan(5)};
+        ikm.first(5),
+        std::span<std::uint8_t const>{},
+        ikm.subspan(5),
+    };
     std::array<std::span<std::uint8_t const>, 2> const info_pieces{info.first(3), info.subspan(3)};
 
     std::array<std::uint8_t, 32> prk_expected{};

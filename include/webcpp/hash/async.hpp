@@ -314,9 +314,9 @@ auto complete_with_code(Executor const& executor, CompletionToken& token,
  guards' errors, `pseudorandom_key` untouched; or the backend's failure, `pseudorandom_key` zeroed.
 */
 template <class Hmac, class Backend, class InputKeyMaterial>
-boost::system::result<void> hkdf_extract_into(std::span<std::uint8_t> pseudorandom_key,
-                                              std::span<std::uint8_t const> salt,
-                                              InputKeyMaterial input_key_material) {
+[[nodiscard]] boost::system::result<void> hkdf_extract_into(
+    std::span<std::uint8_t> pseudorandom_key, std::span<std::uint8_t const> salt,
+    InputKeyMaterial input_key_material) {
     // Hash2 1.92 declares no std::tuple_size for digest<N>; its size() is constexpr.
     constexpr std::size_t digest_length = typename Hmac::result_type().size();
     if (pseudorandom_key.size() != digest_length) {

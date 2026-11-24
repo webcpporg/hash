@@ -277,8 +277,10 @@ void check_cheap(asio::io_context& context, asio::thread_pool& pool) {
         hash::async_hkdf<hash::hmac_sha2_256>(loop, output, test_salt, key, test_password,
                                               std::move(handler));
     });
-    std::array<std::span<std::uint8_t const>, 2> const pieces{std::span(test_password).first(3),
-                                                              std::span(test_password).subspan(3)};
+    std::array<std::span<std::uint8_t const>, 2> const pieces{
+        std::span(test_password).first(3),
+        std::span(test_password).subspan(3),
+    };
     cheap("async_hkdf over pieces", "hash::hkdf(byte_pieces", context, pool, [&](auto handler) {
         hash::async_hkdf<hash::hmac_sha2_256>(loop, output, test_salt, pieces, pieces,
                                               std::move(handler));
