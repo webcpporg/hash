@@ -113,6 +113,25 @@ template <class Hmac, class Backend>
 }
 
 /**
+ The guards of the single-buffer `hkdf_extract`, without the work: `Backend`'s limits on the salt
+ and on the input keying material. `async_hkdf_extract` checks them before its output is written.
+
+ @tparam Backend The backend. @param salt_size The salt's size.
+ @param input_key_material_size The input keying material's size.
+ @return Success, or `input_too_long`.
+*/
+template <class Backend>
+[[nodiscard]] boost::system::result<void> hkdf_extract_guards(
+    std::size_t salt_size, std::size_t input_key_material_size) noexcept {
+    using limits = backend_limits<Backend>;
+    if (exceeds(salt_size, limits::hkdf_salt) ||
+        exceeds(input_key_material_size, limits::hkdf_input_key_material)) {
+        return error::input_too_long;
+    }
+    return {};
+}
+
+/**
  The guard of HKDF's salt over pieces, the Extract HMAC's key: `Backend`'s HMAC key limit
  (`backend_limits`' `hkdf_salt`, as `backends::openssl`'s `INT_MAX`). `hkdf_extract` over pieces
  calls it alone, `hkdf_pieces_guards` after the output's size.
@@ -170,10 +189,10 @@ template <class Hmac, class Backend = default_kdf_backend<Hmac, kdfs::hkdf_extra
     if constexpr (!detail::takes_hmac<Hmac>()) {
         return error::backend_failure;  // unreachable: takes_hmac has stopped the build
     } else {
-        using limits = detail::backend_limits<Backend>;
-        if (detail::exceeds(salt.size(), limits::hkdf_salt) ||
-            detail::exceeds(input_key_material.size(), limits::hkdf_input_key_material)) {
-            return error::input_too_long;
+        auto const guarded =
+            detail::hkdf_extract_guards<Backend>(salt.size(), input_key_material.size());
+        if (!guarded) {
+            return guarded.error();
         }
         return detail::hkdf_engine<Backend, Hmac>::extract(salt, input_key_material);
     }

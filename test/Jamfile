@@ -547,12 +547,14 @@ hash-run webcrypto_oracle : webcrypto_oracle_test.cpp
     <linkflags>-sJSPI : emscripten ;
 
 # The asynchronous family (spec 11). The cheap functions on a synchronous
-# backend, their default and backends::hash2 named, complete through a post,
-# never inside the call, on every target. The heavy functions run on a
+# backend, their default and backends::hash2 named (the HKDF functions also
+# backends::sodium), complete through a post, never inside the call, on every
+# target; the forms over pieces read them in the call. The heavy functions run on a
 # thread_pool's thread where the build has threads: natively and on Emscripten
 # with -pthread (threading=multi), whose pools' three workers start before
 # main blocks in run (PTHREAD_POOL_SIZE).
-hash-run async_post : async_post_test.cpp : <library>/webcpp/asio//asio ;
+hash-run async_post : async_post_test.cpp
+  : <library>/webcpp/asio//asio <library>/third_party//sodium ;
 # backends::webcrypto, node's crypto.subtle through webcpp::asio's promise
 # bridge (Emscripten only, asio's JSPI link): the published cases with three
 # completion tokens, 100 random cases per function against backends::hash2,

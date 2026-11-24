@@ -21,13 +21,14 @@
 // (mmap is not among the calls the counter sees, so those are libsodium's small bookkeeping blocks,
 // not the memory). The asynchronous family (async.hpp, increment 7) takes its storage from the
 // handler's associated allocator, as Asio's operations do: with an arena of the test's bound to the
-// handler, the cheap functions (async_digest, async_hmac, async_hkdf, and their guards' refusals)
-// call neither operator new nor the C allocator, and the arena gets back every block before the
-// handler runs; the heavy functions (natively, on a thread pool) take their state and completion
-// from the arena too and call no operator new, the pool's queue and libsodium's memory being the C
-// allocator's; on Emscripten the four functions on backends::webcrypto call the C allocator only as
-// often as webcpp::asio's promise bridge does for a bare await, once per promise. Every printed
-// result is one `record key=value ...` line, collected by bench/allocation_collect.py.
+// handler, the cheap functions (async_digest, async_hmac, async_hkdf_extract, async_hkdf_expand,
+// async_hkdf, each HKDF function also over pieces, and their guards' refusals) call neither
+// operator new nor the C allocator, and the arena gets back every block before the handler runs;
+// the heavy functions (natively, on a thread pool) take their state and completion from the arena
+// too and call no operator new, the pool's queue and libsodium's memory being the C allocator's; on
+// Emscripten the four functions on backends::webcrypto call the C allocator only as often as
+// webcpp::asio's promise bridge does for a bare await, once per promise. Every printed result is
+// one `record key=value ...` line, collected by bench/allocation_collect.py.
 
 #include <webcpp/hash/algorithms.hpp>
 #include <webcpp/hash/argon2.hpp>
@@ -875,7 +876,8 @@ void async_allocates_nothing(char const* name, webcpp::asio::io_context& context
 }
 
 // The cheap functions on their default backend, a result and a refusal each (an output of 0
-// bytes): 6 calls. One call before the windows lets the io_context make what it makes once.
+// bytes), each HKDF function also over pieces: 16 calls. One call before the windows lets the
+// io_context make what it makes once.
 void async_cheap() {
     namespace asio = webcpp::asio;
     std::size_t const before = calls_made;
@@ -912,7 +914,52 @@ void async_cheap() {
         hash::async_hkdf<hash::hmac_sha2_256>(executor, none, {}, message_input, {},
                                               std::move(handler));
     });
-    BOOST_TEST_EQ(calls_made - before, 6U);
+    std::array<std::span<std::uint8_t const>, 3> const pieces{
+        message_input.first(5), std::span<std::uint8_t const>{}, message_input.subspan(5)};
+    std::span<std::uint8_t const> const prk = message_input.first(32);
+    async_allocates_nothing("async_hkdf over pieces", context, fine, [&](auto handler) {
+        hash::async_hkdf<hash::hmac_sha2_256>(executor, out, {}, pieces, pieces,
+                                              std::move(handler));
+    });
+    async_allocates_nothing("async_hkdf over pieces refused", context, refused, [&](auto handler) {
+        hash::async_hkdf<hash::hmac_sha2_256>(executor, none, {}, pieces, pieces,
+                                              std::move(handler));
+    });
+    async_allocates_nothing("async_hkdf_extract", context, fine, [&](auto handler) {
+        hash::async_hkdf_extract<hash::hmac_sha2_256>(executor, out, {}, message_input,
+                                                      std::move(handler));
+    });
+    async_allocates_nothing("async_hkdf_extract refused", context, refused, [&](auto handler) {
+        hash::async_hkdf_extract<hash::hmac_sha2_256>(executor, none, {}, message_input,
+                                                      std::move(handler));
+    });
+    async_allocates_nothing("async_hkdf_extract over pieces", context, fine, [&](auto handler) {
+        hash::async_hkdf_extract<hash::hmac_sha2_256>(executor, out, {}, pieces,
+                                                      std::move(handler));
+    });
+    async_allocates_nothing("async_hkdf_extract over pieces refused", context, refused,
+                            [&](auto handler) {
+                                hash::async_hkdf_extract<hash::hmac_sha2_256>(
+                                    executor, none, {}, pieces, std::move(handler));
+                            });
+    async_allocates_nothing("async_hkdf_expand", context, fine, [&](auto handler) {
+        hash::async_hkdf_expand<hash::hmac_sha2_256>(executor, out, prk, message_input,
+                                                     std::move(handler));
+    });
+    async_allocates_nothing("async_hkdf_expand refused", context, refused, [&](auto handler) {
+        hash::async_hkdf_expand<hash::hmac_sha2_256>(executor, none, prk, message_input,
+                                                     std::move(handler));
+    });
+    async_allocates_nothing("async_hkdf_expand over pieces", context, fine, [&](auto handler) {
+        hash::async_hkdf_expand<hash::hmac_sha2_256>(executor, out, prk, pieces,
+                                                     std::move(handler));
+    });
+    async_allocates_nothing("async_hkdf_expand over pieces refused", context, refused,
+                            [&](auto handler) {
+                                hash::async_hkdf_expand<hash::hmac_sha2_256>(
+                                    executor, none, prk, pieces, std::move(handler));
+                            });
+    BOOST_TEST_EQ(calls_made - before, 16U);
 }
 
 #ifdef WEBCPP_TARGET_EMSCRIPTEN

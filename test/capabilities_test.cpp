@@ -980,6 +980,20 @@ std::vector<refusal> const& refusals() {
         },
         {
             .header = "async.hpp",
+            .start = "async_hkdf_extract takes hmac_sha1_160, hmac_sha2_256",
+            .backend = "",
+            .functions = {},
+            .hmacs = {},
+        },
+        {
+            .header = "async.hpp",
+            .start = "async_hkdf_expand takes hmac_sha1_160, hmac_sha2_256",
+            .backend = "",
+            .functions = {},
+            .hmacs = {},
+        },
+        {
+            .header = "async.hpp",
             .start = "async_pbkdf2 runs on another thread",
             .backend = "",
             .functions = {},

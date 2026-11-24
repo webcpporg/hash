@@ -4,20 +4,28 @@
 // accompanying file LICENSE_1_0.txt or copy at
 // https://www.boost.org/LICENSE_1_0.txt)
 
-// The cheap functions of the asynchronous family, async_digest, async_hmac and async_hkdf, on a
-// synchronous backend (spec 11.2): on their default, default_backend's (ruling R76), and on
-// backends::hash2 named, as a program on Emscripten names it to keep WebCrypto out (ruling R77,
-// C-m2). Each completes through a post on the handler's associated executor, never inside the
-// initiating call: a callback records whether the call has returned. The result equals the
-// synchronous function's; a guard's refusal (an output of 0 bytes) completes with
-// invalid_output_size through the executor; use_future completes; co_await in Asio
+// The cheap functions of the asynchronous family, async_digest, async_hmac, async_hkdf_extract,
+// async_hkdf_expand and async_hkdf, each HKDF function also over byte pieces, on a synchronous
+// backend (spec 11.2): on their default, default_backend's (ruling R76), and on backends::hash2
+// named, as a program on Emscripten names it to keep WebCrypto out (ruling R77, C-m2); the HKDF
+// steps and the pieces forms also on backends::sodium. Each completes through a post on the
+// handler's associated executor, never inside the initiating call: a callback records whether the
+// call has returned. The result equals the synchronous function's; a guard's refusal (an output of
+// 0 bytes, a pseudorandom key output or input of another size than the digest's) completes with
+// its error through the executor, the output untouched; use_future completes; co_await in Asio
 // (use_awaitable) gives the result and, through as_tuple, a refusal; and a counting allocator
-// associated with the handler holds the operation's storage. Without exceptions an error is
-// read by a callback alone: use_future's error path makes an exception (ruling R71). The
-// asynchronous default equals the synchronous one for every tag the family serves.
+// associated with the handler holds the operation's storage. The pieces forms read their pieces in
+// the initiating call (ruling R4): a braced list of pieces whose bytes are overwritten after the
+// call gives the HKDF of the original bytes, with a callback, with asio::deferred launched after
+// the list's full-expression has ended, and with a use_awaitable awaitable awaited after it.
+// Without exceptions an error is read by a callback alone: use_future's error path makes an
+// exception (ruling R71). The asynchronous default equals the synchronous one for every tag the
+// family serves.
 
 #include <webcpp/hash/async.hpp>
 #include <webcpp/hash/backends/hash2.hpp>
+#include <webcpp/hash/backends/sodium.hpp>
+#include <webcpp/hash/byte_pieces.hpp>
 #include <webcpp/hash/digest.hpp>
 #include <webcpp/hash/error.hpp>
 #include <webcpp/hash/hkdf.hpp>
@@ -29,6 +37,7 @@
 #include <webcpp/asio/awaitable.hpp>
 #include <webcpp/asio/bind_allocator.hpp>
 #include <webcpp/asio/co_spawn.hpp>
+#include <webcpp/asio/deferred.hpp>
 #include <webcpp/asio/io_context.hpp>
 #include <webcpp/asio/this_coro.hpp>
 #include <webcpp/asio/use_awaitable.hpp>
@@ -44,6 +53,7 @@
 
 #include "support/hex.hpp"
 
+#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -54,6 +64,7 @@
 #include <string_view>
 #include <type_traits>
 #include <utility>
+#include <vector>
 
 namespace asio = webcpp::asio;
 namespace hash = webcpp::hash;
@@ -276,6 +287,240 @@ void check_hkdf(asio::io_context& context) {
     BOOST_TEST(code == hash::error::invalid_output_size);
 }
 
+// RFC 5869's A.1: its input keying material, salt and application info, and its pseudorandom key
+// and output keying material.
+struct rfc5869_a1 {
+    std::vector<std::uint8_t> input_key_material =
+        from_hex("0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b");
+    std::vector<std::uint8_t> salt = from_hex("000102030405060708090a0b0c");
+    std::vector<std::uint8_t> application_info = from_hex("f0f1f2f3f4f5f6f7f8f9");
+    std::string pseudorandom_key =
+        "077709362c2e32df0ddc3f0dc47bba6390b6c73bb50f9c3122ec844ad7c2b3e5";
+    std::string output_key_material =
+        "3cb25f25faacd57a90434f64d0362f2a2d2d0a90cf1a5a4c5db02d56ecc4c5bf34007208d5b887185865";
+};
+
+// One form of an HKDF function: `start(output, token)` initiates it into `output` and returns what
+// the token gives. With a callback it completes through the executor after the call, with
+// use_future and with a counting allocator too, each output equal to `expected`.
+template <std::size_t Size, class Start>
+void check_form(asio::io_context& context, std::array<std::uint8_t, Size> const& expected,
+                Start start) {
+    std::array<std::uint8_t, Size> output{};
+    auto const code = complete_by_callback(
+        context, [&](auto token) { start(std::span<std::uint8_t>(output), std::move(token)); });
+    BOOST_TEST(!code);
+    BOOST_TEST(output == expected);
+
+    std::array<std::uint8_t, Size> by_future{};
+    check_future(context,
+                 [&](auto token) { return start(std::span<std::uint8_t>(by_future), token); });
+    BOOST_TEST(by_future == expected);
+
+    std::array<std::uint8_t, Size> counted{};
+    check_allocator(context,
+                    [&](auto token) { start(std::span<std::uint8_t>(counted), std::move(token)); });
+    BOOST_TEST(counted == expected);
+}
+
+// A guard's refusal of one form: `start(output, token)` on an output of `Size` bytes completes with
+// `expected` through the executor, after the call, the output untouched.
+template <std::size_t Size, class Start>
+void check_refusal(asio::io_context& context, boost::system::error_code expected, Start start) {
+    std::array<std::uint8_t, Size> output{};
+    output.fill(0xa5);
+    auto const before = output;
+    auto const code = complete_by_callback(
+        context, [&](auto token) { start(std::span<std::uint8_t>(output), std::move(token)); });
+    BOOST_TEST(code == expected);
+    BOOST_TEST(output == before);
+}
+
+// async_hkdf_extract and async_hkdf_expand, each single-buffer and over pieces, and async_hkdf over
+// pieces, on Backend (none: the default): RFC 5869's A.1, the pieces a split of its inputs with an
+// empty piece among them, against the synchronous functions; each with use_awaitable; and each
+// refusal of RFC 5869's sizes.
+template <class... Backend>
+void check_hkdf_steps(asio::io_context& context) {
+    auto executor = context.get_executor();
+    rfc5869_a1 const a1;
+    std::span<std::uint8_t const> const salt(a1.salt);
+    std::span<std::uint8_t const> const ikm(a1.input_key_material);
+    std::span<std::uint8_t const> const info(a1.application_info);
+    std::array<std::span<std::uint8_t const>, 3> const ikm_pieces{
+        ikm.first(5), std::span<std::uint8_t const>{}, ikm.subspan(5)};
+    std::array<std::span<std::uint8_t const>, 2> const info_pieces{info.first(3), info.subspan(3)};
+
+    std::array<std::uint8_t, 32> prk_expected{};
+    auto const extracted = hash::hkdf_extract<hash::hmac_sha2_256, Backend...>(salt, ikm);
+    BOOST_TEST(extracted.has_value());
+    if (extracted) {
+        std::ranges::copy(*extracted, prk_expected.begin());
+    }
+    BOOST_TEST_EQ(to_hex(prk_expected), a1.pseudorandom_key);
+    std::array<std::uint8_t, 42> okm_expected{};
+    BOOST_TEST(
+        (hash::hkdf_expand<hash::hmac_sha2_256, Backend...>(okm_expected, prk_expected, info))
+            .has_value());
+    BOOST_TEST_EQ(to_hex(okm_expected), a1.output_key_material);
+    std::span<std::uint8_t const> const prk(prk_expected);
+
+    auto const extract = [&](std::span<std::uint8_t> output, auto token) {
+        return hash::async_hkdf_extract<hash::hmac_sha2_256, Backend...>(executor, output, salt,
+                                                                         ikm, std::move(token));
+    };
+    auto const extract_pieces = [&](std::span<std::uint8_t> output, auto token) {
+        return hash::async_hkdf_extract<hash::hmac_sha2_256, Backend...>(
+            executor, output, salt, ikm_pieces, std::move(token));
+    };
+    auto const expand = [&](std::span<std::uint8_t> output, auto token) {
+        return hash::async_hkdf_expand<hash::hmac_sha2_256, Backend...>(executor, output, prk, info,
+                                                                        std::move(token));
+    };
+    auto const expand_pieces = [&](std::span<std::uint8_t> output, auto token) {
+        return hash::async_hkdf_expand<hash::hmac_sha2_256, Backend...>(
+            executor, output, prk, info_pieces, std::move(token));
+    };
+    auto const derive_pieces = [&](std::span<std::uint8_t> output, auto token) {
+        return hash::async_hkdf<hash::hmac_sha2_256, Backend...>(executor, output, salt, ikm_pieces,
+                                                                 info_pieces, std::move(token));
+    };
+    check_form(context, prk_expected, extract);
+    check_form(context, prk_expected, extract_pieces);
+    check_form(context, okm_expected, expand);
+    check_form(context, okm_expected, expand_pieces);
+    check_form(context, okm_expected, derive_pieces);
+
+    // use_awaitable: each form awaited in a coroutine of the context.
+    std::array<std::uint8_t, 32> awaited_prk{};
+    std::array<std::uint8_t, 32> awaited_prk_pieces{};
+    std::array<std::uint8_t, 42> awaited_okm{};
+    std::array<std::uint8_t, 42> awaited_okm_pieces{};
+    std::array<std::uint8_t, 42> awaited_derived{};
+    bool done = false;
+    asio::co_spawn(
+        context,
+        [&]() -> asio::awaitable<void> {
+            auto const token = asio::as_tuple(asio::use_awaitable);
+            auto [extracted_code] = co_await extract(awaited_prk, token);
+            BOOST_TEST(!extracted_code);
+            auto [extracted_pieces_code] = co_await extract_pieces(awaited_prk_pieces, token);
+            BOOST_TEST(!extracted_pieces_code);
+            auto [expanded_code] = co_await expand(awaited_okm, token);
+            BOOST_TEST(!expanded_code);
+            auto [expanded_pieces_code] = co_await expand_pieces(awaited_okm_pieces, token);
+            BOOST_TEST(!expanded_pieces_code);
+            auto [derived_code] = co_await derive_pieces(awaited_derived, token);
+            BOOST_TEST(!derived_code);
+            done = true;
+        },
+        [](std::exception_ptr const& failure) { BOOST_TEST(!failure); });
+    context.restart();
+    context.run();  // lint-run: the test's event loop
+    BOOST_TEST(done);
+    BOOST_TEST(awaited_prk == prk_expected);
+    BOOST_TEST(awaited_prk_pieces == prk_expected);
+    BOOST_TEST(awaited_okm == okm_expected);
+    BOOST_TEST(awaited_okm_pieces == okm_expected);
+    BOOST_TEST(awaited_derived == okm_expected);
+
+    // The refusals: Extract's pseudorandom key output of no byte, of 31 and of 33 bytes; Expand's
+    // output of no byte and pseudorandom key of 31 bytes; hkdf's output of no byte and of
+    // 255 * 32 + 1 bytes.
+    boost::system::error_code const output_size = hash::error::invalid_output_size;
+    boost::system::error_code const key_size = hash::error::invalid_key_size;
+    auto const refuse_extract = [&](auto const& start) {
+        check_refusal<0>(context, output_size, start);
+        check_refusal<31>(context, output_size, start);
+        check_refusal<33>(context, output_size, start);
+    };
+    refuse_extract(extract);
+    refuse_extract(extract_pieces);
+    check_refusal<0>(context, output_size, expand);
+    check_refusal<0>(context, output_size, expand_pieces);
+    check_refusal<42>(context, key_size, [&](std::span<std::uint8_t> output, auto token) {
+        hash::async_hkdf_expand<hash::hmac_sha2_256, Backend...>(executor, output, prk.first(31),
+                                                                 info, std::move(token));
+    });
+    check_refusal<42>(context, key_size, [&](std::span<std::uint8_t> output, auto token) {
+        hash::async_hkdf_expand<hash::hmac_sha2_256, Backend...>(executor, output, prk.first(31),
+                                                                 info_pieces, std::move(token));
+    });
+    check_refusal<0>(context, output_size, derive_pieces);
+    check_refusal<(255 * 32) + 1>(context, output_size, derive_pieces);
+}
+
+// The spec's temporary list: async_hkdf over the braced lists {a, b} and {c, d}, whose arrays die
+// at the end of the call's full-expression, then a to d overwritten before the operation runs.
+// The pieces are read in the call (ruling R4): with a callback, with asio::deferred launched after
+// the overwrite, and with a use_awaitable awaitable awaited after it, the completion is a success
+// and the output is the HKDF of the original bytes.
+void check_temporary_lists(asio::io_context& context) {
+    auto const executor = context.get_executor();
+    auto const salt = from_hex("000102030405060708090a0b0c");
+    std::array<std::uint8_t, 4> a{};
+    std::array<std::uint8_t, 3> b{};
+    std::array<std::uint8_t, 2> c{};
+    std::array<std::uint8_t, 5> d{};
+    auto const restore = [&] {
+        a = {1, 2, 3, 4};
+        b = {5, 6, 7};
+        c = {8, 9};
+        d = {10, 11, 12, 13, 14};
+    };
+    auto const overwrite = [&] {
+        a.fill(0xff);
+        b.fill(0xff);
+        c.fill(0xff);
+        d.fill(0xff);
+    };
+    restore();
+    std::array<std::uint8_t, 42> expected{};
+    BOOST_TEST(hash::hkdf<hash::hmac_sha2_256>(expected, salt, {a, b}, {c, d}).has_value());
+    std::array<std::uint8_t, 42> joined{};
+    auto const ikm = from_hex("01020304050607");
+    auto const info = from_hex("08090a0b0c0d0e");
+    BOOST_TEST(hash::hkdf<hash::hmac_sha2_256>(joined, salt, ikm, info).has_value());
+    BOOST_TEST(expected == joined);
+
+    std::array<std::uint8_t, 42> output{};
+    auto code = complete_by_callback(context, [&](auto token) {
+        hash::async_hkdf<hash::hmac_sha2_256>(executor, output, salt, {a, b}, {c, d},
+                                              std::move(token));
+        overwrite();
+    });
+    BOOST_TEST(!code);
+    BOOST_TEST(output == expected);
+
+    restore();
+    std::array<std::uint8_t, 42> deferred_output{};
+    auto launch = hash::async_hkdf<hash::hmac_sha2_256>(executor, deferred_output, salt, {a, b},
+                                                        {c, d}, asio::deferred);
+    overwrite();
+    code = complete_by_callback(context, [&](auto token) { std::move(launch)(std::move(token)); });
+    BOOST_TEST(!code);
+    BOOST_TEST(deferred_output == expected);
+
+    restore();
+    std::array<std::uint8_t, 42> awaited{};
+    bool done = false;
+    asio::co_spawn(
+        context,
+        [&]() -> asio::awaitable<void> {
+            auto derive = hash::async_hkdf<hash::hmac_sha2_256>(
+                executor, awaited, salt, {a, b}, {c, d}, asio::as_tuple(asio::use_awaitable));
+            overwrite();
+            auto [derived] = co_await std::move(derive);
+            BOOST_TEST(!derived);
+            done = true;
+        },
+        [](std::exception_ptr const& failure) { BOOST_TEST(!failure); });
+    context.restart();
+    context.run();  // lint-run: the test's event loop
+    BOOST_TEST(done);
+    BOOST_TEST(awaited == expected);
+}
+
 // co_await in Asio: each function with use_awaitable in a coroutine of the context, its result the
 // synchronous function's; a refusal (an output of 0 bytes) through as_tuple(use_awaitable), and
 // with exceptions a plain use_awaitable throws system_error with hash's code.
@@ -365,6 +610,13 @@ static_assert(same_default<hash::macs::hmac<hash::digests::sha2_256>> &&
               same_default<hash::kdfs::hkdf> && same_default<hash::kdfs::pbkdf2>);
 static_assert(std::is_same_v<hash::default_async_backend<hash::kdfs::hkdf, hash::hmac_sha2_512>,
                              hash::backends::hash2>);
+static_assert(same_default<hash::kdfs::hkdf_extract> && same_default<hash::kdfs::hkdf_expand> &&
+              same_default<hash::kdfs::hkdf_pieces> &&
+              same_default<hash::kdfs::hkdf_extract_pieces> &&
+              same_default<hash::kdfs::hkdf_expand_pieces>);
+static_assert(
+    std::is_same_v<hash::default_async_backend<hash::kdfs::hkdf_pieces, hash::hmac_sha2_512>,
+                   hash::backends::hash2>);
 
 }  // namespace
 
@@ -377,6 +629,10 @@ int main() {
     check_hmac<hash::backends::hash2>(context);
     check_hkdf<>(context);
     check_hkdf<hash::backends::hash2>(context);
+    check_hkdf_steps<>(context);
+    check_hkdf_steps<hash::backends::hash2>(context);
+    check_hkdf_steps<hash::backends::sodium>(context);
+    check_temporary_lists(context);
     check_awaitable(context);
 #ifndef WEBCPP_HASH_NO_EXCEPTIONS
     check_future_error(context);
