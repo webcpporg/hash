@@ -18,8 +18,10 @@
  @code
  // password and salt: std::span<std::uint8_t const>
  std::array<std::uint8_t, 64> key{};
- auto done = webcpp::hash::scrypt(key, password, salt, {.cost = 32768, .block_size = 8, .parallelism
- = 1}); if (!done) { return done.error();  // key is as it was, or zeroed when the backend failed
+ auto done = webcpp::hash::scrypt(
+     key, password, salt, {.cost = 32768, .block_size = 8, .parallelism = 1});
+ if (!done) {
+     return done.error();  // key is as it was, or zeroed when the backend failed
  }
  @endcode
 
@@ -51,8 +53,7 @@ namespace webcpp::hash {
 
 /** The costs of scrypt, RFC 7914's N, r and p. */
 struct scrypt_parameters {
-    /** The CPU and memory cost, RFC 7914's N: a power of two, greater than 1, less than 2^(16 r).
-     */
+    /** The CPU and memory cost, RFC 7914's N: a power of two, greater than 1, below 2^(16 r). */
     std::uint64_t cost;
     /** The block size, RFC 7914's r, at least 1. */
     std::uint32_t block_size;

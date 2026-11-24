@@ -18,7 +18,7 @@
  // salt, input_key_material and application_info: std::span<std::uint8_t const>
  std::array<std::uint8_t, 32> key{};
  auto done = webcpp::hash::hkdf<webcpp::hash::hmac_sha2_256>(key, salt, input_key_material,
-                                                                    application_info);
+                                                             application_info);
  if (!done) {
      return done.error();  // key is as it was, or zeroed when the backend failed
  }

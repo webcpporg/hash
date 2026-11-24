@@ -295,9 +295,9 @@ Strands and type-erased executors of the `io_context` are accepted; behind
 type: pass the inner strand, or the executor of the `io_context`. That the
 `io_context` runs on the calling thread is the program's duty: it cannot be
 checked.
-* *WebCrypto's limits are narrower.* An HKDF application_info longer than 1,024 bytes
-(node's limit, where the other backends take 32,768) completes with
-`input_too_long`; PBKDF2's iteration count is at most 2^32 - 1
+* *WebCrypto's limits are narrower.* An HKDF application_info longer than
+1,024 bytes (node's limit, where the other backends take 32,768) completes
+with `input_too_long`; PBKDF2's iteration count is at most 2^32 - 1
 (`invalid_iterations`); an output of HKDF or PBKDF2 is at most
 (2^32 - 1) / 8 bytes. A program that needs more names a synchronous backend.
 * *An empty HMAC key is one zero byte.* WebCrypto refuses an empty key; HMAC
