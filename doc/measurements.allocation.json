@@ -1,6 +1,6 @@
 {
   "measurement": "allocations per call, native with the C allocator counted where it can be",
-  "date": "2026-11-21",
+  "date": "2026-11-24",
   "build": "variant=release",
   "toolsets": {
     "native": "clang-darwin-21",
@@ -1796,6 +1796,39 @@
       "c_allocator_counted": true
     },
     {
+      "operation": "hkdf_extract_pieces",
+      "backend": "botan",
+      "target": "native",
+      "implementation": "backends::botan",
+      "tag": "hmac_md5_128",
+      "call": 1,
+      "operator_new": 4,
+      "c_allocator_calls": 7,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_expand_pieces",
+      "backend": "botan",
+      "target": "native",
+      "implementation": "backends::botan",
+      "tag": "hmac_md5_128",
+      "call": 1,
+      "operator_new": 4,
+      "c_allocator_calls": 11,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_pieces",
+      "backend": "botan",
+      "target": "native",
+      "implementation": "backends::botan",
+      "tag": "hmac_md5_128",
+      "call": 1,
+      "operator_new": 8,
+      "c_allocator_calls": 18,
+      "c_allocator_counted": true
+    },
+    {
       "operation": "hkdf_extract",
       "backend": "botan",
       "target": "native",
@@ -1851,6 +1884,39 @@
       "c_allocator_counted": true
     },
     {
+      "operation": "hkdf_extract_pieces",
+      "backend": "botan",
+      "target": "native",
+      "implementation": "backends::botan",
+      "tag": "hmac_md5_128",
+      "call": 2,
+      "operator_new": 4,
+      "c_allocator_calls": 7,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_expand_pieces",
+      "backend": "botan",
+      "target": "native",
+      "implementation": "backends::botan",
+      "tag": "hmac_md5_128",
+      "call": 2,
+      "operator_new": 4,
+      "c_allocator_calls": 11,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_pieces",
+      "backend": "botan",
+      "target": "native",
+      "implementation": "backends::botan",
+      "tag": "hmac_md5_128",
+      "call": 2,
+      "operator_new": 8,
+      "c_allocator_calls": 18,
+      "c_allocator_counted": true
+    },
+    {
       "operation": "hkdf_extract",
       "backend": "botan",
       "target": "native",
@@ -1906,6 +1972,39 @@
       "c_allocator_counted": true
     },
     {
+      "operation": "hkdf_extract_pieces",
+      "backend": "botan",
+      "target": "native",
+      "implementation": "backends::botan",
+      "tag": "hmac_sha1_160",
+      "call": 1,
+      "operator_new": 4,
+      "c_allocator_calls": 7,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_expand_pieces",
+      "backend": "botan",
+      "target": "native",
+      "implementation": "backends::botan",
+      "tag": "hmac_sha1_160",
+      "call": 1,
+      "operator_new": 4,
+      "c_allocator_calls": 11,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_pieces",
+      "backend": "botan",
+      "target": "native",
+      "implementation": "backends::botan",
+      "tag": "hmac_sha1_160",
+      "call": 1,
+      "operator_new": 8,
+      "c_allocator_calls": 18,
+      "c_allocator_counted": true
+    },
+    {
       "operation": "hkdf_extract",
       "backend": "botan",
       "target": "native",
@@ -1961,6 +2060,39 @@
       "c_allocator_counted": true
     },
     {
+      "operation": "hkdf_extract_pieces",
+      "backend": "botan",
+      "target": "native",
+      "implementation": "backends::botan",
+      "tag": "hmac_sha1_160",
+      "call": 2,
+      "operator_new": 4,
+      "c_allocator_calls": 7,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_expand_pieces",
+      "backend": "botan",
+      "target": "native",
+      "implementation": "backends::botan",
+      "tag": "hmac_sha1_160",
+      "call": 2,
+      "operator_new": 4,
+      "c_allocator_calls": 11,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_pieces",
+      "backend": "botan",
+      "target": "native",
+      "implementation": "backends::botan",
+      "tag": "hmac_sha1_160",
+      "call": 2,
+      "operator_new": 8,
+      "c_allocator_calls": 18,
+      "c_allocator_counted": true
+    },
+    {
       "operation": "hkdf_extract",
       "backend": "botan",
       "target": "native",
@@ -2016,6 +2148,39 @@
       "c_allocator_counted": true
     },
     {
+      "operation": "hkdf_extract_pieces",
+      "backend": "botan",
+      "target": "native",
+      "implementation": "backends::botan",
+      "tag": "hmac_sha2_224",
+      "call": 1,
+      "operator_new": 4,
+      "c_allocator_calls": 7,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_expand_pieces",
+      "backend": "botan",
+      "target": "native",
+      "implementation": "backends::botan",
+      "tag": "hmac_sha2_224",
+      "call": 1,
+      "operator_new": 4,
+      "c_allocator_calls": 9,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_pieces",
+      "backend": "botan",
+      "target": "native",
+      "implementation": "backends::botan",
+      "tag": "hmac_sha2_224",
+      "call": 1,
+      "operator_new": 8,
+      "c_allocator_calls": 16,
+      "c_allocator_counted": true
+    },
+    {
       "operation": "hkdf_extract",
       "backend": "botan",
       "target": "native",
@@ -2071,6 +2236,39 @@
       "c_allocator_counted": true
     },
     {
+      "operation": "hkdf_extract_pieces",
+      "backend": "botan",
+      "target": "native",
+      "implementation": "backends::botan",
+      "tag": "hmac_sha2_224",
+      "call": 2,
+      "operator_new": 4,
+      "c_allocator_calls": 7,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_expand_pieces",
+      "backend": "botan",
+      "target": "native",
+      "implementation": "backends::botan",
+      "tag": "hmac_sha2_224",
+      "call": 2,
+      "operator_new": 4,
+      "c_allocator_calls": 9,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_pieces",
+      "backend": "botan",
+      "target": "native",
+      "implementation": "backends::botan",
+      "tag": "hmac_sha2_224",
+      "call": 2,
+      "operator_new": 8,
+      "c_allocator_calls": 16,
+      "c_allocator_counted": true
+    },
+    {
       "operation": "hkdf_extract",
       "backend": "botan",
       "target": "native",
@@ -2126,6 +2324,39 @@
       "c_allocator_counted": true
     },
     {
+      "operation": "hkdf_extract_pieces",
+      "backend": "botan",
+      "target": "native",
+      "implementation": "backends::botan",
+      "tag": "hmac_sha2_256",
+      "call": 1,
+      "operator_new": 4,
+      "c_allocator_calls": 7,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_expand_pieces",
+      "backend": "botan",
+      "target": "native",
+      "implementation": "backends::botan",
+      "tag": "hmac_sha2_256",
+      "call": 1,
+      "operator_new": 4,
+      "c_allocator_calls": 9,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_pieces",
+      "backend": "botan",
+      "target": "native",
+      "implementation": "backends::botan",
+      "tag": "hmac_sha2_256",
+      "call": 1,
+      "operator_new": 8,
+      "c_allocator_calls": 16,
+      "c_allocator_counted": true
+    },
+    {
       "operation": "hkdf_extract",
       "backend": "botan",
       "target": "native",
@@ -2178,6 +2409,39 @@
       "call": 2,
       "operator_new": 18,
       "c_allocator_calls": 22,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_extract_pieces",
+      "backend": "botan",
+      "target": "native",
+      "implementation": "backends::botan",
+      "tag": "hmac_sha2_256",
+      "call": 2,
+      "operator_new": 4,
+      "c_allocator_calls": 7,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_expand_pieces",
+      "backend": "botan",
+      "target": "native",
+      "implementation": "backends::botan",
+      "tag": "hmac_sha2_256",
+      "call": 2,
+      "operator_new": 4,
+      "c_allocator_calls": 9,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_pieces",
+      "backend": "botan",
+      "target": "native",
+      "implementation": "backends::botan",
+      "tag": "hmac_sha2_256",
+      "call": 2,
+      "operator_new": 8,
+      "c_allocator_calls": 16,
       "c_allocator_counted": true
     },
     {
@@ -2236,6 +2500,39 @@
       "c_allocator_counted": true
     },
     {
+      "operation": "hkdf_extract_pieces",
+      "backend": "botan",
+      "target": "native",
+      "implementation": "backends::botan",
+      "tag": "hmac_sha2_384",
+      "call": 1,
+      "operator_new": 4,
+      "c_allocator_calls": 7,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_expand_pieces",
+      "backend": "botan",
+      "target": "native",
+      "implementation": "backends::botan",
+      "tag": "hmac_sha2_384",
+      "call": 1,
+      "operator_new": 4,
+      "c_allocator_calls": 7,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_pieces",
+      "backend": "botan",
+      "target": "native",
+      "implementation": "backends::botan",
+      "tag": "hmac_sha2_384",
+      "call": 1,
+      "operator_new": 8,
+      "c_allocator_calls": 14,
+      "c_allocator_counted": true
+    },
+    {
       "operation": "hkdf_extract",
       "backend": "botan",
       "target": "native",
@@ -2291,6 +2588,39 @@
       "c_allocator_counted": true
     },
     {
+      "operation": "hkdf_extract_pieces",
+      "backend": "botan",
+      "target": "native",
+      "implementation": "backends::botan",
+      "tag": "hmac_sha2_384",
+      "call": 2,
+      "operator_new": 4,
+      "c_allocator_calls": 7,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_expand_pieces",
+      "backend": "botan",
+      "target": "native",
+      "implementation": "backends::botan",
+      "tag": "hmac_sha2_384",
+      "call": 2,
+      "operator_new": 4,
+      "c_allocator_calls": 7,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_pieces",
+      "backend": "botan",
+      "target": "native",
+      "implementation": "backends::botan",
+      "tag": "hmac_sha2_384",
+      "call": 2,
+      "operator_new": 8,
+      "c_allocator_calls": 14,
+      "c_allocator_counted": true
+    },
+    {
       "operation": "hkdf_extract",
       "backend": "botan",
       "target": "native",
@@ -2346,6 +2676,39 @@
       "c_allocator_counted": true
     },
     {
+      "operation": "hkdf_extract_pieces",
+      "backend": "botan",
+      "target": "native",
+      "implementation": "backends::botan",
+      "tag": "hmac_sha2_512",
+      "call": 1,
+      "operator_new": 4,
+      "c_allocator_calls": 7,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_expand_pieces",
+      "backend": "botan",
+      "target": "native",
+      "implementation": "backends::botan",
+      "tag": "hmac_sha2_512",
+      "call": 1,
+      "operator_new": 4,
+      "c_allocator_calls": 7,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_pieces",
+      "backend": "botan",
+      "target": "native",
+      "implementation": "backends::botan",
+      "tag": "hmac_sha2_512",
+      "call": 1,
+      "operator_new": 8,
+      "c_allocator_calls": 14,
+      "c_allocator_counted": true
+    },
+    {
       "operation": "hkdf_extract",
       "backend": "botan",
       "target": "native",
@@ -2398,6 +2761,39 @@
       "call": 2,
       "operator_new": 18,
       "c_allocator_calls": 22,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_extract_pieces",
+      "backend": "botan",
+      "target": "native",
+      "implementation": "backends::botan",
+      "tag": "hmac_sha2_512",
+      "call": 2,
+      "operator_new": 4,
+      "c_allocator_calls": 7,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_expand_pieces",
+      "backend": "botan",
+      "target": "native",
+      "implementation": "backends::botan",
+      "tag": "hmac_sha2_512",
+      "call": 2,
+      "operator_new": 4,
+      "c_allocator_calls": 7,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_pieces",
+      "backend": "botan",
+      "target": "native",
+      "implementation": "backends::botan",
+      "tag": "hmac_sha2_512",
+      "call": 2,
+      "operator_new": 8,
+      "c_allocator_calls": 14,
       "c_allocator_counted": true
     },
     {
@@ -2456,6 +2852,39 @@
       "c_allocator_counted": true
     },
     {
+      "operation": "hkdf_extract_pieces",
+      "backend": "botan",
+      "target": "native",
+      "implementation": "backends::botan",
+      "tag": "hmac_sha2_512_256",
+      "call": 1,
+      "operator_new": 4,
+      "c_allocator_calls": 7,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_expand_pieces",
+      "backend": "botan",
+      "target": "native",
+      "implementation": "backends::botan",
+      "tag": "hmac_sha2_512_256",
+      "call": 1,
+      "operator_new": 4,
+      "c_allocator_calls": 9,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_pieces",
+      "backend": "botan",
+      "target": "native",
+      "implementation": "backends::botan",
+      "tag": "hmac_sha2_512_256",
+      "call": 1,
+      "operator_new": 8,
+      "c_allocator_calls": 16,
+      "c_allocator_counted": true
+    },
+    {
       "operation": "hkdf_extract",
       "backend": "botan",
       "target": "native",
@@ -2511,6 +2940,39 @@
       "c_allocator_counted": true
     },
     {
+      "operation": "hkdf_extract_pieces",
+      "backend": "botan",
+      "target": "native",
+      "implementation": "backends::botan",
+      "tag": "hmac_sha2_512_256",
+      "call": 2,
+      "operator_new": 4,
+      "c_allocator_calls": 7,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_expand_pieces",
+      "backend": "botan",
+      "target": "native",
+      "implementation": "backends::botan",
+      "tag": "hmac_sha2_512_256",
+      "call": 2,
+      "operator_new": 4,
+      "c_allocator_calls": 9,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_pieces",
+      "backend": "botan",
+      "target": "native",
+      "implementation": "backends::botan",
+      "tag": "hmac_sha2_512_256",
+      "call": 2,
+      "operator_new": 8,
+      "c_allocator_calls": 16,
+      "c_allocator_counted": true
+    },
+    {
       "operation": "hkdf_extract",
       "backend": "botan",
       "target": "native",
@@ -2566,6 +3028,39 @@
       "c_allocator_counted": true
     },
     {
+      "operation": "hkdf_extract_pieces",
+      "backend": "botan",
+      "target": "native",
+      "implementation": "backends::botan",
+      "tag": "hmac_sha3_224",
+      "call": 1,
+      "operator_new": 7,
+      "c_allocator_calls": 9,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_expand_pieces",
+      "backend": "botan",
+      "target": "native",
+      "implementation": "backends::botan",
+      "tag": "hmac_sha3_224",
+      "call": 1,
+      "operator_new": 7,
+      "c_allocator_calls": 11,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_pieces",
+      "backend": "botan",
+      "target": "native",
+      "implementation": "backends::botan",
+      "tag": "hmac_sha3_224",
+      "call": 1,
+      "operator_new": 14,
+      "c_allocator_calls": 20,
+      "c_allocator_counted": true
+    },
+    {
       "operation": "hkdf_extract",
       "backend": "botan",
       "target": "native",
@@ -2621,6 +3116,39 @@
       "c_allocator_counted": true
     },
     {
+      "operation": "hkdf_extract_pieces",
+      "backend": "botan",
+      "target": "native",
+      "implementation": "backends::botan",
+      "tag": "hmac_sha3_224",
+      "call": 2,
+      "operator_new": 7,
+      "c_allocator_calls": 9,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_expand_pieces",
+      "backend": "botan",
+      "target": "native",
+      "implementation": "backends::botan",
+      "tag": "hmac_sha3_224",
+      "call": 2,
+      "operator_new": 7,
+      "c_allocator_calls": 11,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_pieces",
+      "backend": "botan",
+      "target": "native",
+      "implementation": "backends::botan",
+      "tag": "hmac_sha3_224",
+      "call": 2,
+      "operator_new": 14,
+      "c_allocator_calls": 20,
+      "c_allocator_counted": true
+    },
+    {
       "operation": "hkdf_extract",
       "backend": "botan",
       "target": "native",
@@ -2676,6 +3204,39 @@
       "c_allocator_counted": true
     },
     {
+      "operation": "hkdf_extract_pieces",
+      "backend": "botan",
+      "target": "native",
+      "implementation": "backends::botan",
+      "tag": "hmac_sha3_256",
+      "call": 1,
+      "operator_new": 7,
+      "c_allocator_calls": 9,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_expand_pieces",
+      "backend": "botan",
+      "target": "native",
+      "implementation": "backends::botan",
+      "tag": "hmac_sha3_256",
+      "call": 1,
+      "operator_new": 7,
+      "c_allocator_calls": 11,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_pieces",
+      "backend": "botan",
+      "target": "native",
+      "implementation": "backends::botan",
+      "tag": "hmac_sha3_256",
+      "call": 1,
+      "operator_new": 14,
+      "c_allocator_calls": 20,
+      "c_allocator_counted": true
+    },
+    {
       "operation": "hkdf_extract",
       "backend": "botan",
       "target": "native",
@@ -2728,6 +3289,39 @@
       "call": 2,
       "operator_new": 24,
       "c_allocator_calls": 27,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_extract_pieces",
+      "backend": "botan",
+      "target": "native",
+      "implementation": "backends::botan",
+      "tag": "hmac_sha3_256",
+      "call": 2,
+      "operator_new": 7,
+      "c_allocator_calls": 9,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_expand_pieces",
+      "backend": "botan",
+      "target": "native",
+      "implementation": "backends::botan",
+      "tag": "hmac_sha3_256",
+      "call": 2,
+      "operator_new": 7,
+      "c_allocator_calls": 11,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_pieces",
+      "backend": "botan",
+      "target": "native",
+      "implementation": "backends::botan",
+      "tag": "hmac_sha3_256",
+      "call": 2,
+      "operator_new": 14,
+      "c_allocator_calls": 20,
       "c_allocator_counted": true
     },
     {
@@ -2786,6 +3380,39 @@
       "c_allocator_counted": true
     },
     {
+      "operation": "hkdf_extract_pieces",
+      "backend": "botan",
+      "target": "native",
+      "implementation": "backends::botan",
+      "tag": "hmac_sha3_384",
+      "call": 1,
+      "operator_new": 7,
+      "c_allocator_calls": 9,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_expand_pieces",
+      "backend": "botan",
+      "target": "native",
+      "implementation": "backends::botan",
+      "tag": "hmac_sha3_384",
+      "call": 1,
+      "operator_new": 7,
+      "c_allocator_calls": 9,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_pieces",
+      "backend": "botan",
+      "target": "native",
+      "implementation": "backends::botan",
+      "tag": "hmac_sha3_384",
+      "call": 1,
+      "operator_new": 14,
+      "c_allocator_calls": 18,
+      "c_allocator_counted": true
+    },
+    {
       "operation": "hkdf_extract",
       "backend": "botan",
       "target": "native",
@@ -2841,6 +3468,39 @@
       "c_allocator_counted": true
     },
     {
+      "operation": "hkdf_extract_pieces",
+      "backend": "botan",
+      "target": "native",
+      "implementation": "backends::botan",
+      "tag": "hmac_sha3_384",
+      "call": 2,
+      "operator_new": 7,
+      "c_allocator_calls": 9,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_expand_pieces",
+      "backend": "botan",
+      "target": "native",
+      "implementation": "backends::botan",
+      "tag": "hmac_sha3_384",
+      "call": 2,
+      "operator_new": 7,
+      "c_allocator_calls": 9,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_pieces",
+      "backend": "botan",
+      "target": "native",
+      "implementation": "backends::botan",
+      "tag": "hmac_sha3_384",
+      "call": 2,
+      "operator_new": 14,
+      "c_allocator_calls": 18,
+      "c_allocator_counted": true
+    },
+    {
       "operation": "hkdf_extract",
       "backend": "botan",
       "target": "native",
@@ -2896,6 +3556,39 @@
       "c_allocator_counted": true
     },
     {
+      "operation": "hkdf_extract_pieces",
+      "backend": "botan",
+      "target": "native",
+      "implementation": "backends::botan",
+      "tag": "hmac_sha3_512",
+      "call": 1,
+      "operator_new": 7,
+      "c_allocator_calls": 9,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_expand_pieces",
+      "backend": "botan",
+      "target": "native",
+      "implementation": "backends::botan",
+      "tag": "hmac_sha3_512",
+      "call": 1,
+      "operator_new": 7,
+      "c_allocator_calls": 9,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_pieces",
+      "backend": "botan",
+      "target": "native",
+      "implementation": "backends::botan",
+      "tag": "hmac_sha3_512",
+      "call": 1,
+      "operator_new": 14,
+      "c_allocator_calls": 18,
+      "c_allocator_counted": true
+    },
+    {
       "operation": "hkdf_extract",
       "backend": "botan",
       "target": "native",
@@ -2948,6 +3641,39 @@
       "call": 2,
       "operator_new": 24,
       "c_allocator_calls": 27,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_extract_pieces",
+      "backend": "botan",
+      "target": "native",
+      "implementation": "backends::botan",
+      "tag": "hmac_sha3_512",
+      "call": 2,
+      "operator_new": 7,
+      "c_allocator_calls": 9,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_expand_pieces",
+      "backend": "botan",
+      "target": "native",
+      "implementation": "backends::botan",
+      "tag": "hmac_sha3_512",
+      "call": 2,
+      "operator_new": 7,
+      "c_allocator_calls": 9,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_pieces",
+      "backend": "botan",
+      "target": "native",
+      "implementation": "backends::botan",
+      "tag": "hmac_sha3_512",
+      "call": 2,
+      "operator_new": 14,
+      "c_allocator_calls": 18,
       "c_allocator_counted": true
     },
     {
@@ -3006,6 +3732,39 @@
       "c_allocator_counted": true
     },
     {
+      "operation": "hkdf_extract_pieces",
+      "backend": "botan",
+      "target": "native",
+      "implementation": "backends::botan",
+      "tag": "hmac_ripemd_160",
+      "call": 1,
+      "operator_new": 4,
+      "c_allocator_calls": 7,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_expand_pieces",
+      "backend": "botan",
+      "target": "native",
+      "implementation": "backends::botan",
+      "tag": "hmac_ripemd_160",
+      "call": 1,
+      "operator_new": 4,
+      "c_allocator_calls": 11,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_pieces",
+      "backend": "botan",
+      "target": "native",
+      "implementation": "backends::botan",
+      "tag": "hmac_ripemd_160",
+      "call": 1,
+      "operator_new": 8,
+      "c_allocator_calls": 18,
+      "c_allocator_counted": true
+    },
+    {
       "operation": "hkdf_extract",
       "backend": "botan",
       "target": "native",
@@ -3061,6 +3820,39 @@
       "c_allocator_counted": true
     },
     {
+      "operation": "hkdf_extract_pieces",
+      "backend": "botan",
+      "target": "native",
+      "implementation": "backends::botan",
+      "tag": "hmac_ripemd_160",
+      "call": 2,
+      "operator_new": 4,
+      "c_allocator_calls": 7,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_expand_pieces",
+      "backend": "botan",
+      "target": "native",
+      "implementation": "backends::botan",
+      "tag": "hmac_ripemd_160",
+      "call": 2,
+      "operator_new": 4,
+      "c_allocator_calls": 11,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_pieces",
+      "backend": "botan",
+      "target": "native",
+      "implementation": "backends::botan",
+      "tag": "hmac_ripemd_160",
+      "call": 2,
+      "operator_new": 8,
+      "c_allocator_calls": 18,
+      "c_allocator_counted": true
+    },
+    {
       "operation": "hkdf_extract",
       "backend": "botan",
       "target": "native",
@@ -3116,6 +3908,39 @@
       "c_allocator_counted": true
     },
     {
+      "operation": "hkdf_extract_pieces",
+      "backend": "botan",
+      "target": "native",
+      "implementation": "backends::botan",
+      "tag": "hmac_blake2b_512",
+      "call": 1,
+      "operator_new": 7,
+      "c_allocator_calls": 10,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_expand_pieces",
+      "backend": "botan",
+      "target": "native",
+      "implementation": "backends::botan",
+      "tag": "hmac_blake2b_512",
+      "call": 1,
+      "operator_new": 7,
+      "c_allocator_calls": 10,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_pieces",
+      "backend": "botan",
+      "target": "native",
+      "implementation": "backends::botan",
+      "tag": "hmac_blake2b_512",
+      "call": 1,
+      "operator_new": 14,
+      "c_allocator_calls": 20,
+      "c_allocator_counted": true
+    },
+    {
       "operation": "hkdf_extract",
       "backend": "botan",
       "target": "native",
@@ -3168,6 +3993,39 @@
       "call": 2,
       "operator_new": 28,
       "c_allocator_calls": 32,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_extract_pieces",
+      "backend": "botan",
+      "target": "native",
+      "implementation": "backends::botan",
+      "tag": "hmac_blake2b_512",
+      "call": 2,
+      "operator_new": 7,
+      "c_allocator_calls": 10,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_expand_pieces",
+      "backend": "botan",
+      "target": "native",
+      "implementation": "backends::botan",
+      "tag": "hmac_blake2b_512",
+      "call": 2,
+      "operator_new": 7,
+      "c_allocator_calls": 10,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_pieces",
+      "backend": "botan",
+      "target": "native",
+      "implementation": "backends::botan",
+      "tag": "hmac_blake2b_512",
+      "call": 2,
+      "operator_new": 14,
+      "c_allocator_calls": 20,
       "c_allocator_counted": true
     },
     {
@@ -3226,6 +4084,39 @@
       "c_allocator_counted": true
     },
     {
+      "operation": "hkdf_extract_pieces",
+      "backend": "botan",
+      "target": "native",
+      "implementation": "backends::botan",
+      "tag": "hmac_blake2s_256",
+      "call": 1,
+      "operator_new": 7,
+      "c_allocator_calls": 9,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_expand_pieces",
+      "backend": "botan",
+      "target": "native",
+      "implementation": "backends::botan",
+      "tag": "hmac_blake2s_256",
+      "call": 1,
+      "operator_new": 7,
+      "c_allocator_calls": 11,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_pieces",
+      "backend": "botan",
+      "target": "native",
+      "implementation": "backends::botan",
+      "tag": "hmac_blake2s_256",
+      "call": 1,
+      "operator_new": 14,
+      "c_allocator_calls": 20,
+      "c_allocator_counted": true
+    },
+    {
       "operation": "hkdf_extract",
       "backend": "botan",
       "target": "native",
@@ -3278,6 +4169,39 @@
       "call": 2,
       "operator_new": 28,
       "c_allocator_calls": 31,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_extract_pieces",
+      "backend": "botan",
+      "target": "native",
+      "implementation": "backends::botan",
+      "tag": "hmac_blake2s_256",
+      "call": 2,
+      "operator_new": 7,
+      "c_allocator_calls": 9,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_expand_pieces",
+      "backend": "botan",
+      "target": "native",
+      "implementation": "backends::botan",
+      "tag": "hmac_blake2s_256",
+      "call": 2,
+      "operator_new": 7,
+      "c_allocator_calls": 11,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_pieces",
+      "backend": "botan",
+      "target": "native",
+      "implementation": "backends::botan",
+      "tag": "hmac_blake2s_256",
+      "call": 2,
+      "operator_new": 14,
+      "c_allocator_calls": 20,
       "c_allocator_counted": true
     },
     {
@@ -3807,6 +4731,36 @@
       "openssl_allocations": 30
     },
     {
+      "operation": "hkdf_extract_pieces",
+      "backend": "openssl",
+      "target": "native",
+      "implementation": "backends::openssl",
+      "operator_new": 0,
+      "hmac": "hmac_sha2_256",
+      "call": 1,
+      "openssl_allocations": 10
+    },
+    {
+      "operation": "hkdf_expand_pieces",
+      "backend": "openssl",
+      "target": "native",
+      "implementation": "backends::openssl",
+      "operator_new": 0,
+      "hmac": "hmac_sha2_256",
+      "call": 1,
+      "openssl_allocations": 30
+    },
+    {
+      "operation": "hkdf_pieces",
+      "backend": "openssl",
+      "target": "native",
+      "implementation": "backends::openssl",
+      "operator_new": 0,
+      "hmac": "hmac_sha2_256",
+      "call": 1,
+      "openssl_allocations": 40
+    },
+    {
       "operation": "hkdf",
       "backend": "openssl",
       "target": "native",
@@ -3827,6 +4781,36 @@
       "openssl_allocations": 18
     },
     {
+      "operation": "hkdf_extract_pieces",
+      "backend": "openssl",
+      "target": "native",
+      "implementation": "backends::openssl",
+      "operator_new": 0,
+      "hmac": "hmac_sha2_256",
+      "call": 2,
+      "openssl_allocations": 10
+    },
+    {
+      "operation": "hkdf_expand_pieces",
+      "backend": "openssl",
+      "target": "native",
+      "implementation": "backends::openssl",
+      "operator_new": 0,
+      "hmac": "hmac_sha2_256",
+      "call": 2,
+      "openssl_allocations": 30
+    },
+    {
+      "operation": "hkdf_pieces",
+      "backend": "openssl",
+      "target": "native",
+      "implementation": "backends::openssl",
+      "operator_new": 0,
+      "hmac": "hmac_sha2_256",
+      "call": 2,
+      "openssl_allocations": 40
+    },
+    {
       "operation": "hkdf",
       "backend": "openssl",
       "target": "native",
@@ -3845,6 +4829,36 @@
       "hmac": "hmac_sha2_512",
       "call": 1,
       "openssl_allocations": 18
+    },
+    {
+      "operation": "hkdf_extract_pieces",
+      "backend": "openssl",
+      "target": "native",
+      "implementation": "backends::openssl",
+      "operator_new": 0,
+      "hmac": "hmac_sha2_512",
+      "call": 1,
+      "openssl_allocations": 10
+    },
+    {
+      "operation": "hkdf_expand_pieces",
+      "backend": "openssl",
+      "target": "native",
+      "implementation": "backends::openssl",
+      "operator_new": 0,
+      "hmac": "hmac_sha2_512",
+      "call": 1,
+      "openssl_allocations": 20
+    },
+    {
+      "operation": "hkdf_pieces",
+      "backend": "openssl",
+      "target": "native",
+      "implementation": "backends::openssl",
+      "operator_new": 0,
+      "hmac": "hmac_sha2_512",
+      "call": 1,
+      "openssl_allocations": 30
     },
     {
       "operation": "hkdf",
@@ -3867,6 +4881,36 @@
       "openssl_allocations": 18
     },
     {
+      "operation": "hkdf_extract_pieces",
+      "backend": "openssl",
+      "target": "native",
+      "implementation": "backends::openssl",
+      "operator_new": 0,
+      "hmac": "hmac_sha2_512",
+      "call": 2,
+      "openssl_allocations": 10
+    },
+    {
+      "operation": "hkdf_expand_pieces",
+      "backend": "openssl",
+      "target": "native",
+      "implementation": "backends::openssl",
+      "operator_new": 0,
+      "hmac": "hmac_sha2_512",
+      "call": 2,
+      "openssl_allocations": 20
+    },
+    {
+      "operation": "hkdf_pieces",
+      "backend": "openssl",
+      "target": "native",
+      "implementation": "backends::openssl",
+      "operator_new": 0,
+      "hmac": "hmac_sha2_512",
+      "call": 2,
+      "openssl_allocations": 30
+    },
+    {
       "operation": "hkdf",
       "backend": "openssl",
       "target": "native",
@@ -3885,6 +4929,36 @@
       "hmac": "hmac_sha3_256",
       "call": 1,
       "openssl_allocations": 18
+    },
+    {
+      "operation": "hkdf_extract_pieces",
+      "backend": "openssl",
+      "target": "native",
+      "implementation": "backends::openssl",
+      "operator_new": 0,
+      "hmac": "hmac_sha3_256",
+      "call": 1,
+      "openssl_allocations": 10
+    },
+    {
+      "operation": "hkdf_expand_pieces",
+      "backend": "openssl",
+      "target": "native",
+      "implementation": "backends::openssl",
+      "operator_new": 0,
+      "hmac": "hmac_sha3_256",
+      "call": 1,
+      "openssl_allocations": 30
+    },
+    {
+      "operation": "hkdf_pieces",
+      "backend": "openssl",
+      "target": "native",
+      "implementation": "backends::openssl",
+      "operator_new": 0,
+      "hmac": "hmac_sha3_256",
+      "call": 1,
+      "openssl_allocations": 40
     },
     {
       "operation": "hkdf",
@@ -3907,6 +4981,36 @@
       "openssl_allocations": 18
     },
     {
+      "operation": "hkdf_extract_pieces",
+      "backend": "openssl",
+      "target": "native",
+      "implementation": "backends::openssl",
+      "operator_new": 0,
+      "hmac": "hmac_sha3_256",
+      "call": 2,
+      "openssl_allocations": 10
+    },
+    {
+      "operation": "hkdf_expand_pieces",
+      "backend": "openssl",
+      "target": "native",
+      "implementation": "backends::openssl",
+      "operator_new": 0,
+      "hmac": "hmac_sha3_256",
+      "call": 2,
+      "openssl_allocations": 30
+    },
+    {
+      "operation": "hkdf_pieces",
+      "backend": "openssl",
+      "target": "native",
+      "implementation": "backends::openssl",
+      "operator_new": 0,
+      "hmac": "hmac_sha3_256",
+      "call": 2,
+      "openssl_allocations": 40
+    },
+    {
       "operation": "hkdf",
       "backend": "openssl",
       "target": "native",
@@ -3927,6 +5031,36 @@
       "openssl_allocations": 18
     },
     {
+      "operation": "hkdf_extract_pieces",
+      "backend": "openssl",
+      "target": "native",
+      "implementation": "backends::openssl",
+      "operator_new": 0,
+      "hmac": "hmac_blake2b_512",
+      "call": 1,
+      "openssl_allocations": 10
+    },
+    {
+      "operation": "hkdf_expand_pieces",
+      "backend": "openssl",
+      "target": "native",
+      "implementation": "backends::openssl",
+      "operator_new": 0,
+      "hmac": "hmac_blake2b_512",
+      "call": 1,
+      "openssl_allocations": 20
+    },
+    {
+      "operation": "hkdf_pieces",
+      "backend": "openssl",
+      "target": "native",
+      "implementation": "backends::openssl",
+      "operator_new": 0,
+      "hmac": "hmac_blake2b_512",
+      "call": 1,
+      "openssl_allocations": 30
+    },
+    {
       "operation": "hkdf",
       "backend": "openssl",
       "target": "native",
@@ -3945,6 +5079,36 @@
       "hmac": "hmac_blake2b_512",
       "call": 2,
       "openssl_allocations": 18
+    },
+    {
+      "operation": "hkdf_extract_pieces",
+      "backend": "openssl",
+      "target": "native",
+      "implementation": "backends::openssl",
+      "operator_new": 0,
+      "hmac": "hmac_blake2b_512",
+      "call": 2,
+      "openssl_allocations": 10
+    },
+    {
+      "operation": "hkdf_expand_pieces",
+      "backend": "openssl",
+      "target": "native",
+      "implementation": "backends::openssl",
+      "operator_new": 0,
+      "hmac": "hmac_blake2b_512",
+      "call": 2,
+      "openssl_allocations": 20
+    },
+    {
+      "operation": "hkdf_pieces",
+      "backend": "openssl",
+      "target": "native",
+      "implementation": "backends::openssl",
+      "operator_new": 0,
+      "hmac": "hmac_blake2b_512",
+      "call": 2,
+      "openssl_allocations": 30
     },
     {
       "operation": "sodium_init",
@@ -3994,6 +5158,36 @@
       "openssl_allocations": 30
     },
     {
+      "operation": "hkdf_extract_pieces",
+      "backend": "openssl",
+      "target": "wasip2",
+      "implementation": "backends::openssl",
+      "operator_new": 0,
+      "hmac": "hmac_sha2_256",
+      "call": 1,
+      "openssl_allocations": 10
+    },
+    {
+      "operation": "hkdf_expand_pieces",
+      "backend": "openssl",
+      "target": "wasip2",
+      "implementation": "backends::openssl",
+      "operator_new": 0,
+      "hmac": "hmac_sha2_256",
+      "call": 1,
+      "openssl_allocations": 30
+    },
+    {
+      "operation": "hkdf_pieces",
+      "backend": "openssl",
+      "target": "wasip2",
+      "implementation": "backends::openssl",
+      "operator_new": 0,
+      "hmac": "hmac_sha2_256",
+      "call": 1,
+      "openssl_allocations": 40
+    },
+    {
       "operation": "hkdf",
       "backend": "openssl",
       "target": "wasip2",
@@ -4014,6 +5208,36 @@
       "openssl_allocations": 18
     },
     {
+      "operation": "hkdf_extract_pieces",
+      "backend": "openssl",
+      "target": "wasip2",
+      "implementation": "backends::openssl",
+      "operator_new": 0,
+      "hmac": "hmac_sha2_256",
+      "call": 2,
+      "openssl_allocations": 10
+    },
+    {
+      "operation": "hkdf_expand_pieces",
+      "backend": "openssl",
+      "target": "wasip2",
+      "implementation": "backends::openssl",
+      "operator_new": 0,
+      "hmac": "hmac_sha2_256",
+      "call": 2,
+      "openssl_allocations": 30
+    },
+    {
+      "operation": "hkdf_pieces",
+      "backend": "openssl",
+      "target": "wasip2",
+      "implementation": "backends::openssl",
+      "operator_new": 0,
+      "hmac": "hmac_sha2_256",
+      "call": 2,
+      "openssl_allocations": 40
+    },
+    {
       "operation": "hkdf",
       "backend": "openssl",
       "target": "wasip2",
@@ -4032,6 +5256,36 @@
       "hmac": "hmac_sha2_512",
       "call": 1,
       "openssl_allocations": 18
+    },
+    {
+      "operation": "hkdf_extract_pieces",
+      "backend": "openssl",
+      "target": "wasip2",
+      "implementation": "backends::openssl",
+      "operator_new": 0,
+      "hmac": "hmac_sha2_512",
+      "call": 1,
+      "openssl_allocations": 10
+    },
+    {
+      "operation": "hkdf_expand_pieces",
+      "backend": "openssl",
+      "target": "wasip2",
+      "implementation": "backends::openssl",
+      "operator_new": 0,
+      "hmac": "hmac_sha2_512",
+      "call": 1,
+      "openssl_allocations": 20
+    },
+    {
+      "operation": "hkdf_pieces",
+      "backend": "openssl",
+      "target": "wasip2",
+      "implementation": "backends::openssl",
+      "operator_new": 0,
+      "hmac": "hmac_sha2_512",
+      "call": 1,
+      "openssl_allocations": 30
     },
     {
       "operation": "hkdf",
@@ -4054,6 +5308,36 @@
       "openssl_allocations": 18
     },
     {
+      "operation": "hkdf_extract_pieces",
+      "backend": "openssl",
+      "target": "wasip2",
+      "implementation": "backends::openssl",
+      "operator_new": 0,
+      "hmac": "hmac_sha2_512",
+      "call": 2,
+      "openssl_allocations": 10
+    },
+    {
+      "operation": "hkdf_expand_pieces",
+      "backend": "openssl",
+      "target": "wasip2",
+      "implementation": "backends::openssl",
+      "operator_new": 0,
+      "hmac": "hmac_sha2_512",
+      "call": 2,
+      "openssl_allocations": 20
+    },
+    {
+      "operation": "hkdf_pieces",
+      "backend": "openssl",
+      "target": "wasip2",
+      "implementation": "backends::openssl",
+      "operator_new": 0,
+      "hmac": "hmac_sha2_512",
+      "call": 2,
+      "openssl_allocations": 30
+    },
+    {
       "operation": "hkdf",
       "backend": "openssl",
       "target": "wasip2",
@@ -4072,6 +5356,36 @@
       "hmac": "hmac_sha3_256",
       "call": 1,
       "openssl_allocations": 18
+    },
+    {
+      "operation": "hkdf_extract_pieces",
+      "backend": "openssl",
+      "target": "wasip2",
+      "implementation": "backends::openssl",
+      "operator_new": 0,
+      "hmac": "hmac_sha3_256",
+      "call": 1,
+      "openssl_allocations": 10
+    },
+    {
+      "operation": "hkdf_expand_pieces",
+      "backend": "openssl",
+      "target": "wasip2",
+      "implementation": "backends::openssl",
+      "operator_new": 0,
+      "hmac": "hmac_sha3_256",
+      "call": 1,
+      "openssl_allocations": 30
+    },
+    {
+      "operation": "hkdf_pieces",
+      "backend": "openssl",
+      "target": "wasip2",
+      "implementation": "backends::openssl",
+      "operator_new": 0,
+      "hmac": "hmac_sha3_256",
+      "call": 1,
+      "openssl_allocations": 40
     },
     {
       "operation": "hkdf",
@@ -4094,6 +5408,36 @@
       "openssl_allocations": 18
     },
     {
+      "operation": "hkdf_extract_pieces",
+      "backend": "openssl",
+      "target": "wasip2",
+      "implementation": "backends::openssl",
+      "operator_new": 0,
+      "hmac": "hmac_sha3_256",
+      "call": 2,
+      "openssl_allocations": 10
+    },
+    {
+      "operation": "hkdf_expand_pieces",
+      "backend": "openssl",
+      "target": "wasip2",
+      "implementation": "backends::openssl",
+      "operator_new": 0,
+      "hmac": "hmac_sha3_256",
+      "call": 2,
+      "openssl_allocations": 30
+    },
+    {
+      "operation": "hkdf_pieces",
+      "backend": "openssl",
+      "target": "wasip2",
+      "implementation": "backends::openssl",
+      "operator_new": 0,
+      "hmac": "hmac_sha3_256",
+      "call": 2,
+      "openssl_allocations": 40
+    },
+    {
       "operation": "hkdf",
       "backend": "openssl",
       "target": "wasip2",
@@ -4114,6 +5458,36 @@
       "openssl_allocations": 18
     },
     {
+      "operation": "hkdf_extract_pieces",
+      "backend": "openssl",
+      "target": "wasip2",
+      "implementation": "backends::openssl",
+      "operator_new": 0,
+      "hmac": "hmac_blake2b_512",
+      "call": 1,
+      "openssl_allocations": 10
+    },
+    {
+      "operation": "hkdf_expand_pieces",
+      "backend": "openssl",
+      "target": "wasip2",
+      "implementation": "backends::openssl",
+      "operator_new": 0,
+      "hmac": "hmac_blake2b_512",
+      "call": 1,
+      "openssl_allocations": 20
+    },
+    {
+      "operation": "hkdf_pieces",
+      "backend": "openssl",
+      "target": "wasip2",
+      "implementation": "backends::openssl",
+      "operator_new": 0,
+      "hmac": "hmac_blake2b_512",
+      "call": 1,
+      "openssl_allocations": 30
+    },
+    {
       "operation": "hkdf",
       "backend": "openssl",
       "target": "wasip2",
@@ -4132,6 +5506,36 @@
       "hmac": "hmac_blake2b_512",
       "call": 2,
       "openssl_allocations": 18
+    },
+    {
+      "operation": "hkdf_extract_pieces",
+      "backend": "openssl",
+      "target": "wasip2",
+      "implementation": "backends::openssl",
+      "operator_new": 0,
+      "hmac": "hmac_blake2b_512",
+      "call": 2,
+      "openssl_allocations": 10
+    },
+    {
+      "operation": "hkdf_expand_pieces",
+      "backend": "openssl",
+      "target": "wasip2",
+      "implementation": "backends::openssl",
+      "operator_new": 0,
+      "hmac": "hmac_blake2b_512",
+      "call": 2,
+      "openssl_allocations": 20
+    },
+    {
+      "operation": "hkdf_pieces",
+      "backend": "openssl",
+      "target": "wasip2",
+      "implementation": "backends::openssl",
+      "operator_new": 0,
+      "hmac": "hmac_blake2b_512",
+      "call": 2,
+      "openssl_allocations": 30
     },
     {
       "operation": "sodium_init",
@@ -4181,6 +5585,36 @@
       "openssl_allocations": 30
     },
     {
+      "operation": "hkdf_extract_pieces",
+      "backend": "openssl",
+      "target": "wasip3",
+      "implementation": "backends::openssl",
+      "operator_new": 0,
+      "hmac": "hmac_sha2_256",
+      "call": 1,
+      "openssl_allocations": 10
+    },
+    {
+      "operation": "hkdf_expand_pieces",
+      "backend": "openssl",
+      "target": "wasip3",
+      "implementation": "backends::openssl",
+      "operator_new": 0,
+      "hmac": "hmac_sha2_256",
+      "call": 1,
+      "openssl_allocations": 30
+    },
+    {
+      "operation": "hkdf_pieces",
+      "backend": "openssl",
+      "target": "wasip3",
+      "implementation": "backends::openssl",
+      "operator_new": 0,
+      "hmac": "hmac_sha2_256",
+      "call": 1,
+      "openssl_allocations": 40
+    },
+    {
       "operation": "hkdf",
       "backend": "openssl",
       "target": "wasip3",
@@ -4201,6 +5635,36 @@
       "openssl_allocations": 18
     },
     {
+      "operation": "hkdf_extract_pieces",
+      "backend": "openssl",
+      "target": "wasip3",
+      "implementation": "backends::openssl",
+      "operator_new": 0,
+      "hmac": "hmac_sha2_256",
+      "call": 2,
+      "openssl_allocations": 10
+    },
+    {
+      "operation": "hkdf_expand_pieces",
+      "backend": "openssl",
+      "target": "wasip3",
+      "implementation": "backends::openssl",
+      "operator_new": 0,
+      "hmac": "hmac_sha2_256",
+      "call": 2,
+      "openssl_allocations": 30
+    },
+    {
+      "operation": "hkdf_pieces",
+      "backend": "openssl",
+      "target": "wasip3",
+      "implementation": "backends::openssl",
+      "operator_new": 0,
+      "hmac": "hmac_sha2_256",
+      "call": 2,
+      "openssl_allocations": 40
+    },
+    {
       "operation": "hkdf",
       "backend": "openssl",
       "target": "wasip3",
@@ -4219,6 +5683,36 @@
       "hmac": "hmac_sha2_512",
       "call": 1,
       "openssl_allocations": 18
+    },
+    {
+      "operation": "hkdf_extract_pieces",
+      "backend": "openssl",
+      "target": "wasip3",
+      "implementation": "backends::openssl",
+      "operator_new": 0,
+      "hmac": "hmac_sha2_512",
+      "call": 1,
+      "openssl_allocations": 10
+    },
+    {
+      "operation": "hkdf_expand_pieces",
+      "backend": "openssl",
+      "target": "wasip3",
+      "implementation": "backends::openssl",
+      "operator_new": 0,
+      "hmac": "hmac_sha2_512",
+      "call": 1,
+      "openssl_allocations": 20
+    },
+    {
+      "operation": "hkdf_pieces",
+      "backend": "openssl",
+      "target": "wasip3",
+      "implementation": "backends::openssl",
+      "operator_new": 0,
+      "hmac": "hmac_sha2_512",
+      "call": 1,
+      "openssl_allocations": 30
     },
     {
       "operation": "hkdf",
@@ -4241,6 +5735,36 @@
       "openssl_allocations": 18
     },
     {
+      "operation": "hkdf_extract_pieces",
+      "backend": "openssl",
+      "target": "wasip3",
+      "implementation": "backends::openssl",
+      "operator_new": 0,
+      "hmac": "hmac_sha2_512",
+      "call": 2,
+      "openssl_allocations": 10
+    },
+    {
+      "operation": "hkdf_expand_pieces",
+      "backend": "openssl",
+      "target": "wasip3",
+      "implementation": "backends::openssl",
+      "operator_new": 0,
+      "hmac": "hmac_sha2_512",
+      "call": 2,
+      "openssl_allocations": 20
+    },
+    {
+      "operation": "hkdf_pieces",
+      "backend": "openssl",
+      "target": "wasip3",
+      "implementation": "backends::openssl",
+      "operator_new": 0,
+      "hmac": "hmac_sha2_512",
+      "call": 2,
+      "openssl_allocations": 30
+    },
+    {
       "operation": "hkdf",
       "backend": "openssl",
       "target": "wasip3",
@@ -4259,6 +5783,36 @@
       "hmac": "hmac_sha3_256",
       "call": 1,
       "openssl_allocations": 18
+    },
+    {
+      "operation": "hkdf_extract_pieces",
+      "backend": "openssl",
+      "target": "wasip3",
+      "implementation": "backends::openssl",
+      "operator_new": 0,
+      "hmac": "hmac_sha3_256",
+      "call": 1,
+      "openssl_allocations": 10
+    },
+    {
+      "operation": "hkdf_expand_pieces",
+      "backend": "openssl",
+      "target": "wasip3",
+      "implementation": "backends::openssl",
+      "operator_new": 0,
+      "hmac": "hmac_sha3_256",
+      "call": 1,
+      "openssl_allocations": 30
+    },
+    {
+      "operation": "hkdf_pieces",
+      "backend": "openssl",
+      "target": "wasip3",
+      "implementation": "backends::openssl",
+      "operator_new": 0,
+      "hmac": "hmac_sha3_256",
+      "call": 1,
+      "openssl_allocations": 40
     },
     {
       "operation": "hkdf",
@@ -4281,6 +5835,36 @@
       "openssl_allocations": 18
     },
     {
+      "operation": "hkdf_extract_pieces",
+      "backend": "openssl",
+      "target": "wasip3",
+      "implementation": "backends::openssl",
+      "operator_new": 0,
+      "hmac": "hmac_sha3_256",
+      "call": 2,
+      "openssl_allocations": 10
+    },
+    {
+      "operation": "hkdf_expand_pieces",
+      "backend": "openssl",
+      "target": "wasip3",
+      "implementation": "backends::openssl",
+      "operator_new": 0,
+      "hmac": "hmac_sha3_256",
+      "call": 2,
+      "openssl_allocations": 30
+    },
+    {
+      "operation": "hkdf_pieces",
+      "backend": "openssl",
+      "target": "wasip3",
+      "implementation": "backends::openssl",
+      "operator_new": 0,
+      "hmac": "hmac_sha3_256",
+      "call": 2,
+      "openssl_allocations": 40
+    },
+    {
       "operation": "hkdf",
       "backend": "openssl",
       "target": "wasip3",
@@ -4301,6 +5885,36 @@
       "openssl_allocations": 18
     },
     {
+      "operation": "hkdf_extract_pieces",
+      "backend": "openssl",
+      "target": "wasip3",
+      "implementation": "backends::openssl",
+      "operator_new": 0,
+      "hmac": "hmac_blake2b_512",
+      "call": 1,
+      "openssl_allocations": 10
+    },
+    {
+      "operation": "hkdf_expand_pieces",
+      "backend": "openssl",
+      "target": "wasip3",
+      "implementation": "backends::openssl",
+      "operator_new": 0,
+      "hmac": "hmac_blake2b_512",
+      "call": 1,
+      "openssl_allocations": 20
+    },
+    {
+      "operation": "hkdf_pieces",
+      "backend": "openssl",
+      "target": "wasip3",
+      "implementation": "backends::openssl",
+      "operator_new": 0,
+      "hmac": "hmac_blake2b_512",
+      "call": 1,
+      "openssl_allocations": 30
+    },
+    {
       "operation": "hkdf",
       "backend": "openssl",
       "target": "wasip3",
@@ -4319,6 +5933,36 @@
       "hmac": "hmac_blake2b_512",
       "call": 2,
       "openssl_allocations": 18
+    },
+    {
+      "operation": "hkdf_extract_pieces",
+      "backend": "openssl",
+      "target": "wasip3",
+      "implementation": "backends::openssl",
+      "operator_new": 0,
+      "hmac": "hmac_blake2b_512",
+      "call": 2,
+      "openssl_allocations": 10
+    },
+    {
+      "operation": "hkdf_expand_pieces",
+      "backend": "openssl",
+      "target": "wasip3",
+      "implementation": "backends::openssl",
+      "operator_new": 0,
+      "hmac": "hmac_blake2b_512",
+      "call": 2,
+      "openssl_allocations": 20
+    },
+    {
+      "operation": "hkdf_pieces",
+      "backend": "openssl",
+      "target": "wasip3",
+      "implementation": "backends::openssl",
+      "operator_new": 0,
+      "hmac": "hmac_blake2b_512",
+      "call": 2,
+      "openssl_allocations": 30
     },
     {
       "operation": "sodium_init",
@@ -6097,6 +7741,39 @@
       "c_allocator_counted": true
     },
     {
+      "operation": "hkdf_extract_pieces",
+      "backend": "botan",
+      "target": "emscripten",
+      "implementation": "backends::botan",
+      "tag": "hmac_md5_128",
+      "call": 1,
+      "operator_new": 4,
+      "c_allocator_calls": 7,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_expand_pieces",
+      "backend": "botan",
+      "target": "emscripten",
+      "implementation": "backends::botan",
+      "tag": "hmac_md5_128",
+      "call": 1,
+      "operator_new": 4,
+      "c_allocator_calls": 11,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_pieces",
+      "backend": "botan",
+      "target": "emscripten",
+      "implementation": "backends::botan",
+      "tag": "hmac_md5_128",
+      "call": 1,
+      "operator_new": 8,
+      "c_allocator_calls": 18,
+      "c_allocator_counted": true
+    },
+    {
       "operation": "hkdf_extract",
       "backend": "botan",
       "target": "emscripten",
@@ -6152,6 +7829,39 @@
       "c_allocator_counted": true
     },
     {
+      "operation": "hkdf_extract_pieces",
+      "backend": "botan",
+      "target": "emscripten",
+      "implementation": "backends::botan",
+      "tag": "hmac_md5_128",
+      "call": 2,
+      "operator_new": 4,
+      "c_allocator_calls": 7,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_expand_pieces",
+      "backend": "botan",
+      "target": "emscripten",
+      "implementation": "backends::botan",
+      "tag": "hmac_md5_128",
+      "call": 2,
+      "operator_new": 4,
+      "c_allocator_calls": 11,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_pieces",
+      "backend": "botan",
+      "target": "emscripten",
+      "implementation": "backends::botan",
+      "tag": "hmac_md5_128",
+      "call": 2,
+      "operator_new": 8,
+      "c_allocator_calls": 18,
+      "c_allocator_counted": true
+    },
+    {
       "operation": "hkdf_extract",
       "backend": "botan",
       "target": "emscripten",
@@ -6207,6 +7917,39 @@
       "c_allocator_counted": true
     },
     {
+      "operation": "hkdf_extract_pieces",
+      "backend": "botan",
+      "target": "emscripten",
+      "implementation": "backends::botan",
+      "tag": "hmac_sha1_160",
+      "call": 1,
+      "operator_new": 7,
+      "c_allocator_calls": 10,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_expand_pieces",
+      "backend": "botan",
+      "target": "emscripten",
+      "implementation": "backends::botan",
+      "tag": "hmac_sha1_160",
+      "call": 1,
+      "operator_new": 7,
+      "c_allocator_calls": 14,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_pieces",
+      "backend": "botan",
+      "target": "emscripten",
+      "implementation": "backends::botan",
+      "tag": "hmac_sha1_160",
+      "call": 1,
+      "operator_new": 14,
+      "c_allocator_calls": 24,
+      "c_allocator_counted": true
+    },
+    {
       "operation": "hkdf_extract",
       "backend": "botan",
       "target": "emscripten",
@@ -6262,6 +8005,39 @@
       "c_allocator_counted": true
     },
     {
+      "operation": "hkdf_extract_pieces",
+      "backend": "botan",
+      "target": "emscripten",
+      "implementation": "backends::botan",
+      "tag": "hmac_sha1_160",
+      "call": 2,
+      "operator_new": 7,
+      "c_allocator_calls": 10,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_expand_pieces",
+      "backend": "botan",
+      "target": "emscripten",
+      "implementation": "backends::botan",
+      "tag": "hmac_sha1_160",
+      "call": 2,
+      "operator_new": 7,
+      "c_allocator_calls": 14,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_pieces",
+      "backend": "botan",
+      "target": "emscripten",
+      "implementation": "backends::botan",
+      "tag": "hmac_sha1_160",
+      "call": 2,
+      "operator_new": 14,
+      "c_allocator_calls": 24,
+      "c_allocator_counted": true
+    },
+    {
       "operation": "hkdf_extract",
       "backend": "botan",
       "target": "emscripten",
@@ -6317,6 +8093,39 @@
       "c_allocator_counted": true
     },
     {
+      "operation": "hkdf_extract_pieces",
+      "backend": "botan",
+      "target": "emscripten",
+      "implementation": "backends::botan",
+      "tag": "hmac_sha2_224",
+      "call": 1,
+      "operator_new": 7,
+      "c_allocator_calls": 10,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_expand_pieces",
+      "backend": "botan",
+      "target": "emscripten",
+      "implementation": "backends::botan",
+      "tag": "hmac_sha2_224",
+      "call": 1,
+      "operator_new": 7,
+      "c_allocator_calls": 12,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_pieces",
+      "backend": "botan",
+      "target": "emscripten",
+      "implementation": "backends::botan",
+      "tag": "hmac_sha2_224",
+      "call": 1,
+      "operator_new": 14,
+      "c_allocator_calls": 22,
+      "c_allocator_counted": true
+    },
+    {
       "operation": "hkdf_extract",
       "backend": "botan",
       "target": "emscripten",
@@ -6372,6 +8181,39 @@
       "c_allocator_counted": true
     },
     {
+      "operation": "hkdf_extract_pieces",
+      "backend": "botan",
+      "target": "emscripten",
+      "implementation": "backends::botan",
+      "tag": "hmac_sha2_224",
+      "call": 2,
+      "operator_new": 7,
+      "c_allocator_calls": 10,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_expand_pieces",
+      "backend": "botan",
+      "target": "emscripten",
+      "implementation": "backends::botan",
+      "tag": "hmac_sha2_224",
+      "call": 2,
+      "operator_new": 7,
+      "c_allocator_calls": 12,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_pieces",
+      "backend": "botan",
+      "target": "emscripten",
+      "implementation": "backends::botan",
+      "tag": "hmac_sha2_224",
+      "call": 2,
+      "operator_new": 14,
+      "c_allocator_calls": 22,
+      "c_allocator_counted": true
+    },
+    {
       "operation": "hkdf_extract",
       "backend": "botan",
       "target": "emscripten",
@@ -6427,6 +8269,39 @@
       "c_allocator_counted": true
     },
     {
+      "operation": "hkdf_extract_pieces",
+      "backend": "botan",
+      "target": "emscripten",
+      "implementation": "backends::botan",
+      "tag": "hmac_sha2_256",
+      "call": 1,
+      "operator_new": 7,
+      "c_allocator_calls": 10,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_expand_pieces",
+      "backend": "botan",
+      "target": "emscripten",
+      "implementation": "backends::botan",
+      "tag": "hmac_sha2_256",
+      "call": 1,
+      "operator_new": 7,
+      "c_allocator_calls": 12,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_pieces",
+      "backend": "botan",
+      "target": "emscripten",
+      "implementation": "backends::botan",
+      "tag": "hmac_sha2_256",
+      "call": 1,
+      "operator_new": 14,
+      "c_allocator_calls": 22,
+      "c_allocator_counted": true
+    },
+    {
       "operation": "hkdf_extract",
       "backend": "botan",
       "target": "emscripten",
@@ -6479,6 +8354,39 @@
       "call": 2,
       "operator_new": 30,
       "c_allocator_calls": 34,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_extract_pieces",
+      "backend": "botan",
+      "target": "emscripten",
+      "implementation": "backends::botan",
+      "tag": "hmac_sha2_256",
+      "call": 2,
+      "operator_new": 7,
+      "c_allocator_calls": 10,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_expand_pieces",
+      "backend": "botan",
+      "target": "emscripten",
+      "implementation": "backends::botan",
+      "tag": "hmac_sha2_256",
+      "call": 2,
+      "operator_new": 7,
+      "c_allocator_calls": 12,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_pieces",
+      "backend": "botan",
+      "target": "emscripten",
+      "implementation": "backends::botan",
+      "tag": "hmac_sha2_256",
+      "call": 2,
+      "operator_new": 14,
+      "c_allocator_calls": 22,
       "c_allocator_counted": true
     },
     {
@@ -6537,6 +8445,39 @@
       "c_allocator_counted": true
     },
     {
+      "operation": "hkdf_extract_pieces",
+      "backend": "botan",
+      "target": "emscripten",
+      "implementation": "backends::botan",
+      "tag": "hmac_sha2_384",
+      "call": 1,
+      "operator_new": 7,
+      "c_allocator_calls": 10,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_expand_pieces",
+      "backend": "botan",
+      "target": "emscripten",
+      "implementation": "backends::botan",
+      "tag": "hmac_sha2_384",
+      "call": 1,
+      "operator_new": 7,
+      "c_allocator_calls": 10,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_pieces",
+      "backend": "botan",
+      "target": "emscripten",
+      "implementation": "backends::botan",
+      "tag": "hmac_sha2_384",
+      "call": 1,
+      "operator_new": 14,
+      "c_allocator_calls": 20,
+      "c_allocator_counted": true
+    },
+    {
       "operation": "hkdf_extract",
       "backend": "botan",
       "target": "emscripten",
@@ -6592,6 +8533,39 @@
       "c_allocator_counted": true
     },
     {
+      "operation": "hkdf_extract_pieces",
+      "backend": "botan",
+      "target": "emscripten",
+      "implementation": "backends::botan",
+      "tag": "hmac_sha2_384",
+      "call": 2,
+      "operator_new": 7,
+      "c_allocator_calls": 10,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_expand_pieces",
+      "backend": "botan",
+      "target": "emscripten",
+      "implementation": "backends::botan",
+      "tag": "hmac_sha2_384",
+      "call": 2,
+      "operator_new": 7,
+      "c_allocator_calls": 10,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_pieces",
+      "backend": "botan",
+      "target": "emscripten",
+      "implementation": "backends::botan",
+      "tag": "hmac_sha2_384",
+      "call": 2,
+      "operator_new": 14,
+      "c_allocator_calls": 20,
+      "c_allocator_counted": true
+    },
+    {
       "operation": "hkdf_extract",
       "backend": "botan",
       "target": "emscripten",
@@ -6647,6 +8621,39 @@
       "c_allocator_counted": true
     },
     {
+      "operation": "hkdf_extract_pieces",
+      "backend": "botan",
+      "target": "emscripten",
+      "implementation": "backends::botan",
+      "tag": "hmac_sha2_512",
+      "call": 1,
+      "operator_new": 7,
+      "c_allocator_calls": 10,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_expand_pieces",
+      "backend": "botan",
+      "target": "emscripten",
+      "implementation": "backends::botan",
+      "tag": "hmac_sha2_512",
+      "call": 1,
+      "operator_new": 7,
+      "c_allocator_calls": 10,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_pieces",
+      "backend": "botan",
+      "target": "emscripten",
+      "implementation": "backends::botan",
+      "tag": "hmac_sha2_512",
+      "call": 1,
+      "operator_new": 14,
+      "c_allocator_calls": 20,
+      "c_allocator_counted": true
+    },
+    {
       "operation": "hkdf_extract",
       "backend": "botan",
       "target": "emscripten",
@@ -6699,6 +8706,39 @@
       "call": 2,
       "operator_new": 30,
       "c_allocator_calls": 34,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_extract_pieces",
+      "backend": "botan",
+      "target": "emscripten",
+      "implementation": "backends::botan",
+      "tag": "hmac_sha2_512",
+      "call": 2,
+      "operator_new": 7,
+      "c_allocator_calls": 10,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_expand_pieces",
+      "backend": "botan",
+      "target": "emscripten",
+      "implementation": "backends::botan",
+      "tag": "hmac_sha2_512",
+      "call": 2,
+      "operator_new": 7,
+      "c_allocator_calls": 10,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_pieces",
+      "backend": "botan",
+      "target": "emscripten",
+      "implementation": "backends::botan",
+      "tag": "hmac_sha2_512",
+      "call": 2,
+      "operator_new": 14,
+      "c_allocator_calls": 20,
       "c_allocator_counted": true
     },
     {
@@ -6757,6 +8797,39 @@
       "c_allocator_counted": true
     },
     {
+      "operation": "hkdf_extract_pieces",
+      "backend": "botan",
+      "target": "emscripten",
+      "implementation": "backends::botan",
+      "tag": "hmac_sha2_512_256",
+      "call": 1,
+      "operator_new": 9,
+      "c_allocator_calls": 12,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_expand_pieces",
+      "backend": "botan",
+      "target": "emscripten",
+      "implementation": "backends::botan",
+      "tag": "hmac_sha2_512_256",
+      "call": 1,
+      "operator_new": 9,
+      "c_allocator_calls": 14,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_pieces",
+      "backend": "botan",
+      "target": "emscripten",
+      "implementation": "backends::botan",
+      "tag": "hmac_sha2_512_256",
+      "call": 1,
+      "operator_new": 18,
+      "c_allocator_calls": 26,
+      "c_allocator_counted": true
+    },
+    {
       "operation": "hkdf_extract",
       "backend": "botan",
       "target": "emscripten",
@@ -6812,6 +8885,39 @@
       "c_allocator_counted": true
     },
     {
+      "operation": "hkdf_extract_pieces",
+      "backend": "botan",
+      "target": "emscripten",
+      "implementation": "backends::botan",
+      "tag": "hmac_sha2_512_256",
+      "call": 2,
+      "operator_new": 9,
+      "c_allocator_calls": 12,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_expand_pieces",
+      "backend": "botan",
+      "target": "emscripten",
+      "implementation": "backends::botan",
+      "tag": "hmac_sha2_512_256",
+      "call": 2,
+      "operator_new": 9,
+      "c_allocator_calls": 14,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_pieces",
+      "backend": "botan",
+      "target": "emscripten",
+      "implementation": "backends::botan",
+      "tag": "hmac_sha2_512_256",
+      "call": 2,
+      "operator_new": 18,
+      "c_allocator_calls": 26,
+      "c_allocator_counted": true
+    },
+    {
       "operation": "hkdf_extract",
       "backend": "botan",
       "target": "emscripten",
@@ -6867,6 +8973,39 @@
       "c_allocator_counted": true
     },
     {
+      "operation": "hkdf_extract_pieces",
+      "backend": "botan",
+      "target": "emscripten",
+      "implementation": "backends::botan",
+      "tag": "hmac_sha3_224",
+      "call": 1,
+      "operator_new": 10,
+      "c_allocator_calls": 12,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_expand_pieces",
+      "backend": "botan",
+      "target": "emscripten",
+      "implementation": "backends::botan",
+      "tag": "hmac_sha3_224",
+      "call": 1,
+      "operator_new": 10,
+      "c_allocator_calls": 14,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_pieces",
+      "backend": "botan",
+      "target": "emscripten",
+      "implementation": "backends::botan",
+      "tag": "hmac_sha3_224",
+      "call": 1,
+      "operator_new": 20,
+      "c_allocator_calls": 26,
+      "c_allocator_counted": true
+    },
+    {
       "operation": "hkdf_extract",
       "backend": "botan",
       "target": "emscripten",
@@ -6922,6 +9061,39 @@
       "c_allocator_counted": true
     },
     {
+      "operation": "hkdf_extract_pieces",
+      "backend": "botan",
+      "target": "emscripten",
+      "implementation": "backends::botan",
+      "tag": "hmac_sha3_224",
+      "call": 2,
+      "operator_new": 10,
+      "c_allocator_calls": 12,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_expand_pieces",
+      "backend": "botan",
+      "target": "emscripten",
+      "implementation": "backends::botan",
+      "tag": "hmac_sha3_224",
+      "call": 2,
+      "operator_new": 10,
+      "c_allocator_calls": 14,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_pieces",
+      "backend": "botan",
+      "target": "emscripten",
+      "implementation": "backends::botan",
+      "tag": "hmac_sha3_224",
+      "call": 2,
+      "operator_new": 20,
+      "c_allocator_calls": 26,
+      "c_allocator_counted": true
+    },
+    {
       "operation": "hkdf_extract",
       "backend": "botan",
       "target": "emscripten",
@@ -6977,6 +9149,39 @@
       "c_allocator_counted": true
     },
     {
+      "operation": "hkdf_extract_pieces",
+      "backend": "botan",
+      "target": "emscripten",
+      "implementation": "backends::botan",
+      "tag": "hmac_sha3_256",
+      "call": 1,
+      "operator_new": 10,
+      "c_allocator_calls": 12,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_expand_pieces",
+      "backend": "botan",
+      "target": "emscripten",
+      "implementation": "backends::botan",
+      "tag": "hmac_sha3_256",
+      "call": 1,
+      "operator_new": 10,
+      "c_allocator_calls": 14,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_pieces",
+      "backend": "botan",
+      "target": "emscripten",
+      "implementation": "backends::botan",
+      "tag": "hmac_sha3_256",
+      "call": 1,
+      "operator_new": 20,
+      "c_allocator_calls": 26,
+      "c_allocator_counted": true
+    },
+    {
       "operation": "hkdf_extract",
       "backend": "botan",
       "target": "emscripten",
@@ -7029,6 +9234,39 @@
       "call": 2,
       "operator_new": 36,
       "c_allocator_calls": 39,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_extract_pieces",
+      "backend": "botan",
+      "target": "emscripten",
+      "implementation": "backends::botan",
+      "tag": "hmac_sha3_256",
+      "call": 2,
+      "operator_new": 10,
+      "c_allocator_calls": 12,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_expand_pieces",
+      "backend": "botan",
+      "target": "emscripten",
+      "implementation": "backends::botan",
+      "tag": "hmac_sha3_256",
+      "call": 2,
+      "operator_new": 10,
+      "c_allocator_calls": 14,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_pieces",
+      "backend": "botan",
+      "target": "emscripten",
+      "implementation": "backends::botan",
+      "tag": "hmac_sha3_256",
+      "call": 2,
+      "operator_new": 20,
+      "c_allocator_calls": 26,
       "c_allocator_counted": true
     },
     {
@@ -7087,6 +9325,39 @@
       "c_allocator_counted": true
     },
     {
+      "operation": "hkdf_extract_pieces",
+      "backend": "botan",
+      "target": "emscripten",
+      "implementation": "backends::botan",
+      "tag": "hmac_sha3_384",
+      "call": 1,
+      "operator_new": 10,
+      "c_allocator_calls": 12,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_expand_pieces",
+      "backend": "botan",
+      "target": "emscripten",
+      "implementation": "backends::botan",
+      "tag": "hmac_sha3_384",
+      "call": 1,
+      "operator_new": 10,
+      "c_allocator_calls": 12,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_pieces",
+      "backend": "botan",
+      "target": "emscripten",
+      "implementation": "backends::botan",
+      "tag": "hmac_sha3_384",
+      "call": 1,
+      "operator_new": 20,
+      "c_allocator_calls": 24,
+      "c_allocator_counted": true
+    },
+    {
       "operation": "hkdf_extract",
       "backend": "botan",
       "target": "emscripten",
@@ -7142,6 +9413,39 @@
       "c_allocator_counted": true
     },
     {
+      "operation": "hkdf_extract_pieces",
+      "backend": "botan",
+      "target": "emscripten",
+      "implementation": "backends::botan",
+      "tag": "hmac_sha3_384",
+      "call": 2,
+      "operator_new": 10,
+      "c_allocator_calls": 12,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_expand_pieces",
+      "backend": "botan",
+      "target": "emscripten",
+      "implementation": "backends::botan",
+      "tag": "hmac_sha3_384",
+      "call": 2,
+      "operator_new": 10,
+      "c_allocator_calls": 12,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_pieces",
+      "backend": "botan",
+      "target": "emscripten",
+      "implementation": "backends::botan",
+      "tag": "hmac_sha3_384",
+      "call": 2,
+      "operator_new": 20,
+      "c_allocator_calls": 24,
+      "c_allocator_counted": true
+    },
+    {
       "operation": "hkdf_extract",
       "backend": "botan",
       "target": "emscripten",
@@ -7197,6 +9501,39 @@
       "c_allocator_counted": true
     },
     {
+      "operation": "hkdf_extract_pieces",
+      "backend": "botan",
+      "target": "emscripten",
+      "implementation": "backends::botan",
+      "tag": "hmac_sha3_512",
+      "call": 1,
+      "operator_new": 10,
+      "c_allocator_calls": 12,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_expand_pieces",
+      "backend": "botan",
+      "target": "emscripten",
+      "implementation": "backends::botan",
+      "tag": "hmac_sha3_512",
+      "call": 1,
+      "operator_new": 10,
+      "c_allocator_calls": 12,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_pieces",
+      "backend": "botan",
+      "target": "emscripten",
+      "implementation": "backends::botan",
+      "tag": "hmac_sha3_512",
+      "call": 1,
+      "operator_new": 20,
+      "c_allocator_calls": 24,
+      "c_allocator_counted": true
+    },
+    {
       "operation": "hkdf_extract",
       "backend": "botan",
       "target": "emscripten",
@@ -7249,6 +9586,39 @@
       "call": 2,
       "operator_new": 36,
       "c_allocator_calls": 39,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_extract_pieces",
+      "backend": "botan",
+      "target": "emscripten",
+      "implementation": "backends::botan",
+      "tag": "hmac_sha3_512",
+      "call": 2,
+      "operator_new": 10,
+      "c_allocator_calls": 12,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_expand_pieces",
+      "backend": "botan",
+      "target": "emscripten",
+      "implementation": "backends::botan",
+      "tag": "hmac_sha3_512",
+      "call": 2,
+      "operator_new": 10,
+      "c_allocator_calls": 12,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_pieces",
+      "backend": "botan",
+      "target": "emscripten",
+      "implementation": "backends::botan",
+      "tag": "hmac_sha3_512",
+      "call": 2,
+      "operator_new": 20,
+      "c_allocator_calls": 24,
       "c_allocator_counted": true
     },
     {
@@ -7307,6 +9677,39 @@
       "c_allocator_counted": true
     },
     {
+      "operation": "hkdf_extract_pieces",
+      "backend": "botan",
+      "target": "emscripten",
+      "implementation": "backends::botan",
+      "tag": "hmac_ripemd_160",
+      "call": 1,
+      "operator_new": 7,
+      "c_allocator_calls": 10,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_expand_pieces",
+      "backend": "botan",
+      "target": "emscripten",
+      "implementation": "backends::botan",
+      "tag": "hmac_ripemd_160",
+      "call": 1,
+      "operator_new": 7,
+      "c_allocator_calls": 14,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_pieces",
+      "backend": "botan",
+      "target": "emscripten",
+      "implementation": "backends::botan",
+      "tag": "hmac_ripemd_160",
+      "call": 1,
+      "operator_new": 14,
+      "c_allocator_calls": 24,
+      "c_allocator_counted": true
+    },
+    {
       "operation": "hkdf_extract",
       "backend": "botan",
       "target": "emscripten",
@@ -7362,6 +9765,39 @@
       "c_allocator_counted": true
     },
     {
+      "operation": "hkdf_extract_pieces",
+      "backend": "botan",
+      "target": "emscripten",
+      "implementation": "backends::botan",
+      "tag": "hmac_ripemd_160",
+      "call": 2,
+      "operator_new": 7,
+      "c_allocator_calls": 10,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_expand_pieces",
+      "backend": "botan",
+      "target": "emscripten",
+      "implementation": "backends::botan",
+      "tag": "hmac_ripemd_160",
+      "call": 2,
+      "operator_new": 7,
+      "c_allocator_calls": 14,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_pieces",
+      "backend": "botan",
+      "target": "emscripten",
+      "implementation": "backends::botan",
+      "tag": "hmac_ripemd_160",
+      "call": 2,
+      "operator_new": 14,
+      "c_allocator_calls": 24,
+      "c_allocator_counted": true
+    },
+    {
       "operation": "hkdf_extract",
       "backend": "botan",
       "target": "emscripten",
@@ -7417,6 +9853,39 @@
       "c_allocator_counted": true
     },
     {
+      "operation": "hkdf_extract_pieces",
+      "backend": "botan",
+      "target": "emscripten",
+      "implementation": "backends::botan",
+      "tag": "hmac_blake2b_512",
+      "call": 1,
+      "operator_new": 13,
+      "c_allocator_calls": 16,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_expand_pieces",
+      "backend": "botan",
+      "target": "emscripten",
+      "implementation": "backends::botan",
+      "tag": "hmac_blake2b_512",
+      "call": 1,
+      "operator_new": 13,
+      "c_allocator_calls": 16,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_pieces",
+      "backend": "botan",
+      "target": "emscripten",
+      "implementation": "backends::botan",
+      "tag": "hmac_blake2b_512",
+      "call": 1,
+      "operator_new": 26,
+      "c_allocator_calls": 32,
+      "c_allocator_counted": true
+    },
+    {
       "operation": "hkdf_extract",
       "backend": "botan",
       "target": "emscripten",
@@ -7469,6 +9938,39 @@
       "call": 2,
       "operator_new": 43,
       "c_allocator_calls": 47,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_extract_pieces",
+      "backend": "botan",
+      "target": "emscripten",
+      "implementation": "backends::botan",
+      "tag": "hmac_blake2b_512",
+      "call": 2,
+      "operator_new": 13,
+      "c_allocator_calls": 16,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_expand_pieces",
+      "backend": "botan",
+      "target": "emscripten",
+      "implementation": "backends::botan",
+      "tag": "hmac_blake2b_512",
+      "call": 2,
+      "operator_new": 13,
+      "c_allocator_calls": 16,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_pieces",
+      "backend": "botan",
+      "target": "emscripten",
+      "implementation": "backends::botan",
+      "tag": "hmac_blake2b_512",
+      "call": 2,
+      "operator_new": 26,
+      "c_allocator_calls": 32,
       "c_allocator_counted": true
     },
     {
@@ -7527,6 +10029,39 @@
       "c_allocator_counted": true
     },
     {
+      "operation": "hkdf_extract_pieces",
+      "backend": "botan",
+      "target": "emscripten",
+      "implementation": "backends::botan",
+      "tag": "hmac_blake2s_256",
+      "call": 1,
+      "operator_new": 13,
+      "c_allocator_calls": 15,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_expand_pieces",
+      "backend": "botan",
+      "target": "emscripten",
+      "implementation": "backends::botan",
+      "tag": "hmac_blake2s_256",
+      "call": 1,
+      "operator_new": 13,
+      "c_allocator_calls": 17,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_pieces",
+      "backend": "botan",
+      "target": "emscripten",
+      "implementation": "backends::botan",
+      "tag": "hmac_blake2s_256",
+      "call": 1,
+      "operator_new": 26,
+      "c_allocator_calls": 32,
+      "c_allocator_counted": true
+    },
+    {
       "operation": "hkdf_extract",
       "backend": "botan",
       "target": "emscripten",
@@ -7579,6 +10114,39 @@
       "call": 2,
       "operator_new": 43,
       "c_allocator_calls": 46,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_extract_pieces",
+      "backend": "botan",
+      "target": "emscripten",
+      "implementation": "backends::botan",
+      "tag": "hmac_blake2s_256",
+      "call": 2,
+      "operator_new": 13,
+      "c_allocator_calls": 15,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_expand_pieces",
+      "backend": "botan",
+      "target": "emscripten",
+      "implementation": "backends::botan",
+      "tag": "hmac_blake2s_256",
+      "call": 2,
+      "operator_new": 13,
+      "c_allocator_calls": 17,
+      "c_allocator_counted": true
+    },
+    {
+      "operation": "hkdf_pieces",
+      "backend": "botan",
+      "target": "emscripten",
+      "implementation": "backends::botan",
+      "tag": "hmac_blake2s_256",
+      "call": 2,
+      "operator_new": 26,
+      "c_allocator_calls": 32,
       "c_allocator_counted": true
     },
     {

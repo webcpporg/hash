@@ -10,7 +10,8 @@
 hash's own code allocates nothing: no function of `webcpp::hash` calls the global
 `operator new`, on any target, and none calls the C library's allocator on the targets
 where a program can count it. Test `allocation` proves that hash allocates nothing for
-Keccak-256, BLAKE3, Boost.Hash2's digests and hmacs, and HKDF and PBKDF2 on
+Keccak-256, BLAKE3, Boost.Hash2's digests and hmacs, and HKDF (its three functions over
+byte pieces too, with inputs of 4 KiB and 1 MiB in four pieces) and PBKDF2 on
 `backends::hash2`, `backends::sodium` and `backends::bearssl`, the failing calls (every
 guard's refusal) included. It counts every form of `operator new` and the C library's
 `malloc`, `calloc`, `realloc`, `aligned_alloc` and `posix_memalign` on glibc, macOS,
@@ -23,9 +24,12 @@ counter does not see is `mmap`, which the C libraries below use.
 
 One exception is not hash's own: on Emscripten, a call on `backends::webcrypto` awaits each
 of WebCrypto's promises through webcpp::asio's `browser::async_await`, whose bridge to
-JavaScript takes a block from the C library per promise awaited (one promise for
-`async_digest`, two for `async_hmac`, `async_hkdf` and `async_pbkdf2`, which import a key
-first). Test `allocation` counts a bare await's blocks, prints them as
+JavaScript takes a block from the C library per promise awaited: one promise for
+`async_digest`; two for `async_hmac`, `async_pbkdf2`, the single-buffer `async_hkdf` and
+`async_hkdf_extract` (over pieces too), which import a key first; 1 + n for
+`async_hkdf_expand` and 3 + n for `async_hkdf` over pieces, which sign once per block of
+output, n the output's size in digests rounded up. The pieces are gathered into JavaScript
+memory, not webcpp's. Test `allocation` counts a bare await's blocks, prints them as
 `record operation=async_await`, and checks that each WebCrypto call makes exactly that many
 per promise and nothing more. The table below leaves that block out: it lists the C
 libraries of hash's backends, and the block is webcpp::asio's.
@@ -66,8 +70,8 @@ The table is generated from `measurements.allocation.json` by
 `allocation_release`, `allocation_openssl_release` and `allocation_botan_release` of
 `bench/Jamfile`, the programs of the three tests built at `variant=release`, and the collector
 refuses an output of any other variant. The tests of the lanes keep the lane's variant. The
-figures are those of the machine the file records; Botan's rows, collected on 2026-11-21, are
-to be re-measured in the final pass, with every other count, before the release.
+figures are those of the machine and the day the file records (every row collected on
+2026-11-24), to be measured again in the final pass before the release.
 
 // tag::table[]
 [cols="1,1,1,1,3",options="header"]
@@ -78,6 +82,9 @@ to be re-measured in the final pass, with every other count, before the release.
 | `argon2id` | `sodium` | native | 0 | C library calls: 3
 | `scrypt` | `sodium` | native | 0 | C library calls: 0
 | `hkdf` | `openssl` | native | 0 | OpenSSL: 4080 first call (hmac_sha2_256), 30 first call (hmac_sha2_512), 24 steady state
+| `hkdf_extract` over pieces | `openssl` | native | 0 | OpenSSL: 10 first call (hmac_sha2_256), 10 first call (hmac_sha2_512), 10 steady state
+| `hkdf_expand` over pieces | `openssl` | native | 0 | OpenSSL: 30 first call (hmac_sha2_256), 20 first call (hmac_sha2_512), 20 steady state
+| `hkdf` over pieces | `openssl` | native | 0 | OpenSSL: 40 first call (hmac_sha2_256), 30 first call (hmac_sha2_512), 30 steady state
 | `pbkdf2` | `openssl` | native | 0 | OpenSSL: 30 first call (hmac_sha2_256), 18 first call (hmac_sha2_512), 18 steady state
 | `digest_of` | `botan` | native | 1 to 4 | Botan: 1 to 13 C library calls (operator new's included), over its 25 algorithms; the same in a steady call
 | `hasher` | `botan` | native | 1 to 4 | Botan: 1 to 13 C library calls (operator new's included), over its 25 algorithms; the same in a steady call
@@ -87,6 +94,9 @@ to be re-measured in the final pass, with every other count, before the release.
 | `hkdf` | `botan` | native | 17 to 30 | Botan: 25 to 39 C library calls (operator new's included), over its 14 algorithms; the same in a steady call
 | `pbkdf2` | `botan` | native | 16 to 29 | Botan: 21 to 34 C library calls (operator new's included), over its 14 algorithms; the same in a steady call
 | `kbkdf` | `botan` | native | 18 to 28 | Botan: 21 to 32 C library calls (operator new's included), over its 14 algorithms; the same in a steady call
+| `hkdf_extract` over pieces | `botan` | native | 4 to 7 | Botan: 7 to 10 C library calls (operator new's included), over its 14 algorithms; the same in a steady call
+| `hkdf_expand` over pieces | `botan` | native | 4 to 7 | Botan: 7 to 11 C library calls (operator new's included), over its 14 algorithms; the same in a steady call
+| `hkdf` over pieces | `botan` | native | 8 to 14 | Botan: 14 to 20 C library calls (operator new's included), over its 14 algorithms; the same in a steady call
 | `sskdf` | `botan` | native | 4 to 7 | Botan: 5 to 8 C library calls (operator new's included), over its 10 algorithms; the same in a steady call
 | `x963kdf` | `botan` | native | 4 | Botan: 5 to 6 C library calls (operator new's included), over its 5 algorithms; the same in a steady call
 | `argon2id` | `botan` | native | 6 | Botan: 9 C library calls (operator new's included), of kdfs::argon2id; the same in a steady call
@@ -99,11 +109,17 @@ to be re-measured in the final pass, with every other count, before the release.
 | `argon2id` | `sodium` | wasip2 | 0 | C library calls: 5
 | `scrypt` | `sodium` | wasip2 | 0 | C library calls: 1
 | `hkdf` | `openssl` | wasip2 | 0 | OpenSSL: 3960 first call (hmac_sha2_256), 30 first call (hmac_sha2_512), 24 steady state
+| `hkdf_extract` over pieces | `openssl` | wasip2 | 0 | OpenSSL: 10 first call (hmac_sha2_256), 10 first call (hmac_sha2_512), 10 steady state
+| `hkdf_expand` over pieces | `openssl` | wasip2 | 0 | OpenSSL: 30 first call (hmac_sha2_256), 20 first call (hmac_sha2_512), 20 steady state
+| `hkdf` over pieces | `openssl` | wasip2 | 0 | OpenSSL: 40 first call (hmac_sha2_256), 30 first call (hmac_sha2_512), 30 steady state
 | `pbkdf2` | `openssl` | wasip2 | 0 | OpenSSL: 30 first call (hmac_sha2_256), 18 first call (hmac_sha2_512), 18 steady state
 | `sodium_init` | `sodium` | wasip3 | 0 | C library calls: 1
 | `argon2id` | `sodium` | wasip3 | 0 | C library calls: 5
 | `scrypt` | `sodium` | wasip3 | 0 | C library calls: 1
 | `hkdf` | `openssl` | wasip3 | 0 | OpenSSL: 3960 first call (hmac_sha2_256), 30 first call (hmac_sha2_512), 24 steady state
+| `hkdf_extract` over pieces | `openssl` | wasip3 | 0 | OpenSSL: 10 first call (hmac_sha2_256), 10 first call (hmac_sha2_512), 10 steady state
+| `hkdf_expand` over pieces | `openssl` | wasip3 | 0 | OpenSSL: 30 first call (hmac_sha2_256), 20 first call (hmac_sha2_512), 20 steady state
+| `hkdf` over pieces | `openssl` | wasip3 | 0 | OpenSSL: 40 first call (hmac_sha2_256), 30 first call (hmac_sha2_512), 30 steady state
 | `pbkdf2` | `openssl` | wasip3 | 0 | OpenSSL: 30 first call (hmac_sha2_256), 18 first call (hmac_sha2_512), 18 steady state
 | `sodium_init` | `sodium` | emscripten | 0 | C library calls: 0
 | `argon2id` | `sodium` | emscripten | 0 | C library calls: 4
@@ -116,6 +132,9 @@ to be re-measured in the final pass, with every other count, before the release.
 | `hkdf` | `botan` | emscripten | 24 to 44 | Botan: 32 to 53 C library calls (operator new's included), over its 14 algorithms; the same in a steady call
 | `pbkdf2` | `botan` | emscripten | 23 to 43 | Botan: 28 to 48 C library calls (operator new's included), over its 14 algorithms; the same in a steady call
 | `kbkdf` | `botan` | emscripten | 24 to 43 | Botan: 27 to 47 C library calls (operator new's included), over its 14 algorithms; the same in a steady call
+| `hkdf_extract` over pieces | `botan` | emscripten | 4 to 13 | Botan: 7 to 16 C library calls (operator new's included), over its 14 algorithms; the same in a steady call
+| `hkdf_expand` over pieces | `botan` | emscripten | 4 to 13 | Botan: 10 to 17 C library calls (operator new's included), over its 14 algorithms; the same in a steady call
+| `hkdf` over pieces | `botan` | emscripten | 8 to 26 | Botan: 18 to 32 C library calls (operator new's included), over its 14 algorithms; the same in a steady call
 | `sskdf` | `botan` | emscripten | 7 to 10 | Botan: 8 to 11 C library calls (operator new's included), over its 10 algorithms; the same in a steady call
 | `x963kdf` | `botan` | emscripten | 7 | Botan: 8 to 9 C library calls (operator new's included), over its 5 algorithms; the same in a steady call
 | `argon2id` | `botan` | emscripten | 10 | Botan: 13 C library calls (operator new's included), of kdfs::argon2id; the same in a steady call

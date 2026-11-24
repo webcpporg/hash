@@ -28,16 +28,17 @@ The key derivations are the functions of hash that run on a backend, a C
 library or Boost.Hash2, that the program names or leaves to the default,
 `backends::hash2` (<<hash-default-backend>>); BLAKE2b subkeys run on libsodium
 alone, and the key derivations of standards on OpenSSL or Botan, which are
-never a default: the call names one (<<hash-kdfs-botan>>). Each backend gives the same bytes for the same inputs: the
-tests check them against each other on random inputs on every target.
+never a default: the call names one (<<hash-kdfs-botan>>). Each backend gives
+the same bytes for the same inputs: the tests check them against each other on
+random inputs on every target.
 
 Every key derivation computes on a secret, and sets DIT (data-independent
 timing) around each call, on every synchronous backend, on 64-bit ARM under
-Apple's systems and Linux where the CPU has FEAT_DIT, leaving the thread's DIT as it found it (<<hash-backends-dit>>):
-`hkdf_extract`, `hkdf_expand`, `hkdf`, `pbkdf2`, `blake2b_subkey`, `kbkdf`,
-`sskdf` and `x963kdf`. `hkdf` enters one guard and runs the whole derivation
-inside it, and HKDF and PBKDF2 on `backends::hash2` run Boost.Hash2's `hmac`
-there too.
+Apple's systems and Linux where the CPU has FEAT_DIT, leaving the thread's DIT
+as it found it (<<hash-backends-dit>>): `hkdf_extract`, `hkdf_expand`, `hkdf`
+(each also over byte pieces), `pbkdf2`, `blake2b_subkey`, `kbkdf`, `sskdf` and
+`x963kdf`. `hkdf` enters one guard and runs the whole derivation inside it, and
+HKDF and PBKDF2 on `backends::hash2` run Boost.Hash2's `hmac` there too.
 
 include::generated/compare-kdfs.adoc[]
 
@@ -51,9 +52,9 @@ optional `salt` and the `input_key_material` (RFC 5869's IKM) and returns a
 `application_info` (RFC 5869's info), the label of one purpose, and returns up
 to 255 digests of `output_key_material`, each block an HMAC of the previous
 block, the info and a counter. `hkdf` does both; `hkdf_extract` and
-`hkdf_expand` do one each, for a protocol that names a step, or a program
-that extracts once and expands many times. TLS 1.3, Signal, WireGuard, Noise and Nostr's NIP-44 derive their
-keys with it.
+`hkdf_expand` do one each, for a protocol that names a step, or a program that
+extracts once and expands many times. TLS 1.3, Signal, WireGuard, Noise and
+Nostr's NIP-44 derive their keys with it.
 
 This section adapts the guidance of libsodium's documentation on HKDF
 (`key_derivation/hkdf.md` of
@@ -84,8 +85,10 @@ reused across applications.
 * *`application_info`* names the purpose and is public. Each key gets its own
 info, written so that no two purposes can produce the same string: an
 application name, a version and the purpose, as `example chat v1 encryption`.
-The info is limited to `hkdf_max_application_info_size`, 32,768 bytes, on
-every backend.
+The info of a single buffer is limited to `hkdf_max_application_info_size`,
+32,768 bytes, on every backend (1,024 in WebCrypto's `async_hkdf`,
+<<hash-async-webcrypto>>); the forms over pieces take any length
+(<<hash-hkdf-pieces>>).
 * *`pseudorandom_key`* must stay secret, and `hkdf_expand` takes one of
 exactly the digest's size (`invalid_key_size` otherwise). A key that is
 already uniform and of that size, such as 32 bytes from
@@ -109,11 +112,12 @@ include::generated/backends-hkdf.adoc[]
 
 Most programs never name a backend: the call takes the default,
 `backends::hash2`, on every target (<<hash-default-backend>>). A program names
-one as the call's second template argument, to match the bytes
-of another program exactly, to share a C library the program already links, or to test one backend
-against another. `backend_has_v<Backend, Kdf, Hmac>` says at compile time
-whether a backend has a function over an hmac; a call on a backend that does
-not stops the build with a message that names the backends that do.
+one as the call's second template argument, to match the bytes of another
+program exactly, to share a C library the program already links, or to test
+one backend against another. `backend_has_v<Backend, Kdf, Hmac>` says at
+compile time whether a backend has a function over an hmac; a call on a
+backend that does not stops the build with a message that names the backends
+that do.
 
 [source]
 ----
@@ -124,6 +128,88 @@ include::{examples}/hkdf_backends.cpp[tag=example,indent=0]
 ----
 include::{examples}/hkdf_backends.expected[]
 ----
+
+[#hash-hkdf-pieces]
+=== HKDF over pieces
+
+Protocols seldom give HKDF one buffer. HPKE (RFC 9180) extracts from
+`HPKE-v1`, the suite's identifier, a label and the secret, one after another;
+TLS 1.3's `HKDF-Expand-Label` builds its info from a length, a label and a
+context. Joining the parts takes a buffer: on the heap, with a copy of the
+secret to wipe afterwards, or on the stack, with a size that someone must
+bound. `hkdf_extract`, `hkdf_expand` and `hkdf` each have a form over
+`byte_pieces` (`<webcpp/hash/byte_pieces.hpp>`, which
+`<webcpp/hash/hkdf.hpp>` includes) that takes the input keying material and
+the application info as a list of spans, read one after another as if joined,
+and feeds each piece to the backend's HMAC: no buffer, no copy of the secret.
+
+* `hkdf_extract<Hmac, Backend>(salt, input_key_material)`
+* `hkdf_expand<Hmac, Backend>(output_key_material, pseudorandom_key, application_info)`
+* `hkdf<Hmac, Backend>(output_key_material, salt, input_key_material, application_info)`
+
+The salt and the pseudorandom key stay one span each. The bytes are those of
+the single-buffer form over the parts joined: the tests check them against
+each other on random inputs and random splits on every backend.
+
+*No cap, no heap.* The forms over pieces refuse only what RFC 5869 refuses: an
+output of 0 bytes or of more than 255 digests (`invalid_output_size`), and for
+`hkdf_expand` a pseudorandom key of another size than the digest's
+(`invalid_key_size`); then the limits of the backend's HMAC key (OpenSSL takes
+a salt of at most `INT_MAX` bytes, `input_too_long` beyond). The input keying
+material, the application info and the number of pieces have no limit:
+`hkdf_max_application_info_size` belongs to the single-buffer forms alone. A
+piece longer than the backend's length type holds is fed in slices. On
+`backends::hash2`, `backends::sodium` and `backends::bearssl` hash allocates
+nothing, whatever the number and the size of the pieces (test `allocation`);
+OpenSSL's and Botan's allocations are theirs, counted in <<hash-allocation>>.
+Every HMAC state, every block and the pseudorandom key between the two steps
+are wiped, on success and on failure.
+
+*Writing the pieces.*
+
+* *A braced list at the call,* `{a, b, c}`: each element converts to
+`std::span<std::uint8_t const>` (a `std::array`, a `std::vector`, a span). Its
+array lives until the end of the call's full expression, after the call
+returns.
+* *One piece is `+byte_pieces{x}+`.* A braced list of one span, `+{x}+`, is that
+span (the language's rule), so `+hkdf_expand(okm, prk, {info})+` calls the
+single-buffer form, with its limit; `+hkdf_expand(okm, prk, byte_pieces{info})+`
+calls the form over pieces. `hkdf` takes both inputs as pieces or both as
+spans: beside a list, one buffer is written `+byte_pieces{input_key_material}+`.
+* *`{}` and `+{x}+` of another type do not compile.* Where both forms take
+braces, a lone `{}`, or a braced list of one element that is not exactly a
+`std::span<std::uint8_t const>` (`+{vec}+`, `+{array}+`), matches both forms and
+the call is ambiguous: `hkdf(okm, salt, {}, {})` and `hkdf(okm, {}, {}, {})`,
+which compiled before the forms over pieces existed, no longer do. Pass `x`
+itself, an empty `std::span<std::uint8_t const>`, or `+byte_pieces{...}+`
+(`byte_pieces{}` for no piece). The asynchronous forms follow the same rule
+(<<hash-async-cheap>>).
+* *A list kept in a variable is a `std::array` of spans,* as
+`std::array<std::span<std::uint8_t const>, 3> const parts{prefix, label, secret};`,
+passed as it is (a `std::vector` or a span of spans too); never a
+`byte_pieces` variable. `byte_pieces parts{a, b};` points to its braced list's
+array, which dies at the end of the declaration; where the compiler has the
+`lifetimebound` attribute, it warns.
+
+HPKE's labeled steps (RFC 9180, section 4) are one call each, here running
+HPKE's key schedule on test vector A.1.1 of the RFC:
+
+[source]
+----
+include::{examples}/hkdf_pieces.cpp[tag=example,indent=0]
+----
+
+[listing]
+----
+include::{examples}/hkdf_pieces.expected[]
+----
+
+Every backend that has an HKDF function has the three forms over pieces,
+`backends::bearssl` included (its `hkdf_extract` and `hkdf_expand` exist over
+pieces alone, on BearSSL's HMAC), and `backends::webcrypto` has their
+asynchronous forms (<<hash-async-webcrypto>>): <<hash-backends-of-hkdf>> lists
+each form with its backends, targets and hmacs. The default is
+`backends::hash2`, as for the single-buffer forms.
 
 [#hash-pbkdf2]
 === PBKDF2
