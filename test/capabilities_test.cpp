@@ -649,6 +649,16 @@ void report_differences(names const& in_file, names const& known) {
     }
 }
 
+// A form is HKDF's pieces alone, on a row of a function the file has without it.
+void check_forms(json::object const& table) {
+    for (auto const* function : functions_of(table)) {
+        if (auto const* const form = function->if_contains("form")) {
+            BOOST_TEST(form->is_string() && form->as_string() == "pieces");
+            BOOST_TEST(find_row(table, function->at("name").as_string()) != nullptr);
+        }
+    }
+}
+
 // The file's lists against the test's: its backends, its hmacs, its functions.
 void check_names(json::object const& table) {
     std::vector<std::string> backends;
@@ -671,11 +681,6 @@ void check_names(json::object const& table) {
     names functions;
     for (auto const* function : functions_of(table)) {
         functions.emplace(row_key(*function));
-        // A form is HKDF's pieces alone, on a row of a function the file has without it.
-        if (auto const* const form = function->if_contains("form")) {
-            BOOST_TEST(form->is_string() && form->as_string() == "pieces");
-            BOOST_TEST(find_row(table, function->at("name").as_string()) != nullptr);
-        }
         for (auto const& backend : function->at("backends").as_object()) {
             BOOST_TEST((std::ranges::find(backends, std::string(backend.key())) != backends.end()));
             auto const& listed = backend.value().at("hmacs");
@@ -829,8 +834,12 @@ std::vector<refusal> const& refusals() {
             .header = "detail/engines.hpp",
             .start = "this backend has no HMAC for HKDF over pieces.",
             .backend = "",
-            .functions = {"hkdf_extract over pieces", "hkdf_expand over pieces",
-                          "hkdf over pieces"},
+            .functions =
+                {
+                    "hkdf_extract over pieces",
+                    "hkdf_expand over pieces",
+                    "hkdf over pieces",
+                },
             .hmacs = {"*"},
         },
         {
@@ -1431,7 +1440,8 @@ constexpr bool has_hmac() {
 template <class Backend>
 void check_pieces_cell(json::object const& row, std::string_view name) {
     std::string_view const backend = test::name_of<Backend>();
-    if (!row.at("backends").as_object().contains(backend) || !cells_here<Backend>()) {
+    auto const& backends = row.at("backends").as_object();
+    if (!backends.contains(backend) || !cells_here<Backend>()) {
         return;
     }
     [&]<class... Hmac>(std::tuple<Hmac...>*) {
@@ -1473,6 +1483,7 @@ int main() {
     json::object const& table = parsed.as_object();
 
     check_names(table);
+    check_forms(table);
     check_type_rows(table);
     check_backend_fields(table);
     check_defaults(table);

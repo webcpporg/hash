@@ -141,7 +141,7 @@
 
 // The lifetimebound attribute, where the compiler has it; the reference's run reads its comment
 // above.
-#if defined(__has_cpp_attribute)
+#ifdef __has_cpp_attribute
 #if __has_cpp_attribute(clang::lifetimebound)
 #define WEBCPP_HASH_LIFETIMEBOUND [[clang::lifetimebound]]
 #elif __has_cpp_attribute(msvc::lifetimebound)

@@ -152,7 +152,7 @@ struct hkdf_engine<backends::hash2, Hmac> {
 };
 
 /**
- HKDF over pieces on backends::hash2 (the engine's interface: @ref hkdf_pieces_engine): RFC 5869
+ HKDF over pieces on backends::hash2, whose interface is @ref hkdf_pieces_engine's. RFC 5869
  with every concatenation replaced by successive updates of one Boost.Hash2 `hmac<H>`, whose
  `update` takes a `size_t`, so that a piece is never sliced (@ref hkdf_pieces_slice is a span's
  whole length, unless the test seam lowers it).

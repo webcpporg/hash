@@ -253,11 +253,13 @@ inline std::vector<std::string> keyed_cells(std::string_view backend) {
             }
             auto const& hmacs = cell->as_object().at("hmacs");
             if (hmacs.is_null()) {
-                cells.push_back(base + form);
+                cells.push_back(base.append(form));
                 continue;
             }
             for (auto const& hmac : hmacs.as_array()) {
-                cells.push_back(base + "<" + std::string(hmac.as_string()) + ">" + form);
+                std::string named = base;
+                named.append("<").append(hmac.as_string()).append(">").append(form);
+                cells.push_back(std::move(named));
             }
         }
     }

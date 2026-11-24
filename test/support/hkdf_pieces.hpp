@@ -279,12 +279,15 @@ void check_case(pieces_place const& place, byte_piece salt, byte_piece input_key
 /** RFC 5869's cases over the hmac of their hash: every split of section D8, and the vector. */
 template <class Hmac, class Backend, class Oracle>
 void check_rfc5869(std::string_view backend) {
-    std::vector<rfc5869_case> cases;
-    if constexpr (std::is_same_v<Hmac, hash::hmac_sha2_256>) {
-        cases = {a1, a2, a3};
-    } else if constexpr (std::is_same_v<Hmac, hash::hmac_sha1_160>) {
-        cases = {a4, a5, a6, a7};
-    }
+    std::vector<rfc5869_case> const cases = [] {
+        if constexpr (std::is_same_v<Hmac, hash::hmac_sha2_256>) {
+            return std::vector<rfc5869_case>{a1, a2, a3};
+        } else if constexpr (std::is_same_v<Hmac, hash::hmac_sha1_160>) {
+            return std::vector<rfc5869_case>{a4, a5, a6, a7};
+        } else {
+            return std::vector<rfc5869_case>{};
+        }
+    }();
     std::size_t index = 0;
     for (rfc5869_case const& c : cases) {
         auto const ikm = from_hex(c.ikm);
@@ -365,8 +368,11 @@ void check_long(std::string_view backend) {
     }
 
     // Long inputs in four pieces.
-    constexpr std::array<std::size_t, 3> info_sizes{4096, hash::hkdf_max_application_info_size + 1,
-                                                    std::size_t{1} << 20U};
+    constexpr std::array<std::size_t, 3> info_sizes{
+        4096,
+        hash::hkdf_max_application_info_size + 1,
+        std::size_t{1} << 20U,
+    };
     std::size_t index = 0;
     for (std::size_t const size : info_sizes) {
         auto const info = random.bytes(size);

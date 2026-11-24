@@ -71,8 +71,10 @@ void binding() {
 
     // A constant list: the type is a literal one.
     static constexpr std::array<std::uint8_t, 4> constant_bytes{1, 2, 3, 4};
-    static constexpr std::array<piece, 2> constant_pieces{piece(constant_bytes),
-                                                          piece(constant_bytes).first(1)};
+    static constexpr std::array<piece, 2> constant_pieces{
+        piece(constant_bytes),
+        piece(constant_bytes).first(1),
+    };
     static_assert(hash::byte_pieces(constant_pieces).total_size() == 5U);
 }
 

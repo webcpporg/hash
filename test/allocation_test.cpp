@@ -259,8 +259,11 @@ void hkdf_pieces_allocate_nothing(char const* name, std::size_t expected_calls) 
         std::span<std::uint8_t const> const input = std::span(long_buffer).first(size);
         std::size_t const quarter = size / 4;
         std::array<std::span<std::uint8_t const>, 4> const pieces{
-            input.first(quarter), input.subspan(quarter, quarter),
-            input.subspan(2 * quarter, quarter), input.subspan(3 * quarter)};
+            input.first(quarter),
+            input.subspan(quarter, quarter),
+            input.subspan(2 * quarter, quarter),
+            input.subspan(3 * quarter),
+        };
         allocates_nothing(name, [&] {
             BOOST_TEST((hash::hkdf_extract<Hmac, Backend>(message_input, pieces).has_value()));
         });
@@ -271,8 +274,10 @@ void hkdf_pieces_allocate_nothing(char const* name, std::size_t expected_calls) 
             BOOST_TEST((hash::hkdf<Hmac, Backend>(okm, message_input, pieces, pieces).has_value()));
         });
     }
-    std::array<std::span<std::uint8_t const>, 2> const pieces{message_input.first(3),
-                                                              message_input.last(7)};
+    std::array<std::span<std::uint8_t const>, 2> const pieces{
+        message_input.first(3),
+        message_input.last(7),
+    };
     std::span<std::uint8_t> const no_output;
     allocates_nothing(name, [&] {
         BOOST_TEST((!hash::hkdf_expand<Hmac, Backend>(no_output, prk, pieces).has_value()));
