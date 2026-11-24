@@ -131,6 +131,50 @@ template <class Hmac>
 inline constexpr bool backend_has_v<backends::hash2, kdfs::hkdf_expand_pieces, Hmac> =
     backend_has_v<backends::hash2, kdfs::hkdf_pieces, Hmac>;
 
+/**
+ backends::sodium has HKDF over pieces over the hmacs of its HMAC cells, those it has HKDF over:
+ `hmac_sha2_256` and `hmac_sha2_512`, over `crypto_auth_hmacsha256_*` and
+ `crypto_auth_hmacsha512_*` (libsodium's own HKDF takes Expand's info whole, and is not used).
+*/
+template <class Hmac>
+inline constexpr bool backend_has_v<backends::sodium, kdfs::hkdf_pieces, Hmac> =
+    backend_has_v<backends::sodium, kdfs::hkdf, Hmac>;
+
+/** backends::sodium has HKDF-Extract over pieces wherever it has HKDF over pieces. */
+template <class Hmac>
+inline constexpr bool backend_has_v<backends::sodium, kdfs::hkdf_extract_pieces, Hmac> =
+    backend_has_v<backends::sodium, kdfs::hkdf_pieces, Hmac>;
+
+/** backends::sodium has HKDF-Expand over pieces wherever it has HKDF over pieces. */
+template <class Hmac>
+inline constexpr bool backend_has_v<backends::sodium, kdfs::hkdf_expand_pieces, Hmac> =
+    backend_has_v<backends::sodium, kdfs::hkdf_pieces, Hmac>;
+
+/**
+ backends::bearssl has HKDF over pieces over its six hmacs, those of its HMAC cells, over
+ `br_hmac_key_init`, `br_hmac_init`, `br_hmac_update` and `br_hmac_out`.
+*/
+template <class Hmac>
+inline constexpr bool backend_has_v<backends::bearssl, kdfs::hkdf_pieces, Hmac> =
+    detail::bearssl_hmac_v<Hmac>;
+
+/**
+ backends::bearssl has HKDF-Extract over pieces wherever it has HKDF over pieces: its HMAC keyed
+ by the salt, while the single-buffer `hkdf_extract` stays refused (`br_hkdf_*` keeps the
+ pseudorandom key inside its context).
+*/
+template <class Hmac>
+inline constexpr bool backend_has_v<backends::bearssl, kdfs::hkdf_extract_pieces, Hmac> =
+    backend_has_v<backends::bearssl, kdfs::hkdf_pieces, Hmac>;
+
+/**
+ backends::bearssl has HKDF-Expand over pieces wherever it has HKDF over pieces: its HMAC keyed by
+ the pseudorandom key, while the single-buffer `hkdf_expand` stays refused.
+*/
+template <class Hmac>
+inline constexpr bool backend_has_v<backends::bearssl, kdfs::hkdf_expand_pieces, Hmac> =
+    backend_has_v<backends::bearssl, kdfs::hkdf_pieces, Hmac>;
+
 /** backends::sodium has Argon2id (`crypto_pwhash_argon2id`), which takes no hmac. */
 template <>
 inline constexpr bool backend_has_v<backends::sodium, kdfs::argon2id, void> = true;

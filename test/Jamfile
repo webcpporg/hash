@@ -244,6 +244,21 @@ hash-run byte_pieces : byte_pieces_test.cpp ;
 hash-run hkdf_pieces : hkdf_pieces_test.cpp ;
 hash-run hkdf_pieces_sliced : hkdf_pieces_test.cpp
   : <define>WEBCPP_HASH_DETAIL_TEST_HKDF_PIECES_SLICE=7 ;
+# The same on backends::sodium (libsodium's crypto_auth_hmacsha256_* and
+# crypto_auth_hmacsha512_*) and on backends::bearssl (br_hmac_*, its six
+# hmacs, Extract and Expand over pieces included), each with the wipe of every
+# HMAC state, block and pseudorandom key reported through the seam
+# WEBCPP_HASH_DETAIL_TEST_WIPE_RECORD, and again in slices of 7 bytes.
+hash-run hkdf_pieces_sodium : hkdf_pieces_sodium_test.cpp
+  : <library>/third_party//sodium <define>WEBCPP_HASH_DETAIL_TEST_WIPE_RECORD ;
+hash-run hkdf_pieces_sodium_sliced : hkdf_pieces_sodium_test.cpp
+  : <library>/third_party//sodium <define>WEBCPP_HASH_DETAIL_TEST_WIPE_RECORD
+    <define>WEBCPP_HASH_DETAIL_TEST_HKDF_PIECES_SLICE=7 ;
+hash-run hkdf_pieces_bearssl : hkdf_pieces_bearssl_test.cpp
+  : <library>/third_party//bearssl <define>WEBCPP_HASH_DETAIL_TEST_WIPE_RECORD ;
+hash-run hkdf_pieces_bearssl_sliced : hkdf_pieces_bearssl_test.cpp
+  : <library>/third_party//bearssl <define>WEBCPP_HASH_DETAIL_TEST_WIPE_RECORD
+    <define>WEBCPP_HASH_DETAIL_TEST_HKDF_PIECES_SLICE=7 ;
 hash-run wipe : wipe_test.cpp : <define>WEBCPP_HASH_DETAIL_TEST_WIPE_RECORD ;
 
 # digests::blake2b on backends::sodium, libsodium's crypto_generichash_blake2b

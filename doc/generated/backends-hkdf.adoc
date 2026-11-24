@@ -118,11 +118,39 @@
 | `hmac_md5_128`, `hmac_sha1_160`, `hmac_sha2_224`, `hmac_sha2_256`, `hmac_sha2_384`, `hmac_sha2_512`, `hmac_sha2_512_224`, `hmac_sha2_512_256`, `hmac_sha3_224`, `hmac_sha3_256`, `hmac_sha3_384`, `hmac_sha3_512`, `hmac_ripemd_128`, `hmac_ripemd_160`, `hmac_blake2b_512`, `hmac_blake2s_256`, any other Hash2 hash (`hmac<H>`)
 | not stated
 
+| `hkdf_extract` over pieces
+| `sodium`
+| `/third_party//sodium`
+| native, wasip2, wasip3, emscripten
+| `hmac_sha2_256`, `hmac_sha2_512`
+| not stated
+
+| `hkdf_extract` over pieces
+| `bearssl`
+| `/third_party//bearssl`
+| native, wasip2, wasip3, emscripten
+| `hmac_md5_128`, `hmac_sha1_160`, `hmac_sha2_224`, `hmac_sha2_256`, `hmac_sha2_384`, `hmac_sha2_512`
+| not stated
+
 | `hkdf_expand` over pieces
 | `hash2`
 | `/webcpp/hash//hash`
 | native, wasip2, wasip3, emscripten
 | `hmac_md5_128`, `hmac_sha1_160`, `hmac_sha2_224`, `hmac_sha2_256`, `hmac_sha2_384`, `hmac_sha2_512`, `hmac_sha2_512_224`, `hmac_sha2_512_256`, `hmac_sha3_224`, `hmac_sha3_256`, `hmac_sha3_384`, `hmac_sha3_512`, `hmac_ripemd_128`, `hmac_ripemd_160`, `hmac_blake2b_512`, `hmac_blake2s_256`, any other Hash2 hash (`hmac<H>`)
+| not stated
+
+| `hkdf_expand` over pieces
+| `sodium`
+| `/third_party//sodium`
+| native, wasip2, wasip3, emscripten
+| `hmac_sha2_256`, `hmac_sha2_512`
+| not stated
+
+| `hkdf_expand` over pieces
+| `bearssl`
+| `/third_party//bearssl`
+| native, wasip2, wasip3, emscripten
+| `hmac_md5_128`, `hmac_sha1_160`, `hmac_sha2_224`, `hmac_sha2_256`, `hmac_sha2_384`, `hmac_sha2_512`
 | not stated
 
 | `hkdf` over pieces
@@ -131,11 +159,27 @@
 | native, wasip2, wasip3, emscripten
 | `hmac_md5_128`, `hmac_sha1_160`, `hmac_sha2_224`, `hmac_sha2_256`, `hmac_sha2_384`, `hmac_sha2_512`, `hmac_sha2_512_224`, `hmac_sha2_512_256`, `hmac_sha3_224`, `hmac_sha3_256`, `hmac_sha3_384`, `hmac_sha3_512`, `hmac_ripemd_128`, `hmac_ripemd_160`, `hmac_blake2b_512`, `hmac_blake2s_256`, any other Hash2 hash (`hmac<H>`)
 | not stated
+
+| `hkdf` over pieces
+| `sodium`
+| `/third_party//sodium`
+| native, wasip2, wasip3, emscripten
+| `hmac_sha2_256`, `hmac_sha2_512`
+| not stated
+
+| `hkdf` over pieces
+| `bearssl`
+| `/third_party//bearssl`
+| native, wasip2, wasip3, emscripten
+| `hmac_md5_128`, `hmac_sha1_160`, `hmac_sha2_224`, `hmac_sha2_256`, `hmac_sha2_384`, `hmac_sha2_512`
+| not stated
 |===
 
 What each backend states on constant time, as the capability table read it:
 
-* `bearssl`: BearSSL upstream 7bea48e (v0.6-39), unchanged in webcpp's pin 32381d6: bearssl_hmac.h states constant time for br_hmac_outCT alone; br_hkdf_* (src/kdf/hkdf.c) calls br_hmac_out.
+* `bearssl`:
+** BearSSL upstream 7bea48e (v0.6-39), unchanged in webcpp's pin 32381d6: bearssl_hmac.h states constant time for br_hmac_outCT alone; HKDF over pieces calls br_hmac_out.
+** BearSSL upstream 7bea48e (v0.6-39), unchanged in webcpp's pin 32381d6: bearssl_hmac.h states constant time for br_hmac_outCT alone; br_hkdf_* (src/kdf/hkdf.c) calls br_hmac_out.
 * `botan`: Botan 3.14.1: doc/api_ref/kdf.rst states no constant-time property of its KDFs, and their source (src/lib/kdf/) none.
 * `hash2`: Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property.
 * `openssl`: OpenSSL 3.5.9: doc/man7/EVP_KDF-HKDF.pod and EVP_KDF-PBKDF2.pod state no constant-time property.
@@ -146,6 +190,6 @@ The default of `hkdf_extract` and `hkdf_expand`: `hash2` on every target, whatev
 
 The default of `hkdf`: `hash2` on every target, whatever the program links; `bearssl`, `botan`, `openssl`, `sodium` only where the call names it, as its second template argument (<<hash-default-backend>>).
 
-The default of `hkdf_extract` over pieces, `hkdf_expand` over pieces and `hkdf` over pieces: `hash2` on every target, whatever the program links (<<hash-default-backend>>).
+The default of `hkdf_extract` over pieces, `hkdf_expand` over pieces and `hkdf` over pieces: `hash2` on every target, whatever the program links; `bearssl`, `sodium` only where the call names it, as its second template argument (<<hash-default-backend>>).
 
 `webcrypto` serves the asynchronous family alone, on Emscripten, where the type of its asynchronous call names it (<<hash-async-webcrypto>>).

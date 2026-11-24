@@ -3632,6 +3632,32 @@
                                 "value": "not stated",
                                 "source": "Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property."
                             }
+                        },
+                        "sodium": {
+                            "since": 7,
+                            "hmacs": [
+                                "hmac_sha2_256",
+                                "hmac_sha2_512"
+                            ],
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "libsodium 1.0.22: its headers state constant time for comparisons (sodium/utils.h) alone, not for its hashing, MAC, key derivation and password hashing functions (crypto_hash_*, crypto_xof_*, crypto_generichash_*, crypto_shorthash_*, crypto_auth_*, crypto_kdf_*, crypto_pwhash_*)."
+                            }
+                        },
+                        "bearssl": {
+                            "since": 7,
+                            "hmacs": [
+                                "hmac_md5_128",
+                                "hmac_sha1_160",
+                                "hmac_sha2_224",
+                                "hmac_sha2_256",
+                                "hmac_sha2_384",
+                                "hmac_sha2_512"
+                            ],
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "BearSSL upstream 7bea48e (v0.6-39), unchanged in webcpp's pin 32381d6: bearssl_hmac.h states constant time for br_hmac_outCT alone; HKDF over pieces calls br_hmac_out."
+                            }
                         }
                     }
                 },
@@ -3668,6 +3694,32 @@
                                 "value": "not stated",
                                 "source": "Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property."
                             }
+                        },
+                        "sodium": {
+                            "since": 7,
+                            "hmacs": [
+                                "hmac_sha2_256",
+                                "hmac_sha2_512"
+                            ],
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "libsodium 1.0.22: its headers state constant time for comparisons (sodium/utils.h) alone, not for its hashing, MAC, key derivation and password hashing functions (crypto_hash_*, crypto_xof_*, crypto_generichash_*, crypto_shorthash_*, crypto_auth_*, crypto_kdf_*, crypto_pwhash_*)."
+                            }
+                        },
+                        "bearssl": {
+                            "since": 7,
+                            "hmacs": [
+                                "hmac_md5_128",
+                                "hmac_sha1_160",
+                                "hmac_sha2_224",
+                                "hmac_sha2_256",
+                                "hmac_sha2_384",
+                                "hmac_sha2_512"
+                            ],
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "BearSSL upstream 7bea48e (v0.6-39), unchanged in webcpp's pin 32381d6: bearssl_hmac.h states constant time for br_hmac_outCT alone; HKDF over pieces calls br_hmac_out."
+                            }
                         }
                     }
                 },
@@ -3703,6 +3755,32 @@
                             "constant_time": {
                                 "value": "not stated",
                                 "source": "Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property."
+                            }
+                        },
+                        "sodium": {
+                            "since": 7,
+                            "hmacs": [
+                                "hmac_sha2_256",
+                                "hmac_sha2_512"
+                            ],
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "libsodium 1.0.22: its headers state constant time for comparisons (sodium/utils.h) alone, not for its hashing, MAC, key derivation and password hashing functions (crypto_hash_*, crypto_xof_*, crypto_generichash_*, crypto_shorthash_*, crypto_auth_*, crypto_kdf_*, crypto_pwhash_*)."
+                            }
+                        },
+                        "bearssl": {
+                            "since": 7,
+                            "hmacs": [
+                                "hmac_md5_128",
+                                "hmac_sha1_160",
+                                "hmac_sha2_224",
+                                "hmac_sha2_256",
+                                "hmac_sha2_384",
+                                "hmac_sha2_512"
+                            ],
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "BearSSL upstream 7bea48e (v0.6-39), unchanged in webcpp's pin 32381d6: bearssl_hmac.h states constant time for br_hmac_outCT alone; HKDF over pieces calls br_hmac_out."
                             }
                         }
                     }

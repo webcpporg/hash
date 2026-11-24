@@ -13,6 +13,8 @@
    `hmac_sha2_224`, `hmac_sha2_256`, `hmac_sha2_384` and `hmac_sha2_512`. BearSSL has `hkdf`
    alone: its context keeps the pseudorandom key and takes none in, so that `hkdf_extract` and
    `hkdf_expand` refuse at compile time, as `pbkdf2` does (spec section 3.3).
+ - HKDF over pieces (`hkdf_extract`, `hkdf_expand` and `hkdf` over `byte_pieces`) for the same six
+   hmacs, over BearSSL's HMAC, Extract and Expand included.
  - The digests of `digest_of` and `hasher` (spec 2.15): MD5, SHA-1, SHA-224, SHA-256, SHA-384
    and SHA-512 over `br_<h>_init`, `br_<h>_update` and `br_<h>_out`; TLS 1.0's MD5-SHA1 (36
    bytes, MD5 followed by SHA-1) over `br_md5sha1_*`; SHAKE128 and SHAKE256, any output size,
@@ -49,8 +51,10 @@
 #include <bearssl_hmac.h>
 #include <bearssl_kdf.h>
 
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
+#include <limits>
 #include <span>
 
 #ifdef WEBCPP_HASH_BEARSSL_CANARY_CONFIGURATION
@@ -82,9 +86,9 @@ extern "C" constinit const char WEBCPP_HASH_DETAIL_BEARSSL_CANARY;
 namespace webcpp::hash::backends {
 
 /**
- BearSSL on every target: `hkdf` alone over six hmacs, MD5, SHA-1, SHA-2, MD5-SHA1 and SHAKE
- through `digest_of` and `hasher`, and HMAC over MD5, SHA-1 and SHA-2 through `mac`; never a
- default.
+ BearSSL on every target: `hkdf` alone over six hmacs, and HKDF's three functions over pieces;
+ MD5, SHA-1, SHA-2, MD5-SHA1 and SHAKE through `digest_of` and `hasher`, and HMAC over MD5, SHA-1
+ and SHA-2 through `mac`; never a default.
 */
 struct bearssl {};
 
@@ -454,6 +458,142 @@ struct hkdf_engine<backends::bearssl, Hmac> {
         return produced_count == output_key_material.size()
                    ? boost::system::result<void>()
                    : boost::system::result<void>(error::backend_failure);
+    }
+};
+
+/**
+ HKDF over pieces on backends::bearssl (the engine's interface: @ref hkdf_pieces_engine), over
+ BearSSL's HMAC rather than its HKDF, whose context keeps the pseudorandom key: RFC 5869 with
+ every concatenation replaced by successive `br_hmac_update`s, so that BearSSL has Extract and
+ Expand over pieces, while its single-buffer `hkdf_extract` and `hkdf_expand` stay refused. The
+ `br_hmac_key_context` of a key is made once by `br_hmac_key_init`, and a `br_hmac_context` is
+ started from it by `br_hmac_init` for each block (BearSSL copies what it needs, and modifies no
+ key context); every context, each block T(i) and the pseudorandom key between the steps are
+ wiped. `br_hmac_update` takes a `size_t`, which holds every slice of @ref hkdf_pieces_slice, so
+ that a piece is sliced only by the test seam.
+
+ @tparam Hmac One of the six hmacs of @ref bearssl_hash_class.
+*/
+template <class Hmac>
+    requires bearssl_hmac_v<Hmac>
+struct hkdf_pieces_engine<backends::bearssl, Hmac> {
+    /** The hmac's result, a `digest<N>`: the PRK and each block T(i). */
+    using digest_type = Hmac::result_type;
+
+    /** The most bytes of one update. */
+    static constexpr std::uint64_t slice_max = hkdf_pieces_slice<backends::bearssl>;
+    static_assert(slice_max <= std::numeric_limits<std::size_t>::max(),
+                  "br_hmac_update takes every slice's length");
+
+    /**
+     Feeds every byte of `pieces` to `mac_context`, in slices of at most @ref slice_max bytes.
+
+     @param mac_context The HMAC context. @param pieces The pieces.
+    */
+    static void update_all(br_hmac_context& mac_context, byte_pieces pieces) noexcept {
+        for_each_slice<slice_max>(pieces, [&](std::span<std::uint8_t const> slice) {
+            br_hmac_update(&mac_context, slice.data(), slice.size());
+        });
+    }
+
+    /**
+     RFC 5869, 2.2: PRK = HMAC-Hash(salt, piece_1 | ... | piece_n). An empty salt, of length 0,
+     is padded by HMAC with zeros to the block: RFC 5869's HashLen zeros.
+
+     @param salt The salt. @param input_key_material The input keying material's pieces.
+     @return The PRK, or `error::backend_failure` when BearSSL wrote another size than the digest's.
+    */
+    [[nodiscard]] static boost::system::result<digest_type> extract(
+        std::span<std::uint8_t const> salt, byte_pieces input_key_material) noexcept {
+        touch_bearssl_canary();
+        // The PRK is built in the result returned and BearSSL writes into it: a single return path
+        // of the one named object, so that no copy of the PRK is left behind unwiped.
+        boost::system::result<digest_type> pseudorandom_key{boost::system::in_place_value};
+        br_hmac_key_context key_context;
+        br_hmac_key_init(&key_context, bearssl_hash_class<Hmac>::vtable(), nonnull(salt),
+                         salt.size());
+        br_hmac_context mac_context;
+        br_hmac_init(&mac_context, &key_context, 0);
+        update_all(mac_context, input_key_material);
+        std::size_t const written_count =
+            br_hmac_out(&mac_context, pseudorandom_key.unsafe_value().data());
+        wipe_object(mac_context);
+        wipe_object(key_context);
+        if (written_count != pseudorandom_key.unsafe_value().size()) {
+            wipe_object(pseudorandom_key.unsafe_value());
+            pseudorandom_key = boost::system::result<digest_type>(error::backend_failure);
+        }
+        return pseudorandom_key;
+    }
+
+    /**
+     RFC 5869, 2.3: T(0) = empty; T(i) = HMAC-Hash(PRK, T(i-1) | piece_1 | ... | piece_n | i);
+     OKM = the first L octets of T(1) | T(2) | ... | T(N), N = ceil(L/HashLen).
+
+     @param output_key_material The OKM, its size L. @param pseudorandom_key The PRK.
+     @param application_info The info's pieces.
+     @return Success, or `error::backend_failure` when BearSSL wrote another size than the digest's
+     (the public function then zeroes the output).
+    */
+    [[nodiscard]] static boost::system::result<void> expand(
+        std::span<std::uint8_t> output_key_material, std::span<std::uint8_t const> pseudorandom_key,
+        byte_pieces application_info) noexcept {
+        touch_bearssl_canary();
+        br_hmac_key_context key_context;
+        br_hmac_key_init(&key_context, bearssl_hash_class<Hmac>::vtable(), pseudorandom_key.data(),
+                         pseudorandom_key.size());
+        digest_type t_block{};
+        bool computed = true;
+        std::size_t written_count = 0;
+        for (unsigned block_counter = 1; computed && written_count < output_key_material.size();
+             ++block_counter) {
+            br_hmac_context mac_context;
+            br_hmac_init(&mac_context, &key_context, 0);
+            if (block_counter > 1) {
+                br_hmac_update(&mac_context, t_block.data(), t_block.size());
+            }
+            update_all(mac_context, application_info);
+            auto const octet_value = static_cast<unsigned char>(block_counter);
+            br_hmac_update(&mac_context, &octet_value, 1);
+            computed = br_hmac_out(&mac_context, t_block.data()) == t_block.size();
+            wipe_object(mac_context);
+            if (computed) {
+                std::size_t const copied_count =
+                    std::min(t_block.size(), output_key_material.size() - written_count);
+                std::copy_n(t_block.data(), copied_count,
+                            output_key_material.data() + written_count);
+                written_count += copied_count;
+            }
+        }
+        wipe_object(t_block);
+        wipe_object(key_context);
+        if (!computed) {
+            return error::backend_failure;
+        }
+        return {};
+    }
+
+    /**
+     RFC 5869, 2: HKDF-Extract, then HKDF-Expand, over pieces; the PRK is wiped between them.
+
+     @param output_key_material The OKM. @param salt The salt.
+     @param input_key_material The input keying material's pieces.
+     @param application_info The info's pieces.
+     @return Success, or `error::backend_failure`.
+    */
+    [[nodiscard]] static boost::system::result<void> extract_and_expand(
+        std::span<std::uint8_t> output_key_material, std::span<std::uint8_t const> salt,
+        byte_pieces input_key_material, byte_pieces application_info) noexcept {
+        auto pseudorandom_key = extract(salt, input_key_material);
+        if (!pseudorandom_key) {
+            return pseudorandom_key.error();
+        }
+        digest_type& key_bytes = pseudorandom_key.unsafe_value();
+        auto derive_result = expand(
+            output_key_material, std::span<std::uint8_t const>(key_bytes.data(), key_bytes.size()),
+            application_info);
+        wipe_object(key_bytes);
+        return derive_result;
     }
 };
 

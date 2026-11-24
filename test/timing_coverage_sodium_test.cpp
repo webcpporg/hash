@@ -14,7 +14,8 @@
 // to the table; a cell of a family or function the support does not know fails here until its
 // call is written:
 // - mac over siphash_2_4, siphash_2_4x, blake2b_mac, hmac<sha2_256> and hmac<sha2_512>.
-// - hkdf_extract, hkdf_expand and hkdf over hmac_sha2_256 and hmac_sha2_512; blake2b_subkey.
+// - hkdf_extract, hkdf_expand and hkdf, each also over pieces, over hmac_sha2_256 and
+//   hmac_sha2_512; blake2b_subkey.
 // - argon2id; argon2 of argon2i and argon2id; scrypt.
 // - BLAKE2b with a key: digest_of and a hasher round (design D1).
 // - Not guarded: each digest cell without a key, through digest_of and a hasher round.

@@ -286,7 +286,8 @@ struct hkdf_pieces_engine {
     static_assert(std::is_same_v<Backend, backends::webcrypto>,
                   "webcpp::hash: this backend has no HMAC for HKDF over pieces. The backends that "
                   "have hkdf_extract, hkdf_expand and hkdf over pieces: backends::hash2 (every "
-                  "hmac).");
+                  "hmac), backends::sodium (hmac_sha2_256, hmac_sha2_512) and backends::bearssl "
+                  "(MD5, SHA-1, SHA-224, SHA-256, SHA-384, SHA-512).");
 };
 
 /**

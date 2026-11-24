@@ -1642,15 +1642,51 @@ states about its constant time. The backends:
 | not stated
 | native, wasip2, wasip3, emscripten
 
+| hkdf_extract over pieces
+| sodium
+| hmac_sha2_256, hmac_sha2_512
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| hkdf_extract over pieces
+| bearssl
+| hmac_md5_128, hmac_sha1_160, hmac_sha2_224, hmac_sha2_256, hmac_sha2_384, hmac_sha2_512
+| not stated
+| native, wasip2, wasip3, emscripten
+
 | hkdf_expand over pieces
 | hash2
 | hmac_md5_128, hmac_sha1_160, hmac_sha2_224, hmac_sha2_256, hmac_sha2_384, hmac_sha2_512, hmac_sha2_512_224, hmac_sha2_512_256, hmac_sha3_224, hmac_sha3_256, hmac_sha3_384, hmac_sha3_512, hmac_ripemd_128, hmac_ripemd_160, hmac_blake2b_512, hmac_blake2s_256, other
 | not stated
 | native, wasip2, wasip3, emscripten
 
+| hkdf_expand over pieces
+| sodium
+| hmac_sha2_256, hmac_sha2_512
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| hkdf_expand over pieces
+| bearssl
+| hmac_md5_128, hmac_sha1_160, hmac_sha2_224, hmac_sha2_256, hmac_sha2_384, hmac_sha2_512
+| not stated
+| native, wasip2, wasip3, emscripten
+
 | hkdf over pieces
 | hash2
 | hmac_md5_128, hmac_sha1_160, hmac_sha2_224, hmac_sha2_256, hmac_sha2_384, hmac_sha2_512, hmac_sha2_512_224, hmac_sha2_512_256, hmac_sha3_224, hmac_sha3_256, hmac_sha3_384, hmac_sha3_512, hmac_ripemd_128, hmac_ripemd_160, hmac_blake2b_512, hmac_blake2s_256, other
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| hkdf over pieces
+| sodium
+| hmac_sha2_256, hmac_sha2_512
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| hkdf over pieces
+| bearssl
+| hmac_md5_128, hmac_sha1_160, hmac_sha2_224, hmac_sha2_256, hmac_sha2_384, hmac_sha2_512
 | not stated
 | native, wasip2, wasip3, emscripten
 
@@ -2114,6 +2150,7 @@ What each backend's upstream states, and where:
 ** BearSSL upstream 7bea48e (v0.6-39), unchanged in webcpp's pin 32381d6: bearssl_kdf.h states no constant-time property for br_shake_*.
 ** BearSSL upstream 7bea48e (v0.6-39), unchanged in webcpp's pin 32381d6: bearssl_hmac.h states constant time for br_hmac_outCT alone; mac calls br_hmac_out.
 ** BearSSL upstream 7bea48e (v0.6-39), unchanged in webcpp's pin 32381d6: bearssl_hmac.h states constant time for br_hmac_outCT alone; br_hkdf_* (src/kdf/hkdf.c) calls br_hmac_out.
+** BearSSL upstream 7bea48e (v0.6-39), unchanged in webcpp's pin 32381d6: bearssl_hmac.h states constant time for br_hmac_outCT alone; HKDF over pieces calls br_hmac_out.
 * openssl: not stated.
 ** OpenSSL 3.5.9: doc/man7/EVP_MD-*.pod, doc/man3/EVP_DigestInit.pod and providers/implementations/digests/ state no constant-time property.
 ** OpenSSL 3.5.9: doc/man3/EVP_MAC.pod, doc/man7/EVP_MAC-HMAC.pod, EVP_MAC-KMAC.pod, EVP_MAC-BLAKE2.pod, EVP_MAC-Siphash.pod and providers/implementations/macs/ state no constant-time property.

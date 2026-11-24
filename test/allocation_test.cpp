@@ -10,25 +10,24 @@
 // XKCP (increment 3), BLAKE3, Boost.Hash2's digests and hmacs, HKDF and PBKDF2 on hash2, libsodium
 // (HKDF) and BearSSL (HKDF, and its digests and HMAC through the families: ruling R94); the
 // families digest_of, hasher, mac and argon2 on every backend that has a tag and on each tag's
-// default, blake2b_subkey and the asynchronous family, on every target. A
-// control that allocates once moves the counter, so a zero is not a broken counter. Every call is
-// counted and the totals asserted exactly per backend (HKDF over pieces on hash2 among them, with
-// inputs of 4 KiB and 1 MiB in four pieces), so a backend a wrong trait or a dropped
-// define leaves out fails, and the refusals of every guard run under the counter too. Argon2id and
-// scrypt are the one exception, and it is libsodium's: their working memory (Argon2id's matrix, 128
-// r N bytes of scrypt) comes from libsodium's own mmap, else posix_memalign, else malloc, outside
-// webcpp's code; the test asserts only that operator new is not called, and prints the C allocator
-// calls it saw (mmap is not among the calls the counter sees, so those are libsodium's small
-// bookkeeping blocks, not the memory). The asynchronous family (async.hpp, increment 7) takes its
-// storage from the handler's associated allocator, as Asio's operations do: with an arena of the
-// test's bound to the handler, the cheap functions (async_digest, async_hmac, async_hkdf, and their
-// guards' refusals) call neither operator new nor the C allocator, and the arena gets back every
-// block before the handler runs; the heavy functions (natively, on a thread pool) take their state
-// and completion from the arena too and call no operator new, the pool's queue and libsodium's
-// memory being the C allocator's; on Emscripten the four functions on backends::webcrypto call the
-// C allocator only as often as webcpp::asio's promise bridge does for a bare await, once per
-// promise. Every printed result is one `record key=value ...` line, collected by
-// bench/allocation_collect.py.
+// default, blake2b_subkey and the asynchronous family, on every target. A control that allocates
+// once moves the counter, so a zero is not a broken counter. Every call is counted and the totals
+// asserted exactly per backend (HKDF over pieces on hash2, sodium and bearssl among them, with
+// inputs of 4 KiB and 1 MiB in four pieces), so a backend a wrong trait or a dropped define leaves
+// out fails, and the refusals of every guard run under the counter too. Argon2id and scrypt are the
+// one exception, and it is libsodium's: their working memory (Argon2id's matrix, 128 r N bytes of
+// scrypt) comes from libsodium's own mmap, else posix_memalign, else malloc, outside webcpp's code;
+// the test asserts only that operator new is not called, and prints the C allocator calls it saw
+// (mmap is not among the calls the counter sees, so those are libsodium's small bookkeeping blocks,
+// not the memory). The asynchronous family (async.hpp, increment 7) takes its storage from the
+// handler's associated allocator, as Asio's operations do: with an arena of the test's bound to the
+// handler, the cheap functions (async_digest, async_hmac, async_hkdf, and their guards' refusals)
+// call neither operator new nor the C allocator, and the arena gets back every block before the
+// handler runs; the heavy functions (natively, on a thread pool) take their state and completion
+// from the arena too and call no operator new, the pool's queue and libsodium's memory being the C
+// allocator's; on Emscripten the four functions on backends::webcrypto call the C allocator only as
+// often as webcpp::asio's promise bridge does for a bare await, once per promise. Every printed
+// result is one `record key=value ...` line, collected by bench/allocation_collect.py.
 
 #include <webcpp/hash/algorithms.hpp>
 #include <webcpp/hash/argon2.hpp>
@@ -243,6 +242,7 @@ void kdfs_allocate_nothing(char const* name) {
 // HKDF over pieces (design D3, D8): the three forms with inputs of 4 KiB and 1 MiB in four pieces
 // (6), then each refusal of RFC 5869's sizes (5): Expand's and hkdf's outputs of no byte and of
 // 255 digests and one byte, Expand's pseudorandom key of a byte less than the digest. 11 calls.
+// The 1 MiB hkdf_expand is the spec's scenario "A Welcome-sized info", on each backend it runs on.
 template <class Hmac, class Backend>
 void hkdf_pieces_allocate_nothing(char const* name, std::size_t expected_calls) {
     std::size_t const before = calls_made;
@@ -1089,6 +1089,7 @@ int main() {
 #ifdef WEBCPP_HASH_HAS_SODIUM
     sodium_first_call();
     all_hmacs<hash::backends::sodium>("sodium", 12);
+    hkdf_pieces_allocate_nothing<hash::hmac_sha2_256, hash::backends::sodium>("sodium", 11);
     sodium_memory_hard();
     blake2b_subkey_allocates_nothing();
     argon2_family_on_sodium<hash::kdfs::argon2i>("argon2i", 3);
@@ -1113,6 +1114,7 @@ int main() {
 #endif
 #ifdef WEBCPP_HASH_HAS_BEARSSL
     all_hmacs<hash::backends::bearssl, false>("bearssl", 18);
+    hkdf_pieces_allocate_nothing<hash::hmac_sha2_256, hash::backends::bearssl>("bearssl", 11);
     // BearSSL's entry points of increment 5 (ruling R94): two calls per tag it has, 9 digests
     // (MD5, SHA-1, SHA-2, MD5-SHA1, SHAKE) and 6 MACs (HMAC over MD5, SHA-1 and SHA-2).
     families_on<hash::backends::bearssl>("bearssl", 30);
