@@ -16,14 +16,14 @@
  the MAC accepts and the chosen backend does not `unsupported_by_backend`. A guard's refusal leaves
  the output as it was; a backend's failure zeroes it.
 
- A program checks a tag with `webcpp::crypto::equal`, which runs in constant time, never with
- `==`:
+ A program checks a tag with `webcpp::crypto::constant_time_equal`, which runs in constant time,
+ never with `==`:
 
  @code
  std::array<std::uint8_t, 32> tag{};
  auto done = webcpp::hash::mac<webcpp::hash::macs::hmac<webcpp::hash::digests::sha2_256>>(
      tag, key, message);
- bool genuine = done && webcpp::crypto::equal(tag, received_tag);
+ bool genuine = done && webcpp::crypto::constant_time_equal(tag, received_tag);
  @endcode
 
  @see "Message authentication", in the guide.
