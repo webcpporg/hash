@@ -734,6 +734,17 @@ template <class Digest, class Backend = default_backend<Digest>>
     return hashed;
 }
 
+// MSVC's warning C4324 ("structure was padded due to alignment specifier") is off for the hasher
+// alone. A backend's state may carry an alignment specifier (libsodium's are CRYPTO_ALIGN(16) or
+// CRYPTO_ALIGN(64)), so the hasher is padded after its last member to a multiple of that
+// alignment, as the state requires, and no order of the members avoids it: the padding is the
+// intended layout. MSVC for ARM64 reports that trailing padding under /W4, which /WX makes an
+// error; MSVC for x64 reports only padding before an aligned member, never after the last one,
+// and so is silent here (14.3 and 14.5 alike, msvc-lane's probe of 2026-11-23).
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4324)
+#endif
 /**
  A hash fed in pieces, with one result: `make`, `update` as often as the data comes, then `finish`
  once (spec 2.15).
@@ -924,6 +935,9 @@ private:
     bool keyed_ = false;  // made with a key: update and finish hold the timing guard
     phase phase_ = phase::spent;
 };
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 
 }  // namespace webcpp::hash
 

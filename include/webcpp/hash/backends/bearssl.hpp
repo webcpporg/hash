@@ -75,9 +75,9 @@
                                       WEBCPP_HASH_DETAIL_BEARSSL_CONFIGURATION))
 #endif
 
-// A declaration: src/canary_bearssl.c defines it, constant, in /third_party//bearssl.
-// NOLINTNEXTLINE(bugprone-dynamic-static-initializers)
-extern "C" const char WEBCPP_HASH_DETAIL_BEARSSL_CANARY;
+// A declaration: src/canary_bearssl.c defines it, constant, in /third_party//bearssl, so its
+// initialisation is static, never dynamic; constinit, on this declaration, states it.
+extern "C" constinit const char WEBCPP_HASH_DETAIL_BEARSSL_CANARY;
 
 namespace webcpp::hash::backends {
 

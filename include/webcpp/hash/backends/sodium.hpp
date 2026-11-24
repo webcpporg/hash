@@ -109,9 +109,9 @@
                                       WEBCPP_HASH_DETAIL_SODIUM_CONFIGURATION))
 #endif
 
-// A declaration: src/canary_sodium.c defines it, constant, in /third_party//sodium.
-// NOLINTNEXTLINE(bugprone-dynamic-static-initializers)
-extern "C" const char WEBCPP_HASH_DETAIL_SODIUM_CANARY;
+// A declaration: src/canary_sodium.c defines it, constant, in /third_party//sodium, so its
+// initialisation is static, never dynamic; constinit, on this declaration, states it.
+extern "C" constinit const char WEBCPP_HASH_DETAIL_SODIUM_CANARY;
 
 namespace webcpp::hash {
 
