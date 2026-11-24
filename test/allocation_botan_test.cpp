@@ -9,15 +9,16 @@
 // allocator), so each call of every entry point backends::botan has is counted, operator new and,
 // where the target counts it, the C library's allocator, and printed as a record, never bounded.
 // The calls are digest_of and a hasher's whole hash over each of its 25 digests, mac over each of
-// its 27 MACs, and every key derivation and password hash: hkdf_extract, hkdf_expand, hkdf and
-// pbkdf2 over each of its 14 hmacs, argon2id, argon2 of each variant, scrypt, bcrypt,
-// bcrypt_verify, bcrypt_pbkdf, kbkdf over each hmac, sskdf over each of its 10 digests and x963kdf
-// over each of its 5, each twice (a first call and a steady one). A refusal by a guard, before
-// Botan is reached, allocates nothing at all, which is asserted.
+// its 27 MACs, and every key derivation and password hash: hkdf_extract, hkdf_expand, hkdf (each
+// also over pieces, on Botan's HMAC) and pbkdf2 over each of its 14 hmacs, argon2id, argon2 of
+// each variant, scrypt, bcrypt, bcrypt_verify, bcrypt_pbkdf, kbkdf over each hmac, sskdf over each
+// of its 10 digests and x963kdf over each of its 5, each twice (a first call and a steady one). A
+// refusal by a guard, before Botan is reached, allocates nothing at all, which is asserted.
 
 #include <webcpp/hash/argon2.hpp>
 #include <webcpp/hash/backends/botan.hpp>
 #include <webcpp/hash/bcrypt.hpp>
+#include <webcpp/hash/byte_pieces.hpp>
 #include <webcpp/hash/digest.hpp>
 #include <webcpp/hash/error.hpp>
 #include <webcpp/hash/hkdf.hpp>
@@ -118,14 +119,16 @@ void mac_calls(std::string_view name, std::size_t size, std::size_t key_size) {
     });
 }
 
-// The key derivations over Hmac: hkdf_extract, hkdf_expand, hkdf, pbkdf2 and kbkdf, twice; then an
-// empty output, refused.
+// The key derivations over Hmac: hkdf_extract, hkdf_expand, hkdf (each also over pieces), pbkdf2
+// and kbkdf, twice; then an empty output, refused, of hkdf and of hkdf over pieces.
 template <class Hmac>
 void hmac_kdf_calls(std::string_view name) {
     std::array<std::uint8_t, 48> output{};
     std::array<std::uint8_t, 64> prk{};
     constexpr std::size_t digest_size = typename Hmac::result_type().size();
     auto const key = std::span(prk).first(digest_size);
+    std::span<std::uint8_t const> const head = std::span(message).first(40);
+    std::span<std::uint8_t const> const tail = std::span(message).subspan(40);
     for (int round = 1; round != 3; ++round) {
         counted("hkdf_extract", name, round,
                 [&] { return hash::hkdf_extract<Hmac, botan>(message, message).has_value(); });
@@ -138,10 +141,23 @@ void hmac_kdf_calls(std::string_view name) {
                 [&] { return hash::pbkdf2<Hmac, botan>(output, message, message, 2).has_value(); });
         counted("kbkdf", name, round,
                 [&] { return hash::kbkdf<Hmac, botan>(output, message).has_value(); });
+        counted("hkdf_extract_pieces", name, round,
+                [&] { return hash::hkdf_extract<Hmac, botan>(message, {head, tail}).has_value(); });
+        counted("hkdf_expand_pieces", name, round, [&] {
+            return hash::hkdf_expand<Hmac, botan>(output, key, {head, tail}).has_value();
+        });
+        counted("hkdf_pieces", name, round, [&] {
+            return hash::hkdf<Hmac, botan>(output, message, {head, tail}, {head, tail}).has_value();
+        });
     }
     refused_without_allocating(name, [&] {
         auto const refused =
             hash::hkdf<Hmac, botan>(std::span(output).first(0), message, message, message);
+        return refused.has_error() && refused.error() == hash::error::invalid_output_size;
+    });
+    refused_without_allocating(name, [&] {
+        auto const refused = hash::hkdf<Hmac, botan>(std::span(output).first(0), message,
+                                                     {head, tail}, {head, tail});
         return refused.has_error() && refused.error() == hash::error::invalid_output_size;
     });
 }
@@ -318,9 +334,9 @@ int main() {
     password_calls();
 
     // 25 digests (two calls each of digest_of and hasher, and a refusal) and 27 MACs (two calls
-    // and a refusal); 14 hmacs (two calls each of five functions, and a refusal); 10 digests of
-    // sskdf and 5 of x963kdf, two calls each; 8 password functions, two calls each, and 6
-    // refusals.
-    BOOST_TEST_EQ(calls_made, (25U * 5U) + (27U * 3U) + (14U * 11U) + (15U * 2U) + (8U * 2U) + 6U);
+    // and a refusal); 14 hmacs (two calls each of eight functions, HKDF's three over pieces among
+    // them, and two refusals); 10 digests of sskdf and 5 of x963kdf, two calls each; 8 password
+    // functions, two calls each, and 6 refusals.
+    BOOST_TEST_EQ(calls_made, (25U * 5U) + (27U * 3U) + (14U * 18U) + (15U * 2U) + (8U * 2U) + 6U);
     return webcpp::test::exit_status(boost::report_errors());
 }

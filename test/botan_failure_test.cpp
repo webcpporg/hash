@@ -8,7 +8,8 @@
 // WEBCPP_HASH_DETAIL_TEST_BOTAN_NAME, which the test's Jamfile defines to "NO-SUCH-HASH", a name
 // Botan does not know: its create_or_throw throws Lookup_Error, which the boundary catches, so
 // that digest_of, a hasher's make, mac and every key derivation (Botan's KDF and PasswordHashFamily
-// are made the same way) answer backend_failure, the output zeroed, and no exception leaves
+// are made the same way, and the HMAC of HKDF over pieces) answer backend_failure, the output
+// zeroed, and no exception leaves
 // webcpp::hash. A guard's refusal still comes first. bcrypt reaches Botan through generate_bcrypt,
 // which no name selects: its generator of the caller's salt, detail::botan_salt, throws on a second
 // draw or a draw of another size, which the boundary would answer with backend_failure.
@@ -16,6 +17,7 @@
 #include <webcpp/hash/argon2.hpp>
 #include <webcpp/hash/backends/botan.hpp>
 #include <webcpp/hash/bcrypt.hpp>
+#include <webcpp/hash/byte_pieces.hpp>
 #include <webcpp/hash/digest.hpp>
 #include <webcpp/hash/error.hpp>
 #include <webcpp/hash/hkdf.hpp>
@@ -81,7 +83,8 @@ void mac_fails(std::size_t size, std::size_t key_size) {
     BOOST_TEST(zeroed(out));
 }
 
-// Every key derivation of Botan's KDF and PasswordHashFamily: backend_failure, the output zeroed.
+// Every key derivation of Botan's KDF and PasswordHashFamily, and HKDF over pieces on its HMAC:
+// backend_failure, the output zeroed.
 void kdfs_fail() {
     using hmac = hash::hmac_sha2_256;
     std::array<std::uint8_t, 32> output{};
@@ -97,6 +100,13 @@ void kdfs_fail() {
     std::array<std::uint8_t, 32> const key{2};
     check(hash::hkdf_expand<hmac, botan>(output, key, abc));
     check(hash::hkdf<hmac, botan>(output, salt, abc, abc));
+    // HKDF over pieces makes Botan's HMAC by the same seam.
+    using piece = std::span<std::uint8_t const>;
+    std::array<piece, 3> const pieces{piece(abc).first(1), piece{}, piece(abc).subspan(1)};
+    auto const pieces_prk = hash::hkdf_extract<hmac, botan>(salt, pieces);
+    BOOST_TEST(pieces_prk.has_error() && pieces_prk.error() == hash::error::backend_failure);
+    check(hash::hkdf_expand<hmac, botan>(output, key, pieces));
+    check(hash::hkdf<hmac, botan>(output, salt, pieces, pieces));
     check(hash::pbkdf2<hmac, botan>(output, abc, salt, 2));
     check(hash::argon2id<botan>(output, abc, salt, {.passes = 1, .memory = 8192}));
     check(hash::argon2<hash::kdfs::argon2d, botan>(output, abc, salt,

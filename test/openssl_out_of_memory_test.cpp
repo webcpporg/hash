@@ -12,8 +12,9 @@
 // even when it is not the last (Argon2's memory adds "invalid memory size" after it), zeroes its
 // output, frees every block OpenSSL allocated for it (the live blocks are back to where
 // they were), and leaves the thread's error queue empty. The calls: mac over HMAC, KMAC, keyed
-// BLAKE2b and SipHash, digest_of, a hasher's make, argon2, argon2id, scrypt, kbkdf, sskdf and
-// x963kdf. OpenSSL's Argon2
+// BLAKE2b and SipHash, digest_of, a hasher's make, argon2, argon2id, scrypt, kbkdf, sskdf,
+// x963kdf, and hkdf_extract, hkdf_expand and hkdf over pieces (EVP_MAC "HMAC", a context
+// duplicated for each block of Expand). OpenSSL's Argon2
 // does not check some of its allocations (its first hash and its first and last blocks), and
 // returns success over a wrong tag when one fails: backends::openssl answers a call during which
 // OpenSSL raised an error as a failure, whatever OpenSSL returned. A hasher's update and finish
@@ -22,8 +23,10 @@
 
 #include <webcpp/hash/argon2.hpp>
 #include <webcpp/hash/backends/openssl.hpp>
+#include <webcpp/hash/byte_pieces.hpp>
 #include <webcpp/hash/digest.hpp>
 #include <webcpp/hash/error.hpp>
+#include <webcpp/hash/hkdf.hpp>
 #include <webcpp/hash/hmac.hpp>
 #include <webcpp/hash/kdf_standards.hpp>
 #include <webcpp/hash/mac.hpp>
@@ -249,6 +252,33 @@ void check_kdf_standards() {
     });
 }
 
+// HKDF over pieces: Extract (whose result is the pseudorandom key, so that its output here is
+// empty), Expand of three blocks, each a context duplicated from the keyed one, and both steps.
+void check_hkdf_pieces() {
+    using piece = std::span<std::uint8_t const>;
+    std::array<std::uint8_t, 13> const salt{7, 8, 9};
+    std::array<std::uint8_t, 22> const ikm{1, 2, 3};
+    std::array<std::uint8_t, 10> const info{4, 5, 6};
+    std::array<std::uint8_t, 32> const prk{10, 11, 12};
+    std::array<piece, 3> const ikm_pieces{piece(ikm).first(5), piece{}, piece(ikm).subspan(5)};
+    std::array<piece, 2> const info_pieces{piece(info).first(3), piece(info).subspan(3)};
+    std::array<std::uint8_t, 80> output{};
+    std::array<std::uint8_t, 0> none{};
+    fail_each_allocation("hkdf_extract over pieces", none, [&]() -> boost::system::result<void> {
+        auto const extracted = hash::hkdf_extract<hash::hmac_sha2_256, openssl>(salt, ikm_pieces);
+        if (!extracted) {
+            return extracted.error();
+        }
+        return {};
+    });
+    fail_each_allocation("hkdf_expand over pieces", output, [&] {
+        return hash::hkdf_expand<hash::hmac_sha2_256, openssl>(output, prk, info_pieces);
+    });
+    fail_each_allocation("hkdf over pieces", output, [&] {
+        return hash::hkdf<hash::hmac_sha2_256, openssl>(output, salt, ikm_pieces, info_pieces);
+    });
+}
+
 }  // namespace
 
 int main() {
@@ -260,5 +290,6 @@ int main() {
     check_digests();
     check_password_hashing();
     check_kdf_standards();
+    check_hkdf_pieces();
     return webcpp::test::exit_status(boost::report_errors());
 }

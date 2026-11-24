@@ -3658,6 +3658,53 @@
                                 "value": "not stated",
                                 "source": "BearSSL upstream 7bea48e (v0.6-39), unchanged in webcpp's pin 32381d6: bearssl_hmac.h states constant time for br_hmac_outCT alone; br_hkdf_* (src/kdf/hkdf.c) and HKDF over pieces call br_hmac_out."
                             }
+                        },
+                        "openssl": {
+                            "since": 7,
+                            "hmacs": [
+                                "hmac_md5_128",
+                                "hmac_sha1_160",
+                                "hmac_sha2_224",
+                                "hmac_sha2_256",
+                                "hmac_sha2_384",
+                                "hmac_sha2_512",
+                                "hmac_sha2_512_224",
+                                "hmac_sha2_512_256",
+                                "hmac_sha3_224",
+                                "hmac_sha3_256",
+                                "hmac_sha3_384",
+                                "hmac_sha3_512",
+                                "hmac_ripemd_160",
+                                "hmac_blake2b_512",
+                                "hmac_blake2s_256"
+                            ],
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "OpenSSL 3.5.9: doc/man3/EVP_MAC.pod and doc/man7/EVP_MAC-HMAC.pod state no constant-time property; HKDF over pieces calls EVP_MAC \"HMAC\"."
+                            }
+                        },
+                        "botan": {
+                            "since": 7,
+                            "hmacs": [
+                                "hmac_md5_128",
+                                "hmac_sha1_160",
+                                "hmac_sha2_224",
+                                "hmac_sha2_256",
+                                "hmac_sha2_384",
+                                "hmac_sha2_512",
+                                "hmac_sha2_512_256",
+                                "hmac_sha3_224",
+                                "hmac_sha3_256",
+                                "hmac_sha3_384",
+                                "hmac_sha3_512",
+                                "hmac_ripemd_160",
+                                "hmac_blake2b_512",
+                                "hmac_blake2s_256"
+                            ],
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "Botan 3.14.1: doc/api_ref/message_auth_codes.rst states no constant-time property of HMAC, and its source (src/lib/mac/hmac/) none; HKDF over pieces calls its HMAC."
+                            }
                         }
                     }
                 },
@@ -3720,6 +3767,53 @@
                                 "value": "not stated",
                                 "source": "BearSSL upstream 7bea48e (v0.6-39), unchanged in webcpp's pin 32381d6: bearssl_hmac.h states constant time for br_hmac_outCT alone; br_hkdf_* (src/kdf/hkdf.c) and HKDF over pieces call br_hmac_out."
                             }
+                        },
+                        "openssl": {
+                            "since": 7,
+                            "hmacs": [
+                                "hmac_md5_128",
+                                "hmac_sha1_160",
+                                "hmac_sha2_224",
+                                "hmac_sha2_256",
+                                "hmac_sha2_384",
+                                "hmac_sha2_512",
+                                "hmac_sha2_512_224",
+                                "hmac_sha2_512_256",
+                                "hmac_sha3_224",
+                                "hmac_sha3_256",
+                                "hmac_sha3_384",
+                                "hmac_sha3_512",
+                                "hmac_ripemd_160",
+                                "hmac_blake2b_512",
+                                "hmac_blake2s_256"
+                            ],
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "OpenSSL 3.5.9: doc/man3/EVP_MAC.pod and doc/man7/EVP_MAC-HMAC.pod state no constant-time property; HKDF over pieces calls EVP_MAC \"HMAC\"."
+                            }
+                        },
+                        "botan": {
+                            "since": 7,
+                            "hmacs": [
+                                "hmac_md5_128",
+                                "hmac_sha1_160",
+                                "hmac_sha2_224",
+                                "hmac_sha2_256",
+                                "hmac_sha2_384",
+                                "hmac_sha2_512",
+                                "hmac_sha2_512_256",
+                                "hmac_sha3_224",
+                                "hmac_sha3_256",
+                                "hmac_sha3_384",
+                                "hmac_sha3_512",
+                                "hmac_ripemd_160",
+                                "hmac_blake2b_512",
+                                "hmac_blake2s_256"
+                            ],
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "Botan 3.14.1: doc/api_ref/message_auth_codes.rst states no constant-time property of HMAC, and its source (src/lib/mac/hmac/) none; HKDF over pieces calls its HMAC."
+                            }
                         }
                     }
                 },
@@ -3781,6 +3875,53 @@
                             "constant_time": {
                                 "value": "not stated",
                                 "source": "BearSSL upstream 7bea48e (v0.6-39), unchanged in webcpp's pin 32381d6: bearssl_hmac.h states constant time for br_hmac_outCT alone; br_hkdf_* (src/kdf/hkdf.c) and HKDF over pieces call br_hmac_out."
+                            }
+                        },
+                        "openssl": {
+                            "since": 7,
+                            "hmacs": [
+                                "hmac_md5_128",
+                                "hmac_sha1_160",
+                                "hmac_sha2_224",
+                                "hmac_sha2_256",
+                                "hmac_sha2_384",
+                                "hmac_sha2_512",
+                                "hmac_sha2_512_224",
+                                "hmac_sha2_512_256",
+                                "hmac_sha3_224",
+                                "hmac_sha3_256",
+                                "hmac_sha3_384",
+                                "hmac_sha3_512",
+                                "hmac_ripemd_160",
+                                "hmac_blake2b_512",
+                                "hmac_blake2s_256"
+                            ],
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "OpenSSL 3.5.9: doc/man3/EVP_MAC.pod and doc/man7/EVP_MAC-HMAC.pod state no constant-time property; HKDF over pieces calls EVP_MAC \"HMAC\"."
+                            }
+                        },
+                        "botan": {
+                            "since": 7,
+                            "hmacs": [
+                                "hmac_md5_128",
+                                "hmac_sha1_160",
+                                "hmac_sha2_224",
+                                "hmac_sha2_256",
+                                "hmac_sha2_384",
+                                "hmac_sha2_512",
+                                "hmac_sha2_512_256",
+                                "hmac_sha3_224",
+                                "hmac_sha3_256",
+                                "hmac_sha3_384",
+                                "hmac_sha3_512",
+                                "hmac_ripemd_160",
+                                "hmac_blake2b_512",
+                                "hmac_blake2s_256"
+                            ],
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "Botan 3.14.1: doc/api_ref/message_auth_codes.rst states no constant-time property of HMAC, and its source (src/lib/mac/hmac/) none; HKDF over pieces calls its HMAC."
                             }
                         }
                     }

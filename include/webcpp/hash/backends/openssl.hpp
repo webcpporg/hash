@@ -7,9 +7,11 @@
 /**
  `backends::openssl`: HKDF (RFC 5869), PBKDF2 (RFC 8018), scrypt (RFC 7914) and Argon2 (RFC 9106)
  of OpenSSL 3.5.9, its `EVP_KDF` implementations "HKDF", "PBKDF2", "SCRYPT", "ARGON2D", "ARGON2I"
- and "ARGON2ID", the digests of its default provider through `EVP_MD` and its MACs through
- `EVP_MAC`, built from `third_party/libs/openssl` by `/webcpp/hash//openssl`, static, on native,
- wasip2 and wasip3; never on Emscripten, and never a default backend (design D34): a call names it.
+ and "ARGON2ID", HKDF over pieces (`hkdf_extract`, `hkdf_expand` and `hkdf` over `byte_pieces`)
+ over its `EVP_MAC` "HMAC", the digests of its default provider through `EVP_MD` and its MACs
+ through `EVP_MAC`, built from `third_party/libs/openssl` by `/webcpp/hash//openssl`, static, on
+ native, wasip2 and wasip3; never on Emscripten, and never a default backend (design D34): a call
+ names it.
  The key derivations have every hmac of `hmac.hpp` but `hmac_ripemd_128` (spec section 3.2). The
  digests are MD5, SHA-1, the six SHA-2, the four SHA-3, SHAKE128 and SHAKE256 (any output size),
  Keccak-224 to Keccak-512, BLAKE2s-256, BLAKE2b unkeyed (1 to 64 bytes), RIPEMD-160, MD5-SHA1
@@ -634,6 +636,180 @@ struct hkdf_engine<backends::openssl, Hmac> {
             OSSL_PARAM_construct_end(),
         };
         return openssl_kdf("HKDF", output_key_material, ossl_params);
+    }
+};
+
+/**
+ HKDF over pieces on backends::openssl (the engine's interface: @ref hkdf_pieces_engine), over
+ OpenSSL's MAC "HMAC" rather than its KDF "HKDF", which takes the input keying material and the info
+ whole: RFC 5869 with every concatenation replaced by successive `EVP_MAC_update`s. Each call
+ fetches the MAC (`EVP_MAC_fetch`), makes a context (`EVP_MAC_CTX_new`) and keys it with the digest
+ the hmac names (`EVP_MAC_init`); Expand duplicates that keyed context for each block
+ (`EVP_MAC_CTX_dup`), so that the pseudorandom key is given to OpenSSL once. OpenSSL allocates the
+ contexts through its own allocator and frees them (`EVP_MAC_CTX_free`, whose HMAC clears its copy
+ of the key, as this header's comment says); hash wipes each block T(i) and the pseudorandom key
+ between the steps, on success and on failure. The thread's error queue is left as it was found
+ (@ref openssl_outcome): a failure is `errc::not_enough_memory` when an allocation failed, else
+ `error::backend_failure`. The salt, HMAC's key, is at most `INT_MAX` bytes (`HMAC_Init_ex` takes
+ an `int`): `backend_limits<backends::openssl>::hkdf_salt`, which the public functions guard.
+ `EVP_MAC_update` takes a `size_t`, which holds every slice of @ref hkdf_pieces_slice, so that a
+ piece is sliced only by the test seam.
+
+ @tparam Hmac A Boost.Hash2 hmac for which `openssl_hmac_v` holds.
+*/
+template <class Hmac>
+    requires openssl_hmac_v<Hmac>
+struct hkdf_pieces_engine<backends::openssl, Hmac> {
+    /** The hmac's result, a `digest<N>`: the PRK and each block T(i). */
+    using digest_type = Hmac::result_type;
+
+    /** The most bytes of one update. */
+    static constexpr std::uint64_t slice_max = hkdf_pieces_slice<backends::openssl>;
+    static_assert(slice_max <= std::numeric_limits<std::size_t>::max(),
+                  "EVP_MAC_update takes every slice's length");
+
+    /**
+     A context of `mac_algorithm` keyed by `key` with the hmac's digest (`EVP_MAC_CTX_new`, then
+     `EVP_MAC_init`), or null when OpenSSL could not make or key it (a context made is freed).
+
+     @param mac_algorithm The MAC "HMAC", or null. @param key The key, possibly empty.
+     @return The keyed context, which the caller frees, or null.
+    */
+    [[nodiscard]] static EVP_MAC_CTX* keyed_context(EVP_MAC* mac_algorithm,
+                                                    std::span<std::uint8_t const> key) noexcept {
+        if (mac_algorithm == nullptr) {
+            return nullptr;
+        }
+        EVP_MAC_CTX* mac_context = EVP_MAC_CTX_new(mac_algorithm);
+        std::array<OSSL_PARAM, 2> ossl_params{
+            openssl_text("digest", openssl_digest<Hmac>()),
+            OSSL_PARAM_construct_end(),
+        };
+        // A key's pointer is never null: OpenSSL takes a null key for "no key given".
+        if (mac_context != nullptr &&
+            EVP_MAC_init(mac_context, nonnull(key), key.size(), ossl_params.data()) != 1) {
+            EVP_MAC_CTX_free(mac_context);
+            mac_context = nullptr;
+        }
+        return mac_context;
+    }
+
+    /**
+     Feeds every byte of `pieces` to `mac_context`, in slices of at most @ref slice_max bytes,
+     until OpenSSL fails one.
+
+     @param mac_context The keyed context. @param pieces The pieces.
+     @return Whether OpenSSL took every slice.
+    */
+    [[nodiscard]] static bool update_all(EVP_MAC_CTX* mac_context, byte_pieces pieces) noexcept {
+        bool updated = true;
+        for_each_slice<slice_max>(pieces, [&](std::span<std::uint8_t const> slice) {
+            updated = updated && EVP_MAC_update(mac_context, slice.data(), slice.size()) == 1;
+        });
+        return updated;
+    }
+
+    /**
+     Writes the HMAC of `mac_context` into `mac_result`, once OpenSSL's size of it is seen to be
+     the digest's.
+
+     @param mac_context The context. @param mac_result The HMAC, of the digest's size.
+     @return Whether OpenSSL wrote the whole HMAC.
+    */
+    [[nodiscard]] static bool finish(EVP_MAC_CTX* mac_context, digest_type& mac_result) noexcept {
+        std::size_t written = 0;
+        return EVP_MAC_CTX_get_mac_size(mac_context) == mac_result.size() &&
+               EVP_MAC_final(mac_context, mac_result.data(), &written, mac_result.size()) == 1 &&
+               written == mac_result.size();
+    }
+
+    /**
+     RFC 5869, 2.2: PRK = HMAC-Hash(salt, piece_1 | ... | piece_n). An empty salt, of length 0,
+     is padded by HMAC with zeros to the block: RFC 5869's HashLen zeros.
+
+     @param salt The salt. @param input_key_material The input keying material's pieces.
+     @return The PRK, or OpenSSL's failure.
+    */
+    [[nodiscard]] static boost::system::result<digest_type> extract(
+        std::span<std::uint8_t const> salt, byte_pieces input_key_material) noexcept {
+        // The PRK is built in the result returned and OpenSSL writes into it: a single return path
+        // of the one named object, so that no copy of the PRK is left behind unwiped.
+        boost::system::result<digest_type> pseudorandom_key{boost::system::in_place_value};
+        digest_type& pseudorandom_key_digest = pseudorandom_key.unsafe_value();
+        ERR_set_mark();
+        EVP_MAC* mac_algorithm = EVP_MAC_fetch(nullptr, "HMAC", nullptr);
+        EVP_MAC_CTX* mac_context = keyed_context(mac_algorithm, salt);
+        const bool computed = mac_context != nullptr &&
+                              update_all(mac_context, input_key_material) &&
+                              finish(mac_context, pseudorandom_key_digest);
+        // The frees raise no error: the outcome read after them is the computation's.
+        EVP_MAC_CTX_free(mac_context);
+        EVP_MAC_free(mac_algorithm);
+        auto const outcome = openssl_outcome(computed);
+        if (!outcome) {
+            wipe_object(pseudorandom_key_digest);
+            pseudorandom_key = outcome.error();
+        }
+        return pseudorandom_key;
+    }
+
+    /**
+     RFC 5869, 2.3: T(0) = empty; T(i) = HMAC-Hash(PRK, T(i-1) | piece_1 | ... | piece_n | i);
+     OKM = the first L octets of T(1) | T(2) | ... | T(N), N = ceil(L/HashLen). Each block is
+     computed on a duplicate of the context keyed by the PRK.
+
+     @param output_key_material The OKM, its size L. @param pseudorandom_key The PRK.
+     @param application_info The info's pieces.
+     @return Success, or OpenSSL's failure (the public function then zeroes the output).
+    */
+    [[nodiscard]] static boost::system::result<void> expand(
+        std::span<std::uint8_t> output_key_material, std::span<std::uint8_t const> pseudorandom_key,
+        byte_pieces application_info) noexcept {
+        ERR_set_mark();
+        EVP_MAC* mac_algorithm = EVP_MAC_fetch(nullptr, "HMAC", nullptr);
+        EVP_MAC_CTX* keyed = keyed_context(mac_algorithm, pseudorandom_key);
+        digest_type t_block{};
+        bool computed = keyed != nullptr;
+        std::size_t written_count = 0;
+        for (unsigned block_counter = 1; computed && written_count < output_key_material.size();
+             ++block_counter) {
+            EVP_MAC_CTX* block_context = EVP_MAC_CTX_dup(keyed);
+            auto const octet_value = static_cast<unsigned char>(block_counter);
+            computed = block_context != nullptr &&
+                       (block_counter == 1 ||
+                        EVP_MAC_update(block_context, t_block.data(), t_block.size()) == 1) &&
+                       update_all(block_context, application_info) &&
+                       EVP_MAC_update(block_context, &octet_value, 1) == 1 &&
+                       finish(block_context, t_block);
+            EVP_MAC_CTX_free(block_context);
+            if (computed) {
+                std::size_t const copied_count =
+                    std::min(t_block.size(), output_key_material.size() - written_count);
+                std::copy_n(t_block.data(), copied_count,
+                            output_key_material.data() + written_count);
+                written_count += copied_count;
+            }
+        }
+        wipe_object(t_block);
+        // The frees raise no error: the outcome read after them is the computation's.
+        EVP_MAC_CTX_free(keyed);
+        EVP_MAC_free(mac_algorithm);
+        return openssl_outcome(computed);
+    }
+
+    /**
+     RFC 5869, 2: HKDF-Extract, then HKDF-Expand, over pieces; the PRK is wiped between them.
+
+     @param output_key_material The OKM. @param salt The salt.
+     @param input_key_material The input keying material's pieces.
+     @param application_info The info's pieces.
+     @return Success, or OpenSSL's failure.
+    */
+    [[nodiscard]] static boost::system::result<void> extract_and_expand(
+        std::span<std::uint8_t> output_key_material, std::span<std::uint8_t const> salt,
+        byte_pieces input_key_material, byte_pieces application_info) noexcept {
+        return hkdf_pieces_extract_and_expand<hkdf_pieces_engine<backends::openssl, Hmac>>(
+            output_key_material, salt, input_key_material, application_info);
     }
 };
 

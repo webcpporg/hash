@@ -352,6 +352,17 @@ hash-run families_bearssl : families_bearssl_test.cpp
 # WEBCPP_HASH_DETAIL_TEST_OPENSSL_DIGEST, a digest OpenSSL cannot fetch.
 hash-run hkdf_openssl : hkdf_openssl_test.cpp : <library>/webcpp/hash//openssl
   : native wasip2 wasip3 ;
+# HKDF over pieces on backends::openssl, over EVP_MAC "HMAC" (its 15 hmacs):
+# the equality harness, each block and pseudorandom key wiped through the seam
+# WEBCPP_HASH_DETAIL_TEST_WIPE_RECORD, the error queue left empty; again in
+# slices of 7 bytes.
+hash-run hkdf_pieces_openssl : hkdf_pieces_openssl_test.cpp
+  : <library>/webcpp/hash//openssl <define>WEBCPP_HASH_DETAIL_TEST_WIPE_RECORD
+  : native wasip2 wasip3 ;
+hash-run hkdf_pieces_openssl_sliced : hkdf_pieces_openssl_test.cpp
+  : <library>/webcpp/hash//openssl <define>WEBCPP_HASH_DETAIL_TEST_WIPE_RECORD
+    <define>WEBCPP_HASH_DETAIL_TEST_HKDF_PIECES_SLICE=7
+  : native wasip2 wasip3 ;
 hash-run pbkdf2_openssl : pbkdf2_openssl_test.cpp
   : <library>/webcpp/hash//openssl : native wasip2 wasip3 ;
 hash-run openssl_error_queue : openssl_error_queue_test.cpp
@@ -381,7 +392,8 @@ hash-run macs_openssl : macs_openssl_test.cpp
     <library>/third_party//blake2_vectors <library>/webcpp//boost_json
   : native wasip2 wasip3 ;
 # OpenSSL out of memory: each allocation of a call of backends::openssl (mac,
-# digest_of, hasher::make, argon2, argon2id, scrypt) made to fail in turn,
+# digest_of, hasher::make, argon2, argon2id, scrypt, HKDF over pieces) made to
+# fail in turn,
 # through CRYPTO_set_mem_functions; the answer, the output zeroed, every block
 # freed and the error queue empty.
 hash-run openssl_out_of_memory : openssl_out_of_memory_test.cpp
@@ -436,6 +448,15 @@ webcpp.compile botan_no_exceptions : botan_no_exceptions_test.cpp
 # RFC 7914's, the guards at their limits, keys past Botan's HMAC's 8,192 bytes,
 # and 1,000 seeded cases each against backends::hash2 over every hmac Botan has.
 botan-run kdfs_botan : kdfs_botan_test.cpp ;
+# HKDF over pieces on backends::botan, over its HMAC (its 14 hmacs): the
+# equality harness, a salt past Botan's 8,192-byte HMAC key, the digest room,
+# each block and pseudorandom key wiped through the seam
+# WEBCPP_HASH_DETAIL_TEST_WIPE_RECORD; again in slices of 7 bytes.
+botan-run hkdf_pieces_botan : hkdf_pieces_botan_test.cpp
+  : <define>WEBCPP_HASH_DETAIL_TEST_WIPE_RECORD ;
+botan-run hkdf_pieces_botan_sliced : hkdf_pieces_botan_test.cpp
+  : <define>WEBCPP_HASH_DETAIL_TEST_WIPE_RECORD
+    <define>WEBCPP_HASH_DETAIL_TEST_HKDF_PIECES_SLICE=7 ;
 # Argon2 on backends::botan: RFC 9106's three cases through the family,
 # libsodium's table through argon2id, argon2_ctx on random cases with lanes, a
 # secret and associated data, libsodium at one lane, and Botan's limits (129

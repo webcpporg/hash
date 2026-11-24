@@ -175,6 +175,25 @@ template <class Hmac>
 inline constexpr bool backend_has_v<backends::bearssl, kdfs::hkdf_expand_pieces, Hmac> =
     backend_has_v<backends::bearssl, kdfs::hkdf_pieces, Hmac>;
 
+/**
+ backends::openssl has HKDF over pieces over the hmacs of its HMAC cells, those it has HKDF over
+ (every alias of `hmac.hpp` but `hmac_ripemd_128`), over `EVP_MAC` "HMAC" (OpenSSL's `EVP_KDF`
+ "HKDF" takes the input keying material and the info whole, and is not used).
+*/
+template <class Hmac>
+inline constexpr bool backend_has_v<backends::openssl, kdfs::hkdf_pieces, Hmac> =
+    detail::openssl_hmac_v<Hmac>;
+
+/** backends::openssl has HKDF-Extract over pieces wherever it has HKDF over pieces. */
+template <class Hmac>
+inline constexpr bool backend_has_v<backends::openssl, kdfs::hkdf_extract_pieces, Hmac> =
+    backend_has_v<backends::openssl, kdfs::hkdf_pieces, Hmac>;
+
+/** backends::openssl has HKDF-Expand over pieces wherever it has HKDF over pieces. */
+template <class Hmac>
+inline constexpr bool backend_has_v<backends::openssl, kdfs::hkdf_expand_pieces, Hmac> =
+    backend_has_v<backends::openssl, kdfs::hkdf_pieces, Hmac>;
+
 /** backends::sodium has Argon2id (`crypto_pwhash_argon2id`), which takes no hmac. */
 template <>
 inline constexpr bool backend_has_v<backends::sodium, kdfs::argon2id, void> = true;

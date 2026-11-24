@@ -4,17 +4,17 @@
 // accompanying file LICENSE_1_0.txt or copy at
 // https://www.boost.org/LICENSE_1_0.txt)
 
-// OpenSSL's error queue (spec section 3.4): on an empty queue, hkdf_extract, hkdf_expand, hkdf,
-// pbkdf2, digest_of, a hasher's make, update and finish, mac (HMAC, KMAC, keyed BLAKE2s and
-// SipHash), argon2 (Argon2d with a secret and associated data), argon2id, scrypt, kbkdf, sskdf
-// and x963kdf on backends::openssl leave it empty,
-// OpenSSL's first fetch and initialisation among them; an entry of the caller's survives each, and
-// nothing of webcpp's is left beside it; a mark the caller set on its own entry survives them too,
-// and the caller's pop to it still finds it. openssl_failure_test.cpp checks the same around a
-// failure.
+// OpenSSL's error queue (spec section 3.4): on an empty queue, hkdf_extract, hkdf_expand, hkdf
+// (each also over pieces), pbkdf2, digest_of, a hasher's make, update and finish, mac (HMAC, KMAC,
+// keyed BLAKE2s and SipHash), argon2 (Argon2d with a secret and associated data), argon2id, scrypt,
+// kbkdf, sskdf and x963kdf on backends::openssl leave it empty, OpenSSL's first fetch and
+// initialisation among them; an entry of the caller's survives each, and nothing of webcpp's is
+// left beside it; a mark the caller set on its own entry survives them too, and the caller's pop to
+// it still finds it. openssl_failure_test.cpp checks the same around a failure.
 
 #include <webcpp/hash/argon2.hpp>
 #include <webcpp/hash/backends/openssl.hpp>
+#include <webcpp/hash/byte_pieces.hpp>
 #include <webcpp/hash/digest.hpp>
 #include <webcpp/hash/hkdf.hpp>
 #include <webcpp/hash/hmac.hpp>
@@ -51,8 +51,8 @@ std::size_t drain(unsigned long& first) {
 }
 
 /**
- Each of the four key derivations, the digest family, the MAC family, Argon2, scrypt and the
- key derivations of standards once, on OpenSSL, each a success.
+ Each of the four key derivations (HKDF's three also over pieces), the digest family, the MAC
+ family, Argon2, scrypt and the key derivations of standards once, on OpenSSL, each a success.
 */
 void call_each() {
     std::array<std::uint8_t, 13> const salt{1, 2, 3};
@@ -67,6 +67,18 @@ void call_each() {
                         .has_value()));
     }
     BOOST_TEST((hash::hkdf<hmac, openssl>(output, salt, ikm, info).has_value()));
+    using piece = std::span<std::uint8_t const>;
+    std::array<piece, 3> const pieces{piece(ikm).first(4), piece{}, piece(ikm).subspan(4)};
+    auto pieces_prk = hash::hkdf_extract<hmac, openssl>(salt, pieces);
+    BOOST_TEST(pieces_prk.has_value());
+    if (pieces_prk) {
+        BOOST_TEST(
+            (hash::hkdf_expand<hmac, openssl>(
+                 output, std::span<std::uint8_t const>(pieces_prk->data(), pieces_prk->size()),
+                 pieces)
+                 .has_value()));
+    }
+    BOOST_TEST((hash::hkdf<hmac, openssl>(output, salt, pieces, pieces).has_value()));
     BOOST_TEST((hash::pbkdf2<hmac, openssl>(output, ikm, salt, 2).has_value()));
 
     std::array<std::uint8_t, 32> digest{};

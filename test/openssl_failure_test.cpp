@@ -6,13 +6,15 @@
 
 // A failure of OpenSSL (spec sections 2.8 and 7.5), provoked through the seam
 // WEBCPP_HASH_DETAIL_TEST_OPENSSL_DIGEST, which the test's Jamfile defines to "NO-SUCH-DIGEST", a
-// digest OpenSSL cannot fetch: every function returns backend_failure, hkdf_expand, hkdf, pbkdf2,
-// digest_of and mac (HMAC, whose "digest" parameter the seam names) zero their output,
+// digest OpenSSL cannot fetch: every function returns backend_failure, hkdf_expand, hkdf (each also
+// over pieces, whose EVP_MAC "HMAC" the seam's digest name fails), pbkdf2, digest_of and mac (HMAC,
+// whose "digest" parameter the seam names) zero their output,
 // hasher::make makes no hasher, and the thread's error queue is
 // left as it was found, empty or holding an entry of the caller's. A guard's refusal still comes
 // first.
 
 #include <webcpp/hash/backends/openssl.hpp>
+#include <webcpp/hash/byte_pieces.hpp>
 #include <webcpp/hash/digest.hpp>
 #include <webcpp/hash/error.hpp>
 #include <webcpp/hash/hkdf.hpp>
@@ -75,7 +77,10 @@ void fail_hmac() {
     BOOST_TEST(all_of(cut, 0));
 }
 
-/** Each of the four key derivations, and the digests, once, on OpenSSL, each failing. */
+/**
+ Each of the four key derivations (HKDF's three also over pieces), and the digests, once, on
+ OpenSSL, each failing.
+*/
 void fail_each() {
     std::array<std::uint8_t, 13> const salt{1, 2, 3};
     std::array<std::uint8_t, 22> const ikm{4, 5, 6};
@@ -93,6 +98,22 @@ void fail_each() {
 
     output.fill(untouched);
     failed = hash::hkdf<hmac, openssl>(output, salt, ikm, info);
+    BOOST_TEST(failed.has_error() && failed.error() == hash::error::backend_failure);
+    BOOST_TEST(all_of(output, 0));
+
+    // HKDF over pieces, its HMAC named by the same seam.
+    using piece = std::span<std::uint8_t const>;
+    std::array<piece, 3> const ikm_pieces{piece(ikm).first(4), piece{}, piece(ikm).subspan(4)};
+    std::array<piece, 2> const info_pieces{piece(info).first(3), piece(info).subspan(3)};
+    auto const pieces_extracted = hash::hkdf_extract<hmac, openssl>(salt, ikm_pieces);
+    BOOST_TEST(pieces_extracted.has_error() &&
+               pieces_extracted.error() == hash::error::backend_failure);
+    output.fill(untouched);
+    failed = hash::hkdf_expand<hmac, openssl>(output, prk, info_pieces);
+    BOOST_TEST(failed.has_error() && failed.error() == hash::error::backend_failure);
+    BOOST_TEST(all_of(output, 0));
+    output.fill(untouched);
+    failed = hash::hkdf<hmac, openssl>(output, salt, ikm_pieces, info_pieces);
     BOOST_TEST(failed.has_error() && failed.error() == hash::error::backend_failure);
     BOOST_TEST(all_of(output, 0));
 

@@ -15,8 +15,8 @@
 // call is written:
 // - mac over siphash_2_4, kmac_128, kmac_256, blake2b_mac and hmac<D> for the 23 digests of
 //   the backend's cells.
-// - hkdf_extract, hkdf_expand, hkdf, pbkdf2 and kbkdf over each of the 14 hmacs the cells list;
-//   sskdf and x963kdf.
+// - hkdf_extract, hkdf_expand, hkdf (each also over pieces), pbkdf2 and kbkdf over each of the 14
+//   hmacs the cells list; sskdf and x963kdf.
 // - argon2id; argon2 of argon2d, argon2i and argon2id; scrypt; bcrypt and bcrypt_pbkdf.
 // - bcrypt_verify (ruling H12) and BLAKE2b with a key, digest_of and a hasher round (design D1),
 //   which the table holds no cell of.

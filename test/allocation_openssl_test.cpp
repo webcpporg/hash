@@ -11,7 +11,9 @@
 // OpenSSL's allocator is a measurement, never a bound. The calls are every entry point
 // backends::openssl has (increments 1 and 4, ruling R94): HKDF and PBKDF2 over four hmacs (whose
 // records bench/allocation_collect.py collects into doc/measurements.allocation.json and
-// doc/allocation.adoc); digest_of, and a hasher's whole hash, over each of its 23 digests, whose
+// doc/allocation.adoc), and hkdf_extract, hkdf_expand and hkdf over pieces over the same four,
+// whose EVP_MAC_CTX OpenSSL allocates with EVP_MAC_CTX_new, and Expand's for each block with
+// EVP_MAC_CTX_dup; digest_of, and a hasher's whole hash, over each of its 23 digests, whose
 // EVP_MD_CTX OpenSSL allocates with EVP_MD_CTX_new; mac over each of its 26 MACs, whose
 // EVP_MAC_CTX OpenSSL allocates with EVP_MAC_CTX_new; argon2's three variants, argon2id, scrypt,
 // kbkdf, sskdf and x963kdf, whose EVP_KDF_CTX OpenSSL allocates (Argon2's and scrypt's memory
@@ -24,6 +26,7 @@
 
 #include <webcpp/hash/argon2.hpp>
 #include <webcpp/hash/backends/openssl.hpp>
+#include <webcpp/hash/byte_pieces.hpp>
 #include <webcpp/hash/digest.hpp>
 #include <webcpp/hash/hkdf.hpp>
 #include <webcpp/hash/hmac.hpp>
@@ -96,33 +99,6 @@ void measured(char const* operation, char const* hmac, int call, F&& call_it) {
                 operation, hmac, webcpp::test::target_name, call, own);
 }
 
-template <class Hmac>
-void measure_one(char const* name) {
-    using hash::backends::openssl;
-    if constexpr (!hash::backend_has_v<openssl, hash::kdfs::hkdf, Hmac>) {
-        std::printf("record operation=none hmac=%s backend=openssl target=%s\n", name,
-                    webcpp::test::target_name);
-    } else {
-        std::array<std::uint8_t, 42> okm{};
-        std::array<std::uint8_t, 40> key{};
-        std::span<std::uint8_t const> const input(bytes);
-        // The first call of each function pays OpenSSL's one-time setup; the second is steady
-        // state.
-        for (int round = 1; round != 3; ++round) {
-            measured("hkdf", name, round, [&] {
-                auto const done =
-                    hash::hkdf<Hmac, openssl>(okm, input.first(20), input, input.last(10));
-                BOOST_TEST(done.has_value());
-            });
-            measured("pbkdf2", name, round, [&] {
-                auto const done =
-                    hash::pbkdf2<Hmac, openssl>(key, input.first(20), input.last(16), 3);
-                BOOST_TEST(done.has_value());
-            });
-        }
-    }
-}
-
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables): calls under the counters
 std::size_t calls_made = 0;
 
@@ -152,6 +128,60 @@ void refused_without_allocating(char const* name, F&& call_it) {
     if (!BOOST_TEST(refused) || !BOOST_TEST_EQ(openssl_allocations.load(), own_before) ||
         !BOOST_TEST_EQ(webcpp::test::counted_new.load(), new_before)) {
         std::printf("allocated or not refused: %s\n", name);
+    }
+}
+
+/**
+ HKDF, PBKDF2 and HKDF's three functions over pieces over `Hmac`, twice each (the first call pays
+ OpenSSL's one-time setup); then hkdf over pieces with an empty output, refused.
+*/
+template <class Hmac>
+void measure_one(char const* name) {
+    using hash::backends::openssl;
+    if constexpr (!hash::backend_has_v<openssl, hash::kdfs::hkdf, Hmac>) {
+        std::printf("record operation=none hmac=%s backend=openssl target=%s\n", name,
+                    webcpp::test::target_name);
+    } else {
+        std::array<std::uint8_t, 42> okm{};
+        std::array<std::uint8_t, 40> key{};
+        std::span<std::uint8_t const> const input(bytes);
+        // The first call of each function pays OpenSSL's one-time setup; the second is steady
+        // state.
+        for (int round = 1; round != 3; ++round) {
+            measured("hkdf", name, round, [&] {
+                auto const done =
+                    hash::hkdf<Hmac, openssl>(okm, input.first(20), input, input.last(10));
+                BOOST_TEST(done.has_value());
+            });
+            measured("pbkdf2", name, round, [&] {
+                auto const done =
+                    hash::pbkdf2<Hmac, openssl>(key, input.first(20), input.last(16), 3);
+                BOOST_TEST(done.has_value());
+            });
+            measured("hkdf_extract_pieces", name, round, [&] {
+                auto const done = hash::hkdf_extract<Hmac, openssl>(
+                    input.first(20), {input.first(30), input.last(34)});
+                BOOST_TEST(done.has_value());
+            });
+            measured("hkdf_expand_pieces", name, round, [&] {
+                constexpr std::size_t digest_size = typename Hmac::result_type().size();
+                auto const done = hash::hkdf_expand<Hmac, openssl>(okm, input.first(digest_size),
+                                                                   {input.first(4), input.last(6)});
+                BOOST_TEST(done.has_value());
+            });
+            measured("hkdf_pieces", name, round, [&] {
+                auto const done = hash::hkdf<Hmac, openssl>(okm, input.first(20),
+                                                            {input.first(30), input.last(34)},
+                                                            {input.first(4), input.last(6)});
+                BOOST_TEST(done.has_value());
+            });
+        }
+        refused_without_allocating(name, [&] {
+            return !hash::hkdf<Hmac, openssl>(std::span<std::uint8_t>{}, input.first(20),
+                                              {input.first(30), input.last(34)},
+                                              {input.first(4), input.last(6)})
+                        .has_value();
+        });
     }
 }
 
