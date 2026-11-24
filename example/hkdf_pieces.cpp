@@ -34,8 +34,7 @@ constexpr std::array<std::uint8_t, 7> hpke_v1{'H', 'P', 'K', 'E', '-', 'v', '1'}
 
 // The suite's identifier: "HPKE", then the KEM (0x0020, DHKEM(X25519, HKDF-SHA256)), the KDF
 // (0x0001, HKDF-SHA256) and the AEAD (0x0001, AES-128-GCM), two bytes each.
-constexpr std::array<std::uint8_t, 10> suite_id{'H',  'P',  'K',  'E',  0x00,
-                                                0x20, 0x00, 0x01, 0x00, 0x01};
+constexpr std::array<std::uint8_t, 10> suite_id{'H', 'P', 'K', 'E', 0, 0x20, 0, 1, 0, 1};
 
 // LabeledExtract(salt, label, ikm) = Extract(salt, "HPKE-v1" || suite_id || label || ikm): the
 // braced list at the call is the input keying material's pieces.
@@ -48,8 +47,11 @@ auto labeled_extract(bytes_view salt, std::string_view label, bytes_view ikm) {
 // || info, L), L the output's size.
 auto labeled_expand(std::span<std::uint8_t> output, bytes_view pseudorandom_key,
                     std::string_view label, bytes_view info) {
-    std::array<std::uint8_t, 2> const length{static_cast<std::uint8_t>(output.size() >> 8U),
-                                             static_cast<std::uint8_t>(output.size() & 0xffU)};
+    // I2OSP(L, 2): the size in two bytes, big-endian.
+    std::array<std::uint8_t, 2> const length{
+        static_cast<std::uint8_t>(output.size() >> 8U),
+        static_cast<std::uint8_t>(output.size() & 0xffU),
+    };
     return hash::hkdf_expand<hash::hmac_sha2_256>(
         output, pseudorandom_key, {length, hpke_v1, suite_id, example::bytes(label), info});
 }
