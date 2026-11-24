@@ -393,9 +393,8 @@ hash-run macs_openssl : macs_openssl_test.cpp
   : native wasip2 wasip3 ;
 # OpenSSL out of memory: each allocation of a call of backends::openssl (mac,
 # digest_of, hasher::make, argon2, argon2id, scrypt, HKDF over pieces) made to
-# fail in turn,
-# through CRYPTO_set_mem_functions; the answer, the output zeroed, every block
-# freed and the error queue empty.
+# fail in turn, through CRYPTO_set_mem_functions; the answer, the output zeroed,
+# every block freed and the error queue empty.
 hash-run openssl_out_of_memory : openssl_out_of_memory_test.cpp
   : <library>/webcpp/hash//openssl : native wasip2 wasip3 ;
 # backends::openssl's limits (OpenSSL holds some lengths in an int), natively:

@@ -20,6 +20,7 @@
 // block meets the slice boundaries differently.
 
 #include "support/hkdf_pieces.hpp"
+#include "support/wipe_record.hpp"
 
 #include <webcpp/hash/backends/hash2.hpp>
 #include <webcpp/hash/backends/sodium.hpp>
@@ -37,7 +38,6 @@
 #include <sodium/crypto_auth_hmacsha256.h>
 #include <sodium/crypto_auth_hmacsha512.h>
 
-#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -67,28 +67,6 @@ static_assert(!hash::backend_has_v<sodium, hash::kdfs::hkdf_pieces, hash::hmac_s
 static_assert(!hash::backend_has_v<sodium, hash::kdfs::hkdf_extract_pieces, hash::hmac_sha2_384>);
 static_assert(!hash::backend_has_v<sodium, hash::kdfs::hkdf_expand_pieces, hash::hmac_sha2_224>);
 
-// The wipes since the last clear: their sizes in order (the first ones), how many, and how many
-// found a byte that was not zero. Fixed storage: the seam is noexcept and allocates nothing.
-struct record {
-    std::array<std::size_t, 16> sizes{};
-    std::size_t count = 0;
-    std::size_t not_zero = 0;
-};
-
-// The seam's record, which detail::wipe reaches through a function of this test.
-// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables): the seam's record
-record wipes;
-
-// The sizes of the wipes since the last call, which clears the record.
-std::vector<std::size_t> taken() {
-    std::vector<std::size_t> const sizes(
-        wipes.sizes.begin(), wipes.sizes.begin() + static_cast<std::ptrdiff_t>(
-                                                       std::min(wipes.count, wipes.sizes.size())));
-    BOOST_TEST_EQ(wipes.not_zero, 0U);
-    wipes = {};
-    return sizes;
-}
-
 // The wipes of the three steps, over Hmac and libsodium's State, with an output of two blocks:
 // Extract wipes its HMAC state; Expand each block's state, then T and the state keyed by the PRK;
 // hkdf both, then the PRK. A guard's refusal wipes nothing.
@@ -103,39 +81,28 @@ void check_wipes() {
     std::array<piece, 3> const ikm_pieces{piece(ikm).first(5), piece{}, piece(ikm).subspan(5)};
     std::array<piece, 2> const info_pieces{piece(info).first(3), piece(info).subspan(3)};
     std::vector<std::uint8_t> output(digest + 10);
-    static_cast<void>(taken());
+    static_cast<void>(test::wiped_sizes());
 
     auto const prk = hash::hkdf_extract<Hmac, sodium>(salt, ikm_pieces);
     BOOST_TEST(prk.has_value());
-    BOOST_TEST((taken() == std::vector<std::size_t>{state}));
+    BOOST_TEST((test::wiped_sizes() == std::vector<std::size_t>{state}));
 
     std::vector<std::uint8_t> const pseudorandom_key(prk->begin(), prk->end());
     BOOST_TEST(
         (hash::hkdf_expand<Hmac, sodium>(output, pseudorandom_key, info_pieces).has_value()));
-    BOOST_TEST((taken() == std::vector<std::size_t>{state, state, digest, state}));
+    BOOST_TEST((test::wiped_sizes() == std::vector<std::size_t>{state, state, digest, state}));
 
     BOOST_TEST((hash::hkdf<Hmac, sodium>(output, salt, ikm_pieces, info_pieces).has_value()));
-    BOOST_TEST((taken() == std::vector<std::size_t>{state, state, state, digest, state, digest}));
+    BOOST_TEST((test::wiped_sizes() ==
+                std::vector<std::size_t>{state, state, state, digest, state, digest}));
 
     BOOST_TEST((hash::hkdf_expand<Hmac, sodium>(output, salt, info_pieces).has_error()));
     BOOST_TEST((hash::hkdf<Hmac, sodium>(std::span<std::uint8_t>{}, salt, ikm_pieces, info_pieces)
                     .has_error()));
-    BOOST_TEST(taken().empty());
+    BOOST_TEST(test::wiped_sizes().empty());
 }
 
 }  // namespace
-
-void webcpp::hash::detail::test::wipe_record(void const* wiped_data,
-                                             std::size_t byte_count) noexcept {
-    auto const* const bytes = static_cast<unsigned char const*>(wiped_data);
-    if (wipes.count < wipes.sizes.size()) {
-        wipes.sizes.at(wipes.count) = byte_count;
-    }
-    ++wipes.count;
-    if (!std::all_of(bytes, bytes + byte_count, [](unsigned char b) { return b == 0; })) {
-        ++wipes.not_zero;
-    }
-}
 
 int main() {
     std::cout << "backends::sodium feeds its HMAC slices of at most "

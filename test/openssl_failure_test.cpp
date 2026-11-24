@@ -8,10 +8,9 @@
 // WEBCPP_HASH_DETAIL_TEST_OPENSSL_DIGEST, which the test's Jamfile defines to "NO-SUCH-DIGEST", a
 // digest OpenSSL cannot fetch: every function returns backend_failure, hkdf_expand, hkdf (each also
 // over pieces, whose EVP_MAC "HMAC" the seam's digest name fails), pbkdf2, digest_of and mac (HMAC,
-// whose "digest" parameter the seam names) zero their output,
-// hasher::make makes no hasher, and the thread's error queue is
-// left as it was found, empty or holding an entry of the caller's. A guard's refusal still comes
-// first.
+// whose "digest" parameter the seam names) zero their output, hasher::make makes no hasher, and the
+// thread's error queue is left as it was found, empty or holding an entry of the caller's. A
+// guard's refusal still comes first.
 
 #include <webcpp/hash/backends/openssl.hpp>
 #include <webcpp/hash/byte_pieces.hpp>

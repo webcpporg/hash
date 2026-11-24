@@ -12,8 +12,13 @@
 // - RFC 5869's seven cases (support/rfc5869.hpp) over the hmac of their hash, each input split at
 //   every byte offset into two pieces, into one piece per byte with an empty piece between every
 //   two, as {empty, input, empty}, and, where it is empty, as the empty list;
+// - the edge output lengths, each a case of its own: 1 byte, a digest less one byte, a digest, a
+//   digest and one byte, 255 digests less one byte and 255 digests (the counter's last block),
+//   each input split at random, as {empty, input, empty} and, where it is empty, as the empty list;
 // - 1,000 cases from the fixed seed printed below, each input of 0 to 300 bytes split at random
-//   points into 0 to 16 pieces (empty pieces among them), outputs of 1 to 255 digests;
+//   points into 0 to 16 pieces (empty pieces among them), outputs of 1 byte to 4 digests, except
+//   every 100th case, whose output is of 1 byte to 255 digests: the edges above reach the long
+//   outputs, so the random cases spend their time on the splits, not on the blocks;
 // - a list of 10,000 one-byte pieces;
 // - long inputs, each in four pieces: an application info of 4 KiB, 32 KiB + 1 and 1 MiB, and an
 //   input keying material of 1 MiB; up to hkdf_max_application_info_size bytes of application info
@@ -55,6 +60,12 @@ inline constexpr std::uint64_t hkdf_pieces_seed = 0x686b64662d706965ULL;
 
 /** The number of random cases per hmac and backend. */
 inline constexpr std::size_t hkdf_pieces_cases = 1000;
+
+/** The longest output of most random cases, in digests. */
+inline constexpr std::size_t hkdf_pieces_short_blocks = 4;
+
+/** Every how many random cases one draws its output from the whole range, 1 byte to 255 digests. */
+inline constexpr std::size_t hkdf_pieces_long_every = 100;
 
 /** A byte span, one piece. */
 using byte_piece = std::span<std::uint8_t const>;
@@ -329,7 +340,50 @@ void check_rfc5869(std::string_view backend) {
     }
 }
 
-/** The random cases: inputs of 0 to 300 bytes in 0 to 16 pieces, outputs of 1 to 255 digests. */
+/**
+ * The edge output lengths, each in a case of its own: 1 byte, a digest less one byte, a digest, a
+ * digest and one byte, 255 digests less one byte and 255 digests. Each input is split at random,
+ * as {empty, input, empty} and, where it is empty, as the empty list. The refused lengths, no
+ * byte and 255 digests and one byte, are check_guards'.
+ */
+template <class Hmac, class Backend, class Oracle>
+void check_edges(std::string_view backend) {
+    std::size_t const hash_length = typename Hmac::result_type().size();
+    std::array<std::size_t, 6> const lengths{
+        1,
+        hash_length - 1,
+        hash_length,
+        hash_length + 1,
+        (255 * hash_length) - 1,
+        255 * hash_length,
+    };
+    pieces_random random(hkdf_pieces_seed + 2);
+    std::size_t index = 0;
+    for (std::size_t const length : lengths) {
+        // An empty input keying material and application info once, then random ones.
+        std::size_t const most = index == 0 ? 0 : 300;
+        auto const salt = random.bytes(random.between(0, 300));
+        auto const ikm = random.bytes(random.between(0, most));
+        auto const info = random.bytes(random.between(0, most));
+        std::vector<std::vector<byte_piece>> ikm_splits{
+            random.split(ikm), {byte_piece{}, byte_piece(ikm), byte_piece{}}};
+        std::vector<std::vector<byte_piece>> info_splits{
+            random.split(info), {byte_piece{}, byte_piece(info), byte_piece{}}};
+        if (ikm.empty()) {
+            ikm_splits.emplace_back();  // the empty list
+        }
+        if (info.empty()) {
+            info_splits.emplace_back();
+        }
+        check_case<Hmac, Backend, Oracle>({backend, name_of_hmac<Hmac>(), "edge length", ++index},
+                                          salt, ikm, info, length, ikm_splits, info_splits);
+    }
+}
+
+/**
+ * The random cases: inputs of 0 to 300 bytes in 0 to 16 pieces, outputs of 1 byte to 4 digests,
+ * of 1 byte to 255 digests in every 100th case.
+ */
 template <class Hmac, class Backend, class Oracle>
 void check_random(std::string_view backend) {
     std::size_t const hash_length = typename Hmac::result_type().size();
@@ -338,7 +392,9 @@ void check_random(std::string_view backend) {
         auto const salt = random.bytes(random.between(0, 300));
         auto const ikm = random.bytes(random.between(0, 300));
         auto const info = random.bytes(random.between(0, 300));
-        std::size_t const length = random.between(1, 255 * hash_length);
+        std::size_t const blocks =
+            index % hkdf_pieces_long_every == 0 ? 255 : hkdf_pieces_short_blocks;
+        std::size_t const length = random.between(1, blocks * hash_length);
         std::vector<std::vector<byte_piece>> const ikm_splits{random.split(ikm)};
         std::vector<std::vector<byte_piece>> const info_splits{random.split(info)};
         check_case<Hmac, Backend, Oracle>({backend, name_of_hmac<Hmac>(), "random case", index},
@@ -447,6 +503,7 @@ void check_hkdf_pieces(std::string_view backend) {
               << ", random cases from the seed 0x" << std::hex << hkdf_pieces_seed << std::dec
               << '\n';
     check_rfc5869<Hmac, Backend, Oracle>(backend);
+    check_edges<Hmac, Backend, Oracle>(backend);
     check_random<Hmac, Backend, Oracle>(backend);
     check_long<Hmac, Backend, Oracle>(backend);
     check_guards<Hmac, Backend>(backend);

@@ -127,6 +127,12 @@ void allocates_nothing(char const* name, F&& call) {
     }
 }
 
+/** Whether `done` is the refusal `expected`: a guard's, not a refusal for another reason. */
+template <class Result>
+bool refused_with(Result const& done, hash::error expected) {
+    return done.has_error() && done.error() == expected;
+}
+
 /** A digest of Boost.Hash2's, from construction to result, in three update shapes. */
 template <class H>
 void digest_allocates_nothing(char const* name) {
@@ -168,12 +174,12 @@ void hkdf_steps_allocate_nothing(char const* name, std::span<std::uint8_t> okm,
     allocates_nothing(name, [&] {
         auto const refused = hash::hkdf_expand<Hmac, Backend>(okm, message_input.first(3),
                                                               std::span<std::uint8_t const>{});
-        BOOST_TEST(!refused.has_value());
+        BOOST_TEST(refused_with(refused, hash::error::invalid_key_size));
     });
     allocates_nothing(name, [&] {
         auto const refused =
             hash::hkdf_expand<Hmac, Backend>(okm, message_input.first(3), long_info);
-        BOOST_TEST(!refused.has_value());
+        BOOST_TEST(refused_with(refused, hash::error::invalid_key_size));
     });
 }
 
@@ -197,12 +203,12 @@ void hkdf_allocates_nothing(char const* name) {
     allocates_nothing(name, [&] {
         auto const refused =
             hash::hkdf<Hmac, Backend>(no_output, message_input, message_input, message_input);
-        BOOST_TEST(!refused.has_value());
+        BOOST_TEST(refused_with(refused, hash::error::invalid_output_size));
     });
     allocates_nothing(name, [&] {
         auto const refused =
             hash::hkdf<Hmac, Backend>(okm, message_input, message_input, long_info);
-        BOOST_TEST(!refused.has_value());
+        BOOST_TEST(refused_with(refused, hash::error::input_too_long));
     });
     if constexpr (split) {
         hkdf_steps_allocate_nothing<Hmac, Backend>(name, okm, long_info);
@@ -221,7 +227,7 @@ void pbkdf2_allocates_nothing(char const* name) {
     allocates_nothing(name, [] {
         std::array<std::uint8_t, 70> key{};
         auto const refused = hash::pbkdf2<Hmac, Backend>(key, message_input, message_input, 0);
-        BOOST_TEST(!refused.has_value());
+        BOOST_TEST(refused_with(refused, hash::error::invalid_iterations));
     });
 }
 
@@ -280,23 +286,26 @@ void hkdf_pieces_allocate_nothing(char const* name, std::size_t expected_calls) 
     };
     std::span<std::uint8_t> const no_output;
     allocates_nothing(name, [&] {
-        BOOST_TEST((!hash::hkdf_expand<Hmac, Backend>(no_output, prk, pieces).has_value()));
+        BOOST_TEST(refused_with(hash::hkdf_expand<Hmac, Backend>(no_output, prk, pieces),
+                                hash::error::invalid_output_size));
     });
     allocates_nothing(name, [&] {
-        BOOST_TEST((!hash::hkdf_expand<Hmac, Backend>(too_long_output, prk, pieces).has_value()));
+        BOOST_TEST(refused_with(hash::hkdf_expand<Hmac, Backend>(too_long_output, prk, pieces),
+                                hash::error::invalid_output_size));
+    });
+    allocates_nothing(name, [&] {
+        BOOST_TEST(refused_with(
+            hash::hkdf_expand<Hmac, Backend>(okm, std::span(prk).first(digest_size - 1), pieces),
+            hash::error::invalid_key_size));
+    });
+    allocates_nothing(name, [&] {
+        BOOST_TEST(refused_with(hash::hkdf<Hmac, Backend>(no_output, message_input, pieces, pieces),
+                                hash::error::invalid_output_size));
     });
     allocates_nothing(name, [&] {
         BOOST_TEST(
-            (!hash::hkdf_expand<Hmac, Backend>(okm, std::span(prk).first(digest_size - 1), pieces)
-                  .has_value()));
-    });
-    allocates_nothing(name, [&] {
-        BOOST_TEST(
-            (!hash::hkdf<Hmac, Backend>(no_output, message_input, pieces, pieces).has_value()));
-    });
-    allocates_nothing(name, [&] {
-        BOOST_TEST((!hash::hkdf<Hmac, Backend>(too_long_output, message_input, pieces, pieces)
-                         .has_value()));
+            refused_with(hash::hkdf<Hmac, Backend>(too_long_output, message_input, pieces, pieces),
+                         hash::error::invalid_output_size));
     });
     BOOST_TEST_EQ(calls_made - before, expected_calls);
     std::printf("record operation=hkdf-pieces-calls backend=%s target=%s calls=%zu expected=%zu\n",
@@ -628,12 +637,14 @@ void family_digest_refuses() {
     auto const options = family_options<Tag>();
     std::array<std::uint8_t, 64> output_bytes{};
     std::span<std::uint8_t> const output(output_bytes.data(), family_output_size<Tag>(options));
-    BOOST_TEST(!(hash::digest_of<Tag, Backend>(std::span<std::uint8_t>{}, message_input, options)));
+    BOOST_TEST(refused_with(
+        hash::digest_of<Tag, Backend>(std::span<std::uint8_t>{}, message_input, options),
+        hash::error::invalid_output_size));
     auto hashing = hash::hasher<Tag, Backend>::make(options);
     BOOST_TEST(hashing.has_value());
     if (hashing) {
         BOOST_TEST(hashing->finish(output).has_value());
-        BOOST_TEST(!hashing->finish(output).has_value());
+        BOOST_TEST(refused_with(hashing->finish(output), hash::error::invalid_state));
     }
 }
 
@@ -744,7 +755,8 @@ void blake2b_subkey_allocates_nothing() {
         BOOST_TEST(hash::blake2b_subkey(subkey, message_input.first(32), 2, context).has_value());
     });
     allocates_nothing("blake2b_subkey", [&] {
-        BOOST_TEST(!hash::blake2b_subkey(subkey, message_input.first(31), 1, context));
+        BOOST_TEST(refused_with(hash::blake2b_subkey(subkey, message_input.first(31), 1, context),
+                                hash::error::invalid_key_size));
     });
     BOOST_TEST_EQ(calls_made - before, 3U);
 }
@@ -772,9 +784,10 @@ void argon2_family_on_sodium(char const* name, std::uint32_t passes) {
             name, by_default ? "default" : "named", webcpp::test::target_name, w.news(), w.cs());
     }
     allocates_nothing(name, [&] {
-        BOOST_TEST(
-            !(hash::argon2<Variant>(out, message_input.first(20), salt,
-                                    {.passes = passes, .memory_kibibytes = 32, .lanes = 4})));
+        BOOST_TEST(refused_with(
+            hash::argon2<Variant>(out, message_input.first(20), salt,
+                                  {.passes = passes, .memory_kibibytes = 32, .lanes = 4}),
+            hash::error::unsupported_by_backend));
     });
 }
 #endif

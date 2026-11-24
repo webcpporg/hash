@@ -6,13 +6,13 @@
 
 // A failure of Botan (spec sections 2.8 and 7.5), provoked through the seam
 // WEBCPP_HASH_DETAIL_TEST_BOTAN_NAME, which the test's Jamfile defines to "NO-SUCH-HASH", a name
-// Botan does not know: its create_or_throw throws Lookup_Error, which the boundary catches, so
-// that digest_of, a hasher's make, mac and every key derivation (Botan's KDF and PasswordHashFamily
-// are made the same way, and the HMAC of HKDF over pieces) answer backend_failure, the output
-// zeroed, and no exception leaves
-// webcpp::hash. A guard's refusal still comes first. bcrypt reaches Botan through generate_bcrypt,
-// which no name selects: its generator of the caller's salt, detail::botan_salt, throws on a second
-// draw or a draw of another size, which the boundary would answer with backend_failure.
+// Botan does not know: its create_or_throw throws Lookup_Error, which the boundary catches, so that
+// digest_of, a hasher's make, mac and every key derivation (Botan's KDF and PasswordHashFamily are
+// made the same way, and the HMAC of HKDF over pieces) answer backend_failure, the output zeroed,
+// and no exception leaves webcpp::hash. A guard's refusal still comes first. bcrypt reaches Botan
+// through generate_bcrypt, which no name selects: its generator of the caller's salt,
+// detail::botan_salt, throws on a second draw or a draw of another size, which the boundary would
+// answer with backend_failure.
 
 #include <webcpp/hash/argon2.hpp>
 #include <webcpp/hash/backends/botan.hpp>

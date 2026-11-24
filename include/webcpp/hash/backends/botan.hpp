@@ -1305,19 +1305,18 @@ struct hkdf_engine<backends::botan, Hmac>
 
 /**
  HKDF over pieces on backends::botan (the engine's interface: @ref hkdf_pieces_engine), over Botan's
- `MessageAuthenticationCode` "HMAC(<hash>)" rather than its KDF "HKDF", which takes the input
- keying material and the info whole: RFC 5869 with every concatenation replaced by successive
- `update`s. Each call makes the HMAC (`create_or_throw`, through @ref botan_create), keys it
- (`set_key`) and computes with `update` and `final`; Expand re-keys it for each block, `clear`
- then `set_key` with the pseudorandom key. Every call of Botan runs inside @ref botan_boundary,
- which answers an exception with `errc::not_enough_memory` (`std::bad_alloc`) or
- `error::backend_failure`. The
- object is cleared and freed (@ref botan_owned) and Botan keeps its keys in `secure_vector`s,
- which it zeroes when it frees them; hash wipes the room of a long salt's digest, each block T(i)
- and the pseudorandom key between the steps, on success and on failure. A salt longer than the
- 8,192 bytes Botan's HMAC takes is hashed first (@ref botan_keyed), as RFC 2104 hashes every key
- longer than the hash's block. Botan's `update` takes a `size_t`, which holds every slice of
- @ref hkdf_pieces_slice, so that a piece is sliced only by the test seam.
+ `MessageAuthenticationCode` "HMAC(<hash>)" rather than its KDF "HKDF", which takes the input keying
+ material and the info whole: RFC 5869 with every concatenation replaced by successive `update`s.
+ Each call makes the HMAC (`create_or_throw`, through @ref botan_create), keys it (`set_key`) and
+ computes with `update` and `final`; Expand re-keys it for each block, `clear` then `set_key` with
+ the pseudorandom key. Every call of Botan runs inside @ref botan_boundary, which answers an
+ exception with `errc::not_enough_memory` (`std::bad_alloc`) or `error::backend_failure`. The object
+ is cleared and freed (@ref botan_owned) and Botan keeps its keys in `secure_vector`s, which it
+ zeroes when it frees them; hash wipes the room of a long salt's digest, each block T(i) and the
+ pseudorandom key between the steps, on success and on failure. A salt longer than the 8,192 bytes
+ Botan's HMAC takes is hashed first (@ref botan_keyed), as RFC 2104 hashes every key longer than the
+ hash's block. Botan's `update` takes a `size_t`, which holds every slice of @ref hkdf_pieces_slice,
+ so that a piece is sliced only by the test seam.
 
  @tparam Hmac A Boost.Hash2 hmac for which `botan_hmac_v` holds.
 */

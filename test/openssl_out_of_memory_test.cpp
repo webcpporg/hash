@@ -4,18 +4,17 @@
 // accompanying file LICENSE_1_0.txt or copy at
 // https://www.boost.org/LICENSE_1_0.txt)
 
-// OpenSSL running out of memory in the middle of a call of backends::openssl (spec sections 2.8
-// and 7.5): the test sets OpenSSL's allocator with CRYPTO_set_mem_functions before anything, and
-// makes each allocation of a call fail in turn, the first, then the second, and so on until the
-// call allocates no more than the ones that succeed. Each failing call answers
-// errc::not_enough_memory, the allocation's error being among those OpenSSL raised during the call
-// even when it is not the last (Argon2's memory adds "invalid memory size" after it), zeroes its
-// output, frees every block OpenSSL allocated for it (the live blocks are back to where
-// they were), and leaves the thread's error queue empty. The calls: mac over HMAC, KMAC, keyed
-// BLAKE2b and SipHash, digest_of, a hasher's make, argon2, argon2id, scrypt, kbkdf, sskdf,
-// x963kdf, and hkdf_extract, hkdf_expand and hkdf over pieces (EVP_MAC "HMAC", a context
-// duplicated for each block of Expand). OpenSSL's Argon2
-// does not check some of its allocations (its first hash and its first and last blocks), and
+// OpenSSL running out of memory in the middle of a call of backends::openssl (spec sections 2.8 and
+// 7.5): the test sets OpenSSL's allocator with CRYPTO_set_mem_functions before anything, and makes
+// each allocation of a call fail in turn, the first, then the second, and so on until the call
+// allocates no more than the ones that succeed. Each failing call answers errc::not_enough_memory,
+// the allocation's error being among those OpenSSL raised during the call even when it is not the
+// last (Argon2's memory adds "invalid memory size" after it), zeroes its output, frees every block
+// OpenSSL allocated for it (the live blocks are back to where they were), and leaves the thread's
+// error queue empty. The calls: mac over HMAC, KMAC, keyed BLAKE2b and SipHash, digest_of, a
+// hasher's make, argon2, argon2id, scrypt, kbkdf, sskdf, x963kdf, and hkdf_extract, hkdf_expand and
+// hkdf over pieces (EVP_MAC "HMAC", a context duplicated for each block of Expand). OpenSSL's
+// Argon2 does not check some of its allocations (its first hash and its first and last blocks), and
 // returns success over a wrong tag when one fails: backends::openssl answers a call during which
 // OpenSSL raised an error as a failure, whatever OpenSSL returned. A hasher's update and finish
 // allocate nothing on OpenSSL 3.5.9 (counted below), so no allocation can make them fail: the

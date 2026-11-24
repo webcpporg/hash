@@ -21,6 +21,7 @@
 // included.
 
 #include "support/hkdf_pieces.hpp"
+#include "support/wipe_record.hpp"
 
 #include <webcpp/hash/backends/botan.hpp>
 #include <webcpp/hash/backends/hash2.hpp>
@@ -79,28 +80,6 @@ static_assert(
     !hash::backend_has_v<botan, hash::kdfs::hkdf_extract_pieces, hash::hmac_sha2_512_224>);
 static_assert(!hash::backend_has_v<botan, hash::kdfs::hkdf_expand_pieces, hash::hmac_ripemd_128>);
 
-// The wipes since the last clear: their sizes in order (the first ones), how many, and how many
-// found a byte that was not zero. Fixed storage: the seam is noexcept and allocates nothing.
-struct record {
-    std::array<std::size_t, 16> sizes{};
-    std::size_t count = 0;
-    std::size_t not_zero = 0;
-};
-
-// The seam's record, which detail::wipe reaches through a function of this test.
-// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables): the seam's record
-record wipes;
-
-// The sizes of the wipes since the last call, which clears the record.
-std::vector<std::size_t> taken() {
-    std::vector<std::size_t> const sizes(
-        wipes.sizes.begin(), wipes.sizes.begin() + static_cast<std::ptrdiff_t>(
-                                                       std::min(wipes.count, wipes.sizes.size())));
-    BOOST_TEST_EQ(wipes.not_zero, 0U);
-    wipes = {};
-    return sizes;
-}
-
 // The room of a long salt's digest (detail::botan_keyed), wiped by every Extract.
 constexpr std::size_t hashed_room = 64;
 
@@ -117,23 +96,23 @@ void check_wipes() {
     std::array<piece, 3> const ikm_pieces{piece(ikm).first(5), piece{}, piece(ikm).subspan(5)};
     std::array<piece, 2> const info_pieces{piece(info).first(3), piece(info).subspan(3)};
     std::vector<std::uint8_t> output(digest + 10);
-    static_cast<void>(taken());
+    static_cast<void>(test::wiped_sizes());
 
     auto const prk = hash::hkdf_extract<Hmac, botan>(salt, ikm_pieces);
     BOOST_TEST(prk.has_value());
-    BOOST_TEST((taken() == std::vector<std::size_t>{hashed_room}));
+    BOOST_TEST((test::wiped_sizes() == std::vector<std::size_t>{hashed_room}));
 
     std::vector<std::uint8_t> const pseudorandom_key(prk->begin(), prk->end());
     BOOST_TEST((hash::hkdf_expand<Hmac, botan>(output, pseudorandom_key, info_pieces).has_value()));
-    BOOST_TEST((taken() == std::vector<std::size_t>{digest}));
+    BOOST_TEST((test::wiped_sizes() == std::vector<std::size_t>{digest}));
 
     BOOST_TEST((hash::hkdf<Hmac, botan>(output, salt, ikm_pieces, info_pieces).has_value()));
-    BOOST_TEST((taken() == std::vector<std::size_t>{hashed_room, digest, digest}));
+    BOOST_TEST((test::wiped_sizes() == std::vector<std::size_t>{hashed_room, digest, digest}));
 
     BOOST_TEST((hash::hkdf_expand<Hmac, botan>(output, salt, info_pieces).has_error()));
     BOOST_TEST((hash::hkdf<Hmac, botan>(std::span<std::uint8_t>{}, salt, ikm_pieces, info_pieces)
                     .has_error()));
-    BOOST_TEST(taken().empty());
+    BOOST_TEST(test::wiped_sizes().empty());
 }
 
 // A salt longer than Botan's HMAC takes as a key (8,192 bytes) is hashed first, as HMAC hashes
@@ -157,22 +136,10 @@ void check_long_salt() {
     BOOST_TEST((hash::hkdf<Hmac, botan>(whole_by_botan, salt, ikm_pieces, info_pieces)));
     BOOST_TEST((hash::hkdf<Hmac, hash::backends::hash2>(whole_by_hash2, salt, ikm, info)));
     BOOST_TEST(whole_by_botan == whole_by_hash2);
-    static_cast<void>(taken());
+    static_cast<void>(test::wiped_sizes());
 }
 
 }  // namespace
-
-void webcpp::hash::detail::test::wipe_record(void const* wiped_data,
-                                             std::size_t byte_count) noexcept {
-    auto const* const bytes = static_cast<unsigned char const*>(wiped_data);
-    if (wipes.count < wipes.sizes.size()) {
-        wipes.sizes.at(wipes.count) = byte_count;
-    }
-    ++wipes.count;
-    if (!std::all_of(bytes, bytes + byte_count, [](unsigned char b) { return b == 0; })) {
-        ++wipes.not_zero;
-    }
-}
 
 int main() {
     std::cout << "backends::botan feeds its HMAC slices of at most "
