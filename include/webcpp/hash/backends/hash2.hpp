@@ -7,10 +7,9 @@
 /**
  `backends::hash2`: HKDF (RFC 5869), also over pieces, and PBKDF2 (RFC 8018) written by webcpp over
  Boost.Hash2's `hmac<H>`, on every target and over every Hash2 hmac whose result is a digest; and
- the families'
- engines over Boost.Hash2's own algorithms (spec 2.15): the digests MD5, SHA-1, SHA-2, SHA-3,
- RIPEMD-160 and BLAKE2s-256, BLAKE2b with its 64-byte output alone, SHAKE128 and SHAKE256 with
- any output size (each Hash2 `result()` permutes and gives the next block of the stream); HMAC
+ the families' engines over Boost.Hash2's own algorithms (spec 2.15): the digests MD5, SHA-1, SHA-2,
+ SHA-3, RIPEMD-160 and BLAKE2s-256, BLAKE2b with its 64-byte output alone, SHAKE128 and SHAKE256
+ with any output size (each Hash2 `result()` permutes and gives the next block of the stream); HMAC
  over each fixed-size digest and over BLAKE2b-512; SipHash-2-4; and keyed BLAKE2s with its 32-byte
  tag alone. It needs no C library.
 
@@ -177,7 +176,7 @@ struct hkdf_pieces_engine<backends::hash2, Hmac> {
     [[nodiscard]] static boost::system::result<digest_type> extract(
         std::span<std::uint8_t const> salt, byte_pieces input_key_material) noexcept {
         Hmac mac_state(salt.data(), salt.size());
-        for_each_slice(input_key_material, slice_max, [&](std::span<std::uint8_t const> slice) {
+        for_each_slice<slice_max>(input_key_material, [&](std::span<std::uint8_t const> slice) {
             mac_state.update(slice.data(), slice.size());
         });
         // The PRK is stored in the result returned, whose wiping is the caller's.
@@ -211,7 +210,7 @@ struct hkdf_pieces_engine<backends::hash2, Hmac> {
             if (block_counter > 1) {
                 mac_state.update(t_block.data(), t_block.size());
             }
-            for_each_slice(application_info, slice_max, [&](std::span<std::uint8_t const> slice) {
+            for_each_slice<slice_max>(application_info, [&](std::span<std::uint8_t const> slice) {
                 mac_state.update(slice.data(), slice.size());
             });
             const auto octet_value = static_cast<unsigned char>(block_counter);

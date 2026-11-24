@@ -191,6 +191,9 @@ inline constexpr std::uint64_t hkdf_pieces_slice_seam = WEBCPP_HASH_DETAIL_TEST_
 */
 inline constexpr std::uint64_t hkdf_pieces_slice_seam = no_limit;
 #endif
+// A slice of no byte would never advance for_each_slice.
+static_assert(hkdf_pieces_slice_seam >= 1,
+              "WEBCPP_HASH_DETAIL_TEST_HKDF_PIECES_SLICE is at least 1");
 
 /**
  The most bytes `Backend`'s HMAC takes in one update: a `std::size_t`'s range, the primary
@@ -198,7 +201,8 @@ inline constexpr std::uint64_t hkdf_pieces_slice_seam = no_limit;
  update takes a narrower length (an `int`, a `long`, or a `size_t` of 32 bits beside a 64-bit one)
  specialises it with that type's largest value.
 
- @tparam Backend A backend of `backends`.
+ @tparam Backend A backend of `backends`. A specialisation is at least 1, as
+ @ref for_each_slice requires.
 */
 template <class Backend>
 inline constexpr std::uint64_t hkdf_pieces_update_max = std::numeric_limits<std::size_t>::max();
@@ -217,23 +221,23 @@ inline constexpr std::uint64_t hkdf_pieces_slice =
                                                              : hkdf_pieces_slice_seam;
 
 /**
- Hands `update` every byte of `pieces`, in order, as spans of at most `slice_max` bytes: each
- piece in one span when it fits, else in slices of `slice_max` bytes and a last shorter one. An
+ Hands `update` every byte of `pieces`, in order, as spans of at most `SliceMax` bytes: each
+ piece in one span when it fits, else in slices of `SliceMax` bytes and a last shorter one. An
  empty piece is skipped (an HMAC's zero-length update changes nothing, and some C libraries take
  no null pointer).
 
- @tparam Update A callable taking a `std::span<std::uint8_t const>`.
- @param pieces The pieces. @param slice_max The most bytes of one call, at least 1.
- @param update What reads each slice.
+ @tparam SliceMax The most bytes of one call, at least 1 (a slice of no byte would never advance,
+ so 0 does not compile). @tparam Update A callable taking a `std::span<std::uint8_t const>`.
+ @param pieces The pieces. @param update What reads each slice.
 */
-template <class Update>
-constexpr void for_each_slice(
-    byte_pieces pieces, std::uint64_t slice_max,
-    Update&& update) noexcept(noexcept(update(byte_pieces::value_type{}))) {
+template <std::uint64_t SliceMax, class Update>
+    requires(SliceMax >= 1)
+constexpr void for_each_slice(byte_pieces pieces, Update&& update) noexcept(
+    noexcept(update(byte_pieces::value_type{}))) {
     for (byte_pieces::value_type rest : pieces) {
         while (!rest.empty()) {
             std::size_t const taken =
-                rest.size() > slice_max ? static_cast<std::size_t>(slice_max) : rest.size();
+                rest.size() > SliceMax ? static_cast<std::size_t>(SliceMax) : rest.size();
             update(rest.first(taken));
             rest = rest.subspan(taken);
         }

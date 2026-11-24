@@ -44,10 +44,12 @@ namespace webcpp::hash {
  points to an array that dies at the end of its declaration: its constructors carry
  `WEBCPP_HASH_LIFETIMEBOUND`, which makes that a warning where the compiler has the attribute.
 
- A braced list of one span, `{x}`, is that span (the language's rule): a function with a
- single-buffer overload takes it there. `byte_pieces{x}` is the list of one piece. A lone `{}` where
- both overloads take braces is ambiguous: write `byte_pieces{}` for no piece, or an empty
- `std::span<std::uint8_t const>` for an empty input (the same bytes).
+ A braced list of one `std::span<std::uint8_t const>`, `{x}`, is that span (the language's rule):
+ a function with a single-buffer overload takes it there. `{}`, or a braced list of one element of
+ another type (`{vec}`, `{array}`, a `std::span<std::uint8_t>`), where both overloads take braces
+ is ambiguous: pass `x` itself, which converts to the span, or write `byte_pieces{x}` for the list
+ of one piece, `byte_pieces{}` for no piece, or an empty `std::span<std::uint8_t const>` for an
+ empty input (the same bytes).
 
  @code
  std::array<std::span<std::uint8_t const>, 3> const parts{prefix, label, secret};

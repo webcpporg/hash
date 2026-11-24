@@ -8,8 +8,10 @@
 // record of design B2): `{a, b, c}` binds to byte_pieces; a braced list of one span picks the
 // single-buffer overload (design D1, B1, ruling R1), and `byte_pieces{x}` the pieces one, which
 // has no cap (Review Focus 3); a std::array and a std::vector of spans pass through the range
-// constructor (Review Focus 1). And the slicing of a piece for a backend whose HMAC update takes
-// a narrower length than a span (detail::for_each_slice, Review Focus 4), with a small maximum.
+// constructor (Review Focus 1); `{}` and a braced list of one element of another type are
+// ambiguous where every pieces position is braces (rulings R9, R11). And the slicing of a piece
+// for a backend whose HMAC update takes a narrower length than a span (detail::for_each_slice,
+// Review Focus 4), with a small maximum.
 
 #include <webcpp/hash/backends/hash2.hpp>
 #include <webcpp/hash/byte_pieces.hpp>
@@ -89,31 +91,105 @@ void lone_span() {
         hash::hkdf_expand<hash::hmac_sha2_256>(out, prk, hash::byte_pieces{std::span(long_info)}));
 }
 
+// Which calls compile, rulings R1, R9 and R11: in the pieces position, a braced list of one
+// std::span<std::uint8_t const> is the single-buffer form; `{}` and a braced list of one element of
+// another type are ambiguous, so the caller passes the element itself or names byte_pieces. Each
+// requirement depends on the hmac, so that an ambiguous call makes it false rather than the program
+// ill-formed.
+using bytes = std::vector<std::uint8_t>;
+using bytes_array = std::array<std::uint8_t, 3>;
+
+template <class Hmac>
+constexpr bool extract_empty = requires(piece s) { hash::hkdf_extract<Hmac>(s, {}); };
+template <class Hmac>
+constexpr bool extract_vector = requires(piece s, bytes v) { hash::hkdf_extract<Hmac>(s, {v}); };
+template <class Hmac>
+constexpr bool extract_array =
+    requires(piece s, bytes_array a) { hash::hkdf_extract<Hmac>(s, {a}); };
+template <class Hmac>
+constexpr bool extract_takes = requires(piece s, bytes v) {
+    hash::hkdf_extract<Hmac>(s, v);
+    hash::hkdf_extract<Hmac>(s, {s});
+    hash::hkdf_extract<Hmac>(s, hash::byte_pieces{});
+    hash::hkdf_extract<Hmac>(s, hash::byte_pieces{piece(v)});
+};
+
+template <class Hmac>
+constexpr bool expand_empty =
+    requires(std::span<std::uint8_t> o, piece k) { hash::hkdf_expand<Hmac>(o, k, {}); };
+template <class Hmac>
+constexpr bool expand_vector =
+    requires(std::span<std::uint8_t> o, piece k, bytes v) { hash::hkdf_expand<Hmac>(o, k, {v}); };
+template <class Hmac>
+constexpr bool expand_array = requires(std::span<std::uint8_t> o, piece k, bytes_array a) {
+    hash::hkdf_expand<Hmac>(o, k, {a});
+};
+template <class Hmac>
+constexpr bool expand_takes = requires(std::span<std::uint8_t> o, piece k, bytes v) {
+    hash::hkdf_expand<Hmac>(o, k, v);
+    hash::hkdf_expand<Hmac>(o, k, {k});
+    hash::hkdf_expand<Hmac>(o, k, hash::byte_pieces{});
+    hash::hkdf_expand<Hmac>(o, k, hash::byte_pieces{piece(v)});
+};
+
+template <class Hmac>
+constexpr bool whole_empty =
+    requires(std::span<std::uint8_t> o, piece s) { hash::hkdf<Hmac>(o, s, {}, {}); };
+template <class Hmac>
+constexpr bool whole_vector =
+    requires(std::span<std::uint8_t> o, piece s, bytes v) { hash::hkdf<Hmac>(o, s, {v}, {v}); };
+template <class Hmac>
+constexpr bool whole_array = requires(std::span<std::uint8_t> o, piece s, bytes_array a) {
+    hash::hkdf<Hmac>(o, s, {a}, {a});
+};
+template <class Hmac>
+constexpr bool whole_takes = requires(std::span<std::uint8_t> o, piece s, bytes v) {
+    hash::hkdf<Hmac>(o, s, v, v);
+    hash::hkdf<Hmac>(o, s, {s}, {s});
+    hash::hkdf<Hmac>(o, s, hash::byte_pieces{}, hash::byte_pieces{});
+    hash::hkdf<Hmac>(o, s, hash::byte_pieces{piece(v)}, hash::byte_pieces{piece(v)});
+};
+
+using sha256 = hash::hmac_sha2_256;
+static_assert(!extract_empty<sha256> && !extract_vector<sha256> && !extract_array<sha256>);
+static_assert(extract_takes<sha256>);
+static_assert(!expand_empty<sha256> && !expand_vector<sha256> && !expand_array<sha256>);
+static_assert(expand_takes<sha256>);
+static_assert(!whole_empty<sha256> && !whole_vector<sha256> && !whole_array<sha256>);
+static_assert(whole_takes<sha256>);
+
 // The slices for_each_slice hands over, as (offset into the concatenation, size).
-std::vector<std::array<std::size_t, 2>> slices_of(hash::byte_pieces pieces, std::uint64_t slice_max,
+template <std::uint64_t SliceMax>
+std::vector<std::array<std::size_t, 2>> slices_of(hash::byte_pieces pieces,
                                                   std::uint8_t const* origin) {
     std::vector<std::array<std::size_t, 2>> slices;
-    detail::for_each_slice(pieces, slice_max, [&](piece slice) {
+    detail::for_each_slice<SliceMax>(pieces, [&](piece slice) {
         slices.push_back({static_cast<std::size_t>(slice.data() - origin), slice.size()});
     });
     return slices;
 }
+
+// A slice of no byte would never advance: for_each_slice<0> does not compile.
+template <std::uint64_t SliceMax>
+constexpr bool sliceable =
+    requires(hash::byte_pieces pieces) { detail::for_each_slice<SliceMax>(pieces, [](piece) {}); };
+static_assert(!sliceable<0> && sliceable<1>);
 
 // Each piece in slices of at most the maximum, in order, every byte once; an empty piece in none.
 void slicing() {
     std::array<std::uint8_t, 10> bytes{};
     piece const all(bytes);
     using pairs = std::vector<std::array<std::size_t, 2>>;
-    BOOST_TEST((slices_of({all}, 3, bytes.data()) == pairs{{0, 3}, {3, 3}, {6, 3}, {9, 1}}));
-    BOOST_TEST((slices_of({all}, 10, bytes.data()) == pairs{{0, 10}}));
-    BOOST_TEST((slices_of({all}, 11, bytes.data()) == pairs{{0, 10}}));
-    BOOST_TEST((slices_of({all.first(4), piece{}, all.subspan(4)}, 4, bytes.data()) ==
+    BOOST_TEST((slices_of<3>({all}, bytes.data()) == pairs{{0, 3}, {3, 3}, {6, 3}, {9, 1}}));
+    BOOST_TEST((slices_of<10>({all}, bytes.data()) == pairs{{0, 10}}));
+    BOOST_TEST((slices_of<11>({all}, bytes.data()) == pairs{{0, 10}}));
+    BOOST_TEST((slices_of<4>({all.first(4), piece{}, all.subspan(4)}, bytes.data()) ==
                 pairs{{0, 4}, {4, 4}, {8, 2}}));
-    BOOST_TEST((slices_of({all.first(2), all.subspan(2, 1)}, 1, bytes.data()) ==
+    BOOST_TEST((slices_of<1>({all.first(2), all.subspan(2, 1)}, bytes.data()) ==
                 pairs{{0, 1}, {1, 1}, {2, 1}}));
-    BOOST_TEST((slices_of({piece{}, piece{}}, 1, bytes.data()).empty()));
-    BOOST_TEST((slices_of({}, 1, bytes.data()).empty()));
-    BOOST_TEST((slices_of({all}, std::numeric_limits<std::uint64_t>::max(), bytes.data()) ==
+    BOOST_TEST((slices_of<1>({piece{}, piece{}}, bytes.data()).empty()));
+    BOOST_TEST((slices_of<1>({}, bytes.data()).empty()));
+    BOOST_TEST((slices_of<std::numeric_limits<std::uint64_t>::max()>({all}, bytes.data()) ==
                 pairs{{0, 10}}));
 
     // backends::hash2's HMAC takes a size_t: its slice is a span's whole length (the test seam,
