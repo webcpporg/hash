@@ -78,6 +78,26 @@ inline constexpr std::size_t hkdf_max_application_info_size = 32768;
 namespace detail {
 
 /**
+ The guards of the single-buffer `hkdf_extract`, without the work: `Backend`'s limits on the salt
+ and on the input keying material. `async_hkdf_extract` checks them before its output is written,
+ and @ref hkdf_guards after the output's size.
+
+ @tparam Backend The backend. @param salt_size The salt's size.
+ @param input_key_material_size The input keying material's size.
+ @return Success, or `input_too_long`.
+*/
+template <class Backend>
+[[nodiscard]] boost::system::result<void> hkdf_extract_guards(
+    std::size_t salt_size, std::size_t input_key_material_size) noexcept {
+    using limits = backend_limits<Backend>;
+    if (exceeds(salt_size, limits::hkdf_salt) ||
+        exceeds(input_key_material_size, limits::hkdf_input_key_material)) {
+        return error::input_too_long;
+    }
+    return {};
+}
+
+/**
  The guards of `hkdf` (spec 2.8), then `Backend`'s own limits, without the work: what `async_hkdf`
  checks on a backend that completes by itself before it starts the work.
 
@@ -104,28 +124,11 @@ template <class Hmac, class Backend>
     if (exceeds(output_size, limits::hkdf_output)) {
         return error::invalid_output_size;
     }
-    if (exceeds(salt_size, limits::hkdf_salt) ||
-        exceeds(input_key_material_size, limits::hkdf_input_key_material) ||
-        exceeds(application_info_size, limits::hkdf_application_info)) {
-        return error::input_too_long;
+    auto const extract_guarded = hkdf_extract_guards<Backend>(salt_size, input_key_material_size);
+    if (!extract_guarded) {
+        return extract_guarded;
     }
-    return {};
-}
-
-/**
- The guards of the single-buffer `hkdf_extract`, without the work: `Backend`'s limits on the salt
- and on the input keying material. `async_hkdf_extract` checks them before its output is written.
-
- @tparam Backend The backend. @param salt_size The salt's size.
- @param input_key_material_size The input keying material's size.
- @return Success, or `input_too_long`.
-*/
-template <class Backend>
-[[nodiscard]] boost::system::result<void> hkdf_extract_guards(
-    std::size_t salt_size, std::size_t input_key_material_size) noexcept {
-    using limits = backend_limits<Backend>;
-    if (exceeds(salt_size, limits::hkdf_salt) ||
-        exceeds(input_key_material_size, limits::hkdf_input_key_material)) {
+    if (exceeds(application_info_size, limits::hkdf_application_info)) {
         return error::input_too_long;
     }
     return {};

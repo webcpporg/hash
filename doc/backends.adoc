@@ -1576,6 +1576,12 @@ states about its constant time. The backends:
 | not stated
 | native, emscripten
 
+| hkdf_extract
+| webcrypto (asynchronous family only)
+| hmac_sha1_160, hmac_sha2_256, hmac_sha2_384, hmac_sha2_512
+| not stated
+| emscripten
+
 | hkdf_expand
 | hash2
 | hmac_md5_128, hmac_sha1_160, hmac_sha2_224, hmac_sha2_256, hmac_sha2_384, hmac_sha2_512, hmac_sha2_512_224, hmac_sha2_512_256, hmac_sha3_224, hmac_sha3_256, hmac_sha3_384, hmac_sha3_512, hmac_ripemd_128, hmac_ripemd_160, hmac_blake2b_512, hmac_blake2s_256, other
@@ -1599,6 +1605,12 @@ states about its constant time. The backends:
 | hmac_md5_128, hmac_sha1_160, hmac_sha2_224, hmac_sha2_256, hmac_sha2_384, hmac_sha2_512, hmac_sha2_512_256, hmac_sha3_224, hmac_sha3_256, hmac_sha3_384, hmac_sha3_512, hmac_ripemd_160, hmac_blake2b_512, hmac_blake2s_256
 | not stated
 | native, emscripten
+
+| hkdf_expand
+| webcrypto (asynchronous family only)
+| hmac_sha1_160, hmac_sha2_256, hmac_sha2_384, hmac_sha2_512
+| not stated
+| emscripten
 
 | hkdf
 | hash2
@@ -1666,6 +1678,12 @@ states about its constant time. The backends:
 | not stated
 | native, emscripten
 
+| hkdf_extract over pieces
+| webcrypto (asynchronous family only)
+| hmac_sha1_160, hmac_sha2_256, hmac_sha2_384, hmac_sha2_512
+| not stated
+| emscripten
+
 | hkdf_expand over pieces
 | hash2
 | hmac_md5_128, hmac_sha1_160, hmac_sha2_224, hmac_sha2_256, hmac_sha2_384, hmac_sha2_512, hmac_sha2_512_224, hmac_sha2_512_256, hmac_sha3_224, hmac_sha3_256, hmac_sha3_384, hmac_sha3_512, hmac_ripemd_128, hmac_ripemd_160, hmac_blake2b_512, hmac_blake2s_256, other
@@ -1696,6 +1714,12 @@ states about its constant time. The backends:
 | not stated
 | native, emscripten
 
+| hkdf_expand over pieces
+| webcrypto (asynchronous family only)
+| hmac_sha1_160, hmac_sha2_256, hmac_sha2_384, hmac_sha2_512
+| not stated
+| emscripten
+
 | hkdf over pieces
 | hash2
 | hmac_md5_128, hmac_sha1_160, hmac_sha2_224, hmac_sha2_256, hmac_sha2_384, hmac_sha2_512, hmac_sha2_512_224, hmac_sha2_512_256, hmac_sha3_224, hmac_sha3_256, hmac_sha3_384, hmac_sha3_512, hmac_ripemd_128, hmac_ripemd_160, hmac_blake2b_512, hmac_blake2s_256, other
@@ -1725,6 +1749,12 @@ states about its constant time. The backends:
 | hmac_md5_128, hmac_sha1_160, hmac_sha2_224, hmac_sha2_256, hmac_sha2_384, hmac_sha2_512, hmac_sha2_512_256, hmac_sha3_224, hmac_sha3_256, hmac_sha3_384, hmac_sha3_512, hmac_ripemd_160, hmac_blake2b_512, hmac_blake2s_256
 | not stated
 | native, emscripten
+
+| hkdf over pieces
+| webcrypto (asynchronous family only)
+| hmac_sha1_160, hmac_sha2_256, hmac_sha2_384, hmac_sha2_512
+| not stated
+| emscripten
 
 | pbkdf2
 | hash2

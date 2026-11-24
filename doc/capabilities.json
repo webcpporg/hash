@@ -3381,6 +3381,19 @@
                                 "value": "not stated",
                                 "source": "Botan 3.14.1: doc/api_ref/kdf.rst states no constant-time property of its KDFs, and their source (src/lib/kdf/) none."
                             }
+                        },
+                        "webcrypto": {
+                            "since": 7,
+                            "hmacs": [
+                                "hmac_sha1_160",
+                                "hmac_sha2_256",
+                                "hmac_sha2_384",
+                                "hmac_sha2_512"
+                            ],
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "The Web Cryptography API (W3C Recommendation, 2017) states no constant-time property of digest, sign or deriveBits; each JavaScript runtime's implementation decides, and webcpp reads none."
+                            }
                         }
                     }
                 },
@@ -3473,6 +3486,19 @@
                             "constant_time": {
                                 "value": "not stated",
                                 "source": "Botan 3.14.1: doc/api_ref/kdf.rst states no constant-time property of its KDFs, and their source (src/lib/kdf/) none."
+                            }
+                        },
+                        "webcrypto": {
+                            "since": 7,
+                            "hmacs": [
+                                "hmac_sha1_160",
+                                "hmac_sha2_256",
+                                "hmac_sha2_384",
+                                "hmac_sha2_512"
+                            ],
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "The Web Cryptography API (W3C Recommendation, 2017) states no constant-time property of digest, sign or deriveBits; each JavaScript runtime's implementation decides, and webcpp reads none."
                             }
                         }
                     }
@@ -3705,6 +3731,19 @@
                                 "value": "not stated",
                                 "source": "Botan 3.14.1: doc/api_ref/message_auth_codes.rst states no constant-time property of HMAC, and its source (src/lib/mac/hmac/) none; HKDF over pieces calls its HMAC."
                             }
+                        },
+                        "webcrypto": {
+                            "since": 7,
+                            "hmacs": [
+                                "hmac_sha1_160",
+                                "hmac_sha2_256",
+                                "hmac_sha2_384",
+                                "hmac_sha2_512"
+                            ],
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "The Web Cryptography API (W3C Recommendation, 2017) states no constant-time property of digest, sign or deriveBits; each JavaScript runtime's implementation decides, and webcpp reads none."
+                            }
                         }
                     }
                 },
@@ -3814,6 +3853,19 @@
                                 "value": "not stated",
                                 "source": "Botan 3.14.1: doc/api_ref/message_auth_codes.rst states no constant-time property of HMAC, and its source (src/lib/mac/hmac/) none; HKDF over pieces calls its HMAC."
                             }
+                        },
+                        "webcrypto": {
+                            "since": 7,
+                            "hmacs": [
+                                "hmac_sha1_160",
+                                "hmac_sha2_256",
+                                "hmac_sha2_384",
+                                "hmac_sha2_512"
+                            ],
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "The Web Cryptography API (W3C Recommendation, 2017) states no constant-time property of digest, sign or deriveBits; each JavaScript runtime's implementation decides, and webcpp reads none."
+                            }
                         }
                     }
                 },
@@ -3922,6 +3974,19 @@
                             "constant_time": {
                                 "value": "not stated",
                                 "source": "Botan 3.14.1: doc/api_ref/message_auth_codes.rst states no constant-time property of HMAC, and its source (src/lib/mac/hmac/) none; HKDF over pieces calls its HMAC."
+                            }
+                        },
+                        "webcrypto": {
+                            "since": 7,
+                            "hmacs": [
+                                "hmac_sha1_160",
+                                "hmac_sha2_256",
+                                "hmac_sha2_384",
+                                "hmac_sha2_512"
+                            ],
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "The Web Cryptography API (W3C Recommendation, 2017) states no constant-time property of digest, sign or deriveBits; each JavaScript runtime's implementation decides, and webcpp reads none."
                             }
                         }
                     }

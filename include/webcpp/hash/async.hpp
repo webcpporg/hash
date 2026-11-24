@@ -317,6 +317,10 @@ template <class Hmac, class Backend, class InputKeyMaterial>
 [[nodiscard]] boost::system::result<void> hkdf_extract_into(
     std::span<std::uint8_t> pseudorandom_key, std::span<std::uint8_t const> salt,
     InputKeyMaterial input_key_material) {
+    // No timing_guard here: the secret computation is hkdf_extract's, which holds the guard as its
+    // first statement; this helper only checks sizes, then copies and wipes the key, work whose
+    // time does not depend on the bytes. A guard here would be the first one the call enters, where
+    // the asynchronous family's rule (timing_async_test) is that it is the synchronous function's.
     // Hash2 1.92 declares no std::tuple_size for digest<N>; its size() is constexpr.
     constexpr std::size_t digest_length = typename Hmac::result_type().size();
     if (pseudorandom_key.size() != digest_length) {

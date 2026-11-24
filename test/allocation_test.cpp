@@ -26,8 +26,9 @@
 // operator new nor the C allocator, and the arena gets back every block before the handler runs;
 // the heavy functions (natively, on a thread pool) take their state and completion from the arena
 // too and call no operator new, the pool's queue and libsodium's memory being the C allocator's; on
-// Emscripten the four functions on backends::webcrypto call the C allocator only as often as
-// webcpp::asio's promise bridge does for a bare await, once per promise. Every printed result is
+// Emscripten the functions on backends::webcrypto (HKDF over pieces on its HMAC among them) call
+// the C allocator only as often as webcpp::asio's promise bridge does for a bare await, once per
+// promise. Every printed result is
 // one `record key=value ...` line, collected by bench/allocation_collect.py.
 
 #include <webcpp/hash/algorithms.hpp>
@@ -966,14 +967,18 @@ void async_cheap() {
 }
 
 #ifdef WEBCPP_TARGET_EMSCRIPTEN
-// The four functions on backends::webcrypto (Emscripten): the bridge's waits, the operation and
-// its posts are the handler's arena's, every block given back before the handler runs, and
-// operator new is not called; a refusal (an output of 0 bytes) each too: 8 calls. webcpp::asio's
-// promise bridge calls the C allocator itself, for each promise awaited, whoever awaits it: a
-// bare async_await, measured first, gives its count, and each call is held to that count per
-// promise (one for a digest, two for importKey and then sign or deriveBits), so that webcpp::hash's
-// code adds none. One call before the windows lets the bridge and the io_context make what they
-// make once.
+// The functions on backends::webcrypto (Emscripten): async_digest, async_hmac, async_hkdf,
+// async_pbkdf2, and HKDF over pieces and its steps on WebCrypto's HMAC (async_hkdf,
+// async_hkdf_extract and async_hkdf_expand over pieces, the single-buffer async_hkdf_extract and
+// async_hkdf_expand): the bridge's waits, the operation and its posts are the handler's arena's,
+// every block given back before the handler runs, and operator new is not called; a refusal (an
+// output of 0 bytes) each too: 18 calls. webcpp::asio's promise bridge calls the C allocator
+// itself, for each promise awaited, whoever awaits it: a bare async_await, measured first, gives
+// its count, and each call is held to that count per promise (one for a digest, two for importKey
+// and then sign or deriveBits; over HMAC, two for Extract, 1 + ceil(L / HashLen) for Expand and
+// 3 + ceil(L / HashLen) for both), so that webcpp::hash's code adds none: the pieces are gathered
+// into JavaScript memory, not webcpp's. One call of each before the windows lets the bridge and the
+// io_context make what they make once.
 void async_webcrypto() {
     namespace asio = webcpp::asio;
     using hash::backends::webcrypto;
@@ -987,6 +992,21 @@ void async_webcrypto() {
     hash::async_pbkdf2<hash::hmac_sha2_256, webcrypto>(executor, out, message_input.first(20),
                                                        message_input.first(16), 2,
                                                        [](boost::system::error_code) {});
+    // HKDF on HMAC: a 100-byte output is four blocks of SHA-256.
+    std::array<std::uint8_t, 100> long_out{};
+    auto const prk = message_input.first(32);
+    auto const salt = message_input.first(16);
+    std::array<std::span<std::uint8_t const>, 3> const pieces{
+        message_input.first(10),
+        message_input.subspan(10, 0),
+        message_input.subspan(10),
+    };
+    hash::async_hkdf<hash::hmac_sha2_256, webcrypto>(executor, long_out, salt, pieces, pieces,
+                                                     [](boost::system::error_code) {});
+    hash::async_hkdf_extract<hash::hmac_sha2_256, webcrypto>(executor, out, salt, message_input,
+                                                             [](boost::system::error_code) {});
+    hash::async_hkdf_expand<hash::hmac_sha2_256, webcrypto>(executor, long_out, prk, message_input,
+                                                            [](boost::system::error_code) {});
     context.run();  // lint-run: the context's first run, outside the windows
     window const bare;
     asio::browser::async_await(
@@ -1047,7 +1067,68 @@ void async_webcrypto() {
                                                            message_input.first(16), 2,
                                                            std::move(handler));
     });
-    BOOST_TEST_EQ(calls_made - before, 8U);
+    std::size_t const blocks = (long_out.size() + 31) / 32;
+    async_allocates_nothing(
+        "async_hkdf over pieces webcrypto", context, fine,
+        [&](auto handler) {
+            hash::async_hkdf<hash::hmac_sha2_256, webcrypto>(executor, long_out, salt, pieces,
+                                                             pieces, std::move(handler));
+        },
+        (3 + blocks) * per_promise);
+    async_allocates_nothing("async_hkdf over pieces webcrypto refused", context, refused,
+                            [&](auto handler) {
+                                hash::async_hkdf<hash::hmac_sha2_256, webcrypto>(
+                                    executor, none, salt, pieces, pieces, std::move(handler));
+                            });
+    async_allocates_nothing(
+        "async_hkdf_extract over pieces webcrypto", context, fine,
+        [&](auto handler) {
+            hash::async_hkdf_extract<hash::hmac_sha2_256, webcrypto>(executor, out, salt, pieces,
+                                                                     std::move(handler));
+        },
+        2 * per_promise);
+    async_allocates_nothing("async_hkdf_extract over pieces webcrypto refused", context, refused,
+                            [&](auto handler) {
+                                hash::async_hkdf_extract<hash::hmac_sha2_256, webcrypto>(
+                                    executor, none, salt, pieces, std::move(handler));
+                            });
+    async_allocates_nothing(
+        "async_hkdf_extract webcrypto", context, fine,
+        [&](auto handler) {
+            hash::async_hkdf_extract<hash::hmac_sha2_256, webcrypto>(
+                executor, out, salt, message_input, std::move(handler));
+        },
+        2 * per_promise);
+    async_allocates_nothing("async_hkdf_extract webcrypto refused", context, refused,
+                            [&](auto handler) {
+                                hash::async_hkdf_extract<hash::hmac_sha2_256, webcrypto>(
+                                    executor, none, salt, message_input, std::move(handler));
+                            });
+    async_allocates_nothing(
+        "async_hkdf_expand over pieces webcrypto", context, fine,
+        [&](auto handler) {
+            hash::async_hkdf_expand<hash::hmac_sha2_256, webcrypto>(executor, long_out, prk, pieces,
+                                                                    std::move(handler));
+        },
+        (1 + blocks) * per_promise);
+    async_allocates_nothing("async_hkdf_expand over pieces webcrypto refused", context, refused,
+                            [&](auto handler) {
+                                hash::async_hkdf_expand<hash::hmac_sha2_256, webcrypto>(
+                                    executor, none, prk, pieces, std::move(handler));
+                            });
+    async_allocates_nothing(
+        "async_hkdf_expand webcrypto", context, fine,
+        [&](auto handler) {
+            hash::async_hkdf_expand<hash::hmac_sha2_256, webcrypto>(
+                executor, long_out, prk, message_input, std::move(handler));
+        },
+        (1 + blocks) * per_promise);
+    async_allocates_nothing("async_hkdf_expand webcrypto refused", context, refused,
+                            [&](auto handler) {
+                                hash::async_hkdf_expand<hash::hmac_sha2_256, webcrypto>(
+                                    executor, none, prk, message_input, std::move(handler));
+                            });
+    BOOST_TEST_EQ(calls_made - before, 18U);
 }
 #endif
 

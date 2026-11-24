@@ -1392,8 +1392,9 @@ struct hmac_digest<macs::hmac<Digest>> {
 };
 
 // backends::webcrypto's cells (ruling R90): the digests and HMACs of async.hpp's
-// webcrypto_digest_v, HKDF and PBKDF2 over the hmacs of webcrypto_hmac_v, nothing else; and no
-// synchronous function takes it (backend_has_v is false for each of its cells).
+// webcrypto_digest_v, HKDF, its two steps, the three HKDF functions over pieces and PBKDF2 over
+// the hmacs of webcrypto_hmac_v, nothing else; and no synchronous function takes it
+// (backend_has_v is false for each of its cells).
 void check_webcrypto_cells(json::object const& table) {
     using hash::backends::webcrypto;
     auto const agrees = [&](std::string_view name, std::string_view hmac, bool expected) {
@@ -1421,11 +1422,15 @@ void check_webcrypto_cells(json::object const& table) {
                 bool const has = hash::detail::webcrypto_hmac_v<Hmac>;
                 agrees("hkdf", hmac, has);
                 agrees("pbkdf2", hmac, has);
-                agrees("hkdf_extract", hmac, false);
-                agrees("hkdf_expand", hmac, false);
-                agrees("hkdf_extract over pieces", hmac, false);
-                agrees("hkdf_expand over pieces", hmac, false);
-                agrees("hkdf over pieces", hmac, false);
+                agrees("hkdf_extract", hmac, has);
+                agrees("hkdf_expand", hmac, has);
+                agrees("hkdf_extract over pieces", hmac, has);
+                agrees("hkdf_expand over pieces", hmac, has);
+                agrees("hkdf over pieces", hmac, has);
+                BOOST_TEST((!hash::backend_has_v<webcrypto, kdfs::hkdf_extract, Hmac>));
+                BOOST_TEST((!hash::backend_has_v<webcrypto, kdfs::hkdf_expand, Hmac>));
+                BOOST_TEST((!hash::backend_has_v<webcrypto, kdfs::hkdf_extract_pieces, Hmac>));
+                BOOST_TEST((!hash::backend_has_v<webcrypto, kdfs::hkdf_expand_pieces, Hmac>));
                 BOOST_TEST((!hash::backend_has_v<webcrypto, kdfs::hkdf_pieces, Hmac>));
                 BOOST_TEST((!hash::backend_has_v<webcrypto, kdfs::hkdf, Hmac>));
                 BOOST_TEST((!hash::backend_has_v<webcrypto, kdfs::pbkdf2, Hmac>));
