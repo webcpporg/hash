@@ -291,7 +291,7 @@ template <class Hmac, class Backend = default_kdf_backend<Hmac, kdfs::hkdf_extra
     if constexpr (!detail::takes_hmac<Hmac>()) {
         return error::backend_failure;  // unreachable: takes_hmac has stopped the build
     } else {
-        auto guarded = detail::hkdf_pieces_salt_guard<Backend>(salt.size());
+        auto const guarded = detail::hkdf_pieces_salt_guard<Backend>(salt.size());
         if (!guarded) {
             return guarded.error();
         }
