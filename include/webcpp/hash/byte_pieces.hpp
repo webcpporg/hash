@@ -88,19 +88,19 @@ public:
     constexpr byte_pieces(Range const& pieces WEBCPP_HASH_LIFETIMEBOUND) noexcept
         : first_(std::ranges::data(pieces)), count_(std::ranges::size(pieces)) {}
 
-    /** @return The first piece. */
+    /** The start of the pieces. @return A pointer to the first piece. */
     [[nodiscard]] constexpr value_type const* begin() const noexcept { return first_; }
 
-    /** @return Past the last piece. */
+    /** The end of the pieces. @return A pointer past the last piece. */
     [[nodiscard]] constexpr value_type const* end() const noexcept { return first_ + count_; }
 
-    /** @return The number of pieces, empty ones included. */
+    /** The size of the list. @return The number of pieces, empty ones included. */
     [[nodiscard]] constexpr std::size_t size() const noexcept { return count_; }
 
-    /** @return Whether there is no piece. */
+    /** Whether the list is empty. @return True when there is no piece. */
     [[nodiscard]] constexpr bool empty() const noexcept { return count_ == 0; }
 
-    /** @return The bytes of all pieces, summed. */
+    /** The length of the input the pieces make. @return The bytes of all pieces, summed. */
     [[nodiscard]] constexpr std::uint64_t total_size() const noexcept {
         std::uint64_t total = 0;
         for (value_type const piece : *this) {

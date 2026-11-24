@@ -19,11 +19,11 @@
 
 // MrDocs parses hash as a build with exceptions does, where none of these macros is defined: these
 // definitions are the ones the reference lists. Each is undone at once but WEBCPP_HASH_HAS_THREADS,
-// which stays defined, as a native build has it. The libraries' WEBCPP_HASH_HAS_<NAME> are left as
-// the build set them (push_macro and pop_macro keep the definition or its absence): hash's
-// doc/Jamfile links every library, so its reference reads each backend's header, while the
-// reference of a library that includes hash reads only the backends that library links (trystero's,
-// for Emscripten's target, reads BearSSL's alone).
+// which stays defined, as a native build has it, and WEBCPP_HASH_LIFETIMEBOUND, which stays empty.
+// The libraries' WEBCPP_HASH_HAS_<NAME> are left as the build set them (push_macro and pop_macro
+// keep the definition or its absence): hash's doc/Jamfile links every library, so its reference
+// reads each backend's header, while the reference of a library that includes hash reads only the
+// backends that library links (trystero's, for Emscripten's target, reads BearSSL's alone).
 #ifdef __MRDOCS__
 /**
  Defined when webcpp::hash is built without exceptions: when webcpp has none (the compiler has
@@ -117,7 +117,6 @@
  can tell.
 */
 #define WEBCPP_HASH_LIFETIMEBOUND
-#undef WEBCPP_HASH_LIFETIMEBOUND
 #endif
 
 #if !defined(WEBCPP_HAS_EXCEPTIONS) && !defined(WEBCPP_HASH_NO_EXCEPTIONS)
@@ -139,9 +138,9 @@
 #define WEBCPP_HASH_HAS_THREADS 1
 #endif
 
-// The lifetimebound attribute, where the compiler has it; the reference's run reads its comment
-// above.
-#ifdef __has_cpp_attribute
+// The lifetimebound attribute, where the compiler has it; the reference's run keeps the
+// documented, empty definition above.
+#if !defined(WEBCPP_HASH_LIFETIMEBOUND) && defined(__has_cpp_attribute)
 #if __has_cpp_attribute(clang::lifetimebound)
 #define WEBCPP_HASH_LIFETIMEBOUND [[clang::lifetimebound]]
 #elif __has_cpp_attribute(msvc::lifetimebound)
