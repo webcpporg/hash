@@ -283,8 +283,9 @@ struct sodium_hkdf_engine {
         std::span<std::uint8_t const> salt,
         std::span<std::uint8_t const> input_key_material) noexcept {
         // The PRK is built in the result returned and libsodium writes into it: a single return
-        // path of the one named object, so that the result is constructed in the caller's place
-        // (no copy or move, which would leave a PRK behind that nothing wipes).
+        // path of the one named object, so that C++20 permits NRVO (guaranteed by no compiler:
+        // without it a copy or move would leave a PRK behind). The failure path reassigns the
+        // object after wiping it, and the PRK leaves this function only as the result.
         boost::system::result<digest_type> pseudorandom_key{boost::system::in_place_value};
         if (!sodium_ready() || Traits::extract(pseudorandom_key.unsafe_value().data(), salt,
                                                input_key_material) != 0) {
@@ -436,8 +437,9 @@ struct sodium_hkdf_pieces_engine {
     [[nodiscard]] static boost::system::result<digest_type> extract(
         std::span<std::uint8_t const> salt, byte_pieces input_key_material) noexcept {
         // The PRK is built in the result returned and libsodium writes into it: a single return
-        // path of the one named object, so that the result is constructed in the caller's place
-        // (no copy or move, which would leave a PRK behind that nothing wipes).
+        // path of the one named object, so that C++20 permits NRVO (guaranteed by no compiler:
+        // without it a copy or move would leave a PRK behind). The failure path reassigns the
+        // object after wiping it, and the PRK leaves this function only as the result.
         boost::system::result<digest_type> pseudorandom_key{boost::system::in_place_value};
         State mac_state{};
         bool const computed = sodium_ready() && Init(&mac_state, nonnull(salt), salt.size()) == 0 &&
@@ -503,16 +505,8 @@ struct sodium_hkdf_pieces_engine {
     [[nodiscard]] static boost::system::result<void> extract_and_expand(
         std::span<std::uint8_t> output_key_material, std::span<std::uint8_t const> salt,
         byte_pieces input_key_material, byte_pieces application_info) noexcept {
-        auto pseudorandom_key = extract(salt, input_key_material);
-        if (!pseudorandom_key) {
-            return pseudorandom_key.error();
-        }
-        digest_type& key_bytes = pseudorandom_key.unsafe_value();
-        auto derive_result = expand(
-            output_key_material, std::span<std::uint8_t const>(key_bytes.data(), key_bytes.size()),
-            application_info);
-        wipe_object(key_bytes);
-        return derive_result;
+        return hkdf_pieces_extract_and_expand<sodium_hkdf_pieces_engine>(output_key_material, salt, input_key_material,
+                                                   application_info);
     }
 };
 

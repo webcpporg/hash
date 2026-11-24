@@ -254,6 +254,10 @@ hash-run hkdf_pieces_sodium : hkdf_pieces_sodium_test.cpp
 hash-run hkdf_pieces_sodium_sliced : hkdf_pieces_sodium_test.cpp
   : <library>/third_party//sodium <define>WEBCPP_HASH_DETAIL_TEST_WIPE_RECORD
     <define>WEBCPP_HASH_DETAIL_TEST_HKDF_PIECES_SLICE=7 ;
+hash-run hkdf_pieces_sodium_sha512_sliced : hkdf_pieces_sodium_test.cpp
+  : <library>/third_party//sodium <define>WEBCPP_HASH_DETAIL_TEST_WIPE_RECORD
+    <define>WEBCPP_HASH_DETAIL_TEST_HKDF_PIECES_SLICE=7
+    <define>WEBCPP_HASH_DETAIL_TEST_SLICED_HMAC_SHA2_512 ;
 hash-run hkdf_pieces_bearssl : hkdf_pieces_bearssl_test.cpp
   : <library>/third_party//bearssl <define>WEBCPP_HASH_DETAIL_TEST_WIPE_RECORD ;
 hash-run hkdf_pieces_bearssl_sliced : hkdf_pieces_bearssl_test.cpp

@@ -238,17 +238,8 @@ struct hkdf_pieces_engine<backends::hash2, Hmac> {
     [[nodiscard]] static boost::system::result<void> extract_and_expand(
         std::span<std::uint8_t> output_key_material, std::span<std::uint8_t const> salt,
         byte_pieces input_key_material, byte_pieces application_info) noexcept {
-        auto pseudorandom_key = extract(salt, input_key_material);
-        if (!pseudorandom_key) {
-            return pseudorandom_key.error();
-        }
-        digest_type& pseudorandom_key_digest = pseudorandom_key.unsafe_value();
-        auto derive_result = expand(output_key_material,
-                                    std::span<std::uint8_t const>(pseudorandom_key_digest.data(),
-                                                                  pseudorandom_key_digest.size()),
-                                    application_info);
-        wipe_object(pseudorandom_key_digest);
-        return derive_result;
+        return hkdf_pieces_extract_and_expand<hkdf_pieces_engine<backends::hash2, Hmac>>(output_key_material, salt, input_key_material,
+                                                   application_info);
     }
 };
 

@@ -177,9 +177,7 @@
 
 What each backend states on constant time, as the capability table read it:
 
-* `bearssl`:
-** BearSSL upstream 7bea48e (v0.6-39), unchanged in webcpp's pin 32381d6: bearssl_hmac.h states constant time for br_hmac_outCT alone; HKDF over pieces calls br_hmac_out.
-** BearSSL upstream 7bea48e (v0.6-39), unchanged in webcpp's pin 32381d6: bearssl_hmac.h states constant time for br_hmac_outCT alone; br_hkdf_* (src/kdf/hkdf.c) calls br_hmac_out.
+* `bearssl`: BearSSL upstream 7bea48e (v0.6-39), unchanged in webcpp's pin 32381d6: bearssl_hmac.h states constant time for br_hmac_outCT alone; br_hkdf_* (src/kdf/hkdf.c) and HKDF over pieces call br_hmac_out.
 * `botan`: Botan 3.14.1: doc/api_ref/kdf.rst states no constant-time property of its KDFs, and their source (src/lib/kdf/) none.
 * `hash2`: Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property.
 * `openssl`: OpenSSL 3.5.9: doc/man7/EVP_KDF-HKDF.pod and EVP_KDF-PBKDF2.pod state no constant-time property.

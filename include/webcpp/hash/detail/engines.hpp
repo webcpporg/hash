@@ -10,6 +10,7 @@
 #include <webcpp/hash/config.hpp>
 
 #include <webcpp/hash/byte_pieces.hpp>
+#include <webcpp/hash/detail/wipe.hpp>
 #include <webcpp/hash/error.hpp>
 
 #include <boost/hash2/has_constant_size.hpp>
@@ -289,6 +290,35 @@ struct hkdf_pieces_engine {
                   "hmac), backends::sodium (hmac_sha2_256, hmac_sha2_512) and backends::bearssl "
                   "(MD5, SHA-1, SHA-224, SHA-256, SHA-384, SHA-512).");
 };
+
+/**
+ The body of `extract_and_expand` of every pieces engine: Extract, an early return of its error,
+ Expand over the PRK, and the PRK wiped before the result returns (on success and on failure of
+ the Expand). One copy, so that the wipe is the same on every backend.
+
+ @tparam Engine A pieces engine with `extract(salt, input_key_material)` returning a
+ `boost::system::result` of the PRK's byte array and `expand(output, pseudorandom_key, info)`.
+ @param output_key_material The OKM. @param salt The salt.
+ @param input_key_material The input keying material's pieces.
+ @param application_info The info's pieces.
+ @return Success, or the Extract's or the Expand's error.
+*/
+template <class Engine>
+[[nodiscard]] boost::system::result<void> hkdf_pieces_extract_and_expand(
+    std::span<std::uint8_t> output_key_material, std::span<std::uint8_t const> salt,
+    byte_pieces input_key_material, byte_pieces application_info) noexcept {
+    auto pseudorandom_key = Engine::extract(salt, input_key_material);
+    if (!pseudorandom_key) {
+        return pseudorandom_key.error();
+    }
+    auto& pseudorandom_key_bytes = pseudorandom_key.unsafe_value();
+    auto derive_result = Engine::expand(
+        output_key_material,
+        std::span<std::uint8_t const>(pseudorandom_key_bytes.data(), pseudorandom_key_bytes.size()),
+        application_info);
+    wipe_object(pseudorandom_key_bytes);
+    return derive_result;
+}
 
 /**
  The most blocks of PBKDF2's output a backend derives: RFC 8018's 2^32 - 1, unless the backend's

@@ -3533,7 +3533,7 @@
                             ],
                             "constant_time": {
                                 "value": "not stated",
-                                "source": "BearSSL upstream 7bea48e (v0.6-39), unchanged in webcpp's pin 32381d6: bearssl_hmac.h states constant time for br_hmac_outCT alone; br_hkdf_* (src/kdf/hkdf.c) calls br_hmac_out."
+                                "source": "BearSSL upstream 7bea48e (v0.6-39), unchanged in webcpp's pin 32381d6: bearssl_hmac.h states constant time for br_hmac_outCT alone; br_hkdf_* (src/kdf/hkdf.c) and HKDF over pieces call br_hmac_out."
                             }
                         },
                         "openssl": {
@@ -3656,7 +3656,7 @@
                             ],
                             "constant_time": {
                                 "value": "not stated",
-                                "source": "BearSSL upstream 7bea48e (v0.6-39), unchanged in webcpp's pin 32381d6: bearssl_hmac.h states constant time for br_hmac_outCT alone; HKDF over pieces calls br_hmac_out."
+                                "source": "BearSSL upstream 7bea48e (v0.6-39), unchanged in webcpp's pin 32381d6: bearssl_hmac.h states constant time for br_hmac_outCT alone; br_hkdf_* (src/kdf/hkdf.c) and HKDF over pieces call br_hmac_out."
                             }
                         }
                     }
@@ -3718,7 +3718,7 @@
                             ],
                             "constant_time": {
                                 "value": "not stated",
-                                "source": "BearSSL upstream 7bea48e (v0.6-39), unchanged in webcpp's pin 32381d6: bearssl_hmac.h states constant time for br_hmac_outCT alone; HKDF over pieces calls br_hmac_out."
+                                "source": "BearSSL upstream 7bea48e (v0.6-39), unchanged in webcpp's pin 32381d6: bearssl_hmac.h states constant time for br_hmac_outCT alone; br_hkdf_* (src/kdf/hkdf.c) and HKDF over pieces call br_hmac_out."
                             }
                         }
                     }
@@ -3780,7 +3780,7 @@
                             ],
                             "constant_time": {
                                 "value": "not stated",
-                                "source": "BearSSL upstream 7bea48e (v0.6-39), unchanged in webcpp's pin 32381d6: bearssl_hmac.h states constant time for br_hmac_outCT alone; HKDF over pieces calls br_hmac_out."
+                                "source": "BearSSL upstream 7bea48e (v0.6-39), unchanged in webcpp's pin 32381d6: bearssl_hmac.h states constant time for br_hmac_outCT alone; br_hkdf_* (src/kdf/hkdf.c) and HKDF over pieces call br_hmac_out."
                             }
                         }
                     }

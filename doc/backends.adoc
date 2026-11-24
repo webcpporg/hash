@@ -2149,8 +2149,7 @@ What each backend's upstream states, and where:
 ** BearSSL upstream 7bea48e (v0.6-39), unchanged in webcpp's pin 32381d6: bearssl_hash.h states constant time for its GHASH implementations alone, not for br_md5_*, br_sha1_*, br_sha224_* to br_sha512_* or br_md5sha1_*.
 ** BearSSL upstream 7bea48e (v0.6-39), unchanged in webcpp's pin 32381d6: bearssl_kdf.h states no constant-time property for br_shake_*.
 ** BearSSL upstream 7bea48e (v0.6-39), unchanged in webcpp's pin 32381d6: bearssl_hmac.h states constant time for br_hmac_outCT alone; mac calls br_hmac_out.
-** BearSSL upstream 7bea48e (v0.6-39), unchanged in webcpp's pin 32381d6: bearssl_hmac.h states constant time for br_hmac_outCT alone; br_hkdf_* (src/kdf/hkdf.c) calls br_hmac_out.
-** BearSSL upstream 7bea48e (v0.6-39), unchanged in webcpp's pin 32381d6: bearssl_hmac.h states constant time for br_hmac_outCT alone; HKDF over pieces calls br_hmac_out.
+** BearSSL upstream 7bea48e (v0.6-39), unchanged in webcpp's pin 32381d6: bearssl_hmac.h states constant time for br_hmac_outCT alone; br_hkdf_* (src/kdf/hkdf.c) and HKDF over pieces call br_hmac_out.
 * openssl: not stated.
 ** OpenSSL 3.5.9: doc/man7/EVP_MD-*.pod, doc/man3/EVP_DigestInit.pod and providers/implementations/digests/ state no constant-time property.
 ** OpenSSL 3.5.9: doc/man3/EVP_MAC.pod, doc/man7/EVP_MAC-HMAC.pod, EVP_MAC-KMAC.pod, EVP_MAC-BLAKE2.pod, EVP_MAC-Siphash.pod and providers/implementations/macs/ state no constant-time property.

@@ -15,7 +15,9 @@
 // WEBCPP_HASH_DETAIL_TEST_WIPE_RECORD; a guard's refusal wipes nothing. Built again as
 // hkdf_pieces_sodium_sliced with the test seam WEBCPP_HASH_DETAIL_TEST_HKDF_PIECES_SLICE, which
 // makes the engine feed every piece to libsodium in slices of a few bytes (Review Focus 4), over
-// hmac_sha2_256: the bytes are the same, 1 MiB pieces included.
+// hmac_sha2_256: the bytes are the same, 1 MiB pieces included. hkdf_pieces_sodium_sha512_sliced
+// is the same over hmac_sha2_512 (WEBCPP_HASH_DETAIL_TEST_SLICED_HMAC_SHA2_512), whose 128-byte
+// block meets the slice boundaries differently.
 
 #include "support/hkdf_pieces.hpp"
 
@@ -142,7 +144,12 @@ int main() {
     // The slicing is the engine's, whatever the hmac.
     BOOST_TEST_EQ(hash::detail::hkdf_pieces_slice<sodium>,
                   std::uint64_t{WEBCPP_HASH_DETAIL_TEST_HKDF_PIECES_SLICE});
+#ifdef WEBCPP_HASH_DETAIL_TEST_SLICED_HMAC_SHA2_512
+    // The 128-byte block of SHA-512 against the same slice boundaries.
+    test::check_hkdf_pieces<hash::hmac_sha2_512, sodium>("sodium");
+#else
     test::check_hkdf_pieces<hash::hmac_sha2_256, sodium>("sodium");
+#endif
 #else
     test::check_hkdf_pieces<hash::hmac_sha2_256, sodium>("sodium");
     test::check_hkdf_pieces<hash::hmac_sha2_512, sodium>("sodium");
