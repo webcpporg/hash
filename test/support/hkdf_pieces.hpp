@@ -366,9 +366,13 @@ void check_edges(std::string_view backend) {
         auto const ikm = random.bytes(random.between(0, most));
         auto const info = random.bytes(random.between(0, most));
         std::vector<std::vector<byte_piece>> ikm_splits{
-            random.split(ikm), {byte_piece{}, byte_piece(ikm), byte_piece{}}};
+            random.split(ikm),
+            {byte_piece{}, byte_piece(ikm), byte_piece{}},
+        };
         std::vector<std::vector<byte_piece>> info_splits{
-            random.split(info), {byte_piece{}, byte_piece(info), byte_piece{}}};
+            random.split(info),
+            {byte_piece{}, byte_piece(info), byte_piece{}},
+        };
         if (ikm.empty()) {
             ikm_splits.emplace_back();  // the empty list
         }
