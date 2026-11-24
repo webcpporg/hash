@@ -896,15 +896,12 @@ void check_published_pieces(asio::io_context& context, std::string_view name,
 template <class Hash>
 void check_published_hkdf_pieces_over(asio::io_context& context, std::string_view hash_name) {
     namespace test = webcpp::test;
-    std::array<std::pair<std::string_view, test::rfc5869_case const*>, 7> const cases{{
-        {"A.1", &test::a1},
-        {"A.2", &test::a2},
-        {"A.3", &test::a3},
-        {"A.4", &test::a4},
-        {"A.5", &test::a5},
-        {"A.6", &test::a6},
-        {"A.7", &test::a7},
-    }};
+    using named_case = std::pair<std::string_view, test::rfc5869_case const*>;
+    std::array<named_case, 7> const cases{
+        named_case{"A.1", &test::a1}, named_case{"A.2", &test::a2}, named_case{"A.3", &test::a3},
+        named_case{"A.4", &test::a4}, named_case{"A.5", &test::a5}, named_case{"A.6", &test::a6},
+        named_case{"A.7", &test::a7},
+    };
     for (auto const& [label, published] : cases) {
         check_published_pieces<typename Hash::hmac>(
             context, "RFC 5869 " + std::string(label) + " over " + std::string(hash_name),
@@ -938,11 +935,12 @@ void check_empty_pieces_over(asio::io_context& context) {
     byte_piece const empty{};
     std::array<byte_piece, 1> const one_empty{empty};
     std::array<byte_piece, 3> const around{empty, a, empty};
-    std::array<std::pair<std::string_view, hash::byte_pieces>, 3> const lists{{
-        {"{}", hash::byte_pieces{}},
-        {"{empty}", hash::byte_pieces(one_empty)},
-        {"{empty, a, empty}", hash::byte_pieces(around)},
-    }};
+    using named_list = std::pair<std::string_view, hash::byte_pieces>;
+    std::array<named_list, 3> const lists{
+        named_list{"{}", hash::byte_pieces{}},
+        named_list{"{empty}", hash::byte_pieces(one_empty)},
+        named_list{"{empty, a, empty}", hash::byte_pieces(around)},
+    };
     std::vector<std::uint8_t> const key(Hash::size, 0x0b);
     std::size_t const size = (2 * Hash::size) + 3;
     for (auto const& [ikm_name, ikm] : lists) {
@@ -1543,8 +1541,10 @@ void check_gathered_bound(asio::io_context& context) {
     std::vector<std::uint8_t> const key(32, 0x0b);
     byte_piece const whole(bytes);
     auto const split = [&](std::size_t size) {
-        return std::array<byte_piece, 2>{whole.first(size / 2),
-                                         whole.subspan(size / 2, size - (size / 2))};
+        return std::array<byte_piece, 2>{
+            whole.first(size / 2),
+            whole.subspan(size / 2, size - (size / 2)),
+        };
     };
     auto const ikm_at = split(100);
     auto const ikm_over = split(101);
