@@ -110,6 +110,27 @@
 | emscripten
 | `hmac_sha1_160`, `hmac_sha2_256`, `hmac_sha2_384`, `hmac_sha2_512`
 | not stated
+
+| `hkdf_extract` over pieces
+| `hash2`
+| `/webcpp/hash//hash`
+| native, wasip2, wasip3, emscripten
+| `hmac_md5_128`, `hmac_sha1_160`, `hmac_sha2_224`, `hmac_sha2_256`, `hmac_sha2_384`, `hmac_sha2_512`, `hmac_sha2_512_224`, `hmac_sha2_512_256`, `hmac_sha3_224`, `hmac_sha3_256`, `hmac_sha3_384`, `hmac_sha3_512`, `hmac_ripemd_128`, `hmac_ripemd_160`, `hmac_blake2b_512`, `hmac_blake2s_256`, any other Hash2 hash (`hmac<H>`)
+| not stated
+
+| `hkdf_expand` over pieces
+| `hash2`
+| `/webcpp/hash//hash`
+| native, wasip2, wasip3, emscripten
+| `hmac_md5_128`, `hmac_sha1_160`, `hmac_sha2_224`, `hmac_sha2_256`, `hmac_sha2_384`, `hmac_sha2_512`, `hmac_sha2_512_224`, `hmac_sha2_512_256`, `hmac_sha3_224`, `hmac_sha3_256`, `hmac_sha3_384`, `hmac_sha3_512`, `hmac_ripemd_128`, `hmac_ripemd_160`, `hmac_blake2b_512`, `hmac_blake2s_256`, any other Hash2 hash (`hmac<H>`)
+| not stated
+
+| `hkdf` over pieces
+| `hash2`
+| `/webcpp/hash//hash`
+| native, wasip2, wasip3, emscripten
+| `hmac_md5_128`, `hmac_sha1_160`, `hmac_sha2_224`, `hmac_sha2_256`, `hmac_sha2_384`, `hmac_sha2_512`, `hmac_sha2_512_224`, `hmac_sha2_512_256`, `hmac_sha3_224`, `hmac_sha3_256`, `hmac_sha3_384`, `hmac_sha3_512`, `hmac_ripemd_128`, `hmac_ripemd_160`, `hmac_blake2b_512`, `hmac_blake2s_256`, any other Hash2 hash (`hmac<H>`)
+| not stated
 |===
 
 What each backend states on constant time, as the capability table read it:
@@ -124,5 +145,7 @@ What each backend states on constant time, as the capability table read it:
 The default of `hkdf_extract` and `hkdf_expand`: `hash2` on every target, whatever the program links; `botan`, `openssl`, `sodium` only where the call names it, as its second template argument (<<hash-default-backend>>).
 
 The default of `hkdf`: `hash2` on every target, whatever the program links; `bearssl`, `botan`, `openssl`, `sodium` only where the call names it, as its second template argument (<<hash-default-backend>>).
+
+The default of `hkdf_extract` over pieces, `hkdf_expand` over pieces and `hkdf` over pieces: `hash2` on every target, whatever the program links (<<hash-default-backend>>).
 
 `webcrypto` serves the asynchronous family alone, on Emscripten, where the type of its asynchronous call names it (<<hash-async-webcrypto>>).

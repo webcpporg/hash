@@ -62,6 +62,7 @@ webcpp.headers-alone hash : ../include :
     hash/backends/hash2.hpp
     hash/bcrypt.hpp
     hash/blake2b_subkey.hpp
+    hash/byte_pieces.hpp
     hash/config.hpp
     hash/detail/engines.hpp
     hash/detail/limits.hpp
@@ -233,6 +234,16 @@ hash-run hash2_mac_vectors : hash2_mac_vectors_test.cpp
 # reported through the seam WEBCPP_HASH_DETAIL_TEST_WIPE_RECORD.
 hash-run hkdf_hash2 : hkdf_hash2_test.cpp ;
 hash-run hkdf_guards : hkdf_guards_test.cpp ;
+
+# HKDF over pieces (byte_pieces): the call's overloads, the list's counts and
+# the slicing of a piece; then the pieces forms on backends::hash2 against
+# the single-buffer forms and an RFC 5869 computation of the test's own
+# (support/hkdf_pieces.hpp), again with the seam that feeds the HMAC in
+# slices of 7 bytes.
+hash-run byte_pieces : byte_pieces_test.cpp ;
+hash-run hkdf_pieces : hkdf_pieces_test.cpp ;
+hash-run hkdf_pieces_sliced : hkdf_pieces_test.cpp
+  : <define>WEBCPP_HASH_DETAIL_TEST_HKDF_PIECES_SLICE=7 ;
 hash-run wipe : wipe_test.cpp : <define>WEBCPP_HASH_DETAIL_TEST_WIPE_RECORD ;
 
 # digests::blake2b on backends::sodium, libsodium's crypto_generichash_blake2b

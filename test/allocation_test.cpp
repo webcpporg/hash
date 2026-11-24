@@ -12,7 +12,8 @@
 // families digest_of, hasher, mac and argon2 on every backend that has a tag and on each tag's
 // default, blake2b_subkey and the asynchronous family, on every target. A
 // control that allocates once moves the counter, so a zero is not a broken counter. Every call is
-// counted and the totals asserted exactly per backend, so a backend a wrong trait or a dropped
+// counted and the totals asserted exactly per backend (HKDF over pieces on hash2 among them, with
+// inputs of 4 KiB and 1 MiB in four pieces), so a backend a wrong trait or a dropped
 // define leaves out fails, and the refusals of every guard run under the counter too. Argon2id and
 // scrypt are the one exception, and it is libsodium's: their working memory (Argon2id's matrix, 128
 // r N bytes of scrypt) comes from libsodium's own mmap, else posix_memalign, else malloc, outside
@@ -166,7 +167,8 @@ void hkdf_steps_allocate_nothing(char const* name, std::span<std::uint8_t> okm,
         BOOST_TEST(expanded.has_value());
     });
     allocates_nothing(name, [&] {
-        auto const refused = hash::hkdf_expand<Hmac, Backend>(okm, message_input.first(3), {});
+        auto const refused = hash::hkdf_expand<Hmac, Backend>(okm, message_input.first(3),
+                                                              std::span<std::uint8_t const>{});
         BOOST_TEST(!refused.has_value());
     });
     allocates_nothing(name, [&] {
@@ -188,7 +190,8 @@ void hkdf_allocates_nothing(char const* name) {
     allocates_nothing(name, [&] {
         auto const full = hash::hkdf<Hmac, Backend>(okm, message_input.first(20), message_input,
                                                     message_input.last(10));
-        auto const empty = hash::hkdf<Hmac, Backend>(okm, {}, {}, {});
+        std::span<std::uint8_t const> const none;
+        auto const empty = hash::hkdf<Hmac, Backend>(okm, none, none, none);
         BOOST_TEST(full.has_value());
         BOOST_TEST(empty.has_value());
     });
@@ -235,6 +238,64 @@ void kdfs_allocate_nothing(char const* name) {
     if constexpr (hash::backend_has_v<Backend, hash::kdfs::pbkdf2, Hmac>) {
         pbkdf2_allocates_nothing<Hmac, Backend>(name);
     }
+}
+
+// HKDF over pieces (design D3, D8): the three forms with inputs of 4 KiB and 1 MiB in four pieces
+// (6), then each refusal of RFC 5869's sizes (5): Expand's and hkdf's outputs of no byte and of
+// 255 digests and one byte, Expand's pseudorandom key of a byte less than the digest. 11 calls.
+template <class Hmac, class Backend>
+void hkdf_pieces_allocate_nothing(char const* name, std::size_t expected_calls) {
+    std::size_t const before = calls_made;
+    constexpr std::size_t digest_size = typename Hmac::result_type().size();
+    // In static storage, filled before the counter starts: no allocation of the test's own.
+    static std::array<std::uint8_t, std::size_t{1} << 20U> long_buffer{};
+    for (std::size_t i = 0; i != long_buffer.size(); ++i) {
+        long_buffer[i] = static_cast<std::uint8_t>(i * 13);
+    }
+    static std::array<std::uint8_t, (255 * digest_size) + 1> too_long_output{};
+    std::array<std::uint8_t, 42> okm{};
+    std::array<std::uint8_t, digest_size> const prk{};
+    for (std::size_t const size : {std::size_t{4096}, long_buffer.size()}) {
+        std::span<std::uint8_t const> const input = std::span(long_buffer).first(size);
+        std::size_t const quarter = size / 4;
+        std::array<std::span<std::uint8_t const>, 4> const pieces{
+            input.first(quarter), input.subspan(quarter, quarter),
+            input.subspan(2 * quarter, quarter), input.subspan(3 * quarter)};
+        allocates_nothing(name, [&] {
+            BOOST_TEST((hash::hkdf_extract<Hmac, Backend>(message_input, pieces).has_value()));
+        });
+        allocates_nothing(name, [&] {
+            BOOST_TEST((hash::hkdf_expand<Hmac, Backend>(okm, prk, pieces).has_value()));
+        });
+        allocates_nothing(name, [&] {
+            BOOST_TEST((hash::hkdf<Hmac, Backend>(okm, message_input, pieces, pieces).has_value()));
+        });
+    }
+    std::array<std::span<std::uint8_t const>, 2> const pieces{message_input.first(3),
+                                                              message_input.last(7)};
+    std::span<std::uint8_t> const no_output;
+    allocates_nothing(name, [&] {
+        BOOST_TEST((!hash::hkdf_expand<Hmac, Backend>(no_output, prk, pieces).has_value()));
+    });
+    allocates_nothing(name, [&] {
+        BOOST_TEST((!hash::hkdf_expand<Hmac, Backend>(too_long_output, prk, pieces).has_value()));
+    });
+    allocates_nothing(name, [&] {
+        BOOST_TEST(
+            (!hash::hkdf_expand<Hmac, Backend>(okm, std::span(prk).first(digest_size - 1), pieces)
+                  .has_value()));
+    });
+    allocates_nothing(name, [&] {
+        BOOST_TEST(
+            (!hash::hkdf<Hmac, Backend>(no_output, message_input, pieces, pieces).has_value()));
+    });
+    allocates_nothing(name, [&] {
+        BOOST_TEST((!hash::hkdf<Hmac, Backend>(too_long_output, message_input, pieces, pieces)
+                         .has_value()));
+    });
+    BOOST_TEST_EQ(calls_made - before, expected_calls);
+    std::printf("record operation=hkdf-pieces-calls backend=%s target=%s calls=%zu expected=%zu\n",
+                name, webcpp::test::target_name, calls_made - before, expected_calls);
 }
 
 template <class Backend, bool split = true>
@@ -1006,6 +1067,7 @@ int main() {
     control();
     digests();
     all_hmacs<hash::backends::hash2>("hash2", 128);
+    hkdf_pieces_allocate_nothing<hash::hmac_sha2_256, hash::backends::hash2>("hash2", 11);
     async_cheap();
 #ifdef WEBCPP_HASH_HAS_THREADS
     async_heavy();

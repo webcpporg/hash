@@ -5,8 +5,9 @@
 // https://www.boost.org/LICENSE_1_0.txt)
 
 /**
- `backends::hash2`: HKDF (RFC 5869) and PBKDF2 (RFC 8018) written by webcpp over Boost.Hash2's
- `hmac<H>`, on every target and over every Hash2 hmac whose result is a digest; and the families'
+ `backends::hash2`: HKDF (RFC 5869), also over pieces, and PBKDF2 (RFC 8018) written by webcpp over
+ Boost.Hash2's `hmac<H>`, on every target and over every Hash2 hmac whose result is a digest; and
+ the families'
  engines over Boost.Hash2's own algorithms (spec 2.15): the digests MD5, SHA-1, SHA-2, SHA-3,
  RIPEMD-160 and BLAKE2s-256, BLAKE2b with its 64-byte output alone, SHAKE128 and SHAKE256 with
  any output size (each Hash2 `result()` permutes and gives the next block of the stream); HMAC
@@ -24,6 +25,7 @@
 
 #include <webcpp/hash/config.hpp>
 
+#include <webcpp/hash/byte_pieces.hpp>
 #include <webcpp/hash/detail/engines.hpp>
 #include <webcpp/hash/detail/wipe.hpp>
 
@@ -135,6 +137,108 @@ struct hkdf_engine<backends::hash2, Hmac> {
         std::span<std::uint8_t> output_key_material, std::span<std::uint8_t const> salt,
         std::span<std::uint8_t const> input_key_material,
         std::span<std::uint8_t const> application_info) noexcept {
+        auto pseudorandom_key = extract(salt, input_key_material);
+        if (!pseudorandom_key) {
+            return pseudorandom_key.error();
+        }
+        digest_type& pseudorandom_key_digest = pseudorandom_key.unsafe_value();
+        auto derive_result = expand(output_key_material,
+                                    std::span<std::uint8_t const>(pseudorandom_key_digest.data(),
+                                                                  pseudorandom_key_digest.size()),
+                                    application_info);
+        wipe_object(pseudorandom_key_digest);
+        return derive_result;
+    }
+};
+
+/**
+ HKDF over pieces on backends::hash2 (the engine's interface: @ref hkdf_pieces_engine): RFC 5869
+ with every concatenation replaced by successive updates of one Boost.Hash2 `hmac<H>`, whose
+ `update` takes a `size_t`, so that a piece is never sliced (@ref hkdf_pieces_slice is a span's
+ whole length, unless the test seam lowers it).
+
+ @tparam Hmac A Boost.Hash2 hmac over a digest.
+*/
+template <class Hmac>
+struct hkdf_pieces_engine<backends::hash2, Hmac> {
+    /** The hmac's result, a `digest<N>`: the PRK and each block T(i). */
+    using digest_type = Hmac::result_type;
+
+    /** The most bytes of one update. */
+    static constexpr std::uint64_t slice_max = hkdf_pieces_slice<backends::hash2>;
+
+    /**
+     RFC 5869, 2.2: PRK = HMAC-Hash(salt, piece_1 | ... | piece_n). An empty salt is HashLen
+     zeros, which Hash2's hmac keys as zeros of the block, the same key.
+
+     @param salt The salt. @param input_key_material The input keying material's pieces.
+     @return The PRK.
+    */
+    [[nodiscard]] static boost::system::result<digest_type> extract(
+        std::span<std::uint8_t const> salt, byte_pieces input_key_material) noexcept {
+        Hmac mac_state(salt.data(), salt.size());
+        for_each_slice(input_key_material, slice_max, [&](std::span<std::uint8_t const> slice) {
+            mac_state.update(slice.data(), slice.size());
+        });
+        // The PRK is stored in the result returned, whose wiping is the caller's.
+        boost::system::result<digest_type> pseudorandom_key{
+            boost::system::in_place_value,
+            mac_state.result(),
+        };
+        wipe_object(mac_state);
+        return pseudorandom_key;
+    }
+
+    /**
+     RFC 5869, 2.3: T(0) = empty; T(i) = HMAC-Hash(PRK, T(i-1) | piece_1 | ... | piece_n | i);
+     OKM = the first L octets of T(1) | T(2) | ... | T(N), N = ceil(L/HashLen). The hmac keyed by
+     the PRK is made once and copied for each block.
+
+     @param output_key_material The OKM, its size L. @param pseudorandom_key The PRK.
+     @param application_info The info's pieces.
+     @return Success.
+    */
+    [[nodiscard]] static boost::system::result<void> expand(
+        std::span<std::uint8_t> output_key_material, std::span<std::uint8_t const> pseudorandom_key,
+        byte_pieces application_info) noexcept {
+        Hmac keyed_mac(pseudorandom_key.data(),
+                       pseudorandom_key.size());  // not const: it is wiped at the end
+        digest_type t_block{};
+        std::size_t written_count = 0;
+        for (unsigned block_counter = 1; written_count < output_key_material.size();
+             ++block_counter) {
+            Hmac mac_state = keyed_mac;
+            if (block_counter > 1) {
+                mac_state.update(t_block.data(), t_block.size());
+            }
+            for_each_slice(application_info, slice_max, [&](std::span<std::uint8_t const> slice) {
+                mac_state.update(slice.data(), slice.size());
+            });
+            const auto octet_value = static_cast<unsigned char>(block_counter);
+            mac_state.update(&octet_value, 1);
+            t_block = mac_state.result();
+            wipe_object(mac_state);
+            const std::size_t copied_count =
+                std::min(t_block.size(), output_key_material.size() - written_count);
+            std::memcpy(output_key_material.data() + written_count, t_block.data(), copied_count);
+            written_count += copied_count;
+        }
+        wipe_object(t_block);
+        wipe_object(keyed_mac);
+        return {};
+    }
+
+    /**
+     RFC 5869, 2: HKDF-Extract, then HKDF-Expand, over pieces; the PRK is wiped between them.
+
+     @param output_key_material The OKM. @param salt The salt.
+     @param input_key_material The input keying material's pieces.
+     @param application_info The info's pieces.
+     @return Success.
+    */
+    [[nodiscard]] static boost::system::result<void> extract_and_expand(
+        std::span<std::uint8_t> output_key_material, std::span<std::uint8_t const> salt,
+        byte_pieces input_key_material, byte_pieces application_info) noexcept {
         auto pseudorandom_key = extract(salt, input_key_material);
         if (!pseudorandom_key) {
             return pseudorandom_key.error();

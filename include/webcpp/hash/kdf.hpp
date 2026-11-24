@@ -112,6 +112,25 @@ template <class Backend, class Hmac>
 inline constexpr bool backend_has_v<Backend, kdfs::hkdf_expand, Hmac> =
     backend_has_v<Backend, kdfs::hkdf, Hmac> && !std::is_same_v<Backend, backends::bearssl>;
 
+/**
+ backends::hash2 has HKDF over pieces over every hmac it has HKDF over: Boost.Hash2's `hmac<H>`,
+ whose `update` each piece is fed to (design D4 of the change hkdf-pieces: a backend has the pieces
+ forms exactly where it has the HMAC).
+*/
+template <class Hmac>
+inline constexpr bool backend_has_v<backends::hash2, kdfs::hkdf_pieces, Hmac> =
+    backend_has_v<backends::hash2, kdfs::hkdf, Hmac>;
+
+/** backends::hash2 has HKDF-Extract over pieces wherever it has HKDF over pieces. */
+template <class Hmac>
+inline constexpr bool backend_has_v<backends::hash2, kdfs::hkdf_extract_pieces, Hmac> =
+    backend_has_v<backends::hash2, kdfs::hkdf_pieces, Hmac>;
+
+/** backends::hash2 has HKDF-Expand over pieces wherever it has HKDF over pieces. */
+template <class Hmac>
+inline constexpr bool backend_has_v<backends::hash2, kdfs::hkdf_expand_pieces, Hmac> =
+    backend_has_v<backends::hash2, kdfs::hkdf_pieces, Hmac>;
+
 /** backends::sodium has Argon2id (`crypto_pwhash_argon2id`), which takes no hmac. */
 template <>
 inline constexpr bool backend_has_v<backends::sodium, kdfs::argon2id, void> = true;
@@ -1455,18 +1474,19 @@ struct default_of<kdfs::x963kdf> {
 /**
  The backend a function of `Algorithm` uses when the call names none (spec 4.1).
 
- `backends::hash2` for `hkdf_extract`, `hkdf_expand`, `hkdf` and `pbkdf2`, on every target and
- whatever the program links; `backends::sodium` for `argon2id`, `scrypt` (which `backends::openssl`
- and `backends::botan` also have, named in the call) and `blake2b_subkey`, which stops the build
- with the line to add to the Jamfile when the program does not link libsodium. A tag of the families
+ `backends::hash2` for `hkdf_extract`, `hkdf_expand`, `hkdf` (each also over pieces) and
+ `pbkdf2`, on every target and whatever the program links; `backends::sodium` for `argon2id`,
+ `scrypt` (which `backends::openssl` and `backends::botan` also have, named in the call) and
+ `blake2b_subkey`, which stops the build with the line to add to the Jamfile when the program
+ does not link libsodium. A tag of the families
  defaults to the first of `backends::hash2`, `backends::xkcp`, `backends::blake3` and
  `backends::sodium` that has it (design D34), or to `detail::no_default`, which refuses: the call
  names its backend. `backends::bearssl`, `backends::openssl` and `backends::botan` are never a
  default. No define changes it: another backend is chosen by naming it in the call, as
  `hkdf<hmac_sha2_256, backends::openssl>`.
 
- @tparam Algorithm A tag of `kdfs` (`hkdf`, `hkdf_extract`, `hkdf_expand`, `pbkdf2`, `argon2id`,
- `scrypt`, `blake2b_subkey`, ...), `digests` or `macs`.
+ @tparam Algorithm A tag of `kdfs` (`hkdf`, `hkdf_extract`, `hkdf_expand`, their `_pieces`
+ forms, `pbkdf2`, `argon2id`, `scrypt`, `blake2b_subkey`, ...), `digests` or `macs`.
  @tparam Hmac The hmac of a key derivation that takes one, else `void`; it does not change the
  answer.
 */
@@ -1478,7 +1498,8 @@ using default_backend = detail::default_of<Algorithm>::type;
  @ref default_backend of `Kdf`, `backends::hash2` on every target.
 
  @tparam Hmac A Boost.Hash2 hmac; it does not change the answer. @tparam Kdf `kdfs::hkdf` (the
- default), `kdfs::hkdf_extract`, `kdfs::hkdf_expand` or `kdfs::pbkdf2`.
+ default), `kdfs::hkdf_extract`, `kdfs::hkdf_expand`, `kdfs::hkdf_pieces`,
+ `kdfs::hkdf_extract_pieces`, `kdfs::hkdf_expand_pieces` or `kdfs::pbkdf2`.
 */
 template <class Hmac, class Kdf = kdfs::hkdf>
 using default_kdf_backend = default_backend<Kdf, Hmac>;

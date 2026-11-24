@@ -215,7 +215,8 @@ inline constexpr std::string_view bcrypt_verify_cell = "bcrypt_verify";
  *
  * A cell is named as the table names its function: `<function>` (`scrypt`), `<function><<hmac>>`
  * for each hmac the cell lists (`hkdf<hmac_sha2_256>`, `hkdf<other>`), `mac<<tag>>` for a tag of
- * `mac` (`mac<macs::siphash_2_4>`), `<function><<tag>>` for a variant (`argon2<kdfs::argon2d>`).
+ * `mac` (`mac<macs::siphash_2_4>`), `<function><<tag>>` for a variant (`argon2<kdfs::argon2d>`);
+ * a row of a form of its function adds ` over <form>` (`hkdf<hmac_sha2_256> over pieces`).
  * The keyed functions: `digests::blake2b keyed` (digest_of and a hasher round with a key)
  * wherever the table has a cell of digests::blake2b; `blake3 keyed` (the blake3 type's keyed
  * modes) wherever it has the blake3 type; `bcrypt_verify` wherever it has bcrypt.
@@ -241,6 +242,9 @@ inline std::vector<std::string> keyed_cells(std::string_view backend) {
                 continue;
             }
             std::string const name(function.at("name").as_string());
+            auto const* const form_value = function.if_contains("form");
+            std::string const form =
+                form_value == nullptr ? "" : " over " + std::string(form_value->as_string());
             std::string base = name;
             if (kind == "mac") {
                 base = "mac<" + name + ">";
@@ -249,11 +253,11 @@ inline std::vector<std::string> keyed_cells(std::string_view backend) {
             }
             auto const& hmacs = cell->as_object().at("hmacs");
             if (hmacs.is_null()) {
-                cells.push_back(base);
+                cells.push_back(base + form);
                 continue;
             }
             for (auto const& hmac : hmacs.as_array()) {
-                cells.push_back(base + "<" + std::string(hmac.as_string()) + ">");
+                cells.push_back(base + "<" + std::string(hmac.as_string()) + ">" + form);
             }
         }
     }
@@ -574,6 +578,63 @@ void cover_hkdf() {
     });
 }
 
+/** Two pieces of coverage_input, and an empty one between them: HKDF's input over pieces. */
+inline std::array<std::span<std::uint8_t const>, 3> coverage_pieces() {
+    std::span<std::uint8_t const> const input(coverage_input);
+    return {input.first(5), std::span<std::uint8_t const>{}, input.subspan(5)};
+}
+
+/**
+ * `hkdf_extract` over pieces, over `Hmac` on `Backend`. No call of it is refused before the
+ * backend but one past a backend's own key limit, which no backend has small enough to reach here.
+ */
+template <class Hmac, class Backend>
+void cover_hkdf_extract_pieces() {
+    std::string const on = coverage_over<Hmac, Backend>();
+    auto const pieces = coverage_pieces();
+    covered("hash::hkdf_extract over pieces" + on, "hash::hkdf_extract(byte_pieces", [&] {
+        BOOST_TEST((hash::hkdf_extract<Hmac, Backend>(coverage_salt, pieces)).has_value());
+    });
+}
+
+/**
+ * `hkdf_expand` over pieces, over `Hmac` on `Backend`, then with an output of no byte.
+ */
+template <class Hmac, class Backend>
+void cover_hkdf_expand_pieces() {
+    std::string const on = coverage_over<Hmac, Backend>();
+    std::vector<std::uint8_t> const prk(typename Hmac::result_type().size(), 0x0b);
+    std::array<std::uint8_t, 42> output{};
+    auto const pieces = coverage_pieces();
+    covered("hash::hkdf_expand over pieces" + on, "hash::hkdf_expand(byte_pieces", [&] {
+        BOOST_TEST((hash::hkdf_expand<Hmac, Backend>(output, prk, pieces)).has_value());
+    });
+    covered(
+        "hash::hkdf_expand over pieces with an output of no byte" + on,
+        "hash::hkdf_expand(byte_pieces", [&] {
+            BOOST_TEST((hash::hkdf_expand<Hmac, Backend>(std::span<std::uint8_t>{}, prk, pieces))
+                           .error() == hash::error::invalid_output_size);
+        });
+}
+
+/**
+ * `hkdf` over pieces, over `Hmac` on `Backend`, then with an output of no byte.
+ */
+template <class Hmac, class Backend>
+void cover_hkdf_pieces() {
+    std::string const on = coverage_over<Hmac, Backend>();
+    std::array<std::uint8_t, 42> output{};
+    auto const pieces = coverage_pieces();
+    covered("hash::hkdf over pieces" + on, "hash::hkdf(byte_pieces", [&] {
+        BOOST_TEST((hash::hkdf<Hmac, Backend>(output, coverage_salt, pieces, pieces)).has_value());
+    });
+    covered("hash::hkdf over pieces with an output of no byte" + on, "hash::hkdf(byte_pieces", [&] {
+        BOOST_TEST(
+            (hash::hkdf<Hmac, Backend>(std::span<std::uint8_t>{}, coverage_salt, pieces, pieces))
+                .error() == hash::error::invalid_output_size);
+    });
+}
+
 /**
  * `pbkdf2` over `Hmac` on `Backend`, of one iteration, then of none.
  */
@@ -612,7 +673,7 @@ void cover_kbkdf() {
 
 /**
  * The calls of the functions over an hmac that `Backend` has over `Hmac`: hkdf_extract,
- * hkdf_expand, hkdf, pbkdf2 and kbkdf, each by the name of its cell.
+ * hkdf_expand, hkdf, each also over pieces, pbkdf2 and kbkdf, each by the name of its cell.
  *
  * @param calls Where the calls go.
  */
@@ -628,6 +689,17 @@ void add_hmac_calls(coverage_calls& calls) {
     }
     if constexpr (coverage_has_v<Backend, kdfs::hkdf, Hmac>) {
         calls.emplace("hkdf" + column, [] { cover_hkdf<Hmac, Backend>(); });
+    }
+    if constexpr (coverage_has_v<Backend, kdfs::hkdf_extract_pieces, Hmac>) {
+        calls.emplace("hkdf_extract" + column + " over pieces",
+                      [] { cover_hkdf_extract_pieces<Hmac, Backend>(); });
+    }
+    if constexpr (coverage_has_v<Backend, kdfs::hkdf_expand_pieces, Hmac>) {
+        calls.emplace("hkdf_expand" + column + " over pieces",
+                      [] { cover_hkdf_expand_pieces<Hmac, Backend>(); });
+    }
+    if constexpr (coverage_has_v<Backend, kdfs::hkdf_pieces, Hmac>) {
+        calls.emplace("hkdf" + column + " over pieces", [] { cover_hkdf_pieces<Hmac, Backend>(); });
     }
     if constexpr (coverage_has_v<Backend, kdfs::pbkdf2, Hmac>) {
         calls.emplace("pbkdf2" + column, [] { cover_pbkdf2<Hmac, Backend>(); });

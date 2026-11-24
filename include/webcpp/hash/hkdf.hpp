@@ -8,6 +8,12 @@
  HKDF, RFC 5869: `hkdf_extract`, `hkdf_expand` and `hkdf`, over any Boost.Hash2 hmac whose result
  is a digest, on the backend the call names or on @ref webcpp::hash::default_kdf_backend.
 
+ Each has a form over pieces: its input keying material and its application info as
+ @ref webcpp::hash::byte_pieces, read one after another as if concatenated, `{a, b, c}` at the
+ call, with no cap on either and no buffer of webcpp's (RFC 9180's labeled inputs need no join).
+ The single-buffer forms keep `hkdf_max_application_info_size`; the pieces forms refuse only RFC
+ 5869's sizes. A braced list of one span, `{x}`, is that span: the single-buffer form.
+
  Every call holds the data-independent-timing guard (`detail::timing_guard`): where the CPU has
  DIT, the call sets it and leaves the thread's state as it found it.
 
@@ -32,6 +38,7 @@
 #include <webcpp/hash/config.hpp>
 
 #include <webcpp/hash/backends/hash2.hpp>
+#include <webcpp/hash/byte_pieces.hpp>
 #include <webcpp/hash/detail/engines.hpp>
 #include <webcpp/hash/detail/limits.hpp>
 #include <webcpp/hash/detail/timing.hpp>
@@ -97,6 +104,30 @@ template <class Hmac, class Backend>
     if (exceeds(salt_size, limits::hkdf_salt) ||
         exceeds(input_key_material_size, limits::hkdf_input_key_material) ||
         exceeds(application_info_size, limits::hkdf_application_info)) {
+        return error::input_too_long;
+    }
+    return {};
+}
+
+/**
+ The guards of `hkdf` over pieces and of `hkdf_expand`'s output, without the work: RFC 5869's
+ output size, then `Backend`'s HMAC key limit on the salt (`backend_limits`' `hkdf_salt`, as
+ `backends::openssl`'s `INT_MAX`); nothing on the input keying material or the application info.
+
+ @tparam Hmac A Boost.Hash2 hmac over a digest. @tparam Backend The backend.
+ @param output_size The output's size. @param salt_size The salt's size (0 for `hkdf_expand`).
+ @return Success, or the error of the first guard that fails: `invalid_output_size`, then
+ `input_too_long`.
+*/
+template <class Hmac, class Backend>
+[[nodiscard]] boost::system::result<void> hkdf_pieces_guards(std::size_t output_size,
+                                                             std::size_t salt_size) noexcept {
+    // Hash2 1.92 declares no std::tuple_size for digest<N>; its size() is constexpr.
+    constexpr std::size_t digest_length = typename Hmac::result_type().size();
+    if (output_size == 0 || output_size > 255 * digest_length) {
+        return error::invalid_output_size;
+    }
+    if (exceeds(salt_size, backend_limits<Backend>::hkdf_salt)) {
         return error::input_too_long;
     }
     return {};
@@ -212,6 +243,121 @@ template <class Hmac, class Backend = default_kdf_backend<Hmac>>
             return guarded;
         }
         auto derive_result = detail::hkdf_engine<Backend, Hmac>::extract_and_expand(
+            output_key_material, salt, input_key_material, application_info);
+        if (!derive_result) {
+            detail::wipe(output_key_material);
+        }
+        return derive_result;
+    }
+}
+
+/**
+ HKDF-Extract (RFC 5869, section 2.2) over pieces: the pseudorandom key of the concatenation of
+ `input_key_material`'s pieces under `salt`, each piece fed to the backend's HMAC.
+
+ @code
+ auto prk = webcpp::hash::hkdf_extract<webcpp::hash::hmac_sha2_256>(salt, {prefix, label, ikm});
+ @endcode
+
+ @tparam Hmac The hmac, as `hmac_sha2_256`. @tparam Backend The backend; by default the one
+ `default_kdf_backend<Hmac, kdfs::hkdf_extract_pieces>` names, `backends::hash2`.
+ @param salt The salt, any length the backend's HMAC takes as a key; empty means `Hmac`'s digest
+ size of zeros.
+ @param input_key_material The input keying material's pieces, of any number and length.
+ @return The pseudorandom key, an `Hmac::result_type` of the hmac's digest size; or
+ `input_too_long` for a salt longer than the backend's HMAC takes (`backends::openssl`: more than
+ `INT_MAX` bytes); or the backend's failure.
+*/
+template <class Hmac, class Backend = default_kdf_backend<Hmac, kdfs::hkdf_extract_pieces>>
+[[nodiscard]] boost::system::result<typename detail::hmac_result<Hmac>::type> hkdf_extract(
+    std::span<std::uint8_t const> salt, byte_pieces input_key_material) {
+    detail::timing_guard const timing;
+    if constexpr (!detail::takes_hmac<Hmac>()) {
+        return error::backend_failure;  // unreachable: takes_hmac has stopped the build
+    } else {
+        if (detail::exceeds(salt.size(), detail::backend_limits<Backend>::hkdf_salt)) {
+            return error::input_too_long;
+        }
+        return detail::hkdf_pieces_engine<Backend, Hmac>::extract(salt, input_key_material);
+    }
+}
+
+/**
+ HKDF-Expand (RFC 5869, section 2.3) over pieces: fills `output_key_material` from
+ `pseudorandom_key` and the concatenation of `application_info`'s pieces, each piece fed to the
+ backend's HMAC for each block.
+
+ @tparam Hmac The hmac. @tparam Backend The backend; by default the one
+ `default_kdf_backend<Hmac, kdfs::hkdf_expand_pieces>` names, `backends::hash2`.
+ @param output_key_material The output keying material, 1 to 255 times the digest size.
+ @param pseudorandom_key The pseudorandom key, of exactly the digest size.
+ @param application_info The context's pieces, of any number and length: no cap.
+ @return Success, or the error of the first guard that fails (`invalid_output_size`,
+ `invalid_key_size`), `output_key_material` untouched; or the backend's failure,
+ `output_key_material` zeroed.
+*/
+template <class Hmac, class Backend = default_kdf_backend<Hmac, kdfs::hkdf_expand_pieces>>
+[[nodiscard]] boost::system::result<void> hkdf_expand(
+    std::span<std::uint8_t> output_key_material, std::span<std::uint8_t const> pseudorandom_key,
+    byte_pieces application_info) {
+    detail::timing_guard const timing;
+    if constexpr (!detail::takes_hmac<Hmac>()) {
+        return error::backend_failure;  // unreachable: takes_hmac has stopped the build
+    } else {
+        auto guarded = detail::hkdf_pieces_guards<Hmac, Backend>(output_key_material.size(), 0);
+        if (!guarded) {
+            return guarded;
+        }
+        // Hash2 1.92 declares no std::tuple_size for digest<N>; its size() is constexpr.
+        constexpr std::size_t digest_length = typename Hmac::result_type().size();
+        if (pseudorandom_key.size() != digest_length) {
+            return error::invalid_key_size;
+        }
+        auto derive_result = detail::hkdf_pieces_engine<Backend, Hmac>::expand(
+            output_key_material, pseudorandom_key, application_info);
+        if (!derive_result) {
+            detail::wipe(output_key_material);
+        }
+        return derive_result;
+    }
+}
+
+/**
+ HKDF (RFC 5869, section 2) over pieces: extract, then expand, the pseudorandom key wiped between
+ them.
+
+ @code
+ // RFC 9180's LabeledExtract and LabeledExpand in one call, no buffer joined.
+ auto done = webcpp::hash::hkdf<webcpp::hash::hmac_sha2_256>(
+     key, salt, {version, suite_id, label, ikm}, {length, version, suite_id, label, info});
+ @endcode
+
+ @tparam Hmac The hmac. @tparam Backend The backend; by default the one
+ `default_kdf_backend<Hmac, kdfs::hkdf_pieces>` names, `backends::hash2`.
+ @param output_key_material The output keying material, 1 to 255 times the digest size.
+ @param salt The salt, any length the backend's HMAC takes as a key; empty means `Hmac`'s digest
+ size of zeros.
+ @param input_key_material The input keying material's pieces, of any number and length.
+ @param application_info The context's pieces, of any number and length: no cap.
+ @return Success, or the error of the first guard that fails (`invalid_output_size`, then
+ `input_too_long` for a salt longer than the backend's HMAC takes), `output_key_material`
+ untouched; or the backend's failure, `output_key_material` zeroed.
+*/
+template <class Hmac, class Backend = default_kdf_backend<Hmac, kdfs::hkdf_pieces>>
+[[nodiscard]] boost::system::result<void> hkdf(std::span<std::uint8_t> output_key_material,
+                                               std::span<std::uint8_t const> salt,
+                                               byte_pieces input_key_material,
+                                               byte_pieces application_info) {
+    detail::timing_guard const timing;
+    if constexpr (!detail::takes_hmac<Hmac>()) {
+        return error::backend_failure;  // unreachable: takes_hmac has stopped the build
+    } else {
+        auto guarded =
+            detail::hkdf_pieces_guards<Hmac, Backend>(output_key_material.size(), salt.size());
+        if (!guarded) {
+            return guarded;
+        }
+        auto derive_result = detail::hkdf_pieces_engine<Backend, Hmac>::extract_and_expand(
             output_key_material, salt, input_key_material, application_info);
         if (!derive_result) {
             detail::wipe(output_key_material);

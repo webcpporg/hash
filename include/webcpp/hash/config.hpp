@@ -109,6 +109,15 @@
 */
 #define WEBCPP_HASH_NO_THREADS
 #undef WEBCPP_HASH_NO_THREADS
+/**
+ The attribute that says a parameter's object must outlive the object a constructor makes from it:
+ `[[clang::lifetimebound]]` under clang, `[[msvc::lifetimebound]]` under MSVC where it has it,
+ nothing elsewhere. `byte_pieces`' constructors carry it, so that a `byte_pieces` named from a
+ braced list, whose array dies at the end of its declaration, is a warning where the compiler
+ can tell.
+*/
+#define WEBCPP_HASH_LIFETIMEBOUND
+#undef WEBCPP_HASH_LIFETIMEBOUND
 #endif
 
 #if !defined(WEBCPP_HAS_EXCEPTIONS) && !defined(WEBCPP_HASH_NO_EXCEPTIONS)
@@ -128,6 +137,19 @@
     ((defined(WEBCPP_TARGET_NATIVE) && defined(BOOST_HAS_THREADS)) || \
      (defined(WEBCPP_TARGET_EMSCRIPTEN) && defined(__EMSCRIPTEN_PTHREADS__)))
 #define WEBCPP_HASH_HAS_THREADS 1
+#endif
+
+// The lifetimebound attribute, where the compiler has it; the reference's run reads its comment
+// above.
+#if defined(__has_cpp_attribute)
+#if __has_cpp_attribute(clang::lifetimebound)
+#define WEBCPP_HASH_LIFETIMEBOUND [[clang::lifetimebound]]
+#elif __has_cpp_attribute(msvc::lifetimebound)
+#define WEBCPP_HASH_LIFETIMEBOUND [[msvc::lifetimebound]]
+#endif
+#endif
+#ifndef WEBCPP_HASH_LIFETIMEBOUND
+#define WEBCPP_HASH_LIFETIMEBOUND
 #endif
 
 // The refusals of impossible combinations (spec 5.7). Clang and gcc go on after an #error, so
@@ -210,6 +232,27 @@ struct hkdf_extract;
  A tag, declared and never defined, as @ref hkdf_extract is for the first step.
 */
 struct hkdf_expand;
+/**
+ HKDF over pieces, the operation `hkdf` whose input keying material and application info are
+ `byte_pieces`: RFC 5869 on the backend's streaming HMAC, with no cap on either input.
+
+ A tag, declared and never defined: a backend has it exactly where it has the HMAC (design D4 of
+ the change hkdf-pieces), which @ref webcpp::hash::backend_has_v answers through it.
+*/
+struct hkdf_pieces;
+/**
+ HKDF-Extract over pieces, the operation `hkdf_extract` whose input keying material is
+ `byte_pieces`.
+
+ A tag, declared and never defined, as @ref hkdf_pieces is.
+*/
+struct hkdf_extract_pieces;
+/**
+ HKDF-Expand over pieces, the operation `hkdf_expand` whose application info is `byte_pieces`.
+
+ A tag, declared and never defined, as @ref hkdf_pieces is.
+*/
+struct hkdf_expand_pieces;
 /**
  PBKDF2, RFC 8018, the operation `pbkdf2`.
 

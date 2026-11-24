@@ -7,8 +7,8 @@
 // detail::wipe zeroes every byte it is given and none around it; detail::exceeds compares in 64
 // bits on every target. Built with WEBCPP_HASH_DETAIL_TEST_WIPE_RECORD, every wipe is reported
 // to this test once its bytes are zero, so that the test checks the whole sequence of wipes HKDF's
-// and PBKDF2's engines on backends::hash2 do (spec section 6.1): each one's size, in order, its
-// bytes zero, and the addresses of objects alive at once told apart.
+// (also over pieces) and PBKDF2's engines on backends::hash2 do (spec section 6.1): each one's
+// size, in order, its bytes zero, and the addresses of objects alive at once told apart.
 
 #include <webcpp/hash/backends/hash2.hpp>
 #include <webcpp/hash/detail/limits.hpp>
@@ -195,6 +195,50 @@ void test_hkdf() {
     BOOST_TEST(taken().empty());
 }
 
+// HKDF over pieces, hmac_sha2_256, an output of two blocks: the same wipes as the single-buffer
+// forms, whatever the pieces (design D2 of the change hkdf-pieces); a guard's refusal wipes
+// nothing.
+void test_hkdf_pieces() {
+    using hmac = hash::hmac_sha2_256;
+    using backend = hash::backends::hash2;
+    using piece = std::span<std::uint8_t const>;
+    constexpr std::size_t mac = sizeof(hmac);
+    constexpr std::size_t digest = 32;
+    const std::vector<std::uint8_t> salt(13, 0x01);
+    const std::vector<std::uint8_t> ikm(22, 0x0b);
+    const std::vector<std::uint8_t> info(10, 0xf0);
+    std::array<piece, 3> const ikm_pieces{piece(ikm).first(5), piece{}, piece(ikm).subspan(5)};
+    std::array<piece, 2> const info_pieces{piece(info).first(3), piece(info).subspan(3)};
+    std::vector<std::uint8_t> output(42);
+    static_cast<void>(taken());
+
+    auto prk = hash::hkdf_extract<hmac, backend>(salt, ikm_pieces);
+    webcpp::test::require(BOOST_TEST(prk.has_value()));
+    BOOST_TEST((taken() == std::vector<std::size_t>{mac}));
+
+    const std::vector<std::uint8_t> pseudorandom_key(prk->begin(), prk->end());
+    BOOST_TEST(
+        (hash::hkdf_expand<hmac, backend>(output, pseudorandom_key, info_pieces).has_value()));
+    auto entries = taken_entries();
+    BOOST_TEST((sizes_of(entries) == std::vector<std::size_t>{mac, mac, digest, mac}));
+    if (entries.size() == 4) {
+        BOOST_TEST(apart(entries, 3, {0, 1}));
+    }
+
+    BOOST_TEST((hash::hkdf<hmac, backend>(output, salt, ikm_pieces, info_pieces).has_value()));
+    entries = taken_entries();
+    BOOST_TEST((sizes_of(entries) == std::vector<std::size_t>{mac, mac, mac, digest, mac, digest}));
+    if (entries.size() == 6) {
+        BOOST_TEST(apart(entries, 4, {1, 2}));
+        BOOST_TEST(apart(entries, 5, {3}));
+    }
+
+    BOOST_TEST((hash::hkdf_expand<hmac, backend>(output, salt, info_pieces).has_error()));
+    BOOST_TEST((hash::hkdf<hmac, backend>(std::span<std::uint8_t>{}, salt, ikm_pieces, info_pieces)
+                    .has_error()));
+    BOOST_TEST(taken().empty());
+}
+
 // PBKDF2 over hmac_sha2_256 with an output of two blocks (64 bytes) and three iterations: each
 // block's mac, then U, T and the keyed hmac.
 void test_pbkdf2() {
@@ -226,6 +270,7 @@ int main() {
     test_wipe();
     test_exceeds();
     test_hkdf();
+    test_hkdf_pieces();
     test_pbkdf2();
     return webcpp::test::exit_status(boost::report_errors());
 }
