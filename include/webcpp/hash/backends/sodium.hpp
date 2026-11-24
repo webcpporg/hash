@@ -505,8 +505,8 @@ struct sodium_hkdf_pieces_engine {
     [[nodiscard]] static boost::system::result<void> extract_and_expand(
         std::span<std::uint8_t> output_key_material, std::span<std::uint8_t const> salt,
         byte_pieces input_key_material, byte_pieces application_info) noexcept {
-        return hkdf_pieces_extract_and_expand<sodium_hkdf_pieces_engine>(output_key_material, salt, input_key_material,
-                                                   application_info);
+        return hkdf_pieces_extract_and_expand<sodium_hkdf_pieces_engine>(
+            output_key_material, salt, input_key_material, application_info);
     }
 };
 

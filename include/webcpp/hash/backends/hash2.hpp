@@ -238,8 +238,8 @@ struct hkdf_pieces_engine<backends::hash2, Hmac> {
     [[nodiscard]] static boost::system::result<void> extract_and_expand(
         std::span<std::uint8_t> output_key_material, std::span<std::uint8_t const> salt,
         byte_pieces input_key_material, byte_pieces application_info) noexcept {
-        return hkdf_pieces_extract_and_expand<hkdf_pieces_engine<backends::hash2, Hmac>>(output_key_material, salt, input_key_material,
-                                                   application_info);
+        return hkdf_pieces_extract_and_expand<hkdf_pieces_engine<backends::hash2, Hmac>>(
+            output_key_material, salt, input_key_material, application_info);
     }
 };
 
