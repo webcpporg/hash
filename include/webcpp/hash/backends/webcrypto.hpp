@@ -999,20 +999,25 @@ private:
             .call<void>("set", tag.call<emscripten::val>("subarray", 0, static_cast<double>(size)));
     }
 
-    // Every JavaScript buffer zeroed and the key let go: the completion's success.
-    boost::system::error_code finish() noexcept {
+    // Every JavaScript buffer zeroed and the key let go.
+    void release() noexcept {
         request_.salt.wipe();
         request_.input_key_material.wipe();
         request_.pseudorandom_key.wipe();
         request_.blocks.wipe();
         key_ = emscripten::val::undefined();
+    }
+
+    // The buffers released: the completion's success.
+    [[nodiscard]] boost::system::error_code finish() noexcept {
+        release();
         return {};
     }
 
-    // The output zeroed, with the completion's error.
-    boost::system::error_code fail(boost::system::error_code code) noexcept {
+    // The output zeroed and the buffers released, with the completion's error.
+    [[nodiscard]] boost::system::error_code fail(boost::system::error_code code) noexcept {
         wipe(output_);
-        finish();
+        release();
         return code;
     }
 
@@ -1102,7 +1107,7 @@ private:
     // HKDF-Extract's output, the pseudorandom key: exactly the digest size, as
     // hkdf_extract_into requires of a synchronous backend's (invalid_output_size).
     template <class Hmac>
-    static boost::system::result<void> extract_size_guard(std::size_t size) noexcept {
+    [[nodiscard]] static boost::system::result<void> extract_size_guard(std::size_t size) noexcept {
         // Hash2 1.92 declares no std::tuple_size for digest<N>; its size() is constexpr.
         constexpr std::size_t digest_length = typename Hmac::result_type().size();
         if (size != digest_length) {
@@ -1114,8 +1119,8 @@ private:
     // HKDF-Expand's guards, the synchronous hkdf_expand's order: RFC 5869's output size, then the
     // pseudorandom key's size (invalid_key_size).
     template <class Hmac>
-    static boost::system::result<void> expand_guards(std::size_t output_size,
-                                                     std::size_t pseudorandom_key_size) noexcept {
+    [[nodiscard]] static boost::system::result<void> expand_guards(
+        std::size_t output_size, std::size_t pseudorandom_key_size) noexcept {
         // Hash2 1.92 declares no std::tuple_size for digest<N>; its size() is constexpr.
         constexpr std::size_t digest_length = typename Hmac::result_type().size();
         auto guarded = hkdf_pieces_guards<Hmac, backends::webcrypto>(output_size, 0);

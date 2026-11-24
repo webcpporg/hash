@@ -1136,7 +1136,7 @@ void check_hkdf_pieces_guards(asio::io_context& context) {
     };
     check_refusal(context, "async_hkdf over pieces of 0 bytes", 0, hash::error::invalid_output_size,
                   hkdf);
-    check_refusal(context, "async_hkdf over pieces of 255 digests and 1 byte", 255 * 32 + 1,
+    check_refusal(context, "async_hkdf over pieces of 255 digests and 1 byte", (255 * 32) + 1,
                   hash::error::invalid_output_size, hkdf);
     auto const extract = [&](std::span<std::uint8_t> output, auto token) {
         hash::async_hkdf_extract<hash::hmac_sha2_256, webcrypto>(executor, output, abc, {abc, abc},
@@ -1162,7 +1162,7 @@ void check_hkdf_pieces_guards(asio::io_context& context) {
                       hash::async_hkdf_expand<hash::hmac_sha2_256, webcrypto>(
                           executor, output, short_key, {abc, abc}, std::move(token));
                   });
-    check_refusal(context, "async_hkdf_expand of 255 digests and 1 byte", 255 * 32 + 1,
+    check_refusal(context, "async_hkdf_expand of 255 digests and 1 byte", (255 * 32) + 1,
                   hash::error::invalid_output_size,
                   [&](std::span<std::uint8_t> output, auto token) {
                       hash::async_hkdf_expand<hash::hmac_sha2_256, webcrypto>(

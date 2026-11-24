@@ -1391,54 +1391,63 @@ struct hmac_digest<macs::hmac<Digest>> {
     using type = Digest;
 };
 
+// Whether the file's cell of backends::webcrypto in row `name`, column `hmac` ("" for a row
+// without hmacs), is `expected`.
+void check_webcrypto_cell(json::object const& table, std::string_view name, std::string_view hmac,
+                          bool expected) {
+    auto const* const row = find_row(table, name);
+    bool const in_file = row != nullptr && cell(*row, "webcrypto", hmac);
+    if (!BOOST_TEST_EQ(in_file, expected)) {
+        std::cerr << "  cell " << name << " / webcrypto / " << (hmac.empty() ? "-" : hmac) << '\n';
+    }
+}
+
+// The key derivations over an hmac that backends::webcrypto has: HKDF, its two steps, the three
+// HKDF functions over pieces and PBKDF2.
+using webcrypto_kdfs =
+    std::tuple<kdfs::hkdf, kdfs::hkdf_extract, kdfs::hkdf_expand, kdfs::hkdf_extract_pieces,
+               kdfs::hkdf_expand_pieces, kdfs::hkdf_pieces, kdfs::pbkdf2>;
+
+// backends::webcrypto's cell of Kdf over Hmac: there exactly for the hmacs of webcrypto_hmac_v,
+// and never one of backend_has_v.
+template <class Kdf, class Hmac>
+void check_webcrypto_kdf_cell(json::object const& table) {
+    check_webcrypto_cell(table, function_name<Kdf>(), test::name_of_hmac<Hmac>(),
+                         hash::detail::webcrypto_hmac_v<Hmac>);
+    BOOST_TEST((!hash::backend_has_v<hash::backends::webcrypto, Kdf, Hmac>));
+}
+
+// backends::webcrypto's cells of Kdf over every hmac column.
+template <class Kdf>
+void check_webcrypto_kdf_cells(json::object const& table) {
+    [&]<class... Hmac>(std::tuple<Hmac...>*) {
+        (check_webcrypto_kdf_cell<Kdf, Hmac>(table), ...);
+    }(static_cast<test::kdf_hmacs*>(nullptr));
+}
+
 // backends::webcrypto's cells (ruling R90): the digests and HMACs of async.hpp's
 // webcrypto_digest_v, HKDF, its two steps, the three HKDF functions over pieces and PBKDF2 over
 // the hmacs of webcrypto_hmac_v, nothing else; and no synchronous function takes it
 // (backend_has_v is false for each of its cells).
 void check_webcrypto_cells(json::object const& table) {
     using hash::backends::webcrypto;
-    auto const agrees = [&](std::string_view name, std::string_view hmac, bool expected) {
-        auto const* const row = find_row(table, name);
-        bool const in_file = row != nullptr && cell(*row, "webcrypto", hmac);
-        if (!BOOST_TEST_EQ(in_file, expected)) {
-            std::cerr << "  cell " << name << " / webcrypto / " << (hmac.empty() ? "-" : hmac)
-                      << '\n';
-        }
-    };
     for_each_tag<digest_tags>(digest_names, [&]<class Tag>(std::string_view name) {
-        agrees(name, "", hash::detail::webcrypto_digest_v<Tag>);
+        check_webcrypto_cell(table, name, "", hash::detail::webcrypto_digest_v<Tag>);
         BOOST_TEST((!hash::backend_has_v<webcrypto, Tag, void>));
     });
     for_each_tag<mac_tags>(mac_names, [&]<class Tag>(std::string_view name) {
-        agrees(name, "", hash::detail::webcrypto_digest_v<typename hmac_digest<Tag>::type>);
+        check_webcrypto_cell(table, name, "",
+                             hash::detail::webcrypto_digest_v<typename hmac_digest<Tag>::type>);
         BOOST_TEST((!hash::backend_has_v<webcrypto, Tag, void>));
     });
-    for_each_tag<argon2_tags>(argon2_names,
-                              [&]<class Tag>(std::string_view name) { agrees(name, "", false); });
-    [&]<class... Hmac>(std::tuple<Hmac...>*) {
-        (
-            [&] {
-                std::string_view const hmac = test::name_of_hmac<Hmac>();
-                bool const has = hash::detail::webcrypto_hmac_v<Hmac>;
-                agrees("hkdf", hmac, has);
-                agrees("pbkdf2", hmac, has);
-                agrees("hkdf_extract", hmac, has);
-                agrees("hkdf_expand", hmac, has);
-                agrees("hkdf_extract over pieces", hmac, has);
-                agrees("hkdf_expand over pieces", hmac, has);
-                agrees("hkdf over pieces", hmac, has);
-                BOOST_TEST((!hash::backend_has_v<webcrypto, kdfs::hkdf_extract, Hmac>));
-                BOOST_TEST((!hash::backend_has_v<webcrypto, kdfs::hkdf_expand, Hmac>));
-                BOOST_TEST((!hash::backend_has_v<webcrypto, kdfs::hkdf_extract_pieces, Hmac>));
-                BOOST_TEST((!hash::backend_has_v<webcrypto, kdfs::hkdf_expand_pieces, Hmac>));
-                BOOST_TEST((!hash::backend_has_v<webcrypto, kdfs::hkdf_pieces, Hmac>));
-                BOOST_TEST((!hash::backend_has_v<webcrypto, kdfs::hkdf, Hmac>));
-                BOOST_TEST((!hash::backend_has_v<webcrypto, kdfs::pbkdf2, Hmac>));
-            }(),
-            ...);
-    }(static_cast<test::kdf_hmacs*>(nullptr));
-    agrees("argon2id", "", false);
-    agrees("scrypt", "", false);
+    for_each_tag<argon2_tags>(argon2_names, [&]<class Tag>(std::string_view name) {
+        check_webcrypto_cell(table, name, "", false);
+    });
+    [&]<class... Kdf>(std::tuple<Kdf...>*) {
+        (check_webcrypto_kdf_cells<Kdf>(table), ...);
+    }(static_cast<webcrypto_kdfs*>(nullptr));
+    check_webcrypto_cell(table, "argon2id", "", false);
+    check_webcrypto_cell(table, "scrypt", "", false);
 }
 
 // Whether Backend has the HMAC of Hmac's column: macs::hmac<D> for its digest's tag D; for a
