@@ -787,7 +787,8 @@ botan-run timing_async_botan : timing_async_test.cpp
 
 # DIT is set while a keyed function computes: a Hash2-form probe records DIT at
 # each update under the hmac of hkdf_extract, hkdf_expand, hkdf, pbkdf2 and mac;
-# timing_during_async the same through async_pbkdf2, on the pool's thread.
+# timing_during_async the same through async_pbkdf2, on the pool's thread, and
+# through the asynchronous HKDF functions over pieces, in the initiating call.
 hash-run timing_during : timing_during_test.cpp ;
 hash-run timing_during_async : timing_during_test.cpp
   : <library>/webcpp/asio//asio <threading>multi <define>WEBCPP_TEST_TIMING_DURING_ASYNC
