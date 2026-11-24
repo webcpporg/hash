@@ -648,12 +648,12 @@ struct hkdf_engine<backends::openssl, Hmac> {
  (`EVP_MAC_CTX_dup`), so that the pseudorandom key is given to OpenSSL once. OpenSSL allocates the
  contexts through its own allocator and frees them (`EVP_MAC_CTX_free`, whose HMAC clears its copy
  of the key, as this header's comment says); hash wipes each block T(i) and the pseudorandom key
- between the steps, on success and on failure. The thread's error queue is left as it was found
- (@ref openssl_outcome): a failure is `errc::not_enough_memory` when an allocation failed, else
- `error::backend_failure`. The salt, HMAC's key, is at most `INT_MAX` bytes (`HMAC_Init_ex` takes
- an `int`): `backend_limits<backends::openssl>::hkdf_salt`, which the public functions guard.
- `EVP_MAC_update` takes a `size_t`, which holds every slice of @ref hkdf_pieces_slice, so that a
- piece is sliced only by the test seam.
+ between the steps, on success and on failure. The thread's error queue is left as it was found,
+ and a failure is `errc::not_enough_memory` when an allocation failed, else
+ `error::backend_failure`, as @ref openssl_outcome reads them. The salt, HMAC's key, is at most
+ `INT_MAX` bytes (`HMAC_Init_ex` takes an `int`): `backend_limits<backends::openssl>::hkdf_salt`,
+ which the public functions guard. `EVP_MAC_update` takes a `size_t`, which holds every slice of
+ @ref hkdf_pieces_slice, so that a piece is sliced only by the test seam.
 
  @tparam Hmac A Boost.Hash2 hmac for which `openssl_hmac_v` holds.
 */

@@ -77,10 +77,32 @@ void fail_hmac() {
     BOOST_TEST(all_of(cut, 0));
 }
 
-/**
- Each of the four key derivations (HKDF's three also over pieces), and the digests, once, on
- OpenSSL, each failing.
-*/
+/** HKDF's three functions over pieces, their HMAC named by the same seam, each failing. */
+void fail_each_over_pieces() {
+    using piece = std::span<std::uint8_t const>;
+    std::array<std::uint8_t, 13> const salt{1, 2, 3};
+    std::array<std::uint8_t, 22> const ikm{4, 5, 6};
+    std::array<std::uint8_t, 32> const prk{7, 8, 9};
+    std::array<std::uint8_t, 10> const info{10, 11, 12};
+    std::array<std::uint8_t, 42> output{};
+    std::array<piece, 3> const ikm_pieces{piece(ikm).first(4), piece{}, piece(ikm).subspan(4)};
+    std::array<piece, 2> const info_pieces{piece(info).first(3), piece(info).subspan(3)};
+
+    auto const extracted = hash::hkdf_extract<hmac, openssl>(salt, ikm_pieces);
+    BOOST_TEST(extracted.has_error() && extracted.error() == hash::error::backend_failure);
+
+    output.fill(untouched);
+    auto failed = hash::hkdf_expand<hmac, openssl>(output, prk, info_pieces);
+    BOOST_TEST(failed.has_error() && failed.error() == hash::error::backend_failure);
+    BOOST_TEST(all_of(output, 0));
+
+    output.fill(untouched);
+    failed = hash::hkdf<hmac, openssl>(output, salt, ikm_pieces, info_pieces);
+    BOOST_TEST(failed.has_error() && failed.error() == hash::error::backend_failure);
+    BOOST_TEST(all_of(output, 0));
+}
+
+/** Each of the four key derivations, and the digests, once, on OpenSSL, each failing. */
 void fail_each() {
     std::array<std::uint8_t, 13> const salt{1, 2, 3};
     std::array<std::uint8_t, 22> const ikm{4, 5, 6};
@@ -98,22 +120,6 @@ void fail_each() {
 
     output.fill(untouched);
     failed = hash::hkdf<hmac, openssl>(output, salt, ikm, info);
-    BOOST_TEST(failed.has_error() && failed.error() == hash::error::backend_failure);
-    BOOST_TEST(all_of(output, 0));
-
-    // HKDF over pieces, its HMAC named by the same seam.
-    using piece = std::span<std::uint8_t const>;
-    std::array<piece, 3> const ikm_pieces{piece(ikm).first(4), piece{}, piece(ikm).subspan(4)};
-    std::array<piece, 2> const info_pieces{piece(info).first(3), piece(info).subspan(3)};
-    auto const pieces_extracted = hash::hkdf_extract<hmac, openssl>(salt, ikm_pieces);
-    BOOST_TEST(pieces_extracted.has_error() &&
-               pieces_extracted.error() == hash::error::backend_failure);
-    output.fill(untouched);
-    failed = hash::hkdf_expand<hmac, openssl>(output, prk, info_pieces);
-    BOOST_TEST(failed.has_error() && failed.error() == hash::error::backend_failure);
-    BOOST_TEST(all_of(output, 0));
-    output.fill(untouched);
-    failed = hash::hkdf<hmac, openssl>(output, salt, ikm_pieces, info_pieces);
     BOOST_TEST(failed.has_error() && failed.error() == hash::error::backend_failure);
     BOOST_TEST(all_of(output, 0));
 
@@ -150,6 +156,7 @@ int main() {
 
     BOOST_TEST_EQ(ERR_peek_error(), 0UL);
     fail_each();
+    fail_each_over_pieces();
     fail_hmac();
     BOOST_TEST_EQ(ERR_peek_error(), 0UL);
 
@@ -157,6 +164,7 @@ int main() {
     ERR_raise(ERR_LIB_USER, ERR_R_PASSED_INVALID_ARGUMENT);
     unsigned long const ours = ERR_peek_last_error();
     fail_each();
+    fail_each_over_pieces();
     fail_hmac();
     unsigned long first = 0;
     BOOST_TEST_EQ(drain(first), 1U);

@@ -1309,8 +1309,9 @@ struct hkdf_engine<backends::botan, Hmac>
  keying material and the info whole: RFC 5869 with every concatenation replaced by successive
  `update`s. Each call makes the HMAC (`create_or_throw`, through @ref botan_create), keys it
  (`set_key`) and computes with `update` and `final`; Expand re-keys it for each block, `clear`
- then `set_key` with the pseudorandom key. Every call of Botan runs inside @ref botan_boundary: an
- exception becomes `errc::not_enough_memory` (`std::bad_alloc`) or `error::backend_failure`. The
+ then `set_key` with the pseudorandom key. Every call of Botan runs inside @ref botan_boundary,
+ which answers an exception with `errc::not_enough_memory` (`std::bad_alloc`) or
+ `error::backend_failure`. The
  object is cleared and freed (@ref botan_owned) and Botan keeps its keys in `secure_vector`s,
  which it zeroes when it frees them; hash wipes the room of a long salt's digest, each block T(i)
  and the pseudorandom key between the steps, on success and on failure. A salt longer than the

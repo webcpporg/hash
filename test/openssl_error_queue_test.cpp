@@ -50,6 +50,21 @@ std::size_t drain(unsigned long& first) {
     return count;
 }
 
+/** HKDF's three functions over pieces once, on OpenSSL, each a success. */
+void call_each_over_pieces(std::span<std::uint8_t const> salt, std::span<std::uint8_t const> ikm) {
+    using piece = std::span<std::uint8_t const>;
+    std::array<std::uint8_t, 42> output{};
+    std::array<piece, 3> const pieces{ikm.first(4), piece{}, ikm.subspan(4)};
+    auto const prk = hash::hkdf_extract<hmac, openssl>(salt, pieces);
+    BOOST_TEST(prk.has_value());
+    if (prk) {
+        BOOST_TEST((hash::hkdf_expand<hmac, openssl>(
+                        output, std::span<std::uint8_t const>(prk->data(), prk->size()), pieces)
+                        .has_value()));
+    }
+    BOOST_TEST((hash::hkdf<hmac, openssl>(output, salt, pieces, pieces).has_value()));
+}
+
 /**
  Each of the four key derivations (HKDF's three also over pieces), the digest family, the MAC
  family, Argon2, scrypt and the key derivations of standards once, on OpenSSL, each a success.
@@ -67,18 +82,7 @@ void call_each() {
                         .has_value()));
     }
     BOOST_TEST((hash::hkdf<hmac, openssl>(output, salt, ikm, info).has_value()));
-    using piece = std::span<std::uint8_t const>;
-    std::array<piece, 3> const pieces{piece(ikm).first(4), piece{}, piece(ikm).subspan(4)};
-    auto pieces_prk = hash::hkdf_extract<hmac, openssl>(salt, pieces);
-    BOOST_TEST(pieces_prk.has_value());
-    if (pieces_prk) {
-        BOOST_TEST(
-            (hash::hkdf_expand<hmac, openssl>(
-                 output, std::span<std::uint8_t const>(pieces_prk->data(), pieces_prk->size()),
-                 pieces)
-                 .has_value()));
-    }
-    BOOST_TEST((hash::hkdf<hmac, openssl>(output, salt, pieces, pieces).has_value()));
+    call_each_over_pieces(salt, ikm);
     BOOST_TEST((hash::pbkdf2<hmac, openssl>(output, ikm, salt, 2).has_value()));
 
     std::array<std::uint8_t, 32> digest{};
