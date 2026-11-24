@@ -25,7 +25,7 @@
 | `example/content_address.cpp`
 
 | prove a message comes from someone who holds a shared secret key (an API request, a cookie, a webhook)
-| <<hash-hmac,hmac_sha2_256, checked with webcpp::crypto::equal>>
+| <<hash-hmac,hmac_sha2_256, checked with webcpp::crypto::constant_time_equal>>
 | `hash2`: `/webcpp/hash//hash`
 | none: one backend
 | `example/hmac_sha256.cpp`

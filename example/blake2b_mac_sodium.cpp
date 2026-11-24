@@ -12,7 +12,7 @@
 // tag::example[]
 #include "hex.hpp"
 
-#include <webcpp/crypto/equal.hpp>
+#include <webcpp/crypto/constant_time_equal.hpp>
 #include <webcpp/hash/mac.hpp>
 
 #include <array>
@@ -41,8 +41,8 @@ int main() {
 
     // The receiver computes the tag again and compares it in constant time.
     std::array<std::uint8_t, 32> again{};
-    bool const genuine =
-        hash::mac<blake2b_mac>(again, key, message) && webcpp::crypto::equal(again, tag);
+    bool const genuine = hash::mac<blake2b_mac>(again, key, message) &&
+                         webcpp::crypto::constant_time_equal(again, tag);
     std::cout << "genuine: " << (genuine ? "yes" : "no") << '\n';
 
     // The tag's size is a parameter of the hash: a 16-byte tag is not the 32-byte one cut.

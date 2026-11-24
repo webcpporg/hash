@@ -53,12 +53,12 @@ include::{examples}/hmac_sha256.expected[]
 
 *Pitfalls.*
 
-* *Compare tags with `webcpp::crypto::equal`, never with `==`.* The digest's
-`operator==` is `memcmp`, which returns at the first byte that differs; an
-attacker who sends guesses and times the answers learns how many leading
-bytes are right and builds a valid tag one byte at a time, in a few thousand
-tries per byte instead of 2^256^ in all. `equal` reads every byte whatever the
-data.
+* *Compare tags with `webcpp::crypto::constant_time_equal`, never with `==`.*
+The digest's `operator==` is `memcmp`, which returns at the first byte that
+differs; an attacker who sends guesses and times the answers learns how many
+leading bytes are right and builds a valid tag one byte at a time, in a few
+thousand tries per byte instead of 2^256^ in all. `constant_time_equal` reads
+every byte whatever the data.
 * *A key is random and as long as the digest.* A 32-byte key from
 `webcpp::crypto::random_device` for HMAC-SHA-256; a password is not a key
 (<<hash-password-hashing>>). A key longer than the hash's block is hashed
@@ -154,7 +154,8 @@ include::{examples}/kmac.expected[]
 
 *Pitfalls.*
 
-* *Compare with `webcpp::crypto::equal`.* As for every tag (<<hash-hmac>>).
+* *Compare with `webcpp::crypto::constant_time_equal`.* As for every tag
+(<<hash-hmac>>).
 * *The key sets the strength.* SP 800-185 (section 8.4.1) forbids a key
 shorter than the security the application needs: 16 bytes for KMAC128, 32
 for KMAC256. `mac` takes any key, the empty one included, as the standard
@@ -196,7 +197,8 @@ include::{examples}/mac_family.expected[]
 
 *Pitfalls.*
 
-* *Compare with `webcpp::crypto::equal`.* As for every tag (<<hash-hmac>>).
+* *Compare with `webcpp::crypto::constant_time_equal`.* As for every tag
+(<<hash-hmac>>).
 * *A cut tag is a weaker tag.* Ten bytes, 80 bits, is the shortest `mac`
 gives; keep the whole digest unless a protocol fixes a shorter tag.
 * *The tag's name is the digest's.* `macs::hmac<digests::sha2_512>` cut to 32
@@ -274,7 +276,7 @@ include::{examples}/hmac_sodium.expected[]
 *Pitfalls.*
 
 * *The pitfalls of <<hash-hmac>> hold:* compare tags with
-`webcpp::crypto::equal`, and use a random key, not a password.
+`webcpp::crypto::constant_time_equal`, and use a random key, not a password.
 * *"HMAC-SHA-512-256" has two meanings.* A program that must agree with
 libsodium's `crypto_auth_hmacsha512256` names `macs::hmac<digests::sha2_512>`
 and a 32-byte output; one that follows a standard naming HMAC over
@@ -307,7 +309,8 @@ include::{examples}/blake2b_mac_sodium.expected[]
 
 *Pitfalls.*
 
-* *Compare with `webcpp::crypto::equal`.* As for every tag (<<hash-hmac>>).
+* *Compare with `webcpp::crypto::constant_time_equal`.* As for every tag
+(<<hash-hmac>>).
 * *The length is a parameter, not a cut.* The tag's size goes into the hash:
 a 16-byte tag is not the first 16 bytes of a 32-byte one, and the receiver
 uses the sender's size.
