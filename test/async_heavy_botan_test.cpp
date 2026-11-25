@@ -128,8 +128,10 @@ completion complete_on_pool(Start start) {
 // "password", as bytes, and a salt: named test_*, which no parameter of the library hides (MSVC
 // C4459 at /WX).
 constexpr std::array<std::uint8_t, 8> test_password{'p', 'a', 's', 's', 'w', 'o', 'r', 'd'};
-constexpr std::array<std::uint8_t, 16> test_salt{1, 2,  3,  4,  5,  6,  7,  8,
-                                                 9, 10, 11, 12, 13, 14, 15, 16};
+constexpr std::array<std::uint8_t, 16> test_salt{
+    1, 2,  3,  4,  5,  6,  7,  8,  // bcrypt's 16 bytes
+    9, 10, 11, 12, 13, 14, 15, 16,
+};
 
 void check_bcrypt(asio::io_context& context, asio::thread_pool& pool) {
     auto work = pool.get_executor();
