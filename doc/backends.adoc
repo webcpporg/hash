@@ -1576,6 +1576,12 @@ states about its constant time. The backends:
 | not stated
 | native, emscripten
 
+| hkdf_extract
+| webcrypto (asynchronous family only)
+| hmac_sha1_160, hmac_sha2_256, hmac_sha2_384, hmac_sha2_512
+| not stated
+| emscripten
+
 | hkdf_expand
 | hash2
 | hmac_md5_128, hmac_sha1_160, hmac_sha2_224, hmac_sha2_256, hmac_sha2_384, hmac_sha2_512, hmac_sha2_512_224, hmac_sha2_512_256, hmac_sha3_224, hmac_sha3_256, hmac_sha3_384, hmac_sha3_512, hmac_ripemd_128, hmac_ripemd_160, hmac_blake2b_512, hmac_blake2s_256, other
@@ -1599,6 +1605,12 @@ states about its constant time. The backends:
 | hmac_md5_128, hmac_sha1_160, hmac_sha2_224, hmac_sha2_256, hmac_sha2_384, hmac_sha2_512, hmac_sha2_512_256, hmac_sha3_224, hmac_sha3_256, hmac_sha3_384, hmac_sha3_512, hmac_ripemd_160, hmac_blake2b_512, hmac_blake2s_256
 | not stated
 | native, emscripten
+
+| hkdf_expand
+| webcrypto (asynchronous family only)
+| hmac_sha1_160, hmac_sha2_256, hmac_sha2_384, hmac_sha2_512
+| not stated
+| emscripten
 
 | hkdf
 | hash2
@@ -1631,7 +1643,115 @@ states about its constant time. The backends:
 | native, emscripten
 
 | hkdf
-| webcrypto (asynchronous family only) (partial: an info longer than 1,024 bytes, which completes with input_too_long: WebCrypto's limit as node has it, where the other backends take 32,768)
+| webcrypto (asynchronous family only) (partial: an application_info longer than 1,024 bytes, which completes with input_too_long: WebCrypto's limit as node has it, where the other backends take 32,768)
+| hmac_sha1_160, hmac_sha2_256, hmac_sha2_384, hmac_sha2_512
+| not stated
+| emscripten
+
+| hkdf_extract over pieces
+| hash2
+| hmac_md5_128, hmac_sha1_160, hmac_sha2_224, hmac_sha2_256, hmac_sha2_384, hmac_sha2_512, hmac_sha2_512_224, hmac_sha2_512_256, hmac_sha3_224, hmac_sha3_256, hmac_sha3_384, hmac_sha3_512, hmac_ripemd_128, hmac_ripemd_160, hmac_blake2b_512, hmac_blake2s_256, other
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| hkdf_extract over pieces
+| sodium
+| hmac_sha2_256, hmac_sha2_512
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| hkdf_extract over pieces
+| bearssl
+| hmac_md5_128, hmac_sha1_160, hmac_sha2_224, hmac_sha2_256, hmac_sha2_384, hmac_sha2_512
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| hkdf_extract over pieces
+| openssl
+| hmac_md5_128, hmac_sha1_160, hmac_sha2_224, hmac_sha2_256, hmac_sha2_384, hmac_sha2_512, hmac_sha2_512_224, hmac_sha2_512_256, hmac_sha3_224, hmac_sha3_256, hmac_sha3_384, hmac_sha3_512, hmac_ripemd_160, hmac_blake2b_512, hmac_blake2s_256
+| not stated
+| native, wasip2, wasip3
+
+| hkdf_extract over pieces
+| botan (with exceptions only)
+| hmac_md5_128, hmac_sha1_160, hmac_sha2_224, hmac_sha2_256, hmac_sha2_384, hmac_sha2_512, hmac_sha2_512_256, hmac_sha3_224, hmac_sha3_256, hmac_sha3_384, hmac_sha3_512, hmac_ripemd_160, hmac_blake2b_512, hmac_blake2s_256
+| not stated
+| native, emscripten
+
+| hkdf_extract over pieces
+| webcrypto (asynchronous family only)
+| hmac_sha1_160, hmac_sha2_256, hmac_sha2_384, hmac_sha2_512
+| not stated
+| emscripten
+
+| hkdf_expand over pieces
+| hash2
+| hmac_md5_128, hmac_sha1_160, hmac_sha2_224, hmac_sha2_256, hmac_sha2_384, hmac_sha2_512, hmac_sha2_512_224, hmac_sha2_512_256, hmac_sha3_224, hmac_sha3_256, hmac_sha3_384, hmac_sha3_512, hmac_ripemd_128, hmac_ripemd_160, hmac_blake2b_512, hmac_blake2s_256, other
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| hkdf_expand over pieces
+| sodium
+| hmac_sha2_256, hmac_sha2_512
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| hkdf_expand over pieces
+| bearssl
+| hmac_md5_128, hmac_sha1_160, hmac_sha2_224, hmac_sha2_256, hmac_sha2_384, hmac_sha2_512
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| hkdf_expand over pieces
+| openssl
+| hmac_md5_128, hmac_sha1_160, hmac_sha2_224, hmac_sha2_256, hmac_sha2_384, hmac_sha2_512, hmac_sha2_512_224, hmac_sha2_512_256, hmac_sha3_224, hmac_sha3_256, hmac_sha3_384, hmac_sha3_512, hmac_ripemd_160, hmac_blake2b_512, hmac_blake2s_256
+| not stated
+| native, wasip2, wasip3
+
+| hkdf_expand over pieces
+| botan (with exceptions only)
+| hmac_md5_128, hmac_sha1_160, hmac_sha2_224, hmac_sha2_256, hmac_sha2_384, hmac_sha2_512, hmac_sha2_512_256, hmac_sha3_224, hmac_sha3_256, hmac_sha3_384, hmac_sha3_512, hmac_ripemd_160, hmac_blake2b_512, hmac_blake2s_256
+| not stated
+| native, emscripten
+
+| hkdf_expand over pieces
+| webcrypto (asynchronous family only)
+| hmac_sha1_160, hmac_sha2_256, hmac_sha2_384, hmac_sha2_512
+| not stated
+| emscripten
+
+| hkdf over pieces
+| hash2
+| hmac_md5_128, hmac_sha1_160, hmac_sha2_224, hmac_sha2_256, hmac_sha2_384, hmac_sha2_512, hmac_sha2_512_224, hmac_sha2_512_256, hmac_sha3_224, hmac_sha3_256, hmac_sha3_384, hmac_sha3_512, hmac_ripemd_128, hmac_ripemd_160, hmac_blake2b_512, hmac_blake2s_256, other
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| hkdf over pieces
+| sodium
+| hmac_sha2_256, hmac_sha2_512
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| hkdf over pieces
+| bearssl
+| hmac_md5_128, hmac_sha1_160, hmac_sha2_224, hmac_sha2_256, hmac_sha2_384, hmac_sha2_512
+| not stated
+| native, wasip2, wasip3, emscripten
+
+| hkdf over pieces
+| openssl
+| hmac_md5_128, hmac_sha1_160, hmac_sha2_224, hmac_sha2_256, hmac_sha2_384, hmac_sha2_512, hmac_sha2_512_224, hmac_sha2_512_256, hmac_sha3_224, hmac_sha3_256, hmac_sha3_384, hmac_sha3_512, hmac_ripemd_160, hmac_blake2b_512, hmac_blake2s_256
+| not stated
+| native, wasip2, wasip3
+
+| hkdf over pieces
+| botan (with exceptions only)
+| hmac_md5_128, hmac_sha1_160, hmac_sha2_224, hmac_sha2_256, hmac_sha2_384, hmac_sha2_512, hmac_sha2_512_256, hmac_sha3_224, hmac_sha3_256, hmac_sha3_384, hmac_sha3_512, hmac_ripemd_160, hmac_blake2b_512, hmac_blake2s_256
+| not stated
+| native, emscripten
+
+| hkdf over pieces
+| webcrypto (asynchronous family only)
 | hmac_sha1_160, hmac_sha2_256, hmac_sha2_384, hmac_sha2_512
 | not stated
 | emscripten
@@ -1814,7 +1934,7 @@ states about its constant time. The backends:
 The functions that set DIT, on every synchronous backend of their cells:
 
 * MACs: `mac<macs::siphash_2_4>`, `mac<macs::siphash_2_4x>`, `mac<macs::kmac_128>`, `mac<macs::kmac_256>`, `mac<macs::blake2b_mac>`, `mac<macs::blake2s_mac>`, `mac<macs::hmac<digests::md5>>`, `mac<macs::hmac<digests::sha1>>`, `mac<macs::hmac<digests::sha2_224>>`, `mac<macs::hmac<digests::sha2_256>>`, `mac<macs::hmac<digests::sha2_384>>`, `mac<macs::hmac<digests::sha2_512>>`, `mac<macs::hmac<digests::sha2_512_224>>`, `mac<macs::hmac<digests::sha2_512_256>>`, `mac<macs::hmac<digests::sha3_224>>`, `mac<macs::hmac<digests::sha3_256>>`, `mac<macs::hmac<digests::sha3_384>>`, `mac<macs::hmac<digests::sha3_512>>`, `mac<macs::hmac<digests::ripemd_160>>`, `mac<macs::hmac<digests::blake2b>>`, `mac<macs::hmac<digests::blake2s_256>>`, `mac<macs::hmac<digests::keccak_224>>`, `mac<macs::hmac<digests::keccak_256>>`, `mac<macs::hmac<digests::keccak_384>>`, `mac<macs::hmac<digests::keccak_512>>`, `mac<macs::hmac<digests::sm3>>`, `mac<macs::hmac<digests::streebog_256>>`, `mac<macs::hmac<digests::streebog_512>>`, `mac<macs::hmac<digests::whirlpool>>` and `mac<macs::hmac<digests::skein_512>>`.
-* Key derivation: `hkdf_extract`, `hkdf_expand`, `hkdf`, `pbkdf2`, `blake2b_subkey`, `kbkdf`, `sskdf` and `x963kdf`.
+* Key derivation: `hkdf_extract`, `hkdf_expand`, `hkdf`, `hkdf_extract` over pieces, `hkdf_expand` over pieces, `hkdf` over pieces, `pbkdf2`, `blake2b_subkey`, `kbkdf`, `sskdf` and `x963kdf`.
 * Password hashing: `argon2id`, `argon2<kdfs::argon2d>`, `argon2<kdfs::argon2i>`, `argon2<kdfs::argon2id>`, `scrypt`, `bcrypt`, `bcrypt_verify` and `bcrypt_pbkdf`.
 * Keyed by their arguments: `digest_of<digests::blake2b>` and `hasher<digests::blake2b>` (`make`, `update`, `finish`) when the options carry a key; the `blake3` class in its keyed, key-derivation and seeded keyed modes (a non-empty byte seed, a non-zero integer seed: BLAKE3's keyed hash): `keyed`, `derive_key`, those constructors, and `update`, `result`, `squeeze` and `reset` of such an object. Called without a key, they hold a disengaged guard, which reads its flag and does nothing else.
 
@@ -2049,6 +2169,15 @@ The backend a call that names none uses, on every target, whatever the program l
 | hkdf
 | hash2
 
+| hkdf_extract over pieces
+| hash2
+
+| hkdf_expand over pieces
+| hash2
+
+| hkdf over pieces
+| hash2
+
 | pbkdf2
 | hash2
 
@@ -2086,11 +2215,12 @@ What each backend's upstream states, and where:
 ** BearSSL upstream 7bea48e (v0.6-39), unchanged in webcpp's pin 32381d6: bearssl_hash.h states constant time for its GHASH implementations alone, not for br_md5_*, br_sha1_*, br_sha224_* to br_sha512_* or br_md5sha1_*.
 ** BearSSL upstream 7bea48e (v0.6-39), unchanged in webcpp's pin 32381d6: bearssl_kdf.h states no constant-time property for br_shake_*.
 ** BearSSL upstream 7bea48e (v0.6-39), unchanged in webcpp's pin 32381d6: bearssl_hmac.h states constant time for br_hmac_outCT alone; mac calls br_hmac_out.
-** BearSSL upstream 7bea48e (v0.6-39), unchanged in webcpp's pin 32381d6: bearssl_hmac.h states constant time for br_hmac_outCT alone; br_hkdf_* (src/kdf/hkdf.c) calls br_hmac_out.
+** BearSSL upstream 7bea48e (v0.6-39), unchanged in webcpp's pin 32381d6: bearssl_hmac.h states constant time for br_hmac_outCT alone; br_hkdf_* (src/kdf/hkdf.c) and HKDF over pieces call br_hmac_out.
 * openssl: not stated.
 ** OpenSSL 3.5.9: doc/man7/EVP_MD-*.pod, doc/man3/EVP_DigestInit.pod and providers/implementations/digests/ state no constant-time property.
 ** OpenSSL 3.5.9: doc/man3/EVP_MAC.pod, doc/man7/EVP_MAC-HMAC.pod, EVP_MAC-KMAC.pod, EVP_MAC-BLAKE2.pod, EVP_MAC-Siphash.pod and providers/implementations/macs/ state no constant-time property.
 ** OpenSSL 3.5.9: doc/man7/EVP_KDF-HKDF.pod and EVP_KDF-PBKDF2.pod state no constant-time property.
+** OpenSSL 3.5.9: doc/man3/EVP_MAC.pod and doc/man7/EVP_MAC-HMAC.pod state no constant-time property; HKDF over pieces calls EVP_MAC "HMAC".
 ** OpenSSL 3.5.9: doc/man7/EVP_KDF-KB.pod states no constant-time property.
 ** OpenSSL 3.5.9: doc/man7/EVP_KDF-SS.pod states no constant-time property.
 ** OpenSSL 3.5.9: doc/man7/EVP_KDF-X963.pod states no constant-time property.
@@ -2101,6 +2231,7 @@ What each backend's upstream states, and where:
 ** Botan 3.14.1: doc/api_ref/hash.rst states no constant-time property of SHAKE or of its XOF interface, and its source (src/lib/xof/shake_xof/) none.
 ** Botan 3.14.1: doc/api_ref/message_auth_codes.rst states no constant-time property of this MAC, and its source (src/lib/mac/) none.
 ** Botan 3.14.1: doc/api_ref/kdf.rst states no constant-time property of its KDFs, and their source (src/lib/kdf/) none.
+** Botan 3.14.1: doc/api_ref/message_auth_codes.rst states no constant-time property of HMAC, and its source (src/lib/mac/hmac/) none; HKDF over pieces calls its HMAC.
 ** Botan 3.14.1: doc/api_ref/pbkdf.rst states no constant-time property of PBKDF2, and its source (src/lib/pbkdf/pbkdf2/) none.
 ** Botan 3.14.1: doc/api_ref/pbkdf.rst states that Argon2i's memory accesses are independent of the data and Argon2id's depend on it after the first half of the first pass, and states no constant-time property.
 * botan: no.

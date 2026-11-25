@@ -7,18 +7,19 @@
 // backends::openssl's limits: OpenSSL 3.5.9 holds PBKDF2's output and salt lengths
 // and HMAC's key length (PBKDF2's password, HKDF-Extract's salt, HKDF-Expand's PRK) in an int, so
 // the public functions refuse more than INT_MAX bytes of them before OpenSSL is called, after the
-// spec's own guards, the output untouched. Each long span is INT_MAX + 1 bytes over a buffer of a
-// few: the guard refuses it before anything reads or writes it, so OpenSSL's behaviour beyond its
-// limit is never exercised. Native only (the Jamfile), as the guard test of PBKDF2's output. mac's
-// HMAC on OpenSSL refuses a key of more than INT_MAX bytes alike, with unsupported_by_backend (the
-// engine's narrower limit, ruling R41), after the family's guards. scrypt on OpenSSL passes its
-// password, its salt and its output to PBKDF2, whose lengths are ints: the same INT_MAX bytes.
-// kbkdf's HMAC key alike (unsupported_by_backend); sskdf and x963kdf take at most 2^30 bytes of
-// secret, info and output on OpenSSL (unsupported_by_backend), after the standards' own bounds on
-// the output (2^32 - 1 blocks), on L (32 bits) and on what the digest hashes (2^61 - 1 bytes for
-// SHA-256), which only spans this long reach.
+// spec's own guards, the output untouched; HKDF over pieces refuses the salt alike. Each long span
+// is INT_MAX + 1 bytes over a buffer of a few: the guard refuses it before anything reads or writes
+// it, so OpenSSL's behaviour beyond its limit is never exercised. Native only (the Jamfile), as the
+// guard test of PBKDF2's output. mac's HMAC on OpenSSL refuses a key of more than INT_MAX bytes
+// alike, with unsupported_by_backend (the engine's narrower limit, ruling R41), after the family's
+// guards. scrypt on OpenSSL passes its password, its salt and its output to PBKDF2, whose lengths
+// are ints: the same INT_MAX bytes. kbkdf's HMAC key alike (unsupported_by_backend); sskdf and
+// x963kdf take at most 2^30 bytes of secret, info and output on OpenSSL (unsupported_by_backend),
+// after the standards' own bounds on the output (2^32 - 1 blocks), on L (32 bits) and on what the
+// digest hashes (2^61 - 1 bytes for SHA-256), which only spans this long reach.
 
 #include <webcpp/hash/backends/openssl.hpp>
+#include <webcpp/hash/byte_pieces.hpp>
 #include <webcpp/hash/error.hpp>
 #include <webcpp/hash/hkdf.hpp>
 #include <webcpp/hash/hmac.hpp>
@@ -51,14 +52,14 @@ constexpr std::size_t past = static_cast<std::size_t>(INT_MAX) + 1;
 using limits = hash::detail::backend_limits<openssl>;
 static_assert(limits::pbkdf2_output == INT_MAX && limits::pbkdf2_password == INT_MAX &&
               limits::pbkdf2_salt == INT_MAX && limits::hkdf_salt == INT_MAX &&
-              limits::hkdf_prk == INT_MAX);
+              limits::hkdf_pseudorandom_key == INT_MAX);
 static_assert(limits::scrypt_password == INT_MAX && limits::scrypt_salt == INT_MAX &&
               limits::scrypt_output == INT_MAX);
 // Argon2's lengths are OpenSSL's uint32_t, RFC 9106's own bound, which argon2id's guards keep.
 static_assert(limits::argon2id_password == 0xffffffffU && limits::argon2id_salt == 0xffffffffU &&
               limits::argon2id_output == 0xffffffffU);
-static_assert(limits::hkdf_ikm == hash::detail::no_limit &&
-              limits::hkdf_info == hash::detail::no_limit &&
+static_assert(limits::hkdf_input_key_material == hash::detail::no_limit &&
+              limits::hkdf_application_info == hash::detail::no_limit &&
               limits::hkdf_output == hash::detail::no_limit);
 // backends::hash2 has no limit of its own.
 static_assert(hash::detail::backend_limits<hash::backends::hash2>::pbkdf2_output ==
@@ -113,6 +114,22 @@ void hkdf_limits(std::span<std::uint8_t const> few) {
     refused = hash::hkdf_expand<hmac, openssl>(output, long_input, few);
     BOOST_TEST(refused.has_error() && refused.error() == hash::error::invalid_key_size);
     BOOST_TEST(is_untouched(output));
+
+    // Over pieces, the salt is HMAC's key alike: input_too_long, after the output's size; the
+    // pieces themselves have no limit.
+    const auto pieces_prk = hash::hkdf_extract<hmac, openssl>(long_input, {few, few});
+    BOOST_TEST(pieces_prk.has_error() && pieces_prk.error() == hash::error::input_too_long);
+    refused = hash::hkdf<hmac, openssl>(output, long_input, {few, few}, {few, few});
+    BOOST_TEST(refused.has_error() && refused.error() == hash::error::input_too_long);
+    refused = hash::hkdf<hmac, openssl>(std::span<std::uint8_t>(output.data(), 0), long_input,
+                                        {few, few}, {few, few});
+    BOOST_TEST(refused.has_error() && refused.error() == hash::error::invalid_output_size);
+    refused = hash::hkdf_expand<hmac, openssl>(output, long_input, {few, few});
+    BOOST_TEST(refused.has_error() && refused.error() == hash::error::invalid_key_size);
+    BOOST_TEST(is_untouched(output));
+    // Within the limit, OpenSSL derives over pieces.
+    BOOST_TEST((hash::hkdf<hmac, openssl>(output, few, {few, few}, {few, few}).has_value()));
+    BOOST_TEST(!is_untouched(output));
 }
 
 void mac_limits(std::span<std::uint8_t const> few) {
@@ -140,7 +157,7 @@ void scrypt_limits(std::span<std::uint8_t const> few) {
     std::array<std::uint8_t, 32> output{};
     output.fill(untouched);
     const std::span<std::uint8_t const> long_input(few.data(), past);
-    constexpr hash::scrypt_parameters cheap{.n = 16, .r = 1, .p = 1};
+    constexpr hash::scrypt_parameters cheap{.cost = 16, .block_size = 1, .parallelism = 1};
 
     auto refused =
         hash::scrypt<openssl>(std::span<std::uint8_t>(output.data(), past), few, few, cheap);
@@ -152,7 +169,8 @@ void scrypt_limits(std::span<std::uint8_t const> few) {
     BOOST_TEST(is_untouched(output));
 
     // The spec's own guards come first: N not a power of two.
-    refused = hash::scrypt<openssl>(output, long_input, few, {.n = 15, .r = 1, .p = 1});
+    refused = hash::scrypt<openssl>(output, long_input, few,
+                                    {.cost = 15, .block_size = 1, .parallelism = 1});
     BOOST_TEST(refused.has_error() && refused.error() == hash::error::invalid_parameters);
     BOOST_TEST(is_untouched(output));
 

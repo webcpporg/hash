@@ -442,7 +442,7 @@ void sodium_derivations_enter() {
                         .has_value());
     });
 
-    hash::argon2_parameters const family{.passes = 3, .memory_kib = 8};
+    hash::argon2_parameters const family{.passes = 3, .memory_kibibytes = 8};
     test::require_enters("hash::argon2 of argon2id on sodium", [&] {
         BOOST_TEST((hash::argon2<hash::kdfs::argon2id, backends::sodium>(derived, test_key, salt16,
                                                                          family))
@@ -459,15 +459,15 @@ void sodium_derivations_enter() {
                         .has_value());
     });
 
-    hash::scrypt_parameters const small{.n = 16, .r = 1, .p = 1};
+    hash::scrypt_parameters const small{.cost = 16, .block_size = 1, .parallelism = 1};
     test::require_enters("hash::scrypt of N = 16 on sodium", [&] {
         BOOST_TEST((hash::scrypt<backends::sodium>(derived, test_key, salt16, small)).has_value());
     });
     test::require_enters("hash::scrypt of N = 1 on sodium", [&] {
-        BOOST_TEST(
-            !(hash::scrypt<backends::sodium>(derived, test_key, salt16,
-                                             hash::scrypt_parameters{.n = 1, .r = 1, .p = 1}))
-                 .has_value());
+        BOOST_TEST(!(hash::scrypt<backends::sodium>(
+                         derived, test_key, salt16,
+                         hash::scrypt_parameters{.cost = 1, .block_size = 1, .parallelism = 1}))
+                        .has_value());
     });
 }
 

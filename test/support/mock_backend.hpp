@@ -256,7 +256,7 @@ template <>
 struct argon2_engine<::webcpp::test::mock, kdfs::argon2id> {
     static constexpr argon2_limits limits{
         .min_passes = 3,
-        .max_memory_kib = 1U << 20U,
+        .max_memory_kibibytes = 1U << 20U,
         .max_lanes = 1,
         .min_output = 16,
         .min_salt = 16,
@@ -276,7 +276,7 @@ struct argon2_engine<::webcpp::test::mock, kdfs::argon2id> {
         }
         ::webcpp::test::mock_fill(output, ::webcpp::test::mock_sum(password) +
                                               ::webcpp::test::mock_sum(salt) + parameters.passes +
-                                              parameters.memory_kib);
+                                              parameters.memory_kibibytes);
         return {};
     }
 };

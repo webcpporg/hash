@@ -33,7 +33,7 @@ int main() {
     context.fill(0x04);
     hash::argon2_parameters costs{
         .passes = 3,
-        .memory_kib = 32,
+        .memory_kibibytes = 32,
         .lanes = 4,
         .secret = pepper,
         .associated_data = context,
@@ -47,19 +47,19 @@ int main() {
     // scrypt: RFC 7914, N 1,024, r 8, p 16.
     std::array<std::uint8_t, 64> key{};
     if (!hash::scrypt<botan>(key, example::bytes("password"), example::bytes("NaCl"),
-                             {.n = 1024, .r = 8, .p = 16})) {
+                             {.cost = 1024, .block_size = 8, .parallelism = 16})) {
         return 1;
     }
     std::cout << "scrypt " << example::hex(key).substr(0, 32) << "...\n";
 
     // Botan's Argon2 takes at most 128 lanes, which RFC 9106 allows up to 2^24 - 1 of.
     costs.lanes = 129;
-    costs.memory_kib = 8 * 129;
+    costs.memory_kibibytes = 8 * 129;
     auto const lanes = hash::argon2<hash::kdfs::argon2id, botan>(tag, password, salt, costs);
     std::cout << "129 lanes: " << lanes.error().message() << '\n';
     // Botan's scrypt takes N up to 2^22.
     auto const large = hash::scrypt<botan>(key, example::bytes("password"), example::bytes("NaCl"),
-                                           {.n = 1U << 23U, .r = 2, .p = 1});
+                                           {.cost = 1U << 23U, .block_size = 2, .parallelism = 1});
     std::cout << "N 2^23: " << large.error().message() << '\n';
 }
 

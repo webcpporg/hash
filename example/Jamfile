@@ -57,6 +57,7 @@ webcpp.example macs_botan.cpp : $(.botan) : native emscripten ;
 
 # Key derivation.
 webcpp.example hkdf.cpp ;
+webcpp.example hkdf_pieces.cpp ;
 webcpp.example hkdf_backends.cpp : <library>/third_party//sodium
   <library>/third_party//bearssl ;
 webcpp.example pbkdf2.cpp ;

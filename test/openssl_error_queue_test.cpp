@@ -4,17 +4,17 @@
 // accompanying file LICENSE_1_0.txt or copy at
 // https://www.boost.org/LICENSE_1_0.txt)
 
-// OpenSSL's error queue (spec section 3.4): on an empty queue, hkdf_extract, hkdf_expand, hkdf,
-// pbkdf2, digest_of, a hasher's make, update and finish, mac (HMAC, KMAC, keyed BLAKE2s and
-// SipHash), argon2 (Argon2d with a secret and associated data), argon2id, scrypt, kbkdf, sskdf
-// and x963kdf on backends::openssl leave it empty,
-// OpenSSL's first fetch and initialisation among them; an entry of the caller's survives each, and
-// nothing of webcpp's is left beside it; a mark the caller set on its own entry survives them too,
-// and the caller's pop to it still finds it. openssl_failure_test.cpp checks the same around a
-// failure.
+// OpenSSL's error queue (spec section 3.4): on an empty queue, hkdf_extract, hkdf_expand, hkdf
+// (each also over pieces), pbkdf2, digest_of, a hasher's make, update and finish, mac (HMAC, KMAC,
+// keyed BLAKE2s and SipHash), argon2 (Argon2d with a secret and associated data), argon2id, scrypt,
+// kbkdf, sskdf and x963kdf on backends::openssl leave it empty, OpenSSL's first fetch and
+// initialisation among them; an entry of the caller's survives each, and nothing of webcpp's is
+// left beside it; a mark the caller set on its own entry survives them too, and the caller's pop to
+// it still finds it. openssl_failure_test.cpp checks the same around a failure.
 
 #include <webcpp/hash/argon2.hpp>
 #include <webcpp/hash/backends/openssl.hpp>
+#include <webcpp/hash/byte_pieces.hpp>
 #include <webcpp/hash/digest.hpp>
 #include <webcpp/hash/hkdf.hpp>
 #include <webcpp/hash/hmac.hpp>
@@ -50,9 +50,24 @@ std::size_t drain(unsigned long& first) {
     return count;
 }
 
+/** HKDF's three functions over pieces once, on OpenSSL, each a success. */
+void call_each_over_pieces(std::span<std::uint8_t const> salt, std::span<std::uint8_t const> ikm) {
+    using piece = std::span<std::uint8_t const>;
+    std::array<std::uint8_t, 42> output{};
+    std::array<piece, 3> const pieces{ikm.first(4), piece{}, ikm.subspan(4)};
+    auto const prk = hash::hkdf_extract<hmac, openssl>(salt, pieces);
+    BOOST_TEST(prk.has_value());
+    if (prk) {
+        BOOST_TEST((hash::hkdf_expand<hmac, openssl>(
+                        output, std::span<std::uint8_t const>(prk->data(), prk->size()), pieces)
+                        .has_value()));
+    }
+    BOOST_TEST((hash::hkdf<hmac, openssl>(output, salt, pieces, pieces).has_value()));
+}
+
 /**
- Each of the four key derivations, the digest family, the MAC family, Argon2, scrypt and the
- key derivations of standards once, on OpenSSL, each a success.
+ Each of the four key derivations (HKDF's three also over pieces), the digest family, the MAC
+ family, Argon2, scrypt and the key derivations of standards once, on OpenSSL, each a success.
 */
 void call_each() {
     std::array<std::uint8_t, 13> const salt{1, 2, 3};
@@ -67,6 +82,7 @@ void call_each() {
                         .has_value()));
     }
     BOOST_TEST((hash::hkdf<hmac, openssl>(output, salt, ikm, info).has_value()));
+    call_each_over_pieces(salt, ikm);
     BOOST_TEST((hash::pbkdf2<hmac, openssl>(output, ikm, salt, 2).has_value()));
 
     std::array<std::uint8_t, 32> digest{};
@@ -89,14 +105,18 @@ void call_each() {
     BOOST_TEST((hash::mac<macs::siphash_2_4, openssl>(short_tag, key, ikm)));
 
     std::array<std::uint8_t, 16> const password_salt{1, 2, 3};
-    BOOST_TEST(
-        (hash::argon2<hash::kdfs::argon2d, openssl>(
-             digest, ikm, password_salt,
-             {.passes = 1, .memory_kib = 16, .lanes = 2, .secret = key, .associated_data = info})
-             .has_value()));
+    BOOST_TEST((hash::argon2<hash::kdfs::argon2d, openssl>(digest, ikm, password_salt,
+                                                           {.passes = 1,
+                                                            .memory_kibibytes = 16,
+                                                            .lanes = 2,
+                                                            .secret = key,
+                                                            .associated_data = info})
+                    .has_value()));
     BOOST_TEST((hash::argon2id<openssl>(digest, ikm, password_salt, {.passes = 1, .memory = 8192})
                     .has_value()));
-    BOOST_TEST((hash::scrypt<openssl>(digest, ikm, salt, {.n = 16, .r = 1, .p = 1}).has_value()));
+    BOOST_TEST(
+        (hash::scrypt<openssl>(digest, ikm, salt, {.cost = 16, .block_size = 1, .parallelism = 1})
+             .has_value()));
 
     BOOST_TEST(
         (hash::kbkdf<hmac, openssl>(output, ikm, {.label = salt, .context = info}).has_value()));

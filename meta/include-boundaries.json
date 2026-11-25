@@ -19,6 +19,7 @@
         {
             "headers": [
                 "include/webcpp/hash/backends/hash2.hpp",
+                "include/webcpp/hash/byte_pieces.hpp",
                 "include/webcpp/hash/detail/engines.hpp",
                 "include/webcpp/hash/detail/limits.hpp",
                 "include/webcpp/hash/detail/timing.hpp",

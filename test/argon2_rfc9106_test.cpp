@@ -40,7 +40,7 @@ void test_section_5_3() {
                                                              .secret = secret,
                                                              .associated_data = associated_data,
                                                              .passes = 3,
-                                                             .memory_kib = 32,
+                                                             .memory_kibibytes = 32,
                                                              .lanes = 4,
                                                          });
     BOOST_TEST_EQ(code, ARGON2_OK);

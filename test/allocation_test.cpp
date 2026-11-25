@@ -10,24 +10,26 @@
 // XKCP (increment 3), BLAKE3, Boost.Hash2's digests and hmacs, HKDF and PBKDF2 on hash2, libsodium
 // (HKDF) and BearSSL (HKDF, and its digests and HMAC through the families: ruling R94); the
 // families digest_of, hasher, mac and argon2 on every backend that has a tag and on each tag's
-// default, blake2b_subkey and the asynchronous family, on every target. A
-// control that allocates once moves the counter, so a zero is not a broken counter. Every call is
-// counted and the totals asserted exactly per backend, so a backend a wrong trait or a dropped
-// define leaves out fails, and the refusals of every guard run under the counter too. Argon2id and
-// scrypt are the one exception, and it is libsodium's: their working memory (Argon2id's matrix, 128
-// r N bytes of scrypt) comes from libsodium's own mmap, else posix_memalign, else malloc, outside
-// webcpp's code; the test asserts only that operator new is not called, and prints the C allocator
-// calls it saw (mmap is not among the calls the counter sees, so those are libsodium's small
-// bookkeeping blocks, not the memory). The asynchronous family (async.hpp, increment 7) takes its
-// storage from the handler's associated allocator, as Asio's operations do: with an arena of the
-// test's bound to the handler, the cheap functions (async_digest, async_hmac, async_hkdf, and their
-// guards' refusals) call neither operator new nor the C allocator, and the arena gets back every
-// block before the handler runs; the heavy functions (natively, on a thread pool) take their state
-// and completion from the arena too and call no operator new, the pool's queue and libsodium's
-// memory being the C allocator's; on Emscripten the four functions on backends::webcrypto call the
-// C allocator only as often as webcpp::asio's promise bridge does for a bare await, once per
-// promise. Every printed result is one `record key=value ...` line, collected by
-// bench/allocation_collect.py.
+// default, blake2b_subkey and the asynchronous family, on every target. A control that allocates
+// once moves the counter, so a zero is not a broken counter. Every call is counted and the totals
+// asserted exactly per backend (HKDF over pieces on hash2, sodium and bearssl among them, with
+// inputs of 4 KiB and 1 MiB in four pieces), so a backend a wrong trait or a dropped define leaves
+// out fails, and the refusals of every guard run under the counter too. Argon2id and scrypt are the
+// one exception, and it is libsodium's: their working memory (Argon2id's matrix, 128 r N bytes of
+// scrypt) comes from libsodium's own mmap, else posix_memalign, else malloc, outside webcpp's code;
+// the test asserts only that operator new is not called, and prints the C allocator calls it saw
+// (mmap is not among the calls the counter sees, so those are libsodium's small bookkeeping blocks,
+// not the memory). The asynchronous family (async.hpp, increment 7) takes its storage from the
+// handler's associated allocator, as Asio's operations do: with an arena of the test's bound to the
+// handler, the cheap functions (async_digest, async_hmac, async_hkdf_extract, async_hkdf_expand,
+// async_hkdf, each HKDF function also over pieces, and their guards' refusals) call neither
+// operator new nor the C allocator, and the arena gets back every block before the handler runs;
+// the heavy functions (natively, on a thread pool) take their state and completion from the arena
+// too and call no operator new, the pool's queue and libsodium's memory being the C allocator's; on
+// Emscripten the functions on backends::webcrypto (HKDF over pieces on its HMAC among them) call
+// the C allocator only as often as webcpp::asio's promise bridge does for a bare await, once per
+// promise. Every printed result is
+// one `record key=value ...` line, collected by bench/allocation_collect.py.
 
 #include <webcpp/hash/algorithms.hpp>
 #include <webcpp/hash/argon2.hpp>
@@ -127,6 +129,12 @@ void allocates_nothing(char const* name, F&& call) {
     }
 }
 
+/** Whether `done` is the refusal `expected`: a guard's, not a refusal for another reason. */
+template <class Result>
+bool refused_with(Result const& done, hash::error expected) {
+    return done.has_error() && done.error() == expected;
+}
+
 /** A digest of Boost.Hash2's, from construction to result, in three update shapes. */
 template <class H>
 void digest_allocates_nothing(char const* name) {
@@ -166,13 +174,14 @@ void hkdf_steps_allocate_nothing(char const* name, std::span<std::uint8_t> okm,
         BOOST_TEST(expanded.has_value());
     });
     allocates_nothing(name, [&] {
-        auto const refused = hash::hkdf_expand<Hmac, Backend>(okm, message_input.first(3), {});
-        BOOST_TEST(!refused.has_value());
+        auto const refused = hash::hkdf_expand<Hmac, Backend>(okm, message_input.first(3),
+                                                              std::span<std::uint8_t const>{});
+        BOOST_TEST(refused_with(refused, hash::error::invalid_key_size));
     });
     allocates_nothing(name, [&] {
         auto const refused =
             hash::hkdf_expand<Hmac, Backend>(okm, message_input.first(3), long_info);
-        BOOST_TEST(!refused.has_value());
+        BOOST_TEST(refused_with(refused, hash::error::invalid_key_size));
     });
 }
 
@@ -183,24 +192,25 @@ void hkdf_allocates_nothing(char const* name) {
     std::array<std::uint8_t, 42> okm{};
     std::span<std::uint8_t> const no_output;
     // One byte over the limit, in a real buffer: the guard refuses on the size alone.
-    static std::array<std::uint8_t, hash::hkdf_max_info_size + 1> const long_buffer{};
+    static std::array<std::uint8_t, hash::hkdf_max_application_info_size + 1> const long_buffer{};
     std::span<std::uint8_t const> const long_info(long_buffer);
     allocates_nothing(name, [&] {
         auto const full = hash::hkdf<Hmac, Backend>(okm, message_input.first(20), message_input,
                                                     message_input.last(10));
-        auto const empty = hash::hkdf<Hmac, Backend>(okm, {}, {}, {});
+        std::span<std::uint8_t const> const none;
+        auto const empty = hash::hkdf<Hmac, Backend>(okm, none, none, none);
         BOOST_TEST(full.has_value());
         BOOST_TEST(empty.has_value());
     });
     allocates_nothing(name, [&] {
         auto const refused =
             hash::hkdf<Hmac, Backend>(no_output, message_input, message_input, message_input);
-        BOOST_TEST(!refused.has_value());
+        BOOST_TEST(refused_with(refused, hash::error::invalid_output_size));
     });
     allocates_nothing(name, [&] {
         auto const refused =
             hash::hkdf<Hmac, Backend>(okm, message_input, message_input, long_info);
-        BOOST_TEST(!refused.has_value());
+        BOOST_TEST(refused_with(refused, hash::error::input_too_long));
     });
     if constexpr (split) {
         hkdf_steps_allocate_nothing<Hmac, Backend>(name, okm, long_info);
@@ -219,7 +229,7 @@ void pbkdf2_allocates_nothing(char const* name) {
     allocates_nothing(name, [] {
         std::array<std::uint8_t, 70> key{};
         auto const refused = hash::pbkdf2<Hmac, Backend>(key, message_input, message_input, 0);
-        BOOST_TEST(!refused.has_value());
+        BOOST_TEST(refused_with(refused, hash::error::invalid_iterations));
     });
 }
 
@@ -235,6 +245,73 @@ void kdfs_allocate_nothing(char const* name) {
     if constexpr (hash::backend_has_v<Backend, hash::kdfs::pbkdf2, Hmac>) {
         pbkdf2_allocates_nothing<Hmac, Backend>(name);
     }
+}
+
+// HKDF over pieces (design D3, D8): the three forms with inputs of 4 KiB and 1 MiB in four pieces
+// (6), then each refusal of RFC 5869's sizes (5): Expand's and hkdf's outputs of no byte and of
+// 255 digests and one byte, Expand's pseudorandom key of a byte less than the digest. 11 calls.
+// The 1 MiB hkdf_expand is the spec's scenario "A Welcome-sized info", on each backend it runs on.
+template <class Hmac, class Backend>
+void hkdf_pieces_allocate_nothing(char const* name, std::size_t expected_calls) {
+    std::size_t const before = calls_made;
+    constexpr std::size_t digest_size = typename Hmac::result_type().size();
+    // In static storage, filled before the counter starts: no allocation of the test's own.
+    static std::array<std::uint8_t, std::size_t{1} << 20U> long_buffer{};
+    for (std::size_t i = 0; i != long_buffer.size(); ++i) {
+        long_buffer[i] = static_cast<std::uint8_t>(i * 13);
+    }
+    static std::array<std::uint8_t, (255 * digest_size) + 1> too_long_output{};
+    std::array<std::uint8_t, 42> okm{};
+    std::array<std::uint8_t, digest_size> const prk{};
+    for (std::size_t const size : {std::size_t{4096}, long_buffer.size()}) {
+        std::span<std::uint8_t const> const input = std::span(long_buffer).first(size);
+        std::size_t const quarter = size / 4;
+        std::array<std::span<std::uint8_t const>, 4> const pieces{
+            input.first(quarter),
+            input.subspan(quarter, quarter),
+            input.subspan(2 * quarter, quarter),
+            input.subspan(3 * quarter),
+        };
+        allocates_nothing(name, [&] {
+            BOOST_TEST((hash::hkdf_extract<Hmac, Backend>(message_input, pieces).has_value()));
+        });
+        allocates_nothing(name, [&] {
+            BOOST_TEST((hash::hkdf_expand<Hmac, Backend>(okm, prk, pieces).has_value()));
+        });
+        allocates_nothing(name, [&] {
+            BOOST_TEST((hash::hkdf<Hmac, Backend>(okm, message_input, pieces, pieces).has_value()));
+        });
+    }
+    std::array<std::span<std::uint8_t const>, 2> const pieces{
+        message_input.first(3),
+        message_input.last(7),
+    };
+    std::span<std::uint8_t> const no_output;
+    allocates_nothing(name, [&] {
+        BOOST_TEST(refused_with(hash::hkdf_expand<Hmac, Backend>(no_output, prk, pieces),
+                                hash::error::invalid_output_size));
+    });
+    allocates_nothing(name, [&] {
+        BOOST_TEST(refused_with(hash::hkdf_expand<Hmac, Backend>(too_long_output, prk, pieces),
+                                hash::error::invalid_output_size));
+    });
+    allocates_nothing(name, [&] {
+        BOOST_TEST(refused_with(
+            hash::hkdf_expand<Hmac, Backend>(okm, std::span(prk).first(digest_size - 1), pieces),
+            hash::error::invalid_key_size));
+    });
+    allocates_nothing(name, [&] {
+        BOOST_TEST(refused_with(hash::hkdf<Hmac, Backend>(no_output, message_input, pieces, pieces),
+                                hash::error::invalid_output_size));
+    });
+    allocates_nothing(name, [&] {
+        BOOST_TEST(
+            refused_with(hash::hkdf<Hmac, Backend>(too_long_output, message_input, pieces, pieces),
+                         hash::error::invalid_output_size));
+    });
+    BOOST_TEST_EQ(calls_made - before, expected_calls);
+    std::printf("record operation=hkdf-pieces-calls backend=%s target=%s calls=%zu expected=%zu\n",
+                name, webcpp::test::target_name, calls_made - before, expected_calls);
 }
 
 template <class Backend, bool split = true>
@@ -437,8 +514,8 @@ void sodium_memory_hard() {
                 webcpp::test::target_name, argon.news(), argon.cs(),
                 webcpp::test::c_allocations_counted ? 1 : 0);
     window const scr;
-    auto const scrypt_done = hash::scrypt<backends::sodium>(out, message_input.first(20), salt,
-                                                            {.n = 1024, .r = 8, .p = 1});
+    auto const scrypt_done = hash::scrypt<backends::sodium>(
+        out, message_input.first(20), salt, {.cost = 1024, .block_size = 8, .parallelism = 1});
     BOOST_TEST(scrypt_done.has_value());
     BOOST_TEST_EQ(scr.news(), 0U);
     std::printf("record operation=scrypt backend=sodium target=%s new=%zu c=%zu counted=%d\n",
@@ -562,12 +639,14 @@ void family_digest_refuses() {
     auto const options = family_options<Tag>();
     std::array<std::uint8_t, 64> output_bytes{};
     std::span<std::uint8_t> const output(output_bytes.data(), family_output_size<Tag>(options));
-    BOOST_TEST(!(hash::digest_of<Tag, Backend>(std::span<std::uint8_t>{}, message_input, options)));
+    BOOST_TEST(refused_with(
+        hash::digest_of<Tag, Backend>(std::span<std::uint8_t>{}, message_input, options),
+        hash::error::invalid_output_size));
     auto hashing = hash::hasher<Tag, Backend>::make(options);
     BOOST_TEST(hashing.has_value());
     if (hashing) {
         BOOST_TEST(hashing->finish(output).has_value());
-        BOOST_TEST(!hashing->finish(output).has_value());
+        BOOST_TEST(refused_with(hashing->finish(output), hash::error::invalid_state));
     }
 }
 
@@ -678,7 +757,8 @@ void blake2b_subkey_allocates_nothing() {
         BOOST_TEST(hash::blake2b_subkey(subkey, message_input.first(32), 2, context).has_value());
     });
     allocates_nothing("blake2b_subkey", [&] {
-        BOOST_TEST(!hash::blake2b_subkey(subkey, message_input.first(31), 1, context));
+        BOOST_TEST(refused_with(hash::blake2b_subkey(subkey, message_input.first(31), 1, context),
+                                hash::error::invalid_key_size));
     });
     BOOST_TEST_EQ(calls_made - before, 3U);
 }
@@ -690,7 +770,7 @@ template <class Variant>
 void argon2_family_on_sodium(char const* name, std::uint32_t passes) {
     std::array<std::uint8_t, 32> out{};
     std::array<std::uint8_t, 16> const salt{};
-    hash::argon2_parameters const cheapest{.passes = passes, .memory_kib = 8};
+    hash::argon2_parameters const cheapest{.passes = passes, .memory_kibibytes = 8};
     // Each call in its own window; the two counts are libsodium's, printed one after the other.
     for (bool const by_default : {false, true}) {
         window const w;
@@ -706,8 +786,10 @@ void argon2_family_on_sodium(char const* name, std::uint32_t passes) {
             name, by_default ? "default" : "named", webcpp::test::target_name, w.news(), w.cs());
     }
     allocates_nothing(name, [&] {
-        BOOST_TEST(!(hash::argon2<Variant>(out, message_input.first(20), salt,
-                                           {.passes = passes, .memory_kib = 32, .lanes = 4})));
+        BOOST_TEST(refused_with(
+            hash::argon2<Variant>(out, message_input.first(20), salt,
+                                  {.passes = passes, .memory_kibibytes = 32, .lanes = 4}),
+            hash::error::unsupported_by_backend));
     });
 }
 #endif
@@ -795,7 +877,8 @@ void async_allocates_nothing(char const* name, webcpp::asio::io_context& context
 }
 
 // The cheap functions on their default backend, a result and a refusal each (an output of 0
-// bytes): 6 calls. One call before the windows lets the io_context make what it makes once.
+// bytes), each HKDF function also over pieces: 16 calls. One call before the windows lets the
+// io_context make what it makes once.
 void async_cheap() {
     namespace asio = webcpp::asio;
     std::size_t const before = calls_made;
@@ -832,18 +915,70 @@ void async_cheap() {
         hash::async_hkdf<hash::hmac_sha2_256>(executor, none, {}, message_input, {},
                                               std::move(handler));
     });
-    BOOST_TEST_EQ(calls_made - before, 6U);
+    std::array<std::span<std::uint8_t const>, 3> const pieces{
+        message_input.first(5),
+        std::span<std::uint8_t const>{},
+        message_input.subspan(5),
+    };
+    std::span<std::uint8_t const> const prk = message_input.first(32);
+    async_allocates_nothing("async_hkdf over pieces", context, fine, [&](auto handler) {
+        hash::async_hkdf<hash::hmac_sha2_256>(executor, out, {}, pieces, pieces,
+                                              std::move(handler));
+    });
+    async_allocates_nothing("async_hkdf over pieces refused", context, refused, [&](auto handler) {
+        hash::async_hkdf<hash::hmac_sha2_256>(executor, none, {}, pieces, pieces,
+                                              std::move(handler));
+    });
+    async_allocates_nothing("async_hkdf_extract", context, fine, [&](auto handler) {
+        hash::async_hkdf_extract<hash::hmac_sha2_256>(executor, out, {}, message_input,
+                                                      std::move(handler));
+    });
+    async_allocates_nothing("async_hkdf_extract refused", context, refused, [&](auto handler) {
+        hash::async_hkdf_extract<hash::hmac_sha2_256>(executor, none, {}, message_input,
+                                                      std::move(handler));
+    });
+    async_allocates_nothing("async_hkdf_extract over pieces", context, fine, [&](auto handler) {
+        hash::async_hkdf_extract<hash::hmac_sha2_256>(executor, out, {}, pieces,
+                                                      std::move(handler));
+    });
+    async_allocates_nothing("async_hkdf_extract over pieces refused", context, refused,
+                            [&](auto handler) {
+                                hash::async_hkdf_extract<hash::hmac_sha2_256>(
+                                    executor, none, {}, pieces, std::move(handler));
+                            });
+    async_allocates_nothing("async_hkdf_expand", context, fine, [&](auto handler) {
+        hash::async_hkdf_expand<hash::hmac_sha2_256>(executor, out, prk, message_input,
+                                                     std::move(handler));
+    });
+    async_allocates_nothing("async_hkdf_expand refused", context, refused, [&](auto handler) {
+        hash::async_hkdf_expand<hash::hmac_sha2_256>(executor, none, prk, message_input,
+                                                     std::move(handler));
+    });
+    async_allocates_nothing("async_hkdf_expand over pieces", context, fine, [&](auto handler) {
+        hash::async_hkdf_expand<hash::hmac_sha2_256>(executor, out, prk, pieces,
+                                                     std::move(handler));
+    });
+    async_allocates_nothing("async_hkdf_expand over pieces refused", context, refused,
+                            [&](auto handler) {
+                                hash::async_hkdf_expand<hash::hmac_sha2_256>(
+                                    executor, none, prk, pieces, std::move(handler));
+                            });
+    BOOST_TEST_EQ(calls_made - before, 16U);
 }
 
 #ifdef WEBCPP_TARGET_EMSCRIPTEN
-// The four functions on backends::webcrypto (Emscripten): the bridge's waits, the operation and
-// its posts are the handler's arena's, every block given back before the handler runs, and
-// operator new is not called; a refusal (an output of 0 bytes) each too: 8 calls. webcpp::asio's
-// promise bridge calls the C allocator itself, for each promise awaited, whoever awaits it: a
-// bare async_await, measured first, gives its count, and each call is held to that count per
-// promise (one for a digest, two for importKey and then sign or deriveBits), so that webcpp::hash's
-// code adds none. One call before the windows lets the bridge and the io_context make what they
-// make once.
+// The functions on backends::webcrypto (Emscripten): async_digest, async_hmac, async_hkdf,
+// async_pbkdf2, and HKDF over pieces and its steps on WebCrypto's HMAC (async_hkdf,
+// async_hkdf_extract and async_hkdf_expand over pieces, the single-buffer async_hkdf_extract and
+// async_hkdf_expand): the bridge's waits, the operation and its posts are the handler's arena's,
+// every block given back before the handler runs, and operator new is not called; a refusal (an
+// output of 0 bytes) each too: 18 calls. webcpp::asio's promise bridge calls the C allocator
+// itself, for each promise awaited, whoever awaits it: a bare async_await, measured first, gives
+// its count, and each call is held to that count per promise (one for a digest, two for importKey
+// and then sign or deriveBits; over HMAC, two for Extract, 1 + ceil(L / HashLen) for Expand and
+// 3 + ceil(L / HashLen) for both), so that webcpp::hash's code adds none: the pieces are gathered
+// into JavaScript memory, not webcpp's. One call of each before the windows lets the bridge and the
+// io_context make what they make once.
 void async_webcrypto() {
     namespace asio = webcpp::asio;
     using hash::backends::webcrypto;
@@ -857,6 +992,21 @@ void async_webcrypto() {
     hash::async_pbkdf2<hash::hmac_sha2_256, webcrypto>(executor, out, message_input.first(20),
                                                        message_input.first(16), 2,
                                                        [](boost::system::error_code) {});
+    // HKDF on HMAC: a 100-byte output is four blocks of SHA-256.
+    std::array<std::uint8_t, 100> long_out{};
+    auto const prk = message_input.first(32);
+    auto const salt = message_input.first(16);
+    std::array<std::span<std::uint8_t const>, 3> const pieces{
+        message_input.first(10),
+        message_input.subspan(10, 0),
+        message_input.subspan(10),
+    };
+    hash::async_hkdf<hash::hmac_sha2_256, webcrypto>(executor, long_out, salt, pieces, pieces,
+                                                     [](boost::system::error_code) {});
+    hash::async_hkdf_extract<hash::hmac_sha2_256, webcrypto>(executor, out, salt, message_input,
+                                                             [](boost::system::error_code) {});
+    hash::async_hkdf_expand<hash::hmac_sha2_256, webcrypto>(executor, long_out, prk, message_input,
+                                                            [](boost::system::error_code) {});
     context.run();  // lint-run: the context's first run, outside the windows
     window const bare;
     asio::browser::async_await(
@@ -917,7 +1067,68 @@ void async_webcrypto() {
                                                            message_input.first(16), 2,
                                                            std::move(handler));
     });
-    BOOST_TEST_EQ(calls_made - before, 8U);
+    std::size_t const blocks = (long_out.size() + 31) / 32;
+    async_allocates_nothing(
+        "async_hkdf over pieces webcrypto", context, fine,
+        [&](auto handler) {
+            hash::async_hkdf<hash::hmac_sha2_256, webcrypto>(executor, long_out, salt, pieces,
+                                                             pieces, std::move(handler));
+        },
+        (3 + blocks) * per_promise);
+    async_allocates_nothing("async_hkdf over pieces webcrypto refused", context, refused,
+                            [&](auto handler) {
+                                hash::async_hkdf<hash::hmac_sha2_256, webcrypto>(
+                                    executor, none, salt, pieces, pieces, std::move(handler));
+                            });
+    async_allocates_nothing(
+        "async_hkdf_extract over pieces webcrypto", context, fine,
+        [&](auto handler) {
+            hash::async_hkdf_extract<hash::hmac_sha2_256, webcrypto>(executor, out, salt, pieces,
+                                                                     std::move(handler));
+        },
+        2 * per_promise);
+    async_allocates_nothing("async_hkdf_extract over pieces webcrypto refused", context, refused,
+                            [&](auto handler) {
+                                hash::async_hkdf_extract<hash::hmac_sha2_256, webcrypto>(
+                                    executor, none, salt, pieces, std::move(handler));
+                            });
+    async_allocates_nothing(
+        "async_hkdf_extract webcrypto", context, fine,
+        [&](auto handler) {
+            hash::async_hkdf_extract<hash::hmac_sha2_256, webcrypto>(
+                executor, out, salt, message_input, std::move(handler));
+        },
+        2 * per_promise);
+    async_allocates_nothing("async_hkdf_extract webcrypto refused", context, refused,
+                            [&](auto handler) {
+                                hash::async_hkdf_extract<hash::hmac_sha2_256, webcrypto>(
+                                    executor, none, salt, message_input, std::move(handler));
+                            });
+    async_allocates_nothing(
+        "async_hkdf_expand over pieces webcrypto", context, fine,
+        [&](auto handler) {
+            hash::async_hkdf_expand<hash::hmac_sha2_256, webcrypto>(executor, long_out, prk, pieces,
+                                                                    std::move(handler));
+        },
+        (1 + blocks) * per_promise);
+    async_allocates_nothing("async_hkdf_expand over pieces webcrypto refused", context, refused,
+                            [&](auto handler) {
+                                hash::async_hkdf_expand<hash::hmac_sha2_256, webcrypto>(
+                                    executor, none, prk, pieces, std::move(handler));
+                            });
+    async_allocates_nothing(
+        "async_hkdf_expand webcrypto", context, fine,
+        [&](auto handler) {
+            hash::async_hkdf_expand<hash::hmac_sha2_256, webcrypto>(
+                executor, long_out, prk, message_input, std::move(handler));
+        },
+        (1 + blocks) * per_promise);
+    async_allocates_nothing("async_hkdf_expand webcrypto refused", context, refused,
+                            [&](auto handler) {
+                                hash::async_hkdf_expand<hash::hmac_sha2_256, webcrypto>(
+                                    executor, none, prk, message_input, std::move(handler));
+                            });
+    BOOST_TEST_EQ(calls_made - before, 18U);
 }
 #endif
 
@@ -984,15 +1195,15 @@ void async_heavy() {
     });
     heavy_allocates_nothing("async_argon2_argon2id", context, [&](auto handler) {
         hash::async_argon2<hash::kdfs::argon2id>(
-            work, out, password, salt, {.passes = 1, .memory_kib = 8}, std::move(handler));
+            work, out, password, salt, {.passes = 1, .memory_kibibytes = 8}, std::move(handler));
     });
     heavy_allocates_nothing("async_argon2_argon2i", context, [&](auto handler) {
-        hash::async_argon2<hash::kdfs::argon2i>(work, out, password, salt,
-                                                {.passes = 3, .memory_kib = 8}, std::move(handler));
+        hash::async_argon2<hash::kdfs::argon2i>(
+            work, out, password, salt, {.passes = 3, .memory_kibibytes = 8}, std::move(handler));
     });
     heavy_allocates_nothing("async_scrypt", context, [&](auto handler) {
-        hash::async_scrypt(work, out, password, salt, {.n = 1024, .r = 8, .p = 1},
-                           std::move(handler));
+        hash::async_scrypt(work, out, password, salt,
+                           {.cost = 1024, .block_size = 8, .parallelism = 1}, std::move(handler));
     });
     pool.join();
     BOOST_TEST_EQ(calls_made - before, 5U);
@@ -1005,6 +1216,7 @@ int main() {
     control();
     digests();
     all_hmacs<hash::backends::hash2>("hash2", 128);
+    hkdf_pieces_allocate_nothing<hash::hmac_sha2_256, hash::backends::hash2>("hash2", 11);
     async_cheap();
 #ifdef WEBCPP_HASH_HAS_THREADS
     async_heavy();
@@ -1021,6 +1233,7 @@ int main() {
 #ifdef WEBCPP_HASH_HAS_SODIUM
     sodium_first_call();
     all_hmacs<hash::backends::sodium>("sodium", 12);
+    hkdf_pieces_allocate_nothing<hash::hmac_sha2_256, hash::backends::sodium>("sodium", 11);
     sodium_memory_hard();
     blake2b_subkey_allocates_nothing();
     argon2_family_on_sodium<hash::kdfs::argon2i>("argon2i", 3);
@@ -1045,6 +1258,7 @@ int main() {
 #endif
 #ifdef WEBCPP_HASH_HAS_BEARSSL
     all_hmacs<hash::backends::bearssl, false>("bearssl", 18);
+    hkdf_pieces_allocate_nothing<hash::hmac_sha2_256, hash::backends::bearssl>("bearssl", 11);
     // BearSSL's entry points of increment 5 (ruling R94): two calls per tag it has, 9 digests
     // (MD5, SHA-1, SHA-2, MD5-SHA1, SHAKE) and 6 MACs (HMAC over MD5, SHA-1 and SHA-2).
     families_on<hash::backends::bearssl>("bearssl", 30);

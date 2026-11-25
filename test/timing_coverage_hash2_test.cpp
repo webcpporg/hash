@@ -15,8 +15,8 @@
 // to the table; a cell of a family or function the support does not know fails here until its
 // call is written:
 // - mac over siphash_2_4, blake2s_mac and hmac<D> for each digest of the backend's cells.
-// - hkdf_extract, hkdf_expand, hkdf and pbkdf2 over each hmac of hmac.hpp and over another Hash2
-//   hmac (the column "other").
+// - hkdf_extract, hkdf_expand and hkdf, each also over pieces, and pbkdf2 over each hmac of
+//   hmac.hpp and over another Hash2 hmac (the column "other").
 // - BLAKE2b with a key: digest_of and a hasher round (design D1).
 // - Not guarded: each digest cell without a key, through digest_of and a hasher round; the Hash2
 //   types (md5_128 to spooky2_128, siphash_32 and siphash_64, hmac and its aliases).

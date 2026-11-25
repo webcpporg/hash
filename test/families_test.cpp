@@ -175,7 +175,7 @@ void check_argon2_guards() {
     test::mock_reset();
     std::vector<std::uint8_t> const password{1, 2, 3};
     std::array<std::uint8_t, 16> const salt{};
-    hash::argon2_parameters const fine{.passes = 3, .memory_kib = 64};
+    hash::argon2_parameters const fine{.passes = 3, .memory_kibibytes = 64};
     std::array<std::uint8_t, 32> output{};
     BOOST_TEST((hash::argon2<kdfs::argon2id, mock>(output, password, salt, fine).has_value()));
 
@@ -190,15 +190,16 @@ void check_argon2_guards() {
     BOOST_TEST(refuses(tiny, salt, fine, hash::error::invalid_output_size));
     std::array<std::uint8_t, 7> short_salt{};
     BOOST_TEST(refuses(output, short_salt, fine, hash::error::invalid_salt_size));
-    BOOST_TEST(
-        refuses(output, salt, {.passes = 0, .memory_kib = 64}, hash::error::invalid_parameters));
-    BOOST_TEST(refuses(output, salt, {.passes = 3, .memory_kib = 64, .lanes = 0},
+    BOOST_TEST(refuses(output, salt, {.passes = 0, .memory_kibibytes = 64},
                        hash::error::invalid_parameters));
-    BOOST_TEST(refuses(output, salt, {.passes = 3, .memory_kib = 1U << 30U, .lanes = 1U << 24U},
+    BOOST_TEST(refuses(output, salt, {.passes = 3, .memory_kibibytes = 64, .lanes = 0},
                        hash::error::invalid_parameters));
-    BOOST_TEST(
-        refuses(output, salt, {.passes = 3, .memory_kib = 7}, hash::error::invalid_parameters));
-    BOOST_TEST(refuses(output, salt, {.passes = 3, .memory_kib = 15, .lanes = 2},
+    BOOST_TEST(refuses(output, salt,
+                       {.passes = 3, .memory_kibibytes = 1U << 30U, .lanes = 1U << 24U},
+                       hash::error::invalid_parameters));
+    BOOST_TEST(refuses(output, salt, {.passes = 3, .memory_kibibytes = 7},
+                       hash::error::invalid_parameters));
+    BOOST_TEST(refuses(output, salt, {.passes = 3, .memory_kibibytes = 15, .lanes = 2},
                        hash::error::invalid_parameters));
 
     // Valid for RFC 9106, outside the engine's limits.
@@ -206,22 +207,28 @@ void check_argon2_guards() {
     BOOST_TEST(refuses(rfc_shortest, salt, fine, hash::error::unsupported_by_backend));
     std::array<std::uint8_t, 8> rfc_salt{};
     BOOST_TEST(refuses(output, rfc_salt, fine, hash::error::unsupported_by_backend));
-    BOOST_TEST(refuses(output, salt, {.passes = 2, .memory_kib = 64},
+    BOOST_TEST(refuses(output, salt, {.passes = 2, .memory_kibibytes = 64},
                        hash::error::unsupported_by_backend));
-    BOOST_TEST(refuses(output, salt, {.passes = 3, .memory_kib = 64, .lanes = 2},
+    BOOST_TEST(refuses(output, salt, {.passes = 3, .memory_kibibytes = 64, .lanes = 2},
                        hash::error::unsupported_by_backend));
-    BOOST_TEST(refuses(output, salt, {.passes = 3, .memory_kib = (1U << 20U) + 1U},
+    BOOST_TEST(refuses(output, salt, {.passes = 3, .memory_kibibytes = (1U << 20U) + 1U},
                        hash::error::unsupported_by_backend));
     std::array<std::uint8_t, 4> const extra{1, 2, 3, 4};
-    BOOST_TEST(refuses(output, salt, {.passes = 3, .memory_kib = 64, .secret = extra},
+    BOOST_TEST(refuses(output, salt, {.passes = 3, .memory_kibibytes = 64, .secret = extra},
                        hash::error::unsupported_by_backend));
-    BOOST_TEST(refuses(output, salt, {.passes = 3, .memory_kib = 64, .associated_data = extra},
+    BOOST_TEST(refuses(output, salt,
+                       {.passes = 3, .memory_kibibytes = 64, .associated_data = extra},
                        hash::error::unsupported_by_backend));
 
     // An engine with every parameter takes them; a failure zeroes the output.
-    auto const every = hash::argon2<kdfs::argon2d, mock>(
-        rfc_shortest, password, rfc_salt,
-        {.passes = 1, .memory_kib = 16, .lanes = 2, .secret = extra, .associated_data = extra});
+    auto const every = hash::argon2<kdfs::argon2d, mock>(rfc_shortest, password, rfc_salt,
+                                                         {
+                                                             .passes = 1,
+                                                             .memory_kibibytes = 16,
+                                                             .lanes = 2,
+                                                             .secret = extra,
+                                                             .associated_data = extra,
+                                                         });
     BOOST_TEST(every.has_value());
     test::mock_control.derive = hash::error::backend_failure;
     BOOST_TEST(failed_with(hash::argon2<kdfs::argon2id, mock>(output, password, salt, fine),

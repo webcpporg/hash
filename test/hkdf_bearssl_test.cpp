@@ -124,8 +124,8 @@ void guards() {
     constexpr std::uint8_t untouched = 0xaa;
     constexpr std::size_t most = std::size_t{255} * 32;
     const std::vector<std::uint8_t> input(16, 0x0b);
-    const std::vector<std::uint8_t> info_at_limit(hash::hkdf_max_info_size, 0x01);
-    const std::vector<std::uint8_t> info_past_limit(hash::hkdf_max_info_size + 1, 0x01);
+    const std::vector<std::uint8_t> info_at_limit(hash::hkdf_max_application_info_size, 0x01);
+    const std::vector<std::uint8_t> info_past_limit(hash::hkdf_max_application_info_size + 1, 0x01);
 
     std::vector<std::uint8_t> buffer(most + 2, untouched);
     const auto refused = [&](std::size_t size, std::span<std::uint8_t const> info) {

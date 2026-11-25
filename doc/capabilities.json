@@ -1,13 +1,13 @@
 {
     "about": "webcpp::hash's capability table (spec section 3.5): which library implements each public name, over which hmacs, on which targets, what upstream states about constant time, and the backend a call that names none uses. backend_has_v is the same table for the key derivations and the families: test/capabilities_test.cpp compares them cell by cell, checks each type row against the code, each default against default_backend and each refusal text against its row. The documentation renders from it. The default rule (design D34): a key derivation of increment 1 runs on hash2, argon2id and scrypt on sodium; a tag of the families defaults to the first of hash2, xkcp, blake3 and sodium that has it fully once increments 2 to 7 have landed, else the first of them with a partial cell, else none (null: the call names its backend); bearssl, openssl, botan and webcrypto are never a default. A default never changes, and every default has its cell.",
-    "version": 5,
+    "version": 6,
     "layout": {
         "schema": "This description. The version of the layout is \"version\"; a change of layout raises it.",
         "targets": "The targets webcpp builds for.",
-        "backends[]": "Each library a function runs on: name (as cells name it), tag (its webcpp::hash::backends type), macro (the word of WEBCPP_HASH_HAS_<macro>, null for a backend that links no library of its own), library (name and pin), licence, jamfile (the target a program names), targets (where it builds), asynchronous_only (present and true on a backend that only the asynchronous family of async.hpp takes, backends::webcrypto: its cells are the asynchronous functions', async_digest, async_hmac, async_hkdf and async_pbkdf2, never the synchronous ones, and it is never a default), exceptions_only (present and true on a backend that a build without exceptions cannot have, backends::botan: its header declares nothing under WEBCPP_HASH_NO_EXCEPTIONS), and optionally omitted[] ({names, reason}: what the library has and hash does not expose or does not load, each with its upstream names and why).",
+        "backends[]": "Each library a function runs on: name (as cells name it), tag (its webcpp::hash::backends type), macro (the word of WEBCPP_HASH_HAS_<macro>, null for a backend that links no library of its own), library (name and pin), licence, jamfile (the target a program names), targets (where it builds), asynchronous_only (present and true on a backend that only the asynchronous family of async.hpp takes, backends::webcrypto: its cells are the asynchronous functions', async_digest, async_hmac, async_hkdf_extract, async_hkdf_expand, async_hkdf (each HKDF function also over pieces) and async_pbkdf2, never the synchronous ones, and it is never a default), exceptions_only (present and true on a backend that a build without exceptions cannot have, backends::botan: its header declares nothing under WEBCPP_HASH_NO_EXCEPTIONS), and optionally omitted[] ({names, reason}: what the library has and hash does not expose or does not load, each with its upstream names and why).",
         "hmacs": "The hmac columns of a function over an hmac: the aliases of <webcpp/hash/hmac.hpp>, and \"other\", hmac<H> over any other Boost.Hash2 hash whose result is a digest.",
         "algorithms[]": "One row group of spec 3.5: name, macro (the algorithm's word in upper case), tag (its kdfs:: type, or null), chapter (the documentation's chapter: digests, macs, kdfs, password_hashing, non-cryptographic), standard, functions.",
-        "functions[]": "One public name: name (a type's or function's own name; a family's row is named by its qualified tag, as digests::sha2_256 or macs::hmac<digests::sha2_256>), kind (\"type\": a Boost.Hash2-form type; \"function\": a function template with a Backend parameter; \"digest\": a tag of digest_of and hasher; \"mac\": a tag of mac; \"kdf\": a variant of argon2), header, default (for a function or a family's tag, the backend default_backend names when the call names none, null for a tag with no default (detail::no_default) and for a type; every default has its cell), backends.",
+        "functions[]": "One public name: name (a type's or function's own name; a family's row is named by its qualified tag, as digests::sha2_256 or macs::hmac<digests::sha2_256>), form (present only on a row of another form of a function the table also has without it: \"pieces\", the overloads of hkdf_extract, hkdf_expand and hkdf whose input keying material and application info are byte_pieces, each with its own tag of kdfs; a row is keyed by its name and form, and the documentation names it \"<name> over pieces\"), kind (\"type\": a Boost.Hash2-form type; \"function\": a function template with a Backend parameter; \"digest\": a tag of digest_of and hasher; \"mac\": a tag of mac; \"kdf\": a variant of argon2), header, default (for a function or a family's tag, the backend default_backend names when the call names none, null for a tag with no default (detail::no_default) and for a type; every default has its cell), backends.",
         "backends{}": "Per backend name, the cell: since (the increment it came with, 1 to 7), hmacs (the columns it has, or null for a function or type that takes no hmac), partial (only on a cell that refuses some values the family accepts: what it refuses, with unsupported_by_backend, or, for a backend's narrower limits in its backend_limits (backends::webcrypto's, backends::botan's PBKDF2 count on wasm32), with the error they name), constant_time {value: \"yes\", \"no\" or \"not stated\", source: where upstream says so, or what was read and says nothing}. A cell holds on every target of its backend."
     },
     "targets": [
@@ -3381,6 +3381,19 @@
                                 "value": "not stated",
                                 "source": "Botan 3.14.1: doc/api_ref/kdf.rst states no constant-time property of its KDFs, and their source (src/lib/kdf/) none."
                             }
+                        },
+                        "webcrypto": {
+                            "since": 7,
+                            "hmacs": [
+                                "hmac_sha1_160",
+                                "hmac_sha2_256",
+                                "hmac_sha2_384",
+                                "hmac_sha2_512"
+                            ],
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "The Web Cryptography API (W3C Recommendation, 2017) states no constant-time property of digest, sign or deriveBits; each JavaScript runtime's implementation decides, and webcpp reads none."
+                            }
                         }
                     }
                 },
@@ -3474,6 +3487,19 @@
                                 "value": "not stated",
                                 "source": "Botan 3.14.1: doc/api_ref/kdf.rst states no constant-time property of its KDFs, and their source (src/lib/kdf/) none."
                             }
+                        },
+                        "webcrypto": {
+                            "since": 7,
+                            "hmacs": [
+                                "hmac_sha1_160",
+                                "hmac_sha2_256",
+                                "hmac_sha2_384",
+                                "hmac_sha2_512"
+                            ],
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "The Web Cryptography API (W3C Recommendation, 2017) states no constant-time property of digest, sign or deriveBits; each JavaScript runtime's implementation decides, and webcpp reads none."
+                            }
                         }
                     }
                 },
@@ -3533,7 +3559,7 @@
                             ],
                             "constant_time": {
                                 "value": "not stated",
-                                "source": "BearSSL upstream 7bea48e (v0.6-39), unchanged in webcpp's pin 32381d6: bearssl_hmac.h states constant time for br_hmac_outCT alone; br_hkdf_* (src/kdf/hkdf.c) calls br_hmac_out."
+                                "source": "BearSSL upstream 7bea48e (v0.6-39), unchanged in webcpp's pin 32381d6: bearssl_hmac.h states constant time for br_hmac_outCT alone; br_hkdf_* (src/kdf/hkdf.c) and HKDF over pieces call br_hmac_out."
                             }
                         },
                         "openssl": {
@@ -3591,7 +3617,373 @@
                                 "hmac_sha2_384",
                                 "hmac_sha2_512"
                             ],
-                            "partial": "an info longer than 1,024 bytes, which completes with input_too_long: WebCrypto's limit as node has it, where the other backends take 32,768",
+                            "partial": "an application_info longer than 1,024 bytes, which completes with input_too_long: WebCrypto's limit as node has it, where the other backends take 32,768",
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "The Web Cryptography API (W3C Recommendation, 2017) states no constant-time property of digest, sign or deriveBits; each JavaScript runtime's implementation decides, and webcpp reads none."
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "hkdf_extract",
+                    "form": "pieces",
+                    "kind": "function",
+                    "tag": "kdfs::hkdf_extract_pieces",
+                    "header": "webcpp/hash/hkdf.hpp",
+                    "default": "hash2",
+                    "backends": {
+                        "hash2": {
+                            "since": 7,
+                            "hmacs": [
+                                "hmac_md5_128",
+                                "hmac_sha1_160",
+                                "hmac_sha2_224",
+                                "hmac_sha2_256",
+                                "hmac_sha2_384",
+                                "hmac_sha2_512",
+                                "hmac_sha2_512_224",
+                                "hmac_sha2_512_256",
+                                "hmac_sha3_224",
+                                "hmac_sha3_256",
+                                "hmac_sha3_384",
+                                "hmac_sha3_512",
+                                "hmac_ripemd_128",
+                                "hmac_ripemd_160",
+                                "hmac_blake2b_512",
+                                "hmac_blake2s_256",
+                                "other"
+                            ],
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property."
+                            }
+                        },
+                        "sodium": {
+                            "since": 7,
+                            "hmacs": [
+                                "hmac_sha2_256",
+                                "hmac_sha2_512"
+                            ],
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "libsodium 1.0.22: its headers state constant time for comparisons (sodium/utils.h) alone, not for its hashing, MAC, key derivation and password hashing functions (crypto_hash_*, crypto_xof_*, crypto_generichash_*, crypto_shorthash_*, crypto_auth_*, crypto_kdf_*, crypto_pwhash_*)."
+                            }
+                        },
+                        "bearssl": {
+                            "since": 7,
+                            "hmacs": [
+                                "hmac_md5_128",
+                                "hmac_sha1_160",
+                                "hmac_sha2_224",
+                                "hmac_sha2_256",
+                                "hmac_sha2_384",
+                                "hmac_sha2_512"
+                            ],
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "BearSSL upstream 7bea48e (v0.6-39), unchanged in webcpp's pin 32381d6: bearssl_hmac.h states constant time for br_hmac_outCT alone; br_hkdf_* (src/kdf/hkdf.c) and HKDF over pieces call br_hmac_out."
+                            }
+                        },
+                        "openssl": {
+                            "since": 7,
+                            "hmacs": [
+                                "hmac_md5_128",
+                                "hmac_sha1_160",
+                                "hmac_sha2_224",
+                                "hmac_sha2_256",
+                                "hmac_sha2_384",
+                                "hmac_sha2_512",
+                                "hmac_sha2_512_224",
+                                "hmac_sha2_512_256",
+                                "hmac_sha3_224",
+                                "hmac_sha3_256",
+                                "hmac_sha3_384",
+                                "hmac_sha3_512",
+                                "hmac_ripemd_160",
+                                "hmac_blake2b_512",
+                                "hmac_blake2s_256"
+                            ],
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "OpenSSL 3.5.9: doc/man3/EVP_MAC.pod and doc/man7/EVP_MAC-HMAC.pod state no constant-time property; HKDF over pieces calls EVP_MAC \"HMAC\"."
+                            }
+                        },
+                        "botan": {
+                            "since": 7,
+                            "hmacs": [
+                                "hmac_md5_128",
+                                "hmac_sha1_160",
+                                "hmac_sha2_224",
+                                "hmac_sha2_256",
+                                "hmac_sha2_384",
+                                "hmac_sha2_512",
+                                "hmac_sha2_512_256",
+                                "hmac_sha3_224",
+                                "hmac_sha3_256",
+                                "hmac_sha3_384",
+                                "hmac_sha3_512",
+                                "hmac_ripemd_160",
+                                "hmac_blake2b_512",
+                                "hmac_blake2s_256"
+                            ],
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "Botan 3.14.1: doc/api_ref/message_auth_codes.rst states no constant-time property of HMAC, and its source (src/lib/mac/hmac/) none; HKDF over pieces calls its HMAC."
+                            }
+                        },
+                        "webcrypto": {
+                            "since": 7,
+                            "hmacs": [
+                                "hmac_sha1_160",
+                                "hmac_sha2_256",
+                                "hmac_sha2_384",
+                                "hmac_sha2_512"
+                            ],
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "The Web Cryptography API (W3C Recommendation, 2017) states no constant-time property of digest, sign or deriveBits; each JavaScript runtime's implementation decides, and webcpp reads none."
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "hkdf_expand",
+                    "form": "pieces",
+                    "kind": "function",
+                    "tag": "kdfs::hkdf_expand_pieces",
+                    "header": "webcpp/hash/hkdf.hpp",
+                    "default": "hash2",
+                    "backends": {
+                        "hash2": {
+                            "since": 7,
+                            "hmacs": [
+                                "hmac_md5_128",
+                                "hmac_sha1_160",
+                                "hmac_sha2_224",
+                                "hmac_sha2_256",
+                                "hmac_sha2_384",
+                                "hmac_sha2_512",
+                                "hmac_sha2_512_224",
+                                "hmac_sha2_512_256",
+                                "hmac_sha3_224",
+                                "hmac_sha3_256",
+                                "hmac_sha3_384",
+                                "hmac_sha3_512",
+                                "hmac_ripemd_128",
+                                "hmac_ripemd_160",
+                                "hmac_blake2b_512",
+                                "hmac_blake2s_256",
+                                "other"
+                            ],
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property."
+                            }
+                        },
+                        "sodium": {
+                            "since": 7,
+                            "hmacs": [
+                                "hmac_sha2_256",
+                                "hmac_sha2_512"
+                            ],
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "libsodium 1.0.22: its headers state constant time for comparisons (sodium/utils.h) alone, not for its hashing, MAC, key derivation and password hashing functions (crypto_hash_*, crypto_xof_*, crypto_generichash_*, crypto_shorthash_*, crypto_auth_*, crypto_kdf_*, crypto_pwhash_*)."
+                            }
+                        },
+                        "bearssl": {
+                            "since": 7,
+                            "hmacs": [
+                                "hmac_md5_128",
+                                "hmac_sha1_160",
+                                "hmac_sha2_224",
+                                "hmac_sha2_256",
+                                "hmac_sha2_384",
+                                "hmac_sha2_512"
+                            ],
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "BearSSL upstream 7bea48e (v0.6-39), unchanged in webcpp's pin 32381d6: bearssl_hmac.h states constant time for br_hmac_outCT alone; br_hkdf_* (src/kdf/hkdf.c) and HKDF over pieces call br_hmac_out."
+                            }
+                        },
+                        "openssl": {
+                            "since": 7,
+                            "hmacs": [
+                                "hmac_md5_128",
+                                "hmac_sha1_160",
+                                "hmac_sha2_224",
+                                "hmac_sha2_256",
+                                "hmac_sha2_384",
+                                "hmac_sha2_512",
+                                "hmac_sha2_512_224",
+                                "hmac_sha2_512_256",
+                                "hmac_sha3_224",
+                                "hmac_sha3_256",
+                                "hmac_sha3_384",
+                                "hmac_sha3_512",
+                                "hmac_ripemd_160",
+                                "hmac_blake2b_512",
+                                "hmac_blake2s_256"
+                            ],
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "OpenSSL 3.5.9: doc/man3/EVP_MAC.pod and doc/man7/EVP_MAC-HMAC.pod state no constant-time property; HKDF over pieces calls EVP_MAC \"HMAC\"."
+                            }
+                        },
+                        "botan": {
+                            "since": 7,
+                            "hmacs": [
+                                "hmac_md5_128",
+                                "hmac_sha1_160",
+                                "hmac_sha2_224",
+                                "hmac_sha2_256",
+                                "hmac_sha2_384",
+                                "hmac_sha2_512",
+                                "hmac_sha2_512_256",
+                                "hmac_sha3_224",
+                                "hmac_sha3_256",
+                                "hmac_sha3_384",
+                                "hmac_sha3_512",
+                                "hmac_ripemd_160",
+                                "hmac_blake2b_512",
+                                "hmac_blake2s_256"
+                            ],
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "Botan 3.14.1: doc/api_ref/message_auth_codes.rst states no constant-time property of HMAC, and its source (src/lib/mac/hmac/) none; HKDF over pieces calls its HMAC."
+                            }
+                        },
+                        "webcrypto": {
+                            "since": 7,
+                            "hmacs": [
+                                "hmac_sha1_160",
+                                "hmac_sha2_256",
+                                "hmac_sha2_384",
+                                "hmac_sha2_512"
+                            ],
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "The Web Cryptography API (W3C Recommendation, 2017) states no constant-time property of digest, sign or deriveBits; each JavaScript runtime's implementation decides, and webcpp reads none."
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "hkdf",
+                    "form": "pieces",
+                    "kind": "function",
+                    "tag": "kdfs::hkdf_pieces",
+                    "header": "webcpp/hash/hkdf.hpp",
+                    "default": "hash2",
+                    "backends": {
+                        "hash2": {
+                            "since": 7,
+                            "hmacs": [
+                                "hmac_md5_128",
+                                "hmac_sha1_160",
+                                "hmac_sha2_224",
+                                "hmac_sha2_256",
+                                "hmac_sha2_384",
+                                "hmac_sha2_512",
+                                "hmac_sha2_512_224",
+                                "hmac_sha2_512_256",
+                                "hmac_sha3_224",
+                                "hmac_sha3_256",
+                                "hmac_sha3_384",
+                                "hmac_sha3_512",
+                                "hmac_ripemd_128",
+                                "hmac_ripemd_160",
+                                "hmac_blake2b_512",
+                                "hmac_blake2s_256",
+                                "other"
+                            ],
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "Boost.Hash2 1.92: its headers (boost/hash2/) state no constant-time property."
+                            }
+                        },
+                        "sodium": {
+                            "since": 7,
+                            "hmacs": [
+                                "hmac_sha2_256",
+                                "hmac_sha2_512"
+                            ],
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "libsodium 1.0.22: its headers state constant time for comparisons (sodium/utils.h) alone, not for its hashing, MAC, key derivation and password hashing functions (crypto_hash_*, crypto_xof_*, crypto_generichash_*, crypto_shorthash_*, crypto_auth_*, crypto_kdf_*, crypto_pwhash_*)."
+                            }
+                        },
+                        "bearssl": {
+                            "since": 7,
+                            "hmacs": [
+                                "hmac_md5_128",
+                                "hmac_sha1_160",
+                                "hmac_sha2_224",
+                                "hmac_sha2_256",
+                                "hmac_sha2_384",
+                                "hmac_sha2_512"
+                            ],
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "BearSSL upstream 7bea48e (v0.6-39), unchanged in webcpp's pin 32381d6: bearssl_hmac.h states constant time for br_hmac_outCT alone; br_hkdf_* (src/kdf/hkdf.c) and HKDF over pieces call br_hmac_out."
+                            }
+                        },
+                        "openssl": {
+                            "since": 7,
+                            "hmacs": [
+                                "hmac_md5_128",
+                                "hmac_sha1_160",
+                                "hmac_sha2_224",
+                                "hmac_sha2_256",
+                                "hmac_sha2_384",
+                                "hmac_sha2_512",
+                                "hmac_sha2_512_224",
+                                "hmac_sha2_512_256",
+                                "hmac_sha3_224",
+                                "hmac_sha3_256",
+                                "hmac_sha3_384",
+                                "hmac_sha3_512",
+                                "hmac_ripemd_160",
+                                "hmac_blake2b_512",
+                                "hmac_blake2s_256"
+                            ],
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "OpenSSL 3.5.9: doc/man3/EVP_MAC.pod and doc/man7/EVP_MAC-HMAC.pod state no constant-time property; HKDF over pieces calls EVP_MAC \"HMAC\"."
+                            }
+                        },
+                        "botan": {
+                            "since": 7,
+                            "hmacs": [
+                                "hmac_md5_128",
+                                "hmac_sha1_160",
+                                "hmac_sha2_224",
+                                "hmac_sha2_256",
+                                "hmac_sha2_384",
+                                "hmac_sha2_512",
+                                "hmac_sha2_512_256",
+                                "hmac_sha3_224",
+                                "hmac_sha3_256",
+                                "hmac_sha3_384",
+                                "hmac_sha3_512",
+                                "hmac_ripemd_160",
+                                "hmac_blake2b_512",
+                                "hmac_blake2s_256"
+                            ],
+                            "constant_time": {
+                                "value": "not stated",
+                                "source": "Botan 3.14.1: doc/api_ref/message_auth_codes.rst states no constant-time property of HMAC, and its source (src/lib/mac/hmac/) none; HKDF over pieces calls its HMAC."
+                            }
+                        },
+                        "webcrypto": {
+                            "since": 7,
+                            "hmacs": [
+                                "hmac_sha1_160",
+                                "hmac_sha2_256",
+                                "hmac_sha2_384",
+                                "hmac_sha2_512"
+                            ],
                             "constant_time": {
                                 "value": "not stated",
                                 "source": "The Web Cryptography API (W3C Recommendation, 2017) states no constant-time property of digest, sign or deriveBits; each JavaScript runtime's implementation decides, and webcpp reads none."

@@ -18,7 +18,8 @@
  @code
  // password and salt: std::span<std::uint8_t const>
  std::array<std::uint8_t, 64> key{};
- auto done = webcpp::hash::scrypt(key, password, salt, {.n = 32768, .r = 8, .p = 1});
+ auto done = webcpp::hash::scrypt(
+     key, password, salt, {.cost = 32768, .block_size = 8, .parallelism = 1});
  if (!done) {
      return done.error();  // key is as it was, or zeroed when the backend failed
  }
@@ -52,12 +53,12 @@ namespace webcpp::hash {
 
 /** The costs of scrypt, RFC 7914's N, r and p. */
 struct scrypt_parameters {
-    /** The CPU and memory cost N: a power of two, greater than 1, less than 2^(16 r). */
-    std::uint64_t n;
-    /** The block size r, at least 1. */
-    std::uint32_t r;
-    /** The parallelisation p, at least 1, with r times p below 2^30. */
-    std::uint32_t p;
+    /** The CPU and memory cost, RFC 7914's N: a power of two, greater than 1, below 2^(16 r). */
+    std::uint64_t cost;
+    /** The block size, RFC 7914's r, at least 1. */
+    std::uint32_t block_size;
+    /** The parallelisation, RFC 7914's p, at least 1, with r times p below 2^30. */
+    std::uint32_t parallelism;
 };
 
 namespace detail {
@@ -168,8 +169,8 @@ template <class Backend = default_backend<kdfs::scrypt>>
         return guarded;
     }
     auto derive_result = detail::scrypt_engine<Backend>::derive(
-        output_bytes, password_bytes, salt_bytes, cost_parameters.n, cost_parameters.r,
-        cost_parameters.p);
+        output_bytes, password_bytes, salt_bytes, cost_parameters.cost, cost_parameters.block_size,
+        cost_parameters.parallelism);
     if (!derive_result) {
         detail::wipe(output_bytes);
     }

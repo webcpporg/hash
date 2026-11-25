@@ -4,16 +4,19 @@
 // accompanying file LICENSE_1_0.txt or copy at
 // https://www.boost.org/LICENSE_1_0.txt)
 
-// DIT is set while a keyed function computes (design D1; spec scenario "A password derived on
-// Apple silicon"): a Boost.Hash2-form hash, dit_probe, records at each update whether DIT was set
-// and whether a detail::timing_guard had been entered, and runs as the hash under the hmac of
-// hkdf_extract, hkdf_expand, hkdf and pbkdf2 on backends::hash2, and of mac on a stand-in backend
-// whose HMAC-SHA-256 is backends::hash2's over the probe. From a thread with DIT clear, every
-// update the probe saw ran after a guard was entered and, where the CPU has DIT, with DIT set (and
-// clear where it has none); the thread finds DIT clear after the call. A guard that the engine
-// call precedes, or one written as a temporary, fails here. With WEBCPP_TEST_TIMING_DURING_ASYNC,
-// the same through async_pbkdf2 on a webcpp::asio::thread_pool of one thread, the probe's record
-// read on the pool's thread, which computes.
+// DIT is set while a keyed function computes (design D1; spec scenario "A password derived on Apple
+// silicon"): a Boost.Hash2-form hash, dit_probe, records at each update whether DIT was set and
+// whether a detail::timing_guard had been entered, and runs as the hash under the hmac of
+// hkdf_extract, hkdf_expand, hkdf (each also over byte pieces) and pbkdf2 on backends::hash2, and
+// of mac on a stand-in backend whose HMAC-SHA-256 is backends::hash2's over the probe. From a
+// thread with DIT clear, every update the probe saw ran after a guard was entered and, where the
+// CPU has DIT, with DIT set (and clear where it has none); the thread finds DIT clear after the
+// call. A guard that the engine call precedes, or one written as a temporary, fails here. With
+// WEBCPP_TEST_TIMING_DURING_ASYNC, the same through async_pbkdf2 on a webcpp::asio::thread_pool of
+// one thread, the probe's record read on the pool's thread, which computes; and through
+// async_hkdf_extract, async_hkdf_expand and async_hkdf over pieces on a stand-in backend whose
+// HKDF over pieces with HMAC-SHA-256 is backends::hash2's over the probe, which compute in the
+// initiating call, on the calling thread.
 
 #include "support/timing_dit.hpp"
 
@@ -121,7 +124,7 @@ private:
     boost::hash2::sha2_256 inner_;
 };
 
-/** A backend whose HMAC-SHA-256 is backends::hash2's over dit_probe. */
+/** A backend whose HMAC-SHA-256 and HKDF over it are backends::hash2's over dit_probe. */
 struct dit_probe_backend {};
 
 }  // namespace
@@ -133,6 +136,14 @@ namespace webcpp::hash::detail {
 template <>
 struct mac_engine<test::dit_probe_backend, macs::hmac<digests::sha2_256>>
     : hash2_hmac_engine<digests::sha2_256, test::dit_probe> {};
+
+/**
+ HKDF over pieces with HMAC-SHA-256 on the probe's backend: backends::hash2's engine, over
+ dit_probe, so that the asynchronous forms, which take only WebCrypto's hmacs, reach the probe.
+*/
+template <>
+struct hkdf_pieces_engine<test::dit_probe_backend, hmac_sha2_256>
+    : hkdf_pieces_engine<backends::hash2, webcpp::hash::hmac<test::dit_probe>> {};
 
 }  // namespace webcpp::hash::detail
 
@@ -212,6 +223,34 @@ void synchronous() {
         BOOST_TEST((hash::hkdf<probe_hmac, backends::hash2>(okm, test_salt, test_key, test_info))
                        .has_value());
     });
+    // The pieces forms: the seam's check runs inside the pieces engine of backends::hash2, whose
+    // HMAC updates over the probe once per piece.
+    std::span<std::uint8_t const> const key_bytes(test_key);
+    std::span<std::uint8_t const> const info_bytes(test_info);
+    during("hkdf_extract over pieces", [&] {
+        BOOST_TEST((hash::hkdf_extract<probe_hmac, backends::hash2>(
+                        test_salt, {key_bytes.first(10), key_bytes.subspan(10)}))
+                       .has_value());
+    });
+    during("hkdf_expand over pieces", [&] {
+        BOOST_TEST((hash::hkdf_expand<probe_hmac, backends::hash2>(
+                        okm, *prk, {info_bytes.first(3), info_bytes.subspan(3)}))
+                       .has_value());
+    });
+    during("hkdf over pieces", [&] {
+        BOOST_TEST((hash::hkdf<probe_hmac, backends::hash2>(
+                        okm, test_salt, {key_bytes.first(10), key_bytes.subspan(10)},
+                        {info_bytes.first(3), info_bytes.subspan(3)}))
+                       .has_value());
+    });
+    // The probe computes SHA-256: hkdf over its pieces gives the bytes of hkdf over hmac_sha2_256
+    // and the joined inputs.
+    std::array<std::uint8_t, 42> plain_okm{};
+    BOOST_TEST((hash::hkdf<hash::hmac_sha2_256, backends::hash2>(plain_okm, test_salt, test_key,
+                                                                 test_info))
+                   .has_value());
+    BOOST_TEST(okm == plain_okm);
+
     std::array<std::uint8_t, 32> derived{};
     during("pbkdf2", [&] {
         BOOST_TEST((hash::pbkdf2<probe_hmac, backends::hash2>(derived, test_key, test_salt, 3))
@@ -287,6 +326,61 @@ void on_the_pool() {
     BOOST_TEST(!hash::detail::dit_is_set());
     pool.join();
 }
+
+// Runs `initiate(executor, handler)` with an io_context's executor, then the context, and checks
+// that the handler ran with no error.
+template <class Initiate>
+void through_the_event_loop(Initiate initiate) {
+    asio::io_context context;
+    bool called = false;
+    boost::system::error_code code;
+    initiate(context.get_executor(), [&](boost::system::error_code done) {
+        called = true;
+        code = done;
+    });
+    context.run();  // lint-run: the test's event loop
+    BOOST_TEST(called);
+    BOOST_TEST(!code);
+}
+
+// The asynchronous forms over pieces on a synchronous backend run the synchronous function over
+// pieces in the initiating call (ruling R4 of the change hkdf-pieces): the probe ran on the calling
+// thread, under the guard, with DIT set where the CPU has it, and the bytes are hkdf's.
+void pieces_in_the_call() {
+    std::span<std::uint8_t const> const key_bytes(test_key);
+    std::span<std::uint8_t const> const info_bytes(test_info);
+    std::array<std::uint8_t, 32> prk{};
+    std::array<std::uint8_t, 42> okm{};
+    during("async_hkdf_extract over pieces", [&] {
+        through_the_event_loop([&](auto const& executor, auto handler) {
+            hash::async_hkdf_extract<hash::hmac_sha2_256, test::dit_probe_backend>(
+                executor, prk, test_salt, {key_bytes.first(10), key_bytes.subspan(10)}, handler);
+        });
+    });
+    during("async_hkdf_expand over pieces", [&] {
+        through_the_event_loop([&](auto const& executor, auto handler) {
+            hash::async_hkdf_expand<hash::hmac_sha2_256, test::dit_probe_backend>(
+                executor, okm, prk, {info_bytes.first(3), info_bytes.subspan(3)}, handler);
+        });
+    });
+    std::array<std::uint8_t, 42> const expanded = okm;
+    okm = {};
+    during("async_hkdf over pieces", [&] {
+        through_the_event_loop([&](auto const& executor, auto handler) {
+            hash::async_hkdf<hash::hmac_sha2_256, test::dit_probe_backend>(
+                executor, okm, test_salt, {key_bytes.first(10), key_bytes.subspan(10)},
+                {info_bytes.first(3), info_bytes.subspan(3)}, handler);
+        });
+    });
+    // The probe computes SHA-256: the bytes are those of hkdf over hmac_sha2_256 and the joined
+    // inputs.
+    std::array<std::uint8_t, 42> plain_okm{};
+    BOOST_TEST((hash::hkdf<hash::hmac_sha2_256, backends::hash2>(plain_okm, test_salt, test_key,
+                                                                 test_info))
+                   .has_value());
+    BOOST_TEST(okm == plain_okm);
+    BOOST_TEST(expanded == plain_okm);
+}
 #endif
 
 }  // namespace
@@ -295,6 +389,7 @@ int main() {
     synchronous();
 #ifdef WEBCPP_TEST_TIMING_DURING_ASYNC
     on_the_pool();
+    pieces_in_the_call();
 #endif
     return webcpp::test::exit_status(boost::report_errors());
 }

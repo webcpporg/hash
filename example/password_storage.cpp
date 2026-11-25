@@ -29,9 +29,9 @@ namespace {
 // What the application stores for a user. Without the costs in the record, the service could not
 // raise them later: a login verifies an old tag with the costs that made it.
 struct credential {
-    std::array<std::uint8_t, webcpp::hash::argon2id_salt_size> salt;
-    webcpp::hash::argon2id_parameters costs;
-    std::array<std::uint8_t, 32> tag;
+    std::array<std::uint8_t, webcpp::hash::argon2id_salt_size> salt{};
+    webcpp::hash::argon2id_parameters costs{};
+    std::array<std::uint8_t, 32> tag{};
 };
 
 // Without a salt of its own per user, one guess tests every user at once, and two users with the

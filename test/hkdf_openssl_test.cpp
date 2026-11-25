@@ -198,12 +198,12 @@ bool is_untouched(std::span<std::uint8_t const> bytes) {
     return std::ranges::all_of(bytes, [](std::uint8_t b) { return b == untouched; });
 }
 
-// The info of hkdf_max_info_size bytes reaches OpenSSL and agrees with backends::hash2.
+// The info of hkdf_max_application_info_size bytes reaches OpenSSL and agrees with backends::hash2.
 void longest_info() {
     using hmac = hash::hmac_sha2_256;
     const auto ikm = pattern(22, 2);
     const auto prk = pattern(32, 4);
-    const auto info = pattern(hash::hkdf_max_info_size, 3);
+    const auto info = pattern(hash::hkdf_max_application_info_size, 3);
     std::vector<std::uint8_t> expected(42);
     BOOST_TEST((hash::hkdf_expand<hmac, hash2>(expected, prk, info).has_value()));
     std::vector<std::uint8_t> expanded(42, untouched);
@@ -222,7 +222,7 @@ void info_too_long() {
     using hmac = hash::hmac_sha2_256;
     const auto ikm = pattern(22, 2);
     const auto prk = pattern(32, 4);
-    const auto info = pattern(hash::hkdf_max_info_size + 1, 3);
+    const auto info = pattern(hash::hkdf_max_application_info_size + 1, 3);
     std::vector<std::uint8_t> output(42, untouched);
     auto refused = hash::hkdf_expand<hmac, openssl>(output, prk, info);
     BOOST_TEST(refused.has_error() && refused.error() == hash::error::input_too_long);

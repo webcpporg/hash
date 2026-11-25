@@ -790,7 +790,7 @@ struct xkcp_kangarootwelve_engine : full_engine {
         /** XKCP's `KangarooTwelve_Instance`, in storage the adapter checks is large enough. */
         xkcp_kangarootwelve_storage storage{};
         /** The customisation string C, which the caller keeps alive until `finish`. */
-        std::span<std::uint8_t const> customisation;
+        std::span<std::uint8_t const> customisation{};
         /** The bytes of C and of the message so far, in 64 bits on every target. */
         std::uint64_t counted = 0;
     };

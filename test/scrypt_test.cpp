@@ -93,7 +93,7 @@ void test_rfc7914() {
         std::array<std::uint8_t, 64> output{};
         auto const done =
             hash::scrypt(output, webcpp::test::bytes_of(c.password), webcpp::test::bytes_of(c.salt),
-                         {.n = c.n, .r = c.r, .p = c.p});
+                         {.cost = c.n, .block_size = c.r, .parallelism = c.p});
         BOOST_TEST(done.has_value());
         BOOST_TEST_EQ(to_hex(output), std::string(c.output));
     }
@@ -104,21 +104,21 @@ void test_rfc7914() {
     std::span<std::uint8_t const> const nothing{};
     BOOST_TEST(nothing.data() == nullptr);
     std::array<std::uint8_t, 64> output{};
-    auto const done =
-        hash::scrypt(output, nothing, nothing, {.n = first.n, .r = first.r, .p = first.p});
+    auto const done = hash::scrypt(
+        output, nothing, nothing, {.cost = first.n, .block_size = first.r, .parallelism = first.p});
     BOOST_TEST(done.has_value());
     BOOST_TEST_EQ(to_hex(output), std::string(first.output));
 }
 
-const std::array<std::uint8_t, 8> password{'p', 'a', 's', 's', 'w', 'o', 'r', 'd'};
-const std::array<std::uint8_t, 4> salt{'N', 'a', 'C', 'l'};
+const std::array<std::uint8_t, 8> test_password{'p', 'a', 's', 's', 'w', 'o', 'r', 'd'};
+const std::array<std::uint8_t, 4> test_salt{'N', 'a', 'C', 'l'};
 
 // Whether scrypt refuses `parameters` with `expected` on Backend, the output untouched.
 template <class Backend = hash::backends::sodium>
 bool refuses(hash::scrypt_parameters const& parameters, hash::error expected) {
     std::array<std::uint8_t, 32> buffer{};
     buffer.fill(untouched);
-    auto const refused = hash::scrypt<Backend>(buffer, password, salt, parameters);
+    auto const refused = hash::scrypt<Backend>(buffer, test_password, test_salt, parameters);
     return refused.has_error() && refused.error() == expected && all_of(buffer, untouched);
 }
 
@@ -126,102 +126,119 @@ bool refuses(hash::scrypt_parameters const& parameters, hash::error expected) {
 bool passes(hash::scrypt_parameters const& parameters) {
     std::array<std::uint8_t, 32> buffer{};
     int const before = test_backends::recorded_calls;
-    auto const done = hash::scrypt<test_backends::recording>(buffer, password, salt, parameters);
+    auto const done =
+        hash::scrypt<test_backends::recording>(buffer, test_password, test_salt, parameters);
     return done.has_value() && test_backends::recorded_calls == before + 1;
 }
 
 void test_output_guard() {
     std::array<std::uint8_t, 33> buffer{};
     buffer.fill(untouched);
-    constexpr hash::scrypt_parameters cheap{.n = 16, .r = 1, .p = 1};
-    auto refused = hash::scrypt(std::span<std::uint8_t>(buffer.data(), 0), password, salt, cheap);
+    constexpr hash::scrypt_parameters cheap{.cost = 16, .block_size = 1, .parallelism = 1};
+    auto refused =
+        hash::scrypt(std::span<std::uint8_t>(buffer.data(), 0), test_password, test_salt, cheap);
     BOOST_TEST(refused.has_error() && refused.error() == hash::error::invalid_output_size);
     // Natively a span of (2^32 - 1) 32 + 1 bytes over 33, refused before anything touches it; on
     // wasm32 no span is that long.
     constexpr std::uint64_t longest = 0xffffffffULL * 32;
     if constexpr (std::numeric_limits<std::size_t>::max() > longest) {
         refused = hash::scrypt(
-            std::span<std::uint8_t>(buffer.data(), static_cast<std::size_t>(longest + 1)), password,
-            salt, cheap);
+            std::span<std::uint8_t>(buffer.data(), static_cast<std::size_t>(longest + 1)),
+            test_password, test_salt, cheap);
         BOOST_TEST(refused.has_error() && refused.error() == hash::error::invalid_output_size);
     }
     BOOST_TEST(all_of(buffer, untouched));
     // One byte, the shortest, then 33, past one block of PBKDF2.
     BOOST_TEST(
-        hash::scrypt(std::span<std::uint8_t>(buffer.data(), 1), password, salt, cheap).has_value());
+        hash::scrypt(std::span<std::uint8_t>(buffer.data(), 1), test_password, test_salt, cheap)
+            .has_value());
     BOOST_TEST(buffer[1] == untouched);
-    BOOST_TEST(hash::scrypt(buffer, password, salt, cheap).has_value());
+    BOOST_TEST(hash::scrypt(buffer, test_password, test_salt, cheap).has_value());
 }
 
 void test_parameters_guard_n() {
     using enum hash::error;
     // N: a power of two, above 1, below 2^(16 r).
     for (std::uint64_t const n : {0ULL, 1ULL, 3ULL, 48ULL, 65535ULL, 65536ULL}) {
-        BOOST_TEST(refuses({.n = n, .r = 1, .p = 1}, invalid_parameters));
+        BOOST_TEST(refuses({.cost = n, .block_size = 1, .parallelism = 1}, invalid_parameters));
     }
-    BOOST_TEST(refuses({.n = std::uint64_t{1} << 32U, .r = 2, .p = 1}, invalid_parameters));
-    BOOST_TEST(refuses({.n = std::uint64_t{1} << 48U, .r = 3, .p = 1}, invalid_parameters));
-    BOOST_TEST(passes({.n = std::uint64_t{1} << 15U, .r = 1, .p = 1}));
+    BOOST_TEST(refuses({.cost = std::uint64_t{1} << 32U, .block_size = 2, .parallelism = 1},
+                       invalid_parameters));
+    BOOST_TEST(refuses({.cost = std::uint64_t{1} << 48U, .block_size = 3, .parallelism = 1},
+                       invalid_parameters));
+    BOOST_TEST(passes({.cost = std::uint64_t{1} << 15U, .block_size = 1, .parallelism = 1}));
     // The largest N for r = 2, 2^31, takes 512 GiB: past size_t on wasm32, where the size refuses.
     if constexpr (std::numeric_limits<std::size_t>::max() > 0xffffffffU) {
-        BOOST_TEST(passes({.n = std::uint64_t{1} << 31U, .r = 2, .p = 1}));
+        BOOST_TEST(passes({.cost = std::uint64_t{1} << 31U, .block_size = 2, .parallelism = 1}));
     } else {
-        BOOST_TEST(refuses({.n = std::uint64_t{1} << 31U, .r = 2, .p = 1}, invalid_parameters));
+        BOOST_TEST(refuses({.cost = std::uint64_t{1} << 31U, .block_size = 2, .parallelism = 1},
+                           invalid_parameters));
     }
-    BOOST_TEST(passes({.n = 2, .r = 1, .p = 1}));
+    BOOST_TEST(passes({.cost = 2, .block_size = 1, .parallelism = 1}));
 }
 
 void test_parameters_guard_r_and_p() {
     using enum hash::error;
     // r and p at least 1.
-    BOOST_TEST(refuses({.n = 16, .r = 0, .p = 1}, invalid_parameters));
-    BOOST_TEST(refuses({.n = 16, .r = 1, .p = 0}, invalid_parameters));
+    BOOST_TEST(refuses({.cost = 16, .block_size = 0, .parallelism = 1}, invalid_parameters));
+    BOOST_TEST(refuses({.cost = 16, .block_size = 1, .parallelism = 0}, invalid_parameters));
     // r p below 2^30.
-    BOOST_TEST(refuses({.n = 16, .r = 1U << 15U, .p = 1U << 15U}, invalid_parameters));
-    BOOST_TEST(refuses({.n = 16, .r = 1, .p = 1U << 30U}, invalid_parameters));
-    BOOST_TEST(refuses<test_backends::recording>({.n = 16, .r = 1U << 15U, .p = 1U << 15U},
-                                                 invalid_parameters));
+    BOOST_TEST(refuses({.cost = 16, .block_size = 1U << 15U, .parallelism = 1U << 15U},
+                       invalid_parameters));
+    BOOST_TEST(
+        refuses({.cost = 16, .block_size = 1, .parallelism = 1U << 30U}, invalid_parameters));
+    BOOST_TEST(refuses<test_backends::recording>(
+        {.cost = 16, .block_size = 1U << 15U, .parallelism = 1U << 15U}, invalid_parameters));
 }
 
 void test_parameters_guard_size() {
     using enum hash::error;
     // 128 r (N + p) past size_t: on wasm32 4 GiB and a KiB, which passes natively; everywhere
     // 2^67 bytes.
-    constexpr hash::scrypt_parameters four_gib{.n = std::uint64_t{1} << 22U, .r = 8, .p = 1};
+    constexpr hash::scrypt_parameters four_gib{
+        .cost = std::uint64_t{1} << 22U,
+        .block_size = 8,
+        .parallelism = 1,
+    };
     if constexpr (std::numeric_limits<std::size_t>::max() == 0xffffffffU) {
         BOOST_TEST(refuses(four_gib, invalid_parameters));
         BOOST_TEST(refuses<test_backends::recording>(four_gib, invalid_parameters));
-        BOOST_TEST(passes({.n = std::uint64_t{1} << 21U, .r = 8, .p = 1}));
+        BOOST_TEST(passes({.cost = std::uint64_t{1} << 21U, .block_size = 8, .parallelism = 1}));
     } else {
         BOOST_TEST(passes(four_gib));
     }
-    constexpr hash::scrypt_parameters huge{.n = std::uint64_t{1} << 31U, .r = 1U << 29U, .p = 1};
+    constexpr hash::scrypt_parameters huge{
+        .cost = std::uint64_t{1} << 31U,
+        .block_size = 1U << 29U,
+        .parallelism = 1,
+    };
     BOOST_TEST(refuses<test_backends::recording>(huge, invalid_parameters));
     // libsodium's N is at most UINT32_MAX, its uint32_t: 2^32 with r = 3 is RFC 7914's, and
     // refused before the call (natively 1.5 TiB fit size_t; on wasm32 the size refuses first).
-    BOOST_TEST(refuses({.n = std::uint64_t{1} << 32U, .r = 3, .p = 1}, invalid_parameters));
+    BOOST_TEST(refuses({.cost = std::uint64_t{1} << 32U, .block_size = 3, .parallelism = 1},
+                       invalid_parameters));
     BOOST_TEST_EQ(hash::detail::scrypt_engine<hash::backends::sodium>::limits.n, 0xffffffffULL);
     if constexpr (std::numeric_limits<std::size_t>::max() > 0xffffffffU) {
-        BOOST_TEST(passes({.n = std::uint64_t{1} << 32U, .r = 3, .p = 1}));
+        BOOST_TEST(passes({.cost = std::uint64_t{1} << 32U, .block_size = 3, .parallelism = 1}));
     }
     // The output's guard comes first.
     std::array<std::uint8_t, 1> buffer{};
-    auto const refused = hash::scrypt(std::span<std::uint8_t>(buffer.data(), 0), password, salt,
-                                      {.n = 0, .r = 0, .p = 0});
+    auto const refused = hash::scrypt(std::span<std::uint8_t>(buffer.data(), 0), test_password,
+                                      test_salt, {.cost = 0, .block_size = 0, .parallelism = 0});
     BOOST_TEST(refused.has_error() && refused.error() == invalid_output_size);
 }
 
 void test_backend_failure() {
     std::array<std::uint8_t, 32> buffer{};
     buffer.fill(untouched);
-    auto const failed =
-        hash::scrypt<test_backends::failing>(buffer, password, salt, {.n = 16, .r = 1, .p = 1});
+    auto const failed = hash::scrypt<test_backends::failing>(
+        buffer, test_password, test_salt, {.cost = 16, .block_size = 1, .parallelism = 1});
     BOOST_TEST(failed.has_error() && failed.error() == hash::error::backend_failure);
     BOOST_TEST(all_of(buffer, 0));
 
     // A guard's refusal reaches no backend.
-    BOOST_TEST(
-        refuses<test_backends::failing>({.n = 3, .r = 1, .p = 1}, hash::error::invalid_parameters));
+    BOOST_TEST(refuses<test_backends::failing>({.cost = 3, .block_size = 1, .parallelism = 1},
+                                               hash::error::invalid_parameters));
 }
 
 // scrypt's default backend is default_backend's choice for kdfs::scrypt: backends::sodium, the one

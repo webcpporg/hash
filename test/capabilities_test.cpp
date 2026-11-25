@@ -18,7 +18,9 @@
 // builds on Emscripten alone, and is left out of the rows the synchronous refusals name.
 // backends::botan, which a build without exceptions cannot have ("exceptions_only"), has cells only
 // in a program that links Botan with exceptions (capabilities_botan): in any other, backend_has_v
-// is false on every tag of it, and its targets need not hold this one.
+// is false on every tag of it, and its targets need not hold this one. A row of a form of its
+// function ("form": "pieces", HKDF over pieces) is keyed as "<name> over <form>", has its own tag,
+// and each of its backends has it over exactly the hmacs whose HMAC that backend has.
 
 #include <webcpp/hash/algorithms.hpp>
 #include <webcpp/hash/argon2.hpp>
@@ -96,7 +98,13 @@ struct joined<std::tuple<First...>, std::tuple<Second...>> {
     using type = std::tuple<First..., Second...>;
 };
 
-using hmac_functions = joined<test::kdf_operations, std::tuple<kdfs::kbkdf_hmac>>::type;
+using hmac_functions =
+    joined<test::kdf_operations, std::tuple<kdfs::kbkdf_hmac, kdfs::hkdf_extract_pieces,
+                                            kdfs::hkdf_expand_pieces, kdfs::hkdf_pieces>>::type;
+
+// HKDF over pieces (design D4): each a row of its function's name with "form": "pieces".
+using pieces_functions =
+    std::tuple<kdfs::hkdf_extract_pieces, kdfs::hkdf_expand_pieces, kdfs::hkdf_pieces>;
 using plain_functions = std::tuple<kdfs::argon2id, kdfs::scrypt, kdfs::blake2b_subkey, kdfs::sskdf,
                                    kdfs::x963kdf, kdfs::bcrypt, kdfs::bcrypt_pbkdf>;
 
@@ -118,6 +126,12 @@ constexpr std::string_view function_name() {
         return "bcrypt";
     } else if constexpr (std::is_same_v<Function, kdfs::bcrypt_pbkdf>) {
         return "bcrypt_pbkdf";
+    } else if constexpr (std::is_same_v<Function, kdfs::hkdf_extract_pieces>) {
+        return "hkdf_extract over pieces";
+    } else if constexpr (std::is_same_v<Function, kdfs::hkdf_expand_pieces>) {
+        return "hkdf_expand over pieces";
+    } else if constexpr (std::is_same_v<Function, kdfs::hkdf_pieces>) {
+        return "hkdf over pieces";
     } else {
         return test::name_of_operation<Function>();
     }
@@ -134,10 +148,20 @@ std::vector<json::object const*> functions_of(json::object const& table) {
     return functions;
 }
 
-// The row named `name`, or null when the file has none.
+// A row's key: its name, and " over <form>" for a row of a form of its function ("form": "pieces",
+// HKDF over pieces), which shares the function's name.
+std::string row_key(json::object const& function) {
+    std::string key(function.at("name").as_string());
+    if (auto const* const form = function.if_contains("form")) {
+        key.append(" over ").append(form->as_string());
+    }
+    return key;
+}
+
+// The row whose key is `name`, or null when the file has none.
 json::object const* find_row(json::object const& table, std::string_view name) {
     for (auto const* function : functions_of(table)) {
-        if (function->at("name").as_string() == name) {
+        if (row_key(*function) == name) {
             return function;
         }
     }
@@ -625,6 +649,16 @@ void report_differences(names const& in_file, names const& known) {
     }
 }
 
+// A form is HKDF's pieces alone, on a row of a function the file has without it.
+void check_forms(json::object const& table) {
+    for (auto const* function : functions_of(table)) {
+        if (auto const* const form = function->if_contains("form")) {
+            BOOST_TEST(form->is_string() && form->as_string() == "pieces");
+            BOOST_TEST(find_row(table, function->at("name").as_string()) != nullptr);
+        }
+    }
+}
+
 // The file's lists against the test's: its backends, its hmacs, its functions.
 void check_names(json::object const& table) {
     std::vector<std::string> backends;
@@ -646,7 +680,7 @@ void check_names(json::object const& table) {
 
     names functions;
     for (auto const* function : functions_of(table)) {
-        functions.emplace(function->at("name").as_string());
+        functions.emplace(row_key(*function));
         for (auto const& backend : function->at("backends").as_object()) {
             BOOST_TEST((std::ranges::find(backends, std::string(backend.key())) != backends.end()));
             auto const& listed = backend.value().at("hmacs");
@@ -657,8 +691,21 @@ void check_names(json::object const& table) {
         }
     }
     names known_functions{
-        "hkdf_extract",   "hkdf_expand", "hkdf",  "pbkdf2",  "argon2id", "scrypt",
-        "blake2b_subkey", "kbkdf",       "sskdf", "x963kdf", "bcrypt",   "bcrypt_pbkdf",
+        "hkdf_extract",
+        "hkdf_expand",
+        "hkdf",
+        "hkdf_extract over pieces",
+        "hkdf_expand over pieces",
+        "hkdf over pieces",
+        "pbkdf2",
+        "argon2id",
+        "scrypt",
+        "blake2b_subkey",
+        "kbkdf",
+        "sskdf",
+        "x963kdf",
+        "bcrypt",
+        "bcrypt_pbkdf",
     };
     for (auto const& row : type_rows()) {
         known_functions.emplace(row.name);
@@ -781,6 +828,18 @@ std::vector<refusal> const& refusals() {
             .start = "this backend has no HKDF.",
             .backend = "",
             .functions = {"hkdf"},
+            .hmacs = {"*"},
+        },
+        {
+            .header = "detail/engines.hpp",
+            .start = "this backend has no HMAC for HKDF over pieces.",
+            .backend = "",
+            .functions =
+                {
+                    "hkdf_extract over pieces",
+                    "hkdf_expand over pieces",
+                    "hkdf over pieces",
+                },
             .hmacs = {"*"},
         },
         {
@@ -915,6 +974,20 @@ std::vector<refusal> const& refusals() {
         {
             .header = "async.hpp",
             .start = "async_hkdf takes hmac_sha1_160, hmac_sha2_256",
+            .backend = "",
+            .functions = {},
+            .hmacs = {},
+        },
+        {
+            .header = "async.hpp",
+            .start = "async_hkdf_extract takes hmac_sha1_160, hmac_sha2_256",
+            .backend = "",
+            .functions = {},
+            .hmacs = {},
+        },
+        {
+            .header = "async.hpp",
+            .start = "async_hkdf_expand takes hmac_sha1_160, hmac_sha2_256",
             .backend = "",
             .functions = {},
             .hmacs = {},
@@ -1318,45 +1391,114 @@ struct hmac_digest<macs::hmac<Digest>> {
     using type = Digest;
 };
 
+// Whether the file's cell of backends::webcrypto in row `name`, column `hmac` ("" for a row
+// without hmacs), is `expected`.
+void check_webcrypto_cell(json::object const& table, std::string_view name, std::string_view hmac,
+                          bool expected) {
+    auto const* const row = find_row(table, name);
+    bool const in_file = row != nullptr && cell(*row, "webcrypto", hmac);
+    if (!BOOST_TEST_EQ(in_file, expected)) {
+        std::cerr << "  cell " << name << " / webcrypto / " << (hmac.empty() ? "-" : hmac) << '\n';
+    }
+}
+
+// The key derivations over an hmac that backends::webcrypto has: HKDF, its two steps, the three
+// HKDF functions over pieces and PBKDF2.
+using webcrypto_kdfs =
+    std::tuple<kdfs::hkdf, kdfs::hkdf_extract, kdfs::hkdf_expand, kdfs::hkdf_extract_pieces,
+               kdfs::hkdf_expand_pieces, kdfs::hkdf_pieces, kdfs::pbkdf2>;
+
+// backends::webcrypto's cell of Kdf over Hmac: there exactly for the hmacs of webcrypto_hmac_v,
+// and never one of backend_has_v.
+template <class Kdf, class Hmac>
+void check_webcrypto_kdf_cell(json::object const& table) {
+    check_webcrypto_cell(table, function_name<Kdf>(), test::name_of_hmac<Hmac>(),
+                         hash::detail::webcrypto_hmac_v<Hmac>);
+    BOOST_TEST((!hash::backend_has_v<hash::backends::webcrypto, Kdf, Hmac>));
+}
+
+// backends::webcrypto's cells of Kdf over every hmac column.
+template <class Kdf>
+void check_webcrypto_kdf_cells(json::object const& table) {
+    [&]<class... Hmac>(std::tuple<Hmac...>*) {
+        (check_webcrypto_kdf_cell<Kdf, Hmac>(table), ...);
+    }(static_cast<test::kdf_hmacs*>(nullptr));
+}
+
 // backends::webcrypto's cells (ruling R90): the digests and HMACs of async.hpp's
-// webcrypto_digest_v, HKDF and PBKDF2 over the hmacs of webcrypto_hmac_v, nothing else; and no
-// synchronous function takes it (backend_has_v is false for each of its cells).
+// webcrypto_digest_v, HKDF, its two steps, the three HKDF functions over pieces and PBKDF2 over
+// the hmacs of webcrypto_hmac_v, nothing else; and no synchronous function takes it
+// (backend_has_v is false for each of its cells).
 void check_webcrypto_cells(json::object const& table) {
     using hash::backends::webcrypto;
-    auto const agrees = [&](std::string_view name, std::string_view hmac, bool expected) {
-        auto const* const row = find_row(table, name);
-        bool const in_file = row != nullptr && cell(*row, "webcrypto", hmac);
-        if (!BOOST_TEST_EQ(in_file, expected)) {
-            std::cerr << "  cell " << name << " / webcrypto / " << (hmac.empty() ? "-" : hmac)
-                      << '\n';
-        }
-    };
     for_each_tag<digest_tags>(digest_names, [&]<class Tag>(std::string_view name) {
-        agrees(name, "", hash::detail::webcrypto_digest_v<Tag>);
+        check_webcrypto_cell(table, name, "", hash::detail::webcrypto_digest_v<Tag>);
         BOOST_TEST((!hash::backend_has_v<webcrypto, Tag, void>));
     });
     for_each_tag<mac_tags>(mac_names, [&]<class Tag>(std::string_view name) {
-        agrees(name, "", hash::detail::webcrypto_digest_v<typename hmac_digest<Tag>::type>);
+        check_webcrypto_cell(table, name, "",
+                             hash::detail::webcrypto_digest_v<typename hmac_digest<Tag>::type>);
         BOOST_TEST((!hash::backend_has_v<webcrypto, Tag, void>));
     });
-    for_each_tag<argon2_tags>(argon2_names,
-                              [&]<class Tag>(std::string_view name) { agrees(name, "", false); });
+    for_each_tag<argon2_tags>(argon2_names, [&]<class Tag>(std::string_view name) {
+        check_webcrypto_cell(table, name, "", false);
+    });
+    [&]<class... Kdf>(std::tuple<Kdf...>*) {
+        (check_webcrypto_kdf_cells<Kdf>(table), ...);
+    }(static_cast<webcrypto_kdfs*>(nullptr));
+    check_webcrypto_cell(table, "argon2id", "", false);
+    check_webcrypto_cell(table, "scrypt", "", false);
+}
+
+// Whether Backend has the HMAC of Hmac's column: macs::hmac<D> for its digest's tag D; for a
+// column without a tag (hmac_ripemd_128, "other"), Boost.Hash2's own hmac<H>, which
+// backends::hash2 alone has.
+template <class Backend, class Hmac>
+constexpr bool has_hmac() {
+    using digest = hash::detail::digest_tag_of<Hmac>::type;
+    if constexpr (std::is_void_v<digest>) {
+        return std::is_same_v<Backend, hash::backends::hash2>;
+    } else {
+        return hash::backend_has_v<Backend, macs::hmac<digest>, void>;
+    }
+}
+
+// The pieces row `name` on Backend, where the row has a cell of it: over exactly the hmacs whose
+// HMAC Backend has.
+template <class Backend>
+void check_pieces_cell(json::object const& row, std::string_view name) {
+    std::string_view const backend = test::name_of<Backend>();
+    auto const& backends = row.at("backends").as_object();
+    if (!backends.contains(backend) || !cells_here<Backend>()) {
+        return;
+    }
     [&]<class... Hmac>(std::tuple<Hmac...>*) {
         (
             [&] {
                 std::string_view const hmac = test::name_of_hmac<Hmac>();
-                bool const has = hash::detail::webcrypto_hmac_v<Hmac>;
-                agrees("hkdf", hmac, has);
-                agrees("pbkdf2", hmac, has);
-                agrees("hkdf_extract", hmac, false);
-                agrees("hkdf_expand", hmac, false);
-                BOOST_TEST((!hash::backend_has_v<webcrypto, kdfs::hkdf, Hmac>));
-                BOOST_TEST((!hash::backend_has_v<webcrypto, kdfs::pbkdf2, Hmac>));
+                if (!BOOST_TEST_EQ(cell(row, backend, hmac), (has_hmac<Backend, Hmac>()))) {
+                    std::cerr << "  cell " << name << " / " << backend << " / " << hmac
+                              << " against the backend's HMAC\n";
+                }
             }(),
             ...);
     }(static_cast<test::kdf_hmacs*>(nullptr));
-    agrees("argon2id", "", false);
-    agrees("scrypt", "", false);
+}
+
+// HKDF over pieces is wherever the backend's HMAC is (design D4): each backend of a pieces row has
+// it over exactly the hmacs whose HMAC it has.
+void check_pieces_cells(json::object const& table) {
+    [&]<class... Function>(std::tuple<Function...>*) {
+        (
+            [&]<class F>(F*) {
+                std::string_view const name = function_name<F>();
+                auto const& row = function_row(table, name);
+                [&]<class... Backend>(std::tuple<Backend...>*) {
+                    (check_pieces_cell<Backend>(row, name), ...);
+                }(static_cast<backend_tags*>(nullptr));
+            }(static_cast<Function*>(nullptr)),
+            ...);
+    }(static_cast<pieces_functions*>(nullptr));
 }
 
 }  // namespace
@@ -1369,11 +1511,13 @@ int main() {
     json::object const& table = parsed.as_object();
 
     check_names(table);
+    check_forms(table);
     check_type_rows(table);
     check_backend_fields(table);
     check_defaults(table);
     check_cells(table);
     check_webcrypto_cells(table);
+    check_pieces_cells(table);
     check_refusals(table, include);
     check_families(table, include);
     return webcpp::test::exit_status(boost::report_errors());

@@ -121,7 +121,7 @@ void derivations_enter() {
             (hash::argon2id<openssl>(derived, test_key, test_salt, {.passes = 1, .memory = 8192}))
                 .has_value());
     });
-    hash::argon2_parameters const family{.passes = 1, .memory_kib = 8};
+    hash::argon2_parameters const family{.passes = 1, .memory_kibibytes = 8};
     test::require_enters("hash::argon2 of argon2d on openssl", [&] {
         BOOST_TEST((hash::argon2<kdfs::argon2d, openssl>(derived, test_key, test_salt, family))
                        .has_value());
@@ -135,11 +135,13 @@ void derivations_enter() {
                        .has_value());
     });
     test::require_enters("hash::scrypt of N = 16 on openssl", [&] {
-        BOOST_TEST((hash::scrypt<openssl>(derived, test_key, test_salt, {.n = 16, .r = 1, .p = 1}))
+        BOOST_TEST((hash::scrypt<openssl>(derived, test_key, test_salt,
+                                          {.cost = 16, .block_size = 1, .parallelism = 1}))
                        .has_value());
     });
     test::require_enters("hash::scrypt of N = 1 on openssl", [&] {
-        BOOST_TEST(!(hash::scrypt<openssl>(derived, test_key, test_salt, {.n = 1, .r = 1, .p = 1}))
+        BOOST_TEST(!(hash::scrypt<openssl>(derived, test_key, test_salt,
+                                           {.cost = 1, .block_size = 1, .parallelism = 1}))
                         .has_value());
     });
 }

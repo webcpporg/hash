@@ -11,8 +11,10 @@
 // WEBCPP_TEST_TIMING_ASYNC_BOTAN the same on backends::botan with async_bcrypt, async_bcrypt_verify
 // and async_bcrypt_pbkdf) on a webcpp::asio::thread_pool of one thread entered the guard of its
 // synchronous function first on the pool's thread and none on the calling thread; the cheap ones
-// (async_hmac, async_hkdf) entered mac's and hkdf's on the calling thread, during the initiation,
-// and none on the pool's; async_digest, unkeyed, entered none on either; and a cancellation before
+// (async_hmac, async_hkdf_extract, async_hkdf_expand and async_hkdf, each HKDF function also over
+// byte pieces) entered mac's, hkdf_extract's, hkdf_expand's and hkdf's on the calling thread,
+// during the initiation, each pieces form the guard of its synchronous pieces overload, and none
+// on the pool's; async_digest, unkeyed, entered none on either; and a cancellation before
 // the heavy work starts entered none anywhere. After each completion, the pool's thread and the
 // calling thread are back to DIT off (where the CPU has it). The threads are synchronised by
 // futures and by probes posted to the pool and completed through the io_context, never by sleeps;
@@ -225,13 +227,14 @@ void check_heavy(asio::io_context& context, asio::thread_pool& pool) {
     heavy("async_argon2", "hash::argon2", context, pool, [&](auto handler) {
         hash::async_argon2<std::conditional_t<std::is_same_v<argon2_backend, hash::backends::botan>,
                                               kdfs::argon2id, kdfs::argon2i>,
-                           argon2_backend>(work, output, test_password, test_salt,
-                                           {.passes = 3, .memory_kib = 64, .lanes = argon2_lanes},
-                                           std::move(handler));
+                           argon2_backend>(
+            work, output, test_password, test_salt,
+            {.passes = 3, .memory_kibibytes = 64, .lanes = argon2_lanes}, std::move(handler));
     });
     heavy("async_scrypt", "hash::scrypt", context, pool, [&](auto handler) {
         hash::async_scrypt<scrypt_backend>(work, output, test_password, test_salt,
-                                           {.n = 1024, .r = 8, .p = 1}, std::move(handler));
+                                           {.cost = 1024, .block_size = 8, .parallelism = 1},
+                                           std::move(handler));
     });
 #ifdef WEBCPP_TEST_TIMING_ASYNC_BOTAN
     std::array<char, hash::bcrypt_hash_size> stored{};
@@ -274,6 +277,32 @@ void check_cheap(asio::io_context& context, asio::thread_pool& pool) {
         hash::async_hkdf<hash::hmac_sha2_256>(loop, output, test_salt, key, test_password,
                                               std::move(handler));
     });
+    std::array<std::span<std::uint8_t const>, 2> const pieces{
+        std::span(test_password).first(3),
+        std::span(test_password).subspan(3),
+    };
+    cheap("async_hkdf over pieces", "hash::hkdf(byte_pieces", context, pool, [&](auto handler) {
+        hash::async_hkdf<hash::hmac_sha2_256>(loop, output, test_salt, pieces, pieces,
+                                              std::move(handler));
+    });
+    cheap("async_hkdf_extract", "hash::hkdf_extract", context, pool, [&](auto handler) {
+        hash::async_hkdf_extract<hash::hmac_sha2_256>(loop, output, test_salt, test_password,
+                                                      std::move(handler));
+    });
+    cheap("async_hkdf_extract over pieces", "hash::hkdf_extract(byte_pieces", context, pool,
+          [&](auto handler) {
+              hash::async_hkdf_extract<hash::hmac_sha2_256>(loop, output, test_salt, pieces,
+                                                            std::move(handler));
+          });
+    cheap("async_hkdf_expand", "hash::hkdf_expand", context, pool, [&](auto handler) {
+        hash::async_hkdf_expand<hash::hmac_sha2_256>(loop, output, key, test_password,
+                                                     std::move(handler));
+    });
+    cheap("async_hkdf_expand over pieces", "hash::hkdf_expand(byte_pieces", context, pool,
+          [&](auto handler) {
+              hash::async_hkdf_expand<hash::hmac_sha2_256>(loop, output, key, pieces,
+                                                           std::move(handler));
+          });
 
     // async_digest is unkeyed: no thread enters a guard.
     reset_pool_thread(pool);
@@ -328,7 +357,8 @@ void check_cancelled_before(asio::io_context& context) {
     });
     cancelled([&](auto handler) {
         hash::async_scrypt<scrypt_backend>(work, output, test_password, test_salt,
-                                           {.n = 1024, .r = 8, .p = 1}, std::move(handler));
+                                           {.cost = 1024, .block_size = 8, .parallelism = 1},
+                                           std::move(handler));
     });
 #ifdef WEBCPP_TEST_TIMING_ASYNC_BOTAN
     std::array<char, hash::bcrypt_hash_size> stored{};

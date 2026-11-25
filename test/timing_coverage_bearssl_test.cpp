@@ -14,7 +14,8 @@
 // to the table; a cell of a family or function the support does not know fails here until its
 // call is written:
 // - mac over hmac<D> for MD5, SHA-1, SHA-224, SHA-256, SHA-384 and SHA-512.
-// - hkdf over the six hmacs of those digests.
+// - hkdf, and hkdf_extract, hkdf_expand and hkdf over pieces, over the six hmacs of those
+//   digests.
 // - Not guarded: each digest cell, through digest_of and a hasher round.
 
 #include "support/timing_coverage.hpp"

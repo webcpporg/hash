@@ -92,7 +92,7 @@ struct rfc9106_inputs {
     [[nodiscard]] hash::argon2_parameters parameters() const {
         return {
             .passes = 3,
-            .memory_kib = 32,
+            .memory_kibibytes = 32,
             .lanes = 4,
             .secret = secret,
             .associated_data = associated_data,
@@ -119,7 +119,7 @@ std::string rfc9106_reference(argon2_type type) {
                                                      .secret = in.secret,
                                                      .associated_data = in.associated_data,
                                                      .passes = 3,
-                                                     .memory_kib = 32,
+                                                     .memory_kibibytes = 32,
                                                      .lanes = 4,
                                                      .variant = type,
                                                  });
@@ -169,15 +169,15 @@ std::string evp_tag(stanza const& lines, std::size_t tag_size) {
     bytes const secret = ctrl("Ctrl.secret");
     bytes const associated_data = ctrl("Ctrl.ad");
     bytes tag(tag_size);
-    auto const done =
-        hash::argon2<Variant, openssl>(tag, password, salt,
-                                       {
-                                           .passes = ctrl_number(lines, "Ctrl.iter", 3),
-                                           .memory_kib = ctrl_number(lines, "Ctrl.memcost", 8),
-                                           .lanes = ctrl_number(lines, "Ctrl.lanes", 1),
-                                           .secret = secret,
-                                           .associated_data = associated_data,
-                                       });
+    auto const done = hash::argon2<Variant, openssl>(
+        tag, password, salt,
+        {
+            .passes = ctrl_number(lines, "Ctrl.iter", 3),
+            .memory_kibibytes = ctrl_number(lines, "Ctrl.memcost", 8),
+            .lanes = ctrl_number(lines, "Ctrl.lanes", 1),
+            .secret = secret,
+            .associated_data = associated_data,
+        });
     if (!BOOST_TEST(done.has_value())) {
         return {};
     }
@@ -208,13 +208,13 @@ bool refuses_evp_failure(stanza const& lines, std::size_t index, std::string_vie
         expected = hash::error::invalid_salt_size;
     }
     bytes tag(tag_size, untouched);
-    auto const refused =
-        hash::argon2<Variant, openssl>(tag, {}, salt,
-                                       {
-                                           .passes = ctrl_number(lines, "Ctrl.iter", 3),
-                                           .memory_kib = ctrl_number(lines, "Ctrl.memcost", 8),
-                                           .lanes = ctrl_number(lines, "Ctrl.lanes", 1),
-                                       });
+    auto const refused = hash::argon2<Variant, openssl>(
+        tag, {}, salt,
+        {
+            .passes = ctrl_number(lines, "Ctrl.iter", 3),
+            .memory_kibibytes = ctrl_number(lines, "Ctrl.memcost", 8),
+            .lanes = ctrl_number(lines, "Ctrl.lanes", 1),
+        });
     if (!BOOST_TEST(failed_with(refused, expected)) || !BOOST_TEST(all_of(tag, untouched))) {
         std::cerr << "  evpkdf_argon2.txt, expected failure " << index << " (" << kdf
                   << "), which the family does not refuse with "
@@ -291,7 +291,7 @@ void agree_with_reference(argon2_type type, std::string_view name) {
         auto const associated_data = index % 3 == 1 ? bytes{} : rnd.bytes(rnd.between(1, 32));
         auto const passes = static_cast<std::uint32_t>(rnd.between(1, 3));
         auto const lanes = static_cast<std::uint32_t>(rnd.between(1, 4));
-        auto const memory_kib =
+        auto const memory_kibibytes =
             static_cast<std::uint32_t>(rnd.between(std::size_t{8} * lanes, 256));
         std::size_t const tag_size = rnd.between(16, 80);
 
@@ -302,7 +302,7 @@ void agree_with_reference(argon2_type type, std::string_view name) {
                                                               .secret = secret,
                                                               .associated_data = associated_data,
                                                               .passes = passes,
-                                                              .memory_kib = memory_kib,
+                                                              .memory_kibibytes = memory_kibibytes,
                                                               .lanes = lanes,
                                                               .variant = type,
                                                           });
@@ -310,7 +310,7 @@ void agree_with_reference(argon2_type type, std::string_view name) {
         auto const done = hash::argon2<Variant, openssl>(tag, password, salt,
                                                          {
                                                              .passes = passes,
-                                                             .memory_kib = memory_kib,
+                                                             .memory_kibibytes = memory_kibibytes,
                                                              .lanes = lanes,
                                                              .secret = secret,
                                                              .associated_data = associated_data,
@@ -318,7 +318,7 @@ void agree_with_reference(argon2_type type, std::string_view name) {
         if (!BOOST_TEST_EQ(code, ARGON2_OK) || !BOOST_TEST(done.has_value()) ||
             !BOOST_TEST_EQ(test::to_hex(tag), test::to_hex(expected))) {
             std::cerr << "  " << name << " case " << index << ": t " << passes << ", m "
-                      << memory_kib << ", p " << lanes << ", tag " << tag_size << '\n';
+                      << memory_kibibytes << ", p " << lanes << ", tag " << tag_size << '\n';
         }
     }
 }
@@ -332,11 +332,11 @@ void agree_argon2id_with_sodium() {
         auto const password = rnd.bytes(rnd.between(0, 64));
         auto const salt = rnd.bytes(hash::argon2id_salt_size);
         auto const passes = static_cast<std::uint32_t>(rnd.between(1, 3));
-        auto const memory_kib = static_cast<std::uint32_t>(rnd.between(8, 256));
+        auto const memory_kibibytes = static_cast<std::uint32_t>(rnd.between(8, 256));
         std::size_t const tag_size = rnd.between(16, 80);
         hash::argon2id_parameters const costs{
             .passes = passes,
-            .memory = std::size_t{memory_kib} * 1024,
+            .memory = std::size_t{memory_kibibytes} * 1024,
         };
 
         bytes expected(tag_size);
@@ -345,8 +345,9 @@ void agree_argon2id_with_sodium() {
         bool const all_done =
             hash::argon2id<sodium>(expected, password, salt, costs).has_value() &&
             hash::argon2id<openssl>(function_tag, password, salt, costs).has_value() &&
-            hash::argon2<kdfs::argon2id, openssl>(family_tag, password, salt,
-                                                  {.passes = passes, .memory_kib = memory_kib})
+            hash::argon2<kdfs::argon2id, openssl>(
+                family_tag, password, salt,
+                {.passes = passes, .memory_kibibytes = memory_kibibytes})
                 .has_value();
         if (!BOOST_TEST(all_done) ||
             !BOOST_TEST_EQ(test::to_hex(function_tag), test::to_hex(expected)) ||
@@ -365,7 +366,7 @@ void agree_argon2i_with_sodium() {
         auto const password = rnd.bytes(rnd.between(0, 64));
         auto const salt = rnd.bytes(crypto_pwhash_argon2i_SALTBYTES);
         auto const passes = static_cast<std::uint32_t>(rnd.between(3, 4));
-        auto const memory_kib = static_cast<std::uint32_t>(rnd.between(8, 256));
+        auto const memory_kibibytes = static_cast<std::uint32_t>(rnd.between(8, 256));
         std::size_t const tag_size = rnd.between(16, 80);
 
         bytes expected(tag_size);
@@ -373,10 +374,10 @@ void agree_argon2i_with_sodium() {
         auto const* const password_chars = reinterpret_cast<char const*>(password.data());
         int const code = crypto_pwhash_argon2i(
             expected.data(), expected.size(), password_chars, password.size(), salt.data(), passes,
-            std::size_t{memory_kib} * 1024, crypto_pwhash_argon2i_ALG_ARGON2I13);
+            std::size_t{memory_kibibytes} * 1024, crypto_pwhash_argon2i_ALG_ARGON2I13);
         bytes tag(tag_size);
         auto const done = hash::argon2<kdfs::argon2i, openssl>(
-            tag, password, salt, {.passes = passes, .memory_kib = memory_kib});
+            tag, password, salt, {.passes = passes, .memory_kibibytes = memory_kibibytes});
         if (!BOOST_TEST_EQ(code, 0) || !BOOST_TEST(done.has_value()) ||
             !BOOST_TEST_EQ(test::to_hex(tag), test::to_hex(expected))) {
             std::cerr << "  argon2i against libsodium, case " << index << '\n';
@@ -408,11 +409,11 @@ void check_limits() {
     // The family: m of at most 4,194,303 KiB on wasm32 (a size_t of 4 GiB less 1 KiB),
     // unsupported_by_backend past it; natively RFC 9106's whole range.
     constexpr std::uint32_t family_limit =
-        hash::detail::argon2_engine<openssl, kdfs::argon2id>::limits.max_memory_kib;
+        hash::detail::argon2_engine<openssl, kdfs::argon2id>::limits.max_memory_kibibytes;
     static_assert(family_limit == (sizeof(std::size_t) == 4 ? 4194303U : 0xffffffffU));
     if constexpr (sizeof(std::size_t) == 4) {
         auto const refused = hash::argon2<kdfs::argon2id, openssl>(
-            output, {}, salt, {.passes = 1, .memory_kib = family_limit + 1});
+            output, {}, salt, {.passes = 1, .memory_kibibytes = family_limit + 1});
         BOOST_TEST(failed_with(refused, hash::error::unsupported_by_backend));
         BOOST_TEST(all_of(output, untouched));
     }
@@ -420,14 +421,14 @@ void check_limits() {
     // RFC 9106's shortest tag, 4 bytes, which libsodium does not produce.
     std::array<std::uint8_t, 4> shortest{};
     shortest.fill(untouched);
-    BOOST_TEST(
-        (hash::argon2<kdfs::argon2d, openssl>(shortest, {}, salt, {.passes = 1, .memory_kib = 8})
-             .has_value()));
+    BOOST_TEST((hash::argon2<kdfs::argon2d, openssl>(shortest, {}, salt,
+                                                     {.passes = 1, .memory_kibibytes = 8})
+                    .has_value()));
     BOOST_TEST(!all_of(shortest, untouched));
 
     // The family's guards come before the backend: m below 8p.
     auto const refused = hash::argon2<kdfs::argon2d, openssl>(
-        output, {}, salt, {.passes = 1, .memory_kib = 31, .lanes = 4});
+        output, {}, salt, {.passes = 1, .memory_kibibytes = 31, .lanes = 4});
     BOOST_TEST(failed_with(refused, hash::error::invalid_parameters));
     BOOST_TEST(all_of(output, untouched));
 }

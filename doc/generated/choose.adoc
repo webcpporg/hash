@@ -49,7 +49,7 @@
 | `example/bcrypt.cpp`
 
 | turn a shared secret (an ECDH result) into keys
-| <<hash-hkdf,hkdf over hmac_sha2_256, one info label per key>>
+| <<hash-hkdf,hkdf over hmac_sha2_256, one application info label per key>>
 | `hash2`: `/webcpp/hash//hash`, `sodium`: `/third_party//sodium`, `bearssl`: `/third_party//bearssl`, `openssl`: `/webcpp/hash//openssl`, `botan` (with exceptions only): `/third_party//botan`, `webcrypto` (asynchronous family only): `/webcpp/asio//asio`
 | the default; name a backend only to match another program's
 | `example/hkdf.cpp`
@@ -73,8 +73,8 @@
 | `example/kbkdf.cpp`
 
 | derive many keys from one master key, one per purpose
-| <<hash-privacy-subkeys,hkdf_expand (or hkdf) with distinct info labels, blake2b_subkey (libsodium's crypto_kdf) by id, or blake3::derive_key with a context string>>
-| `hash2`: `/webcpp/hash//hash`, `sodium`: `/third_party//sodium`, `openssl`: `/webcpp/hash//openssl`, `botan` (with exceptions only): `/third_party//botan`
+| <<hash-privacy-subkeys,hkdf_expand (or hkdf) with distinct application info labels, blake2b_subkey (libsodium's crypto_kdf) by id, or blake3::derive_key with a context string>>
+| `hash2`: `/webcpp/hash//hash`, `sodium`: `/third_party//sodium`, `openssl`: `/webcpp/hash//openssl`, `botan` (with exceptions only): `/third_party//botan`, `webcrypto` (asynchronous family only): `/webcpp/asio//asio`
 | the default
 | `example/subkeys.cpp`
 
@@ -116,7 +116,7 @@
 
 | derive NIP-44's conversation key
 | <<hash-p2p-nip44,hkdf_extract over hmac_sha2_256 with the salt nip44-v2 (a domain library's step)>>
-| `hash2`: `/webcpp/hash//hash`, `sodium`: `/third_party//sodium`, `openssl`: `/webcpp/hash//openssl`, `botan` (with exceptions only): `/third_party//botan`
+| `hash2`: `/webcpp/hash//hash`, `sodium`: `/third_party//sodium`, `openssl`: `/webcpp/hash//openssl`, `botan` (with exceptions only): `/third_party//botan`, `webcrypto` (asynchronous family only): `/webcpp/asio//asio`
 | the default
 | `example/nip44_conversation_key.cpp`
 

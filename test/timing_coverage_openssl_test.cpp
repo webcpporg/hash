@@ -15,8 +15,8 @@
 // call is written:
 // - mac over siphash_2_4, siphash_2_4x, kmac_128, kmac_256, blake2b_mac, blake2s_mac and
 //   hmac<D> for each digest of the backend's cells.
-// - hkdf_extract, hkdf_expand, hkdf, pbkdf2 and kbkdf over each hmac of hmac.hpp the cells list
-//   (all but hmac_ripemd_128); sskdf and x963kdf.
+// - hkdf_extract, hkdf_expand, hkdf (each also over pieces), pbkdf2 and kbkdf over each hmac of
+//   hmac.hpp the cells list (all but hmac_ripemd_128); sskdf and x963kdf.
 // - argon2id; argon2 of argon2d, argon2i and argon2id; scrypt.
 // - BLAKE2b with a key (design D1): digest_of and hasher::make, which the cell refuses
 //   (unsupported_by_backend) inside the guard.

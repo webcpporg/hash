@@ -32,14 +32,14 @@ void check_rfc7914_large() {
     auto const& c = test::rfc7914_large;
     std::array<std::uint8_t, 64> output{};
     BOOST_TEST(hash::scrypt<openssl>(output, test::bytes_of(c.password), test::bytes_of(c.salt),
-                                     {.n = c.n, .r = c.r, .p = c.p})
+                                     {.cost = c.n, .block_size = c.r, .parallelism = c.p})
                    .has_value());
     BOOST_TEST_EQ(test::to_hex(output), std::string(c.output));
 }
 
 void check_past_default_limit() {
     auto const& c = test::rfc7914_large;
-    hash::scrypt_parameters const costs{.n = c.n, .r = 9, .p = 1};
+    hash::scrypt_parameters const costs{.cost = c.n, .block_size = 9, .parallelism = 1};
     std::array<std::uint8_t, 64> expected{};
     std::array<std::uint8_t, 64> output{};
     BOOST_TEST(

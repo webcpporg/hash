@@ -22,7 +22,7 @@ int main() {
     // memory is 128 r N bytes, 1 MiB here. A real password hash uses a larger N.
     std::array<std::uint8_t, 64> key{};
     auto const done = webcpp::hash::scrypt(key, example::bytes("password"), example::bytes("NaCl"),
-                                           {.n = 1024, .r = 8, .p = 16});
+                                           {.cost = 1024, .block_size = 8, .parallelism = 16});
     if (!done) {
         std::cerr << done.error().message() << '\n';
         return 1;

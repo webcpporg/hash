@@ -62,6 +62,7 @@ webcpp.headers-alone hash : ../include :
     hash/backends/hash2.hpp
     hash/bcrypt.hpp
     hash/blake2b_subkey.hpp
+    hash/byte_pieces.hpp
     hash/config.hpp
     hash/detail/engines.hpp
     hash/detail/limits.hpp
@@ -233,6 +234,35 @@ hash-run hash2_mac_vectors : hash2_mac_vectors_test.cpp
 # reported through the seam WEBCPP_HASH_DETAIL_TEST_WIPE_RECORD.
 hash-run hkdf_hash2 : hkdf_hash2_test.cpp ;
 hash-run hkdf_guards : hkdf_guards_test.cpp ;
+
+# HKDF over pieces (byte_pieces): the call's overloads, the list's counts and
+# the slicing of a piece; then the pieces forms on backends::hash2 against
+# the single-buffer forms and an RFC 5869 computation of the test's own
+# (support/hkdf_pieces.hpp), again with the seam that feeds the HMAC in
+# slices of 7 bytes.
+hash-run byte_pieces : byte_pieces_test.cpp ;
+hash-run hkdf_pieces : hkdf_pieces_test.cpp ;
+hash-run hkdf_pieces_sliced : hkdf_pieces_test.cpp
+  : <define>WEBCPP_HASH_DETAIL_TEST_HKDF_PIECES_SLICE=7 ;
+# The same on backends::sodium (libsodium's crypto_auth_hmacsha256_* and
+# crypto_auth_hmacsha512_*) and on backends::bearssl (br_hmac_*, its six
+# hmacs, Extract and Expand over pieces included), each with the wipe of every
+# HMAC state, block and pseudorandom key reported through the seam
+# WEBCPP_HASH_DETAIL_TEST_WIPE_RECORD, and again in slices of 7 bytes.
+hash-run hkdf_pieces_sodium : hkdf_pieces_sodium_test.cpp
+  : <library>/third_party//sodium <define>WEBCPP_HASH_DETAIL_TEST_WIPE_RECORD ;
+hash-run hkdf_pieces_sodium_sliced : hkdf_pieces_sodium_test.cpp
+  : <library>/third_party//sodium <define>WEBCPP_HASH_DETAIL_TEST_WIPE_RECORD
+    <define>WEBCPP_HASH_DETAIL_TEST_HKDF_PIECES_SLICE=7 ;
+hash-run hkdf_pieces_sodium_sha512_sliced : hkdf_pieces_sodium_test.cpp
+  : <library>/third_party//sodium <define>WEBCPP_HASH_DETAIL_TEST_WIPE_RECORD
+    <define>WEBCPP_HASH_DETAIL_TEST_HKDF_PIECES_SLICE=7
+    <define>WEBCPP_HASH_DETAIL_TEST_SLICED_HMAC_SHA2_512 ;
+hash-run hkdf_pieces_bearssl : hkdf_pieces_bearssl_test.cpp
+  : <library>/third_party//bearssl <define>WEBCPP_HASH_DETAIL_TEST_WIPE_RECORD ;
+hash-run hkdf_pieces_bearssl_sliced : hkdf_pieces_bearssl_test.cpp
+  : <library>/third_party//bearssl <define>WEBCPP_HASH_DETAIL_TEST_WIPE_RECORD
+    <define>WEBCPP_HASH_DETAIL_TEST_HKDF_PIECES_SLICE=7 ;
 hash-run wipe : wipe_test.cpp : <define>WEBCPP_HASH_DETAIL_TEST_WIPE_RECORD ;
 
 # digests::blake2b on backends::sodium, libsodium's crypto_generichash_blake2b
@@ -322,6 +352,17 @@ hash-run families_bearssl : families_bearssl_test.cpp
 # WEBCPP_HASH_DETAIL_TEST_OPENSSL_DIGEST, a digest OpenSSL cannot fetch.
 hash-run hkdf_openssl : hkdf_openssl_test.cpp : <library>/webcpp/hash//openssl
   : native wasip2 wasip3 ;
+# HKDF over pieces on backends::openssl, over EVP_MAC "HMAC" (its 15 hmacs):
+# the equality harness, each block and pseudorandom key wiped through the seam
+# WEBCPP_HASH_DETAIL_TEST_WIPE_RECORD, the error queue left empty; again in
+# slices of 7 bytes.
+hash-run hkdf_pieces_openssl : hkdf_pieces_openssl_test.cpp
+  : <library>/webcpp/hash//openssl <define>WEBCPP_HASH_DETAIL_TEST_WIPE_RECORD
+  : native wasip2 wasip3 ;
+hash-run hkdf_pieces_openssl_sliced : hkdf_pieces_openssl_test.cpp
+  : <library>/webcpp/hash//openssl <define>WEBCPP_HASH_DETAIL_TEST_WIPE_RECORD
+    <define>WEBCPP_HASH_DETAIL_TEST_HKDF_PIECES_SLICE=7
+  : native wasip2 wasip3 ;
 hash-run pbkdf2_openssl : pbkdf2_openssl_test.cpp
   : <library>/webcpp/hash//openssl : native wasip2 wasip3 ;
 hash-run openssl_error_queue : openssl_error_queue_test.cpp
@@ -351,9 +392,9 @@ hash-run macs_openssl : macs_openssl_test.cpp
     <library>/third_party//blake2_vectors <library>/webcpp//boost_json
   : native wasip2 wasip3 ;
 # OpenSSL out of memory: each allocation of a call of backends::openssl (mac,
-# digest_of, hasher::make, argon2, argon2id, scrypt) made to fail in turn,
-# through CRYPTO_set_mem_functions; the answer, the output zeroed, every block
-# freed and the error queue empty.
+# digest_of, hasher::make, argon2, argon2id, scrypt, HKDF over pieces) made to
+# fail in turn, through CRYPTO_set_mem_functions; the answer, the output zeroed,
+# every block freed and the error queue empty.
 hash-run openssl_out_of_memory : openssl_out_of_memory_test.cpp
   : <library>/webcpp/hash//openssl : native wasip2 wasip3 ;
 # backends::openssl's limits (OpenSSL holds some lengths in an int), natively:
@@ -406,6 +447,15 @@ webcpp.compile botan_no_exceptions : botan_no_exceptions_test.cpp
 # RFC 7914's, the guards at their limits, keys past Botan's HMAC's 8,192 bytes,
 # and 1,000 seeded cases each against backends::hash2 over every hmac Botan has.
 botan-run kdfs_botan : kdfs_botan_test.cpp ;
+# HKDF over pieces on backends::botan, over its HMAC (its 14 hmacs): the
+# equality harness, a salt past Botan's 8,192-byte HMAC key, the digest room,
+# each block and pseudorandom key wiped through the seam
+# WEBCPP_HASH_DETAIL_TEST_WIPE_RECORD; again in slices of 7 bytes.
+botan-run hkdf_pieces_botan : hkdf_pieces_botan_test.cpp
+  : <define>WEBCPP_HASH_DETAIL_TEST_WIPE_RECORD ;
+botan-run hkdf_pieces_botan_sliced : hkdf_pieces_botan_test.cpp
+  : <define>WEBCPP_HASH_DETAIL_TEST_WIPE_RECORD
+    <define>WEBCPP_HASH_DETAIL_TEST_HKDF_PIECES_SLICE=7 ;
 # Argon2 on backends::botan: RFC 9106's three cases through the family,
 # libsodium's table through argon2id, argon2_ctx on random cases with lanes, a
 # secret and associated data, libsodium at one lane, and Botan's limits (129
@@ -497,12 +547,14 @@ hash-run webcrypto_oracle : webcrypto_oracle_test.cpp
     <linkflags>-sJSPI : emscripten ;
 
 # The asynchronous family (spec 11). The cheap functions on a synchronous
-# backend, their default and backends::hash2 named, complete through a post,
-# never inside the call, on every target. The heavy functions run on a
-# thread_pool's thread where the build has threads: natively and on Emscripten
-# with -pthread (threading=multi), whose pools' three workers start before
-# main blocks in run (PTHREAD_POOL_SIZE).
-hash-run async_post : async_post_test.cpp : <library>/webcpp/asio//asio ;
+# backend, their default and backends::hash2 named (the HKDF functions also
+# backends::sodium), complete through a post, never inside the call, on every
+# target; the forms over pieces read them in the call. The heavy functions run
+# on a thread_pool's thread where the build has threads: natively and on
+# Emscripten with -pthread (threading=multi), whose pools' three workers start
+# before main blocks in run (PTHREAD_POOL_SIZE).
+hash-run async_post : async_post_test.cpp
+  : <library>/webcpp/asio//asio <library>/third_party//sodium ;
 # backends::webcrypto, node's crypto.subtle through webcpp::asio's promise
 # bridge (Emscripten only, asio's JSPI link): the published cases with three
 # completion tokens, 100 random cases per function against backends::hash2,
@@ -510,6 +562,13 @@ hash-run async_post : async_post_test.cpp : <library>/webcpp/asio//asio ;
 # cancellation and the handler's allocator.
 hash-run async_webcrypto : async_webcrypto_test.cpp
   : <library>/webcpp/asio//asio : emscripten ;
+# The same program with the bound of the bytes gathered into one JavaScript
+# buffer lowered from 2^53 - 1 to 100 by a test seam: it checks that refusal
+# alone (backend_failure, the output zeroed).
+hash-run async_webcrypto_gathered : async_webcrypto_test.cpp
+  : <library>/webcpp/asio//asio
+    <define>WEBCPP_HASH_DETAIL_TEST_WEBCRYPTO_MAX_GATHERED=100
+  : emscripten ;
 hash-run async_heavy : async_heavy_test.cpp
   : <library>/webcpp/asio//asio <library>/third_party//sodium <threading>multi
     <toolset>emscripten:<linkflags>-sPTHREAD_POOL_SIZE=3
@@ -567,6 +626,9 @@ hash-run sodium_threads : sodium_threads_test.cpp
 
 # scrypt on backends::sodium: RFC 7914's first three cases and the guards.
 hash-run scrypt : scrypt_test.cpp : <library>/third_party//sodium ;
+# The spelled-out names (design D7): scrypt's cost, block_size, parallelism,
+# argon2's memory_kibibytes and hkdf_max_application_info_size.
+hash-run names : names_test.cpp : <library>/third_party//sodium ;
 # RFC 7914's fourth case (1 GiB), on every target: it passed natively and on
 # wasip2, wasip3 and emscripten (with /third_party//sodium's memory growth),
 # each in 5 to 25 seconds unoptimised (wasmtime 47.0.3, node 26.13).
@@ -725,7 +787,8 @@ botan-run timing_async_botan : timing_async_test.cpp
 
 # DIT is set while a keyed function computes: a Hash2-form probe records DIT at
 # each update under the hmac of hkdf_extract, hkdf_expand, hkdf, pbkdf2 and mac;
-# timing_during_async the same through async_pbkdf2, on the pool's thread.
+# timing_during_async the same through async_pbkdf2, on the pool's thread, and
+# through the asynchronous HKDF functions over pieces, in the initiating call.
 hash-run timing_during : timing_during_test.cpp ;
 hash-run timing_during_async : timing_during_test.cpp
   : <library>/webcpp/asio//asio <threading>multi <define>WEBCPP_TEST_TIMING_DURING_ASYNC
@@ -773,7 +836,11 @@ hash-run timing_coverage_xkcp : timing_coverage_xkcp_test.cpp
   : $(.hash-tables) <library>/third_party//xkcp ;
 hash-run timing_coverage_blake3 : timing_coverage_blake3_test.cpp
   : $(.hash-tables) <library>/third_party//blake3 ;
-botan-run timing_coverage_botan : timing_coverage_botan_test.cpp : $(.hash-tables) ;
+# Its every Botan cell (the HKDF-over-pieces ones too) instantiates enough
+# templates to pass the 65,279 sections of an MSVC 14.3 x64 object (C1128),
+# so MSVC compiles it with /bigobj, as tools/webcpp-botan.jam does Botan.
+botan-run timing_coverage_botan : timing_coverage_botan_test.cpp
+  : $(.hash-tables) <toolset>msvc:<cxxflags>/bigobj ;
 
 build-project messages ;
 

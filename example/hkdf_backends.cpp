@@ -25,12 +25,13 @@ namespace {
 // RFC 5869, appendix A.1, on the backend `Backend`.
 template <class Backend>
 std::string okm() {
-    auto const ikm = example::from_hex("0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b");
+    auto const input_key_material =
+        example::from_hex("0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b");
     auto const salt = example::from_hex("000102030405060708090a0b0c");
-    auto const info = example::from_hex("f0f1f2f3f4f5f6f7f8f9");
+    auto const application_info = example::from_hex("f0f1f2f3f4f5f6f7f8f9");
     std::array<std::uint8_t, 42> out{};
-    auto const done =
-        webcpp::hash::hkdf<webcpp::hash::hmac_sha2_256, Backend>(out, salt, ikm, info);
+    auto const done = webcpp::hash::hkdf<webcpp::hash::hmac_sha2_256, Backend>(
+        out, salt, input_key_material, application_info);
     return done ? example::hex(out) : done.error().message();
 }
 

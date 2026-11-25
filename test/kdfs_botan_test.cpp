@@ -219,8 +219,8 @@ bytes pattern(std::size_t size, unsigned seed) {
 }
 
 // Spec 2.8: an output of 0 or more than 255 digests, a PRK of another size than the digest's and
-// an info of more than hkdf_max_info_size bytes, refused before Botan, the output untouched; the
-// longest output and the longest info computed, as backends::hash2 computes them.
+// an info of more than hkdf_max_application_info_size bytes, refused before Botan, the output
+// untouched; the longest output and the longest info computed, as backends::hash2 computes them.
 void check_hkdf_guards() {
     using hmac = hash::hmac_sha2_256;
     constexpr std::size_t h = digest_size<hmac>;
@@ -242,14 +242,14 @@ void check_hkdf_guards() {
                            hash::error::invalid_key_size));
     BOOST_TEST(failed_with(hash::hkdf_expand<hmac, botan>(output, pattern(h + 1, 4), info),
                            hash::error::invalid_key_size));
-    bytes const too_much_info = pattern(hash::hkdf_max_info_size + 1, 3);
+    bytes const too_much_info = pattern(hash::hkdf_max_application_info_size + 1, 3);
     BOOST_TEST(failed_with(hash::hkdf<hmac, botan>(output, salt, ikm, too_much_info),
                            hash::error::input_too_long));
     BOOST_TEST(failed_with(hash::hkdf_expand<hmac, botan>(output, prk, too_much_info),
                            hash::error::input_too_long));
     BOOST_TEST(all_of(output, untouched));
 
-    bytes const longest_info = pattern(hash::hkdf_max_info_size, 3);
+    bytes const longest_info = pattern(hash::hkdf_max_application_info_size, 3);
     for (std::size_t const size : {std::size_t{1}, 255 * h}) {
         bytes expected(size);
         bytes derived(size, untouched);

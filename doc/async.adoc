@@ -29,15 +29,16 @@ The functions come in two kinds:
 
 * *The heavy functions*, `async_argon2id`, `async_argon2`, `async_scrypt`,
 `async_pbkdf2`, `async_bcrypt`, `async_bcrypt_pbkdf` and
-`async_bcrypt_verify`, run the work on another thread, on an executor the program
-gives (the executor of a `webcpp::asio::thread_pool`), and complete on the
-event loop. They exist only where the build has threads.
-* *The cheap functions*, `async_digest`, `async_hmac` and `async_hkdf`, cost
-microseconds: they run at once and complete through the event loop, never
-inside the call. They exist on every target, for the algorithms the browser's
-WebCrypto has (SHA-1, SHA-256, SHA-384, SHA-512, and HMAC and HKDF over them),
-so that a program written once against WebCrypto's family builds and runs
-everywhere.
+`async_bcrypt_verify`, run the work on another thread, on an executor the
+program gives (the executor of a `webcpp::asio::thread_pool`), and complete on
+the event loop. They exist only where the build has threads.
+* *The cheap functions*, `async_digest`, `async_hmac`, `async_hkdf_extract`,
+`async_hkdf_expand` and `async_hkdf` (each HKDF function also over byte
+pieces), cost microseconds: they run at once and complete through the event
+loop, never inside the call. They exist on every target, for the algorithms
+the browser's WebCrypto has (SHA-1, SHA-256, SHA-384, SHA-512, and HMAC and
+HKDF over them), so that a program written once against WebCrypto's family
+builds and runs everywhere.
 
 Each runs, by default, on the synchronous function's backend
 (<<hash-default-backend>>): `backends::webcrypto`, the browser's WebCrypto, is
@@ -204,12 +205,12 @@ interrupted.
 [#hash-async-cheap]
 === The cheap functions through the event loop
 
-`async_digest`, `async_hmac` and `async_hkdf` run the synchronous function at
-once, its guards first, and post the completion, with its error code, to the
-executor the call gives, whence it reaches the handler's associated executor.
-The completion never runs inside the call, so a handler written for the
-browser's WebCrypto, which always completes later, behaves the same on every
-target:
+`async_digest`, `async_hmac`, `async_hkdf_extract`, `async_hkdf_expand` and
+`async_hkdf` run the synchronous function at once, its guards first, and post
+the completion, with its error code, to the executor the call gives, whence it
+reaches the handler's associated executor. The completion never runs inside
+the call, so a handler written for the browser's WebCrypto, which always
+completes later, behaves the same on every target:
 
 [source]
 ----
@@ -227,6 +228,25 @@ include::{examples}/async_hkdf.expected[]
 as `async_digest<digests::blake2b>`, stops the build: a post would add nothing
 to the synchronous function.
 
+HKDF's three asynchronous functions are those of <<hash-hkdf>>, the
+pseudorandom key written into a span of the digest's size:
+`async_hkdf_extract(executor, pseudorandom_key, salt, input_key_material,
+token)`, `async_hkdf_expand(executor, output_key_material, pseudorandom_key,
+application_info, token)` and `async_hkdf(executor, output_key_material, salt,
+input_key_material, application_info, token)`. Each also has a form over
+`byte_pieces` (<<hash-hkdf-pieces>>), with no limit on the pieces, whose
+inputs are read in the call: on a synchronous backend the synchronous function
+over pieces runs in the call itself and only its error code is posted, and on
+`backends::webcrypto` the salt, the pseudorandom key and the pieces are copied
+into JavaScript memory in the call. So a braced list written at the call,
+whose array dies at the end of the call's full expression, is safe with every
+completion token, a lazy one included: `async_hkdf(executor, key, salt,
+{hpke_v1, suite_id, extract_label, ikm}, {length, hpke_v1, suite_id,
+expand_label, info}, token)` runs one HPKE LabeledExtract and one
+LabeledExpand in one asynchronous call. `hkdf_pieces.cpp`
+(<<hash-hkdf-pieces>>) calls `hkdf_extract` and `hkdf_expand` apart instead,
+since HPKE's key schedule expands one secret three times.
+
 *Pitfalls.*
 
 * *The storage is the handler's.* The post allocates with the handler's
@@ -234,7 +254,21 @@ associated allocator (`bind_allocator`), as every Asio operation does; a
 program that counts or pools its allocations binds its own.
 * *The same spans rule.* The output and the inputs are the caller's until the
 completion, even though the work runs before the call returns: a backend
-named in the type may run later (WebCrypto does).
+named in the type may run later (WebCrypto does). The forms over pieces read
+every input in the call, on every backend: the salt, the pseudorandom key, the
+pieces and their list. Only the output stays the caller's until the
+completion.
+* *A lazy token does not delay the forms over pieces.* With `asio::deferred`,
+or the awaitable of `use_awaitable`, an operation normally starts when it is
+launched or awaited. The forms over pieces on a synchronous backend compute
+and write the output at the call, before the token is used; only the
+completion waits. A program that must not derive before the launch calls
+them at the launch.
+* *A lone `{}` is ambiguous.* As in the synchronous functions, `{}`, or a
+braced list of one element that is not exactly a
+`std::span<std::uint8_t const>`, in a pieces position matches both forms:
+`async_hkdf(executor, okm, salt, {}, {}, token)` does not compile. Pass an
+empty span, `x` itself or `+byte_pieces{...}+`.
 * *`backends::webcrypto` is for Emscripten.* Named off Emscripten, it stops
 the build: "webcpp::hash: backends::webcrypto exists only on Emscripten: name
 a synchronous backend, or leave the default." In a synchronous function it
@@ -295,11 +329,26 @@ Strands and type-erased executors of the `io_context` are accepted; behind
 type: pass the inner strand, or the executor of the `io_context`. That the
 `io_context` runs on the calling thread is the program's duty: it cannot be
 checked.
-* *WebCrypto's limits are narrower.* An HKDF info longer than 1,024 bytes
-(node's limit, where the other backends take 32,768) completes with
-`input_too_long`; PBKDF2's iteration count is at most 2^32 - 1
-(`invalid_iterations`); an output of HKDF or PBKDF2 is at most
+* *WebCrypto's limits are narrower.* The single-buffer `async_hkdf` runs
+WebCrypto's own HKDF, `deriveBits`, and an application_info longer than 1,024
+bytes (node's limit, where the other backends take 32,768) completes with
+`input_too_long`. The other HKDF functions run RFC 5869's steps on WebCrypto's
+HMAC: the single-buffer `async_hkdf_expand` keeps the 32,768 bytes of every
+backend (Extract has no application info), and the forms over pieces have no
+limit of hash's own, so `async_hkdf` over
+`+byte_pieces{input_key_material}+` and `+byte_pieces{info}+` takes a longer
+info. PBKDF2's iteration count is at most
+2^32 - 1 (`invalid_iterations`); an output of HKDF or PBKDF2 is at most
 (2^32 - 1) / 8 bytes. A program that needs more names a synchronous backend.
+* *HKDF over HMAC is a promise per block.* `async_hkdf_extract` imports the
+salt and signs once; `async_hkdf_expand` imports the pseudorandom key and
+signs once per digest of output; `async_hkdf` over pieces does both. The
+inputs are gathered into JavaScript memory in the call, as long as the
+runtime will allocate a buffer that size (`backend_failure` beyond), and every
+buffer of JavaScript that held a secret is zeroed when its promise settles.
+The keys WebCrypto imports (`CryptoKey`) cannot be zeroed, since WebCrypto has
+no way to, and neither can a tag that arrives after a cancellation, which is
+dropped unseen.
 * *An empty HMAC key is one zero byte.* WebCrypto refuses an empty key; HMAC
 pads every key with zeros to its block (RFC 2104), so the two are the same
 key, and webcpp passes one zero byte: the tag is the other backends'.

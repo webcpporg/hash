@@ -30,7 +30,7 @@ struct argon2_reference_case {
     std::span<std::uint8_t const> secret;
     std::span<std::uint8_t const> associated_data;
     std::uint32_t passes;
-    std::uint32_t memory_kib;
+    std::uint32_t memory_kibibytes;
     std::uint32_t lanes;
     argon2_type variant = Argon2_id;
 };
@@ -54,7 +54,7 @@ inline int argon2_reference(std::span<std::uint8_t> tag, argon2_reference_case c
         .ad = const_cast<std::uint8_t*>(c.associated_data.data()),
         .adlen = static_cast<std::uint32_t>(c.associated_data.size()),
         .t_cost = c.passes,
-        .m_cost = c.memory_kib,
+        .m_cost = c.memory_kibibytes,
         .lanes = c.lanes,
         .threads = c.lanes,
         .flags = ARGON2_DEFAULT_FLAGS,

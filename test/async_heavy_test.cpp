@@ -251,8 +251,9 @@ struct argon2_engine<test::recording, kdfs::argon2id> {
         std::span<std::uint8_t const> salt, argon2_parameters const& parameters) noexcept {
         record_thread();
         constexpr std::size_t kib = 1024;
-        return argon2id_engine<backends::sodium>::derive(output, password, salt, parameters.passes,
-                                                         std::size_t{parameters.memory_kib} * kib);
+        return argon2id_engine<backends::sodium>::derive(
+            output, password, salt, parameters.passes,
+            std::size_t{parameters.memory_kibibytes} * kib);
     }
 };
 
@@ -316,7 +317,7 @@ void check_on_pool(asio::io_context& context, asio::thread_pool& pool) {
     BOOST_TEST(!code);
     BOOST_TEST(output == expected);
 
-    hash::argon2_parameters const family{.passes = 2, .memory_kib = 64};
+    hash::argon2_parameters const family{.passes = 2, .memory_kibibytes = 64};
     std::array<std::uint8_t, 32> family_expected{};
     BOOST_TEST(
         (hash::argon2<hash::kdfs::argon2id, recording>(family_expected, password, salt, family)
@@ -330,7 +331,7 @@ void check_on_pool(asio::io_context& context, asio::thread_pool& pool) {
     BOOST_TEST(!code);
     BOOST_TEST(family_output == expected);
 
-    hash::scrypt_parameters const costs{.n = 1024, .r = 8, .p = 1};
+    hash::scrypt_parameters const costs{.cost = 1024, .block_size = 8, .parallelism = 1};
     std::array<std::uint8_t, 64> scrypt_expected{};
     BOOST_TEST(hash::scrypt(scrypt_expected, password, salt, costs).has_value());
     std::array<std::uint8_t, 64> scrypt_output{};
@@ -393,7 +394,7 @@ void check_family_defaults(asio::io_context& context, asio::thread_pool& pool,
         beyond.passes = 2;
     } else {
         beyond.lanes = 2;
-        beyond.memory_kib = 64;
+        beyond.memory_kibibytes = 64;
     }
     std::array<std::uint8_t, 32> untouched{0x5a};
     code = complete_on_caller(context, [&](auto handler) {
@@ -423,10 +424,12 @@ void check_defaults(asio::io_context& context, asio::thread_pool& pool) {
     BOOST_TEST(!code);
     BOOST_TEST(output == expected);
 
-    check_family_defaults<hash::kdfs::argon2id>(context, pool, {.passes = 1, .memory_kib = 32});
-    check_family_defaults<hash::kdfs::argon2i>(context, pool, {.passes = 3, .memory_kib = 32});
+    check_family_defaults<hash::kdfs::argon2id>(context, pool,
+                                                {.passes = 1, .memory_kibibytes = 32});
+    check_family_defaults<hash::kdfs::argon2i>(context, pool,
+                                               {.passes = 3, .memory_kibibytes = 32});
 
-    hash::scrypt_parameters const costs{.n = 16, .r = 1, .p = 1};
+    hash::scrypt_parameters const costs{.cost = 16, .block_size = 1, .parallelism = 1};
     std::array<std::uint8_t, 64> scrypt_expected{};
     BOOST_TEST(hash::scrypt(scrypt_expected, bytes_of(""), bytes_of(""), costs).has_value());
     std::array<std::uint8_t, 64> scrypt_output{};
@@ -472,14 +475,15 @@ void check_guards(asio::io_context& context, asio::thread_pool& pool) {
     std::array<std::uint8_t, 32> untouched{0x5a};
     code = complete_on_caller(context, [&](auto handler) {
         hash::async_argon2<hash::kdfs::argon2id, recording>(
-            work, untouched, {}, salt, hash::argon2_parameters{.passes = 0, .memory_kib = 64},
+            work, untouched, {}, salt, hash::argon2_parameters{.passes = 0, .memory_kibibytes = 64},
             std::move(handler));
     });
     BOOST_TEST(code == hash::error::invalid_parameters);
     BOOST_TEST_EQ(untouched[0], 0x5a);
 
     code = complete_on_caller(context, [&](auto handler) {
-        hash::async_scrypt(work, untouched, {}, {}, hash::scrypt_parameters{.n = 3, .r = 1, .p = 1},
+        hash::async_scrypt(work, untouched, {}, {},
+                           hash::scrypt_parameters{.cost = 3, .block_size = 1, .parallelism = 1},
                            std::move(handler));
     });
     BOOST_TEST(code == hash::error::invalid_parameters);
@@ -1058,7 +1062,7 @@ void check_awaitable(asio::io_context& context, asio::thread_pool& pool) {
     std::array<std::uint8_t, 32> output{};
     std::array<std::uint8_t, 64> scrypt_output{};
     std::array<std::uint8_t, 64> scrypt_expected{};
-    hash::scrypt_parameters const costs{.n = 16, .r = 1, .p = 1};
+    hash::scrypt_parameters const costs{.cost = 16, .block_size = 1, .parallelism = 1};
     BOOST_TEST(hash::scrypt(scrypt_expected, password, salt, costs).has_value());
     bool done = false;
     asio::co_spawn(
@@ -1077,9 +1081,10 @@ void check_awaitable(asio::io_context& context, asio::thread_pool& pool) {
                                         asio::use_awaitable);
             bool thrown = false;
             try {
-                co_await hash::async_scrypt(pool.get_executor(), scrypt_output, password, salt,
-                                            hash::scrypt_parameters{.n = 3, .r = 1, .p = 1},
-                                            asio::use_awaitable);
+                co_await hash::async_scrypt(
+                    pool.get_executor(), scrypt_output, password, salt,
+                    hash::scrypt_parameters{.cost = 3, .block_size = 1, .parallelism = 1},
+                    asio::use_awaitable);
             } catch (boost::system::system_error const& failure) {
                 thrown = failure.code() == hash::error::invalid_parameters;
             }

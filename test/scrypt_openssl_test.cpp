@@ -52,7 +52,7 @@ void check_rfc7914() {
         std::array<std::uint8_t, 64> output{};
         auto const done =
             hash::scrypt<openssl>(output, test::bytes_of(c.password), test::bytes_of(c.salt),
-                                  {.n = c.n, .r = c.r, .p = c.p});
+                                  {.cost = c.n, .block_size = c.r, .parallelism = c.p});
         BOOST_TEST(done.has_value());
         BOOST_TEST_EQ(test::to_hex(output), std::string(c.output));
     }
@@ -61,7 +61,8 @@ void check_rfc7914() {
     std::array<std::uint8_t, 64> output{};
     std::span<std::uint8_t const> const nothing{};
     BOOST_TEST(
-        hash::scrypt<openssl>(output, nothing, nothing, {.n = first.n, .r = first.r, .p = first.p})
+        hash::scrypt<openssl>(output, nothing, nothing,
+                              {.cost = first.n, .block_size = first.r, .parallelism = first.p})
             .has_value());
     BOOST_TEST_EQ(test::to_hex(output), std::string(first.output));
 }
@@ -75,9 +76,9 @@ void agree_with_sodium() {
         auto const password = rnd.bytes(rnd.between(0, 64));
         auto const salt = rnd.bytes(rnd.between(0, 64));
         hash::scrypt_parameters const costs{
-            .n = std::uint64_t{1} << rnd.between(1, 10),
-            .r = static_cast<std::uint32_t>(rnd.between(1, 8)),
-            .p = static_cast<std::uint32_t>(rnd.between(1, 4)),
+            .cost = std::uint64_t{1} << rnd.between(1, 10),
+            .block_size = static_cast<std::uint32_t>(rnd.between(1, 8)),
+            .parallelism = static_cast<std::uint32_t>(rnd.between(1, 4)),
         };
         std::size_t const output_size = rnd.between(1, 100);
         bytes expected(output_size);
@@ -85,8 +86,8 @@ void agree_with_sodium() {
         bool const both = hash::scrypt<sodium>(expected, password, salt, costs).has_value() &&
                           hash::scrypt<openssl>(output, password, salt, costs).has_value();
         if (!BOOST_TEST(both) || !BOOST_TEST_EQ(test::to_hex(output), test::to_hex(expected))) {
-            std::cerr << "  case " << index << ": N " << costs.n << ", r " << costs.r << ", p "
-                      << costs.p << ", output " << output_size << '\n';
+            std::cerr << "  case " << index << ": N " << costs.cost << ", r " << costs.block_size
+                      << ", p " << costs.parallelism << ", output " << output_size << '\n';
         }
     }
 }
@@ -100,8 +101,8 @@ void check_limits() {
     static_assert(engine::limits.n == hash::detail::no_limit);
     std::array<std::uint8_t, 32> output{};
     output.fill(untouched);
-    auto const refused =
-        hash::scrypt<openssl>(output, {}, {}, {.n = 2, .r = 1, .p = std::uint32_t{1} << 24U});
+    auto const refused = hash::scrypt<openssl>(
+        output, {}, {}, {.cost = 2, .block_size = 1, .parallelism = std::uint32_t{1} << 24U});
     BOOST_TEST(refused.has_error() && refused.error() == hash::error::invalid_parameters);
     BOOST_TEST(std::ranges::all_of(output, [](std::uint8_t byte) { return byte == untouched; }));
     // The same r p on backends::sodium passes the guards: only the RFC's bound is libsodium's.
@@ -117,7 +118,8 @@ void check_memory_limit_exceeded() {
         std::array<std::uint8_t, 32> output{};
         output.fill(untouched);
         auto const refused = hash::scrypt<openssl>(
-            output, {}, {}, {.n = std::uint64_t{1} << 23U, .r = 2, .p = (1U << 23U) - 1});
+            output, {}, {},
+            {.cost = std::uint64_t{1} << 23U, .block_size = 2, .parallelism = (1U << 23U) - 1});
         BOOST_TEST(refused.has_error() &&
                    refused.error() == boost::system::errc::make_error_code(
                                           boost::system::errc::not_enough_memory));

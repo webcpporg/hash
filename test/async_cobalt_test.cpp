@@ -8,8 +8,9 @@
 // promises on an io_context, on every target; a promise is never moved, since Boost.Cobalt aborts
 // on moving a pending coroutine without exceptions (Boost.Cobalt issue 287, as
 // <webcpp/cobalt/config.hpp> records). The cheap functions on their default backend give the
-// synchronous function's result; a guard's refusal is read through cobalt::as_tuple, and with
-// exceptions a plain co_await throws boost::system::system_error with hash's code (ruling R71).
+// synchronous function's result, async_hkdf over pieces too; a guard's refusal is read through
+// cobalt::as_tuple, and with exceptions a plain co_await throws boost::system::system_error with
+// hash's code (ruling R71).
 // Natively a heavy function, async_pbkdf2 on a thread pool, resumes the task on its own thread; on
 // Emscripten async_digest on backends::webcrypto completes through Cobalt's executor, an
 // io_context's.
@@ -92,6 +93,13 @@ cobalt::promise<void> cheap() {
     BOOST_TEST(hash::hkdf<hash::hmac_sha2_256>(okm_expected, key, abc, abc).has_value());
     co_await hash::async_hkdf<hash::hmac_sha2_256>(executor, okm, key, abc, abc, cobalt::use_op);
     BOOST_TEST(okm == okm_expected);
+
+    // async_hkdf over pieces: "abc" as {"a", "bc"} gives the single-buffer bytes.
+    std::array<std::uint8_t, 42> okm_pieces{};
+    co_await hash::async_hkdf<hash::hmac_sha2_256>(executor, okm_pieces, key,
+                                                   {abc.first(1), abc.subspan(1)},
+                                                   {abc.first(2), abc.subspan(2)}, cobalt::use_op);
+    BOOST_TEST(okm_pieces == okm_expected);
 
     std::span<std::uint8_t> const none{};
     auto [refused] = co_await cobalt::as_tuple(

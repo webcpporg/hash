@@ -18,8 +18,10 @@ allocation_botan_release.output under a lane's build directory) becomes one case
 shaped like doc/measurements.throughput.json's: operation, backend, target, implementation and the
 counts. backends::botan's records (one per call of each of its entry points, a first call and a
 steady one) keep their tag; the table gives one row per operation and target, the range over the
-tags. The page's table, between the `tag::table[]` and `end::table[]` lines, is rendered from the
-data and never typed; --check fails when the page differs from what the data renders.
+tags. An operation recorded as `<name>_pieces`, HKDF's functions over byte pieces, is the table's
+"`<name>` over pieces". The page's table, between the `tag::table[]` and `end::table[]` lines, is
+rendered from the data and never typed; --check fails when the page differs from what the data
+renders.
 
 The table is built only from release builds: the counting programs are bench/Jamfile's
 allocation_release, allocation_openssl_release and allocation_botan_release (`b2
@@ -48,7 +50,23 @@ RELEASE_ONLY = (
     "the table is built only from release builds: bench/Jamfile's allocation_release, "
     "allocation_openssl_release and allocation_botan_release at " + BUILD
 )
-KEPT = {"argon2id", "scrypt", "sodium_init", "hkdf", "pbkdf2"}
+# OpenSSL's operations the table keeps, in its order: HKDF, its three functions over byte pieces
+# (operation=<name>_pieces), and PBKDF2.
+OPENSSL_OPERATIONS = (
+    "hkdf",
+    "hkdf_extract_pieces",
+    "hkdf_expand_pieces",
+    "hkdf_pieces",
+    "pbkdf2",
+)
+KEPT = {"argon2id", "scrypt", "sodium_init", *OPENSSL_OPERATIONS}
+
+
+def operation_name(operation):
+    """The table's name of a record's operation: `hkdf`, or `hkdf` over pieces for hkdf_pieces."""
+    if operation.endswith("_pieces"):
+        return "`%s` over pieces" % operation.removesuffix("_pieces")
+    return "`%s`" % operation
 
 
 def build_of(output):
@@ -218,7 +236,7 @@ def render(data):
                 if not c["c_allocator_counted"]:
                     counted = "C library: not counted"
                 rows.append((c["operation"], c["backend"], target, str(c["operator_new"]), counted))
-        for op in ("hkdf", "pbkdf2"):
+        for op in OPENSSL_OPERATIONS:
             mine = [
                 c for c in by_target[target] if c["operation"] == op and c["backend"] == "openssl"
             ]
@@ -246,7 +264,11 @@ def render(data):
         "",
     ]
     for row in rows:
-        lines.append("| `%s` | `%s` | %s | %s | %s" % row)
+        operation, backend, target, operator_new, detail = row
+        lines.append(
+            "| %s | `%s` | %s | %s | %s"
+            % (operation_name(operation), backend, target, operator_new, detail)
+        )
     lines.append("|===")
     return "\n".join(lines) + "\n"
 

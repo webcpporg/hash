@@ -192,31 +192,33 @@ void test_against_argon2_ctx() {
         std::array<std::uint8_t, hash::argon2id_salt_size> salt{};
         std::ranges::generate(salt, [&] { return static_cast<std::uint8_t>(between(0, 255)); });
         std::uint32_t const passes = between(1, 3);
-        std::uint32_t const memory_kib = between(8, 256);
+        std::uint32_t const memory_kibibytes = between(8, 256);
         std::size_t const tag_size = between(16, 80);
 
         std::vector<std::uint8_t> expected(tag_size);
-        int const code = webcpp::test::argon2_reference(expected, {
-                                                                      .password = password,
-                                                                      .salt = salt,
-                                                                      .secret = {},
-                                                                      .associated_data = {},
-                                                                      .passes = passes,
-                                                                      .memory_kib = memory_kib,
-                                                                      .lanes = 1,
-                                                                  });
+        int const code =
+            webcpp::test::argon2_reference(expected, {
+                                                         .password = password,
+                                                         .salt = salt,
+                                                         .secret = {},
+                                                         .associated_data = {},
+                                                         .passes = passes,
+                                                         .memory_kibibytes = memory_kibibytes,
+                                                         .lanes = 1,
+                                                     });
         BOOST_TEST_EQ(code, ARGON2_OK);
 
         std::vector<std::uint8_t> tag(tag_size);
-        auto const done = hash::argon2id(
-            tag, password, salt, {.passes = passes, .memory = std::size_t{memory_kib} * 1024});
+        auto const done =
+            hash::argon2id(tag, password, salt,
+                           {.passes = passes, .memory = std::size_t{memory_kibibytes} * 1024});
         BOOST_TEST(done.has_value());
         BOOST_TEST_EQ(to_hex(tag), to_hex(expected));
     }
 }
 
-const std::array<std::uint8_t, 8> password{'p', 'a', 's', 's', 'w', 'o', 'r', 'd'};
-const std::array<std::uint8_t, hash::argon2id_salt_size> salt{
+const std::array<std::uint8_t, 8> test_password{'p', 'a', 's', 's', 'w', 'o', 'r', 'd'};
+const std::array<std::uint8_t, hash::argon2id_salt_size> test_salt{
     's', 'o', 'm', 'e', 's', 'a', 'l', 't',  // "somesalt" twice
     's', 'o', 'm', 'e', 's', 'a', 'l', 't',
 };
@@ -234,30 +236,30 @@ void test_output_guard() {
     std::array<std::uint8_t, 16> buffer{};
     buffer.fill(untouched);
     auto const longest = std::uint64_t{0xffffffff};
-    expect_refused(std::span<std::uint8_t>(buffer.data(), 15), password, salt, cheapest,
+    expect_refused(std::span<std::uint8_t>(buffer.data(), 15), test_password, test_salt, cheapest,
                    hash::error::invalid_output_size);
-    expect_refused(std::span<std::uint8_t>(buffer.data(), 0), password, salt, cheapest,
+    expect_refused(std::span<std::uint8_t>(buffer.data(), 0), test_password, test_salt, cheapest,
                    hash::error::invalid_output_size);
     // Natively a span of 2^32 bytes over 16, which the guard refuses before anything reads or
     // writes it; on wasm32 no span is that long.
     if constexpr (std::numeric_limits<std::size_t>::max() > longest) {
         expect_refused(
-            std::span<std::uint8_t>(buffer.data(), static_cast<std::size_t>(longest + 1)), password,
-            salt, cheapest, hash::error::invalid_output_size);
+            std::span<std::uint8_t>(buffer.data(), static_cast<std::size_t>(longest + 1)),
+            test_password, test_salt, cheapest, hash::error::invalid_output_size);
     }
     BOOST_TEST(all_of(buffer, untouched));
     // 16 bytes, the shortest, with an empty password and the cheapest costs: a default span,
     // whose data() is null, against argon2_ctx with the same empty password.
     std::span<std::uint8_t const> const nothing{};
     BOOST_TEST(nothing.data() == nullptr);
-    BOOST_TEST(hash::argon2id(buffer, nothing, salt, cheapest).has_value());
+    BOOST_TEST(hash::argon2id(buffer, nothing, test_salt, cheapest).has_value());
     std::array<std::uint8_t, 16> expected{};
     BOOST_TEST_EQ(webcpp::test::argon2_reference(expected, {.password = nothing,
-                                                            .salt = salt,
+                                                            .salt = test_salt,
                                                             .secret = {},
                                                             .associated_data = {},
                                                             .passes = 1,
-                                                            .memory_kib = 8,
+                                                            .memory_kibibytes = 8,
                                                             .lanes = 1}),
                   ARGON2_OK);
     BOOST_TEST_EQ(to_hex(buffer), to_hex(expected));
@@ -268,11 +270,11 @@ void test_salt_guard() {
     buffer.fill(untouched);
     std::array<std::uint8_t, 17> long_salt{};
     for (std::size_t const size : {0U, 8U, 15U, 17U}) {
-        expect_refused(buffer, password, std::span<std::uint8_t const>(long_salt.data(), size),
+        expect_refused(buffer, test_password, std::span<std::uint8_t const>(long_salt.data(), size),
                        cheapest, hash::error::invalid_salt_size);
     }
     // The output's guard comes first.
-    expect_refused(std::span<std::uint8_t>(buffer.data(), 15), password,
+    expect_refused(std::span<std::uint8_t>(buffer.data(), 15), test_password,
                    std::span<std::uint8_t const>(long_salt.data(), 15), cheapest,
                    hash::error::invalid_output_size);
     BOOST_TEST(all_of(buffer, untouched));
@@ -284,11 +286,11 @@ void test_password_guard() {
     auto const longest = std::uint64_t{0xffffffff};
     // Natively a password of 2^32 bytes over 8, refused before anything reads it.
     if constexpr (std::numeric_limits<std::size_t>::max() > longest) {
-        std::span<std::uint8_t const> const past(password.data(),
+        std::span<std::uint8_t const> const past(test_password.data(),
                                                  static_cast<std::size_t>(longest + 1));
-        expect_refused(buffer, past, salt, cheapest, hash::error::input_too_long);
+        expect_refused(buffer, past, test_salt, cheapest, hash::error::input_too_long);
         // The salt's guard comes first.
-        expect_refused(buffer, past, std::span<std::uint8_t const>(salt.data(), 15), cheapest,
+        expect_refused(buffer, past, std::span<std::uint8_t const>(test_salt.data(), 15), cheapest,
                        hash::error::invalid_salt_size);
     }
     BOOST_TEST(all_of(buffer, untouched));
@@ -309,7 +311,8 @@ void test_parameters_guard() {
         {.passes = 1, .memory = static_cast<std::size_t>(most_memory + 1024)},
     };
     for (auto const& parameters : refused) {
-        expect_refused(buffer, password, salt, parameters, hash::error::invalid_parameters);
+        expect_refused(buffer, test_password, test_salt, parameters,
+                       hash::error::invalid_parameters);
     }
     BOOST_TEST(all_of(buffer, untouched));
     // The most passes and libsodium's most memory pass every guard and reach the engine, which
@@ -319,13 +322,13 @@ void test_parameters_guard() {
         .memory = static_cast<std::size_t>(most_memory),
     };
     int const before = test_backends::recorded_calls;
-    BOOST_TEST(
-        hash::argon2id<test_backends::recording>(buffer, password, salt, largest).has_value());
+    BOOST_TEST(hash::argon2id<test_backends::recording>(buffer, test_password, test_salt, largest)
+                   .has_value());
     BOOST_TEST_EQ(test_backends::recorded_calls, before + 1);
     BOOST_TEST_EQ(test_backends::recorded_passes, largest.passes);
     BOOST_TEST_EQ(test_backends::recorded_memory, largest.memory);
     auto const past = hash::argon2id<test_backends::recording>(
-        buffer, password, salt,
+        buffer, test_password, test_salt,
         {.passes = 1, .memory = static_cast<std::size_t>(most_memory + 1024)});
     BOOST_TEST(past.has_error() && past.error() == hash::error::invalid_parameters);
     BOOST_TEST_EQ(test_backends::recorded_calls, before + 1);
@@ -334,8 +337,8 @@ void test_parameters_guard() {
     // 8 with no passes is input_too_long, never read.
     if constexpr (std::numeric_limits<std::size_t>::max() > 0xffffffffU) {
         std::span<std::uint8_t const> const past_password(
-            password.data(), static_cast<std::size_t>(std::uint64_t{0xffffffff} + 1));
-        expect_refused(buffer, past_password, salt, {.passes = 0, .memory = 0},
+            test_password.data(), static_cast<std::size_t>(std::uint64_t{0xffffffff} + 1));
+        expect_refused(buffer, past_password, test_salt, {.passes = 0, .memory = 0},
                        hash::error::input_too_long);
     }
 }
@@ -343,13 +346,14 @@ void test_parameters_guard() {
 void test_backend_failure() {
     std::array<std::uint8_t, 16> buffer{};
     buffer.fill(untouched);
-    auto failed = hash::argon2id<test_backends::failing>(buffer, password, salt, cheapest);
+    auto failed =
+        hash::argon2id<test_backends::failing>(buffer, test_password, test_salt, cheapest);
     BOOST_TEST(failed.has_error() && failed.error() == hash::error::backend_failure);
     BOOST_TEST(all_of(buffer, 0));
 
     // A guard's refusal reaches no backend.
     buffer.fill(untouched);
-    failed = hash::argon2id<test_backends::failing>(buffer, password, salt,
+    failed = hash::argon2id<test_backends::failing>(buffer, test_password, test_salt,
                                                     {.passes = 0, .memory = 8192});
     BOOST_TEST(failed.has_error() && failed.error() == hash::error::invalid_parameters);
     BOOST_TEST(all_of(buffer, untouched));

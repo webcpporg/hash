@@ -36,7 +36,7 @@ int main() {
     // far more memory; these are the RFC's costs, to check the tag.
     hash::argon2_parameters const costs{
         .passes = 3,
-        .memory_kib = 32,
+        .memory_kibibytes = 32,
         .lanes = 4,
         .secret = pepper,
         .associated_data = context,

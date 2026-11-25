@@ -10,10 +10,13 @@
  so that one call works with a callback, `use_awaitable`, Cobalt's `use_op`, `use_future` and
  every other completion token.
 
- - The cheap functions, `async_digest`, `async_hmac` and `async_hkdf`, exist on every target for
-   the algorithms the browser's WebCrypto has (SHA-1, SHA-256, SHA-384, SHA-512, and HMAC and HKDF
+ - The cheap functions, `async_digest`, `async_hmac`, `async_hkdf_extract`, `async_hkdf_expand`
+   and `async_hkdf`, each HKDF function also over `byte_pieces`, exist on every target for the
+   algorithms the browser's WebCrypto has (SHA-1, SHA-256, SHA-384, SHA-512, and HMAC and HKDF
    over them). On a synchronous backend, their default, they run it at once and complete through a
-   post on the handler's associated executor, never inside the initiating call.
+   post on the handler's associated executor, never inside the initiating call; a form over
+   pieces runs it in the call itself, before the operation is initiated, so that the pieces are
+   read before the call returns, whatever the completion token.
  - The heavy functions, `async_argon2id`, `async_argon2`, `async_scrypt`, `async_bcrypt`,
    `async_bcrypt_pbkdf`, `async_bcrypt_verify` and `async_pbkdf2` on a synchronous backend, run on
    another thread: they check their guards, post the work to the executor the caller gives (a
@@ -48,6 +51,7 @@
 #include <webcpp/hash/argon2.hpp>
 #include <webcpp/hash/backends/hash2.hpp>
 #include <webcpp/hash/bcrypt.hpp>
+#include <webcpp/hash/byte_pieces.hpp>
 #include <webcpp/hash/detail/engines.hpp>
 #include <webcpp/hash/detail/wipe.hpp>
 #include <webcpp/hash/digest.hpp>
@@ -74,6 +78,7 @@
 #include <boost/system/error_code.hpp>
 #include <boost/system/result.hpp>
 
+#include <algorithm>
 #include <atomic>
 #include <cstddef>
 #include <cstdint>
@@ -125,7 +130,8 @@ inline constexpr bool asynchronous_backend_v = std::is_same_v<Backend, backends:
 /**
  The operations of a backend that completes by itself (spec 11.1): `backends::webcrypto`, whose
  header specialises it on Emscripten with the static member functions `digest<Digest>`,
- `hmac<Hmac>`, `hkdf<Hmac>` and `pbkdf2<Hmac>`, each taking the asynchronous function's arguments
+ `hmac<Hmac>`, `hkdf_extract<Hmac>`, `hkdf_expand<Hmac>`, `hkdf<Hmac>` and `pbkdf2<Hmac>`, each
+ taking the asynchronous function's arguments (a span, or `byte_pieces` for a form over pieces)
  and returning its result.
 
  @tparam Backend `backends::webcrypto`.
@@ -153,6 +159,14 @@ struct async_engine {
     /** Never called: the refusal has stopped the build. */
     template <class Algorithm, class... Arguments>
     static void hmac(Arguments&&... /*arguments*/) noexcept {}
+
+    /** Never called: the refusal has stopped the build. */
+    template <class Algorithm, class... Arguments>
+    static void hkdf_extract(Arguments&&... /*arguments*/) noexcept {}
+
+    /** Never called: the refusal has stopped the build. */
+    template <class Algorithm, class... Arguments>
+    static void hkdf_expand(Arguments&&... /*arguments*/) noexcept {}
 
     /** Never called: the refusal has stopped the build. */
     template <class Algorithm, class... Arguments>
@@ -249,6 +263,88 @@ template <class CompletionToken, class Executor, class Operation>
 auto complete_by_post(Executor const& executor, CompletionToken& token, Operation operation) {
     return webcpp::asio_backend::async_initiate<CompletionToken, void(boost::system::error_code)>(
         post_initiation{}, token, executor, std::move(operation));
+}
+
+/**
+ The initiation of a form over pieces on a synchronous backend, whose work has already run: posts
+ the completion, with the work's error code, to `executor`, whence it reaches the handler's
+ associated executor; the post's storage is the handler's associated allocator's.
+*/
+struct code_initiation {
+    /**
+     Posts `handler` with `code`.
+
+     @param handler The completion handler. @param executor The I/O executor.
+     @param code The work's error code.
+    */
+    template <class Handler, class Executor>
+    void operator()(Handler&& handler, Executor const& executor,
+                    boost::system::error_code code) const {
+        webcpp::asio::post(executor, webcpp::asio::append(std::forward<Handler>(handler), code));
+    }
+};
+
+/**
+ Completes a form over pieces on a synchronous backend with the code of its work, which the caller
+ has run in the initiating call (ruling R4 of the change hkdf-pieces): only the code reaches
+ `async_initiate`, so that no completion token, `asio::deferred` included, keeps the pieces' list
+ past the call's full-expression.
+
+ @param executor The I/O executor. @param token The completion token.
+ @param code The work's error code.
+ @return What the completion token's `async_result` gives.
+*/
+template <class CompletionToken, class Executor>
+auto complete_with_code(Executor const& executor, CompletionToken& token,
+                        boost::system::error_code code) {
+    return webcpp::asio_backend::async_initiate<CompletionToken, void(boost::system::error_code)>(
+        code_initiation{}, token, executor, code);
+}
+
+/**
+ HKDF-Extract into `pseudorandom_key`, the work of `async_hkdf_extract` on a synchronous backend:
+ `hkdf_extract<Hmac, Backend>` over `input_key_material` (a span, or `byte_pieces`), its result
+ copied into `pseudorandom_key` and wiped.
+
+ @tparam Hmac A Boost.Hash2 hmac over a digest. @tparam Backend A synchronous backend.
+ @tparam InputKeyMaterial `std::span<std::uint8_t const>`, or `byte_pieces`.
+ @param pseudorandom_key The output, of exactly the digest size.
+ @param salt The salt. @param input_key_material The input keying material.
+ @return Success; or `invalid_output_size` for an output of another size, then `hkdf_extract`'s
+ guards' errors, `pseudorandom_key` untouched; or the backend's failure, `pseudorandom_key` zeroed.
+*/
+template <class Hmac, class Backend, class InputKeyMaterial>
+[[nodiscard]] boost::system::result<void> hkdf_extract_into(
+    std::span<std::uint8_t> pseudorandom_key, std::span<std::uint8_t const> salt,
+    InputKeyMaterial input_key_material) {
+    // No timing_guard here: the secret computation is hkdf_extract's, which holds the guard as its
+    // first statement; this helper only checks sizes, then copies and wipes the key, work whose
+    // time does not depend on the bytes. A guard here would be the first one the call enters, where
+    // the asynchronous family's rule (timing_async_test) is that it is the synchronous function's.
+    // Hash2 1.92 declares no std::tuple_size for digest<N>; its size() is constexpr.
+    constexpr std::size_t digest_length = typename Hmac::result_type().size();
+    if (pseudorandom_key.size() != digest_length) {
+        return error::invalid_output_size;
+    }
+    if constexpr (std::is_same_v<InputKeyMaterial, byte_pieces>) {
+        auto const guarded = hkdf_pieces_salt_guard<Backend>(salt.size());
+        if (!guarded) {
+            return guarded;
+        }
+    } else {
+        auto const guarded = hkdf_extract_guards<Backend>(salt.size(), input_key_material.size());
+        if (!guarded) {
+            return guarded;
+        }
+    }
+    auto extracted = hkdf_extract<Hmac, Backend>(salt, input_key_material);
+    if (!extracted) {
+        wipe(pseudorandom_key);
+        return extracted.error();
+    }
+    std::ranges::copy(*extracted, pseudorandom_key.begin());
+    wipe_object(*extracted);
+    return {};
 }
 
 /** Where a heavy operation is: waiting in the work executor's queue, running, or completed. */
@@ -775,7 +871,7 @@ auto async_hmac(Executor const& executor, std::span<std::uint8_t> output,
 
 /**
  HKDF (RFC 5869), extract and expand, asynchronously (spec 11), as @ref async_digest runs: the
- output of `hkdf<Hmac, Backend>`.
+ output keying material of `hkdf<Hmac, Backend>`.
 
  @tparam Hmac `hmac_sha1_160`, `hmac_sha2_256`, `hmac_sha2_384` or `hmac_sha2_512`, the hmacs
  WebCrypto has HKDF over; another refuses at compile time (`hkdf` has them all).
@@ -786,22 +882,25 @@ auto async_hmac(Executor const& executor, std::span<std::uint8_t> output,
  @param executor The executor the completion is posted to; on `backends::webcrypto`, that of an
  `io_context` run on the calling thread (see @ref async_pbkdf2), and a refusal of another goes to
  the handler's associated executor, this one unless the handler is bound to another.
- @param output The output keying material, 1 to 255 times the digest size.
- @param salt The salt. @param ikm The input keying material. @param info The context, at most
- `hkdf_max_info_size` bytes; on `backends::webcrypto` at most 1,024, WebCrypto's limit
+ @param output_key_material The output keying material, 1 to 255 times the digest size.
+ @param salt The salt. @param input_key_material The input keying material. @param application_info
+ The context, at most `hkdf_max_application_info_size` bytes; on `backends::webcrypto` at most
+ 1,024, WebCrypto's limit
  (`input_too_long` beyond). The spans are the caller's until completion.
  @param token The completion token, of signature `void(boost::system::error_code)`.
  @return What the completion token's `async_result` gives. The completion's code is empty on
- success, or `hkdf`'s error, `output` untouched by a guard's refusal and zeroed by a backend's
- failure. On `backends::webcrypto` also `invalid_parameters` (the executor), `output` untouched,
- `backend_failure` (a rejected promise, an unexpected result, no WebCrypto), `output` zeroed, and
- `operation_aborted` (a `terminal` or `partial` cancellation, at once), `output` zeroed.
+ success, or `hkdf`'s error, `output_key_material` untouched by a guard's refusal and zeroed by a
+ backend's failure. On `backends::webcrypto` also `invalid_parameters` (the executor),
+ `output_key_material` untouched, `backend_failure` (a rejected promise, an unexpected result, no
+ WebCrypto), `output_key_material` zeroed, and `operation_aborted` (a `terminal` or `partial`
+ cancellation, at once), `output_key_material` zeroed.
 */
 template <class Hmac, class Backend = default_async_backend<kdfs::hkdf, Hmac>, class Executor,
           class CompletionToken>
-auto async_hkdf(Executor const& executor, std::span<std::uint8_t> output,
-                std::span<std::uint8_t const> salt, std::span<std::uint8_t const> ikm,
-                std::span<std::uint8_t const> info, CompletionToken&& token) {
+auto async_hkdf(Executor const& executor, std::span<std::uint8_t> output_key_material,
+                std::span<std::uint8_t const> salt,
+                std::span<std::uint8_t const> input_key_material,
+                std::span<std::uint8_t const> application_info, CompletionToken&& token) {
     if constexpr (!detail::webcrypto_hmac_v<Hmac>) {
         static_assert(detail::always_false<Hmac>,
                       "webcpp::hash: async_hkdf takes hmac_sha1_160, hmac_sha2_256, "
@@ -809,11 +908,250 @@ auto async_hkdf(Executor const& executor, std::span<std::uint8_t> output,
                       "hkdf for the others.");
     } else if constexpr (detail::asynchronous_backend_v<Backend>) {
         return detail::async_engine<Backend>::template hkdf<Hmac>(
-            executor, output, salt, ikm, info, std::forward<CompletionToken>(token));
+            executor, output_key_material, salt, input_key_material, application_info,
+            std::forward<CompletionToken>(token));
     } else {
-        return detail::complete_by_post(executor, token, [output, salt, ikm, info] {
-            return hkdf<Hmac, Backend>(output, salt, ikm, info);
-        });
+        return detail::complete_by_post(
+            executor, token, [output_key_material, salt, input_key_material, application_info] {
+                return hkdf<Hmac, Backend>(output_key_material, salt, input_key_material,
+                                           application_info);
+            });
+    }
+}
+
+/**
+ HKDF (RFC 5869), extract and expand, over pieces, asynchronously (spec 11): the output keying
+ material of the `hkdf<Hmac, Backend>` over `byte_pieces`, with no cap on the application info.
+
+ On a synchronous backend, the default, the synchronous function runs in the call itself, before
+ the operation is initiated, and only its error code is posted to the handler's associated
+ executor (`executor` by default): the pieces and their list are read before the call returns, so
+ that a braced list written at the call, whose array dies at the end of the call's
+ full-expression, is safe with every completion token, `asio::deferred` and `use_awaitable`'s lazy
+ awaitable included (with those, the work is done at the call, not at the launch). On
+ `backends::webcrypto` the pieces are gathered into JavaScript memory in the call too.
+
+ @code
+ webcpp::hash::async_hkdf<webcpp::hash::hmac_sha2_256>(
+     loop.get_executor(), key, salt, {version, suite_id, label, ikm},
+     {length, version, suite_id, label, info}, [](boost::system::error_code code) { ... });
+ @endcode
+
+ @tparam Hmac `hmac_sha1_160`, `hmac_sha2_256`, `hmac_sha2_384` or `hmac_sha2_512`, the hmacs
+ WebCrypto has HKDF over; another refuses at compile time (`hkdf` has them all).
+ @tparam Backend The backend; by default @ref default_async_backend of `kdfs::hkdf_pieces`, the
+ synchronous default. `backends::webcrypto` only on Emscripten.
+ @tparam Executor An Asio executor, where the completion is posted.
+ @tparam CompletionToken An Asio completion token of signature `void(boost::system::error_code)`.
+ @param executor The executor the completion is posted to; on `backends::webcrypto`, that of an
+ `io_context` run on the calling thread (see @ref async_pbkdf2), and a refusal of another goes to
+ the handler's associated executor, this one unless the handler is bound to another.
+ @param output_key_material The output keying material, 1 to 255 times the digest size; the
+ caller's until completion.
+ @param salt The salt. @param input_key_material The input keying material's pieces.
+ @param application_info The context's pieces. The salt and the pieces are read in the call.
+ @param token The completion token, of signature `void(boost::system::error_code)`.
+ @return What the completion token's `async_result` gives. The completion's code is empty on
+ success, or `hkdf`'s error over pieces, `output_key_material` untouched by a guard's refusal and
+ zeroed by a backend's failure.
+*/
+template <class Hmac, class Backend = default_async_backend<kdfs::hkdf_pieces, Hmac>,
+          class Executor, class CompletionToken>
+auto async_hkdf(Executor const& executor, std::span<std::uint8_t> output_key_material,
+                std::span<std::uint8_t const> salt, byte_pieces input_key_material,
+                byte_pieces application_info, CompletionToken&& token) {
+    if constexpr (!detail::webcrypto_hmac_v<Hmac>) {
+        static_assert(detail::always_false<Hmac>,
+                      "webcpp::hash: async_hkdf takes hmac_sha1_160, hmac_sha2_256, "
+                      "hmac_sha2_384 or hmac_sha2_512, the hmacs WebCrypto has HKDF over: call "
+                      "hkdf for the others.");
+    } else if constexpr (detail::asynchronous_backend_v<Backend>) {
+        return detail::async_engine<Backend>::template hkdf<Hmac>(
+            executor, output_key_material, salt, input_key_material, application_info,
+            std::forward<CompletionToken>(token));
+    } else {
+        auto const code = detail::code_of(
+            hkdf<Hmac, Backend>(output_key_material, salt, input_key_material, application_info));
+        return detail::complete_with_code(executor, token, code);
+    }
+}
+
+/**
+ HKDF-Extract (RFC 5869, section 2.2), asynchronously (spec 11), as @ref async_digest runs: the
+ pseudorandom key of `hkdf_extract<Hmac, Backend>`, written into `pseudorandom_key`.
+
+ @tparam Hmac `hmac_sha1_160`, `hmac_sha2_256`, `hmac_sha2_384` or `hmac_sha2_512`, the hmacs
+ WebCrypto has HKDF over; another refuses at compile time (`hkdf_extract` has them all).
+ @tparam Backend The backend; by default @ref default_async_backend of `kdfs::hkdf_extract`, the
+ synchronous default. `backends::webcrypto` only on Emscripten.
+ @tparam Executor An Asio executor, where the completion is posted.
+ @tparam CompletionToken An Asio completion token of signature `void(boost::system::error_code)`.
+ @param executor The executor the completion is posted to; on `backends::webcrypto`, that of an
+ `io_context` run on the calling thread (see @ref async_pbkdf2), and a refusal of another goes to
+ the handler's associated executor, this one unless the handler is bound to another.
+ @param pseudorandom_key The pseudorandom key, of exactly the digest size.
+ @param salt The salt. @param input_key_material The input keying material. The spans are the
+ caller's until completion.
+ @param token The completion token, of signature `void(boost::system::error_code)`.
+ @return What the completion token's `async_result` gives. The completion's code is empty on
+ success, or `invalid_output_size` for a `pseudorandom_key` of another size than the digest's, or
+ `hkdf_extract`'s error, `pseudorandom_key` untouched by a guard's refusal and zeroed by a
+ backend's failure.
+*/
+template <class Hmac, class Backend = default_async_backend<kdfs::hkdf_extract, Hmac>,
+          class Executor, class CompletionToken>
+auto async_hkdf_extract(Executor const& executor, std::span<std::uint8_t> pseudorandom_key,
+                        std::span<std::uint8_t const> salt,
+                        std::span<std::uint8_t const> input_key_material, CompletionToken&& token) {
+    if constexpr (!detail::webcrypto_hmac_v<Hmac>) {
+        static_assert(detail::always_false<Hmac>,
+                      "webcpp::hash: async_hkdf_extract takes hmac_sha1_160, hmac_sha2_256, "
+                      "hmac_sha2_384 or hmac_sha2_512, the hmacs WebCrypto has HKDF over: call "
+                      "hkdf_extract for the others.");
+    } else if constexpr (detail::asynchronous_backend_v<Backend>) {
+        return detail::async_engine<Backend>::template hkdf_extract<Hmac>(
+            executor, pseudorandom_key, salt, input_key_material,
+            std::forward<CompletionToken>(token));
+    } else {
+        return detail::complete_by_post(executor, token,
+                                        [pseudorandom_key, salt, input_key_material] {
+                                            return detail::hkdf_extract_into<Hmac, Backend>(
+                                                pseudorandom_key, salt, input_key_material);
+                                        });
+    }
+}
+
+/**
+ HKDF-Extract (RFC 5869, section 2.2) over pieces, asynchronously (spec 11), as the
+ @ref async_hkdf over pieces runs: the pseudorandom key of `hkdf_extract<Hmac, Backend>` over
+ `byte_pieces`, written into `pseudorandom_key`, the pieces read in the call.
+
+ @tparam Hmac `hmac_sha1_160`, `hmac_sha2_256`, `hmac_sha2_384` or `hmac_sha2_512`, the hmacs
+ WebCrypto has HKDF over; another refuses at compile time (`hkdf_extract` has them all).
+ @tparam Backend The backend; by default @ref default_async_backend of
+ `kdfs::hkdf_extract_pieces`, the synchronous default. `backends::webcrypto` only on Emscripten.
+ @tparam Executor An Asio executor, where the completion is posted.
+ @tparam CompletionToken An Asio completion token of signature `void(boost::system::error_code)`.
+ @param executor The executor the completion is posted to; on `backends::webcrypto`, that of an
+ `io_context` run on the calling thread (see @ref async_pbkdf2), and a refusal of another goes to
+ the handler's associated executor, this one unless the handler is bound to another.
+ @param pseudorandom_key The pseudorandom key, of exactly the digest size; the caller's until
+ completion.
+ @param salt The salt. @param input_key_material The input keying material's pieces. Both read in
+ the call.
+ @param token The completion token, of signature `void(boost::system::error_code)`.
+ @return What the completion token's `async_result` gives. The completion's code is empty on
+ success, or `invalid_output_size` for a `pseudorandom_key` of another size than the digest's, or
+ `hkdf_extract`'s error over pieces, `pseudorandom_key` untouched by a guard's refusal and zeroed
+ by a backend's failure.
+*/
+template <class Hmac, class Backend = default_async_backend<kdfs::hkdf_extract_pieces, Hmac>,
+          class Executor, class CompletionToken>
+auto async_hkdf_extract(Executor const& executor, std::span<std::uint8_t> pseudorandom_key,
+                        std::span<std::uint8_t const> salt, byte_pieces input_key_material,
+                        CompletionToken&& token) {
+    if constexpr (!detail::webcrypto_hmac_v<Hmac>) {
+        static_assert(detail::always_false<Hmac>,
+                      "webcpp::hash: async_hkdf_extract takes hmac_sha1_160, hmac_sha2_256, "
+                      "hmac_sha2_384 or hmac_sha2_512, the hmacs WebCrypto has HKDF over: call "
+                      "hkdf_extract for the others.");
+    } else if constexpr (detail::asynchronous_backend_v<Backend>) {
+        return detail::async_engine<Backend>::template hkdf_extract<Hmac>(
+            executor, pseudorandom_key, salt, input_key_material,
+            std::forward<CompletionToken>(token));
+    } else {
+        auto const code = detail::code_of(
+            detail::hkdf_extract_into<Hmac, Backend>(pseudorandom_key, salt, input_key_material));
+        return detail::complete_with_code(executor, token, code);
+    }
+}
+
+/**
+ HKDF-Expand (RFC 5869, section 2.3), asynchronously (spec 11), as @ref async_digest runs: the
+ output keying material of `hkdf_expand<Hmac, Backend>`.
+
+ @tparam Hmac `hmac_sha1_160`, `hmac_sha2_256`, `hmac_sha2_384` or `hmac_sha2_512`, the hmacs
+ WebCrypto has HKDF over; another refuses at compile time (`hkdf_expand` has them all).
+ @tparam Backend The backend; by default @ref default_async_backend of `kdfs::hkdf_expand`, the
+ synchronous default. `backends::webcrypto` only on Emscripten.
+ @tparam Executor An Asio executor, where the completion is posted.
+ @tparam CompletionToken An Asio completion token of signature `void(boost::system::error_code)`.
+ @param executor The executor the completion is posted to; on `backends::webcrypto`, that of an
+ `io_context` run on the calling thread (see @ref async_pbkdf2), and a refusal of another goes to
+ the handler's associated executor, this one unless the handler is bound to another.
+ @param output_key_material The output keying material, 1 to 255 times the digest size.
+ @param pseudorandom_key The pseudorandom key, of exactly the digest size.
+ @param application_info The context, at most `hkdf_max_application_info_size` bytes. The spans
+ are the caller's until completion.
+ @param token The completion token, of signature `void(boost::system::error_code)`.
+ @return What the completion token's `async_result` gives. The completion's code is empty on
+ success, or `hkdf_expand`'s error, `output_key_material` untouched by a guard's refusal and
+ zeroed by a backend's failure.
+*/
+template <class Hmac, class Backend = default_async_backend<kdfs::hkdf_expand, Hmac>,
+          class Executor, class CompletionToken>
+auto async_hkdf_expand(Executor const& executor, std::span<std::uint8_t> output_key_material,
+                       std::span<std::uint8_t const> pseudorandom_key,
+                       std::span<std::uint8_t const> application_info, CompletionToken&& token) {
+    if constexpr (!detail::webcrypto_hmac_v<Hmac>) {
+        static_assert(detail::always_false<Hmac>,
+                      "webcpp::hash: async_hkdf_expand takes hmac_sha1_160, hmac_sha2_256, "
+                      "hmac_sha2_384 or hmac_sha2_512, the hmacs WebCrypto has HKDF over: call "
+                      "hkdf_expand for the others.");
+    } else if constexpr (detail::asynchronous_backend_v<Backend>) {
+        return detail::async_engine<Backend>::template hkdf_expand<Hmac>(
+            executor, output_key_material, pseudorandom_key, application_info,
+            std::forward<CompletionToken>(token));
+    } else {
+        return detail::complete_by_post(
+            executor, token, [output_key_material, pseudorandom_key, application_info] {
+                return hkdf_expand<Hmac, Backend>(output_key_material, pseudorandom_key,
+                                                  application_info);
+            });
+    }
+}
+
+/**
+ HKDF-Expand (RFC 5869, section 2.3) over pieces, asynchronously (spec 11), as the
+ @ref async_hkdf over pieces runs: the output keying material of `hkdf_expand<Hmac, Backend>` over
+ `byte_pieces`, with no cap on the application info, the pieces read in the call.
+
+ @tparam Hmac `hmac_sha1_160`, `hmac_sha2_256`, `hmac_sha2_384` or `hmac_sha2_512`, the hmacs
+ WebCrypto has HKDF over; another refuses at compile time (`hkdf_expand` has them all).
+ @tparam Backend The backend; by default @ref default_async_backend of
+ `kdfs::hkdf_expand_pieces`, the synchronous default. `backends::webcrypto` only on Emscripten.
+ @tparam Executor An Asio executor, where the completion is posted.
+ @tparam CompletionToken An Asio completion token of signature `void(boost::system::error_code)`.
+ @param executor The executor the completion is posted to; on `backends::webcrypto`, that of an
+ `io_context` run on the calling thread (see @ref async_pbkdf2), and a refusal of another goes to
+ the handler's associated executor, this one unless the handler is bound to another.
+ @param output_key_material The output keying material, 1 to 255 times the digest size; the
+ caller's until completion.
+ @param pseudorandom_key The pseudorandom key, of exactly the digest size.
+ @param application_info The context's pieces. The key and the pieces are read in the call.
+ @param token The completion token, of signature `void(boost::system::error_code)`.
+ @return What the completion token's `async_result` gives. The completion's code is empty on
+ success, or `hkdf_expand`'s error over pieces, `output_key_material` untouched by a guard's
+ refusal and zeroed by a backend's failure.
+*/
+template <class Hmac, class Backend = default_async_backend<kdfs::hkdf_expand_pieces, Hmac>,
+          class Executor, class CompletionToken>
+auto async_hkdf_expand(Executor const& executor, std::span<std::uint8_t> output_key_material,
+                       std::span<std::uint8_t const> pseudorandom_key, byte_pieces application_info,
+                       CompletionToken&& token) {
+    if constexpr (!detail::webcrypto_hmac_v<Hmac>) {
+        static_assert(detail::always_false<Hmac>,
+                      "webcpp::hash: async_hkdf_expand takes hmac_sha1_160, hmac_sha2_256, "
+                      "hmac_sha2_384 or hmac_sha2_512, the hmacs WebCrypto has HKDF over: call "
+                      "hkdf_expand for the others.");
+    } else if constexpr (detail::asynchronous_backend_v<Backend>) {
+        return detail::async_engine<Backend>::template hkdf_expand<Hmac>(
+            executor, output_key_material, pseudorandom_key, application_info,
+            std::forward<CompletionToken>(token));
+    } else {
+        auto const code = detail::code_of(
+            hkdf_expand<Hmac, Backend>(output_key_material, pseudorandom_key, application_info));
+        return detail::complete_with_code(executor, token, code);
     }
 }
 

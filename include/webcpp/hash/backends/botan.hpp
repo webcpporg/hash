@@ -16,14 +16,15 @@
  of at most 192 bytes, and no KMACXOF), SipHash-2-4 (an 8-byte tag) and keyed BLAKE2b. Botan's
  CMAC, GMAC, Poly1305 and X9.19-MAC, and the hashes hash has no tag for, are not exposed
  (`doc/capabilities.json` says why).
- Its key derivations are HKDF, PBKDF2 and KBKDF (counter mode, with the separator and L) over every
- hmac of `hmac.hpp` but `hmac_ripemd_128` and `hmac_sha2_512_224`, SSKDF (the hash form) over every
- digest of SP 800-56C but SHA-512/224, ANSI X9.63's KDF (Botan's KDF2), scrypt (N of at most 2^22,
- r 256, p 1,024, 8 GiB and 2 MiB of memory), Argon2d, Argon2i and Argon2id with lanes (at most 128),
- a secret and associated data (at most 8 GiB, the lanes computed in turn), serving the function
- `argon2id` too, bcrypt (a cost of at most 18) and bcrypt_pbkdf; on wasm32 PBKDF2 takes at most
- 2^32 - 1 iterations and Argon2 and scrypt at most 2 GiB. bcrypt's salt is the caller's, given to
- Botan through a generator that yields those 16 bytes alone: hash draws no random byte from Botan.
+ Its key derivations are HKDF (also over pieces, on its HMAC), PBKDF2 and KBKDF (counter mode,
+ with the separator and L) over every hmac of `hmac.hpp` but `hmac_ripemd_128` and
+ `hmac_sha2_512_224`, SSKDF (the hash form) over every digest of SP 800-56C but SHA-512/224, ANSI
+ X9.63's KDF (Botan's KDF2), scrypt (N of at most 2^22, r 256, p 1,024, 8 GiB and 2 MiB of memory),
+ Argon2d, Argon2i and Argon2id with lanes (at most 128), a secret and associated data (at most
+ 8 GiB, the lanes computed in turn), serving the function `argon2id` too, bcrypt (a cost of at
+ most 18) and bcrypt_pbkdf; on wasm32 PBKDF2 takes at most 2^32 - 1 iterations and Argon2 and
+ scrypt at most 2 GiB. bcrypt's salt is the caller's, given to Botan through a generator that
+ yields those 16 bytes alone: hash draws no random byte from Botan.
 
  Botan reports its errors by throwing, so this header declares nothing in a build without
  exceptions (`WEBCPP_HASH_NO_EXCEPTIONS`): a call on `backends::botan` then stops with the text
@@ -139,11 +140,11 @@ struct backend_limits<backends::botan> {
     /** HKDF's salt. */
     static constexpr std::uint64_t hkdf_salt = no_limit;
     /** HKDF's input keying material. */
-    static constexpr std::uint64_t hkdf_ikm = no_limit;
+    static constexpr std::uint64_t hkdf_input_key_material = no_limit;
     /** HKDF's pseudorandom key. */
-    static constexpr std::uint64_t hkdf_prk = no_limit;
+    static constexpr std::uint64_t hkdf_pseudorandom_key = no_limit;
     /** HKDF's info. */
-    static constexpr std::uint64_t hkdf_info = no_limit;
+    static constexpr std::uint64_t hkdf_application_info = no_limit;
     /** HKDF's output. */
     static constexpr std::uint64_t hkdf_output = no_limit;
     /** PBKDF2's password. */
@@ -1191,23 +1192,24 @@ struct botan_refused_hmac_kdf {
 
     /** Never called: the refusal has stopped the build. */
     [[nodiscard]] static boost::system::result<typename Hmac::result_type> extract(
-        std::span<std::uint8_t const> /*salt_bytes*/,
-        std::span<std::uint8_t const> /*ikm_bytes*/) noexcept {
+        std::span<std::uint8_t const> /*salt*/,
+        std::span<std::uint8_t const> /*input_key_material*/) noexcept {
         return error::backend_failure;
     }
 
     /** Never called: the refusal has stopped the build. */
     [[nodiscard]] static boost::system::result<void> expand(
-        std::span<std::uint8_t> /*output_bytes*/, std::span<std::uint8_t const> /*prk_bytes*/,
-        std::span<std::uint8_t const> /*info_bytes*/) noexcept {
+        std::span<std::uint8_t> /*output_key_material*/,
+        std::span<std::uint8_t const> /*pseudorandom_key*/,
+        std::span<std::uint8_t const> /*application_info*/) noexcept {
         return error::backend_failure;
     }
 
     /** Never called: the refusal has stopped the build. */
     [[nodiscard]] static boost::system::result<void> extract_and_expand(
-        std::span<std::uint8_t> /*output_bytes*/, std::span<std::uint8_t const> /*salt_bytes*/,
-        std::span<std::uint8_t const> /*ikm_bytes*/,
-        std::span<std::uint8_t const> /*info_bytes*/) noexcept {
+        std::span<std::uint8_t> /*output_key_material*/, std::span<std::uint8_t const> /*salt*/,
+        std::span<std::uint8_t const> /*input_key_material*/,
+        std::span<std::uint8_t const> /*application_info*/) noexcept {
         return error::backend_failure;
     }
 
@@ -1236,55 +1238,57 @@ struct botan_hkdf_engine {
     /**
      RFC 5869, 2.2: the PRK, HashLen bytes; an empty salt is HashLen zeros, as Botan keys it.
 
-     @param salt_bytes The salt. @param ikm_bytes The input keying material.
+     @param salt The salt. @param input_key_material The input keying material.
      @return The PRK, or Botan's failure.
     */
     [[nodiscard]] static boost::system::result<digest_type> extract(
-        std::span<std::uint8_t const> salt_bytes,
-        std::span<std::uint8_t const> ikm_bytes) noexcept {
+        std::span<std::uint8_t const> salt,
+        std::span<std::uint8_t const> input_key_material) noexcept {
         // The PRK is derived into the result returned, whose wiping is the caller's.
-        boost::system::result<digest_type> prk_bytes{boost::system::in_place_value};
-        digest_type& prk = prk_bytes.unsafe_value();
+        boost::system::result<digest_type> pseudorandom_key{boost::system::in_place_value};
+        digest_type& pseudorandom_key_digest = pseudorandom_key.unsafe_value();
         auto const derived =
-            botan_keyed<digest>(salt_bytes, [&](std::span<std::uint8_t const> key) noexcept {
+            botan_keyed<digest>(salt, [&](std::span<std::uint8_t const> key) noexcept {
                 return botan_kdf({"HKDF-Extract(HMAC(", botan_hash_name<digest>::value, "))"},
-                                 std::span<std::uint8_t>(prk.data(), prk.size()), ikm_bytes, key,
-                                 {});
+                                 std::span<std::uint8_t>(pseudorandom_key_digest.data(),
+                                                         pseudorandom_key_digest.size()),
+                                 input_key_material, key, {});
             });
         if (!derived) {
-            wipe_object(prk);
-            prk_bytes = derived.error();
+            wipe_object(pseudorandom_key_digest);
+            pseudorandom_key = derived.error();
         }
-        return prk_bytes;
+        return pseudorandom_key;
     }
 
     /**
      RFC 5869, 2.3: the PRK as the secret, the info as the label.
 
-     @param output_bytes The OKM. @param prk_bytes The PRK. @param info_bytes The info.
+     @param output_key_material The OKM. @param pseudorandom_key The PRK. @param application_info
+     The info.
      @return Success, or Botan's failure.
     */
     [[nodiscard]] static boost::system::result<void> expand(
-        std::span<std::uint8_t> output_bytes, std::span<std::uint8_t const> prk_bytes,
-        std::span<std::uint8_t const> info_bytes) noexcept {
-        return botan_kdf({"HKDF-Expand(HMAC(", botan_hash_name<digest>::value, "))"}, output_bytes,
-                         prk_bytes, {}, info_bytes);
+        std::span<std::uint8_t> output_key_material, std::span<std::uint8_t const> pseudorandom_key,
+        std::span<std::uint8_t const> application_info) noexcept {
+        return botan_kdf({"HKDF-Expand(HMAC(", botan_hash_name<digest>::value, "))"},
+                         output_key_material, pseudorandom_key, {}, application_info);
     }
 
     /**
      RFC 5869, 2: both steps, the PRK inside Botan's KDF.
 
-     @param output_bytes The OKM. @param salt_bytes The salt. @param ikm_bytes The input keying
-     material. @param info_bytes The info.
+     @param output_key_material The OKM. @param salt The salt. @param input_key_material The input
+     keying material. @param application_info The info.
      @return Success, or Botan's failure.
     */
     [[nodiscard]] static boost::system::result<void> extract_and_expand(
-        std::span<std::uint8_t> output_bytes, std::span<std::uint8_t const> salt_bytes,
-        std::span<std::uint8_t const> ikm_bytes,
-        std::span<std::uint8_t const> info_bytes) noexcept {
-        return botan_keyed<digest>(salt_bytes, [&](std::span<std::uint8_t const> key) noexcept {
-            return botan_kdf({"HKDF(HMAC(", botan_hash_name<digest>::value, "))"}, output_bytes,
-                             ikm_bytes, key, info_bytes);
+        std::span<std::uint8_t> output_key_material, std::span<std::uint8_t const> salt,
+        std::span<std::uint8_t const> input_key_material,
+        std::span<std::uint8_t const> application_info) noexcept {
+        return botan_keyed<digest>(salt, [&](std::span<std::uint8_t const> key) noexcept {
+            return botan_kdf({"HKDF(HMAC(", botan_hash_name<digest>::value, "))"},
+                             output_key_material, input_key_material, key, application_info);
         });
     }
 };
@@ -1298,6 +1302,145 @@ template <class Hmac>
 struct hkdf_engine<backends::botan, Hmac>
     : std::conditional_t<botan_hmac_v<Hmac>, botan_hkdf_engine<Hmac>,
                          botan_refused_hmac_kdf<Hmac>> {};
+
+/**
+ HKDF over pieces on backends::botan (the engine's interface: @ref hkdf_pieces_engine), over Botan's
+ `MessageAuthenticationCode` "HMAC(<hash>)" rather than its KDF "HKDF", which takes the input keying
+ material and the info whole: RFC 5869 with every concatenation replaced by successive `update`s.
+ Each call makes the HMAC (`create_or_throw`, through @ref botan_create), keys it (`set_key`) and
+ computes with `update` and `final`; Expand re-keys it for each block, `clear` then `set_key` with
+ the pseudorandom key. Every call of Botan runs inside @ref botan_boundary, which answers an
+ exception with `errc::not_enough_memory` (`std::bad_alloc`) or `error::backend_failure`. The object
+ is cleared and freed (@ref botan_owned) and Botan keeps its keys in `secure_vector`s, which it
+ zeroes when it frees them; hash wipes the room of a long salt's digest, each block T(i) and the
+ pseudorandom key between the steps, on success and on failure. A salt longer than the 8,192 bytes
+ Botan's HMAC takes is hashed first (@ref botan_keyed), as RFC 2104 hashes every key longer than the
+ hash's block. Botan's `update` takes a `size_t`, which holds every slice of @ref hkdf_pieces_slice,
+ so that a piece is sliced only by the test seam.
+
+ @tparam Hmac A Boost.Hash2 hmac for which `botan_hmac_v` holds.
+*/
+template <class Hmac>
+    requires botan_hmac_v<Hmac>
+struct hkdf_pieces_engine<backends::botan, Hmac> {
+    /** The hmac's result, a `digest<N>`: the PRK and each block T(i). */
+    using digest_type = Hmac::result_type;
+    /** The tag of the hmac's hash. */
+    using digest = digest_tag_of<Hmac>::type;
+
+    /** The most bytes of one update. */
+    static constexpr std::uint64_t slice_max = hkdf_pieces_slice<backends::botan>;
+    static_assert(slice_max <= std::numeric_limits<std::size_t>::max(),
+                  "Botan's update takes every slice's length");
+
+    /**
+     Makes Botan's HMAC over the hmac's hash, "HMAC(<hash>)", into `mac_object`; Botan throws
+     for a name it does not know, and the standard library's string may throw `std::bad_alloc`.
+
+     @param mac_object The owner of the HMAC made.
+    */
+    static void make(botan_owned<Botan::MessageAuthenticationCode>& mac_object) {
+        std::string name = "HMAC(";
+        name.append(botan_hash_name<digest>::value) += ')';
+        mac_object.adopt(botan_create<Botan::MessageAuthenticationCode>(name));
+    }
+
+    /**
+     Feeds every byte of `pieces` to `mac`, in slices of at most @ref slice_max bytes.
+
+     @param mac The keyed HMAC. @param pieces The pieces.
+    */
+    static void update_all(Botan::MessageAuthenticationCode& mac, byte_pieces pieces) {
+        for_each_slice<slice_max>(pieces,
+                                  [&](std::span<std::uint8_t const> slice) { mac.update(slice); });
+    }
+
+    /**
+     RFC 5869, 2.2: PRK = HMAC-Hash(salt, piece_1 | ... | piece_n). An empty salt, of length 0,
+     is padded by HMAC with zeros to the block: RFC 5869's HashLen zeros.
+
+     @param salt The salt. @param input_key_material The input keying material's pieces.
+     @return The PRK, or Botan's failure.
+    */
+    [[nodiscard]] static boost::system::result<digest_type> extract(
+        std::span<std::uint8_t const> salt, byte_pieces input_key_material) noexcept {
+        // The PRK is built in the result returned and Botan writes into it: a single return path
+        // of the one named object, so that no copy of the PRK is left behind unwiped.
+        boost::system::result<digest_type> pseudorandom_key{boost::system::in_place_value};
+        digest_type& pseudorandom_key_digest = pseudorandom_key.unsafe_value();
+        auto const derived =
+            botan_keyed<digest>(salt, [&](std::span<std::uint8_t const> key) noexcept {
+                botan_owned<Botan::MessageAuthenticationCode> mac_object;
+                return botan_boundary([&] {
+                    make(mac_object);
+                    mac_object.get().set_key(key);
+                    update_all(mac_object.get(), input_key_material);
+                    mac_object.get().final(std::span<std::uint8_t>(pseudorandom_key_digest.data(),
+                                                                   pseudorandom_key_digest.size()));
+                });
+            });
+        if (!derived) {
+            wipe_object(pseudorandom_key_digest);
+            pseudorandom_key = derived.error();
+        }
+        return pseudorandom_key;
+    }
+
+    /**
+     RFC 5869, 2.3: T(0) = empty; T(i) = HMAC-Hash(PRK, T(i-1) | piece_1 | ... | piece_n | i);
+     OKM = the first L octets of T(1) | T(2) | ... | T(N), N = ceil(L/HashLen). The HMAC is
+     cleared and keyed by the PRK again for each block.
+
+     @param output_key_material The OKM, its size L. @param pseudorandom_key The PRK.
+     @param application_info The info's pieces.
+     @return Success, or Botan's failure (the public function then zeroes the output).
+    */
+    [[nodiscard]] static boost::system::result<void> expand(
+        std::span<std::uint8_t> output_key_material, std::span<std::uint8_t const> pseudorandom_key,
+        byte_pieces application_info) noexcept {
+        digest_type t_block{};
+        botan_owned<Botan::MessageAuthenticationCode> mac_object;
+        auto const derived = botan_boundary([&] {
+            make(mac_object);
+            Botan::MessageAuthenticationCode& mac = mac_object.get();
+            std::size_t written_count = 0;
+            for (unsigned block_counter = 1; written_count < output_key_material.size();
+                 ++block_counter) {
+                mac.clear();
+                mac.set_key(pseudorandom_key);
+                if (block_counter > 1) {
+                    mac.update(std::span<std::uint8_t const>(t_block.data(), t_block.size()));
+                }
+                update_all(mac, application_info);
+                mac.update(static_cast<std::uint8_t>(block_counter));
+                mac.final(std::span<std::uint8_t>(t_block.data(), t_block.size()));
+                std::size_t const copied_count =
+                    std::min(t_block.size(), output_key_material.size() - written_count);
+                std::copy_n(t_block.data(), copied_count,
+                            output_key_material.data() + written_count);
+                written_count += copied_count;
+            }
+        });
+        mac_object.reset();
+        wipe_object(t_block);
+        return derived;
+    }
+
+    /**
+     RFC 5869, 2: HKDF-Extract, then HKDF-Expand, over pieces; the PRK is wiped between them.
+
+     @param output_key_material The OKM. @param salt The salt.
+     @param input_key_material The input keying material's pieces.
+     @param application_info The info's pieces.
+     @return Success, or Botan's failure.
+    */
+    [[nodiscard]] static boost::system::result<void> extract_and_expand(
+        std::span<std::uint8_t> output_key_material, std::span<std::uint8_t const> salt,
+        byte_pieces input_key_material, byte_pieces application_info) noexcept {
+        return hkdf_pieces_extract_and_expand<hkdf_pieces_engine<backends::botan, Hmac>>(
+            output_key_material, salt, input_key_material, application_info);
+    }
+};
 
 /**
  PBKDF2 on backends::botan over an hmac it has: Botan's "PBKDF2(HMAC(<h>))" (the engine's
@@ -1316,16 +1459,17 @@ struct botan_pbkdf2_engine {
     /**
      RFC 8018, 5.2.
 
-     @param output_bytes DK. @param password_bytes P. @param salt_bytes S. @param iteration_count c.
+     @param output_key_material DK. @param password_bytes P. @param salt S. @param iteration_count
+     c.
      @return Success, or Botan's failure.
     */
     [[nodiscard]] static boost::system::result<void> derive(
-        std::span<std::uint8_t> output_bytes, std::span<std::uint8_t const> password_bytes,
-        std::span<std::uint8_t const> salt_bytes, std::uint64_t iteration_count) noexcept {
+        std::span<std::uint8_t> output_key_material, std::span<std::uint8_t const> password_bytes,
+        std::span<std::uint8_t const> salt, std::uint64_t iteration_count) noexcept {
         return botan_keyed<digest>(password_bytes, [&](std::span<std::uint8_t const> key) noexcept {
             return botan_password_hash({"PBKDF2(HMAC(", botan_hash_name<digest>::value, "))"},
                                        {static_cast<std::size_t>(iteration_count), 0, 0},
-                                       output_bytes, key, salt_bytes);
+                                       output_key_material, key, salt);
         });
     }
 };
@@ -1337,7 +1481,7 @@ struct pbkdf2_engine<backends::botan, Hmac>
                          botan_refused_hmac_kdf<Hmac>> {};
 
 /** The most memory of Botan's Argon2, in KiB: 8 GiB, 2 GiB on wasm32 (`MAX_ARGON_MEMORY_GB`). */
-inline constexpr std::uint32_t botan_argon2_max_memory_kib =
+inline constexpr std::uint32_t botan_argon2_max_memory_kibibytes =
     (sizeof(std::size_t) == 4 ? 2U : 8U) * 1024U * 1024U;
 
 /** Botan's most lanes of Argon2 (`Argon2::Argon2`'s check, `m_p <= 128`). */
@@ -1383,9 +1527,9 @@ struct botan_argon2_name<kdfs::argon2id> {
 */
 template <class Variant>
 struct botan_argon2_engine {
-    /** RFC 9106's bounds, but at most 128 lanes and `botan_argon2_max_memory_kib`. */
+    /** RFC 9106's bounds, but at most 128 lanes and `botan_argon2_max_memory_kibibytes`. */
     static constexpr argon2_limits limits{
-        .max_memory_kib = botan_argon2_max_memory_kib,
+        .max_memory_kibibytes = botan_argon2_max_memory_kibibytes,
         .max_lanes = botan_argon2_max_lanes,
     };
 
@@ -1399,10 +1543,10 @@ struct botan_argon2_engine {
     [[nodiscard]] static boost::system::result<void> derive(
         std::span<std::uint8_t> output_bytes, std::span<std::uint8_t const> password_bytes,
         std::span<std::uint8_t const> salt_bytes, argon2_parameters const& parameters) noexcept {
-        return botan_password_hash({botan_argon2_name<Variant>::value},
-                                   {parameters.memory_kib, parameters.passes, parameters.lanes},
-                                   output_bytes, password_bytes, salt_bytes,
-                                   parameters.associated_data, parameters.secret);
+        return botan_password_hash(
+            {botan_argon2_name<Variant>::value},
+            {parameters.memory_kibibytes, parameters.passes, parameters.lanes}, output_bytes,
+            password_bytes, salt_bytes, parameters.associated_data, parameters.secret);
     }
 };
 
@@ -1426,7 +1570,7 @@ template <>
 struct argon2id_engine<backends::botan> {
     /** Botan's 8 GiB, 2 GiB on wasm32, in bytes. */
     static constexpr argon2id_limits limits{
-        .memory = std::uint64_t{botan_argon2_max_memory_kib} * argon2id_memory_unit,
+        .memory = std::uint64_t{botan_argon2_max_memory_kibibytes} * argon2id_memory_unit,
     };
 
     /**
@@ -1913,6 +2057,25 @@ template <> inline constexpr bool backend_has_v<backends::botan, kdfs::x963kdf, 
 /** backends::botan has HKDF ("HKDF(HMAC(<h>))") over the hmacs of `detail::botan_hmac_v`. */
 template <class Hmac>
 inline constexpr bool backend_has_v<backends::botan, kdfs::hkdf, Hmac> = detail::botan_hmac_v<Hmac>;
+
+/**
+ backends::botan has HKDF over pieces over the hmacs of `detail::botan_hmac_v`, those of its HMAC
+ cells it has HKDF over, on its `MessageAuthenticationCode` "HMAC(<h>)" (its KDF "HKDF" takes the
+ input keying material and the info whole, and is not used).
+*/
+template <class Hmac>
+inline constexpr bool backend_has_v<backends::botan, kdfs::hkdf_pieces, Hmac> =
+    detail::botan_hmac_v<Hmac>;
+
+/** backends::botan has HKDF-Extract over pieces wherever it has HKDF over pieces. */
+template <class Hmac>
+inline constexpr bool backend_has_v<backends::botan, kdfs::hkdf_extract_pieces, Hmac> =
+    backend_has_v<backends::botan, kdfs::hkdf_pieces, Hmac>;
+
+/** backends::botan has HKDF-Expand over pieces wherever it has HKDF over pieces. */
+template <class Hmac>
+inline constexpr bool backend_has_v<backends::botan, kdfs::hkdf_expand_pieces, Hmac> =
+    backend_has_v<backends::botan, kdfs::hkdf_pieces, Hmac>;
 
 /**
  backends::botan has PBKDF2 ("PBKDF2(HMAC(<h>))") over the hmacs of `detail::botan_hmac_v`, in

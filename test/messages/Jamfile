@@ -13,6 +13,7 @@ build-project xkcp_not_linked ;
 build-project blake3_not_linked ;
 build-project bearssl_not_linked ;
 build-project expand_on_bearssl ;
+build-project extract_on_bearssl ;
 build-project bearssl_hmac ;
 build-project pbkdf2_on_bearssl ;
 build-project sodium_not_linked ;

@@ -9,6 +9,8 @@
 
 #include <webcpp/hash/config.hpp>
 
+#include <webcpp/hash/byte_pieces.hpp>
+#include <webcpp/hash/detail/wipe.hpp>
 #include <webcpp/hash/error.hpp>
 
 #include <boost/hash2/has_constant_size.hpp>
@@ -101,11 +103,11 @@ struct backend_limits {
     /** HKDF's salt (`hkdf_extract`, `hkdf`). */
     static constexpr std::uint64_t hkdf_salt = no_limit;
     /** HKDF's input keying material (`hkdf_extract`, `hkdf`). */
-    static constexpr std::uint64_t hkdf_ikm = no_limit;
+    static constexpr std::uint64_t hkdf_input_key_material = no_limit;
     /** HKDF's pseudorandom key (`hkdf_expand`). */
-    static constexpr std::uint64_t hkdf_prk = no_limit;
-    /** HKDF's info (`hkdf_expand`, `hkdf`), within `hkdf_max_info_size`. */
-    static constexpr std::uint64_t hkdf_info = no_limit;
+    static constexpr std::uint64_t hkdf_pseudorandom_key = no_limit;
+    /** HKDF's info (`hkdf_expand`, `hkdf`), within `hkdf_max_application_info_size`. */
+    static constexpr std::uint64_t hkdf_application_info = no_limit;
     /** HKDF's output (`hkdf_expand`, `hkdf`), within 255 digests. */
     static constexpr std::uint64_t hkdf_output = no_limit;
     /** PBKDF2's password. */
@@ -144,19 +146,17 @@ struct backend_limits {
 
  @code
  using digest_type = typename Hmac::result_type;
- // RFC 5869 2.2: the PRK of `ikm` under `salt` (empty: HashLen zeros).
- static boost::system::result<digest_type> extract(std::span<std::uint8_t const> salt,
-                                                   std::span<std::uint8_t const> ikm) noexcept;
- // RFC 5869 2.3: `output` (1 to 255 digests) from `prk` (one digest) and `info` (at most
- // hkdf_max_info_size bytes).
- static boost::system::result<void> expand(std::span<std::uint8_t> output,
-                                           std::span<std::uint8_t const> prk,
-                                           std::span<std::uint8_t const> info) noexcept;
+ using bytes = std::span<std::uint8_t const>;
+ // RFC 5869 2.2: the PRK of `input_key_material` under `salt` (empty: HashLen zeros).
+ static boost::system::result<digest_type> extract(bytes salt, bytes input_key_material) noexcept;
+ // RFC 5869 2.3: `output_key_material` (1 to 255 digests) from `pseudorandom_key` (one digest)
+ // and `application_info` (at most hkdf_max_application_info_size bytes).
+ static boost::system::result<void> expand(std::span<std::uint8_t> output_key_material,
+                                           bytes pseudorandom_key, bytes application_info) noexcept;
  // Both steps.
- static boost::system::result<void> extract_and_expand(std::span<std::uint8_t> output,
-                                                       std::span<std::uint8_t const> salt,
-                                                       std::span<std::uint8_t const> ikm,
-                                                       std::span<std::uint8_t const> info) noexcept;
+ static boost::system::result<void> extract_and_expand(std::span<std::uint8_t> output_key_material,
+                                                       bytes salt, bytes input_key_material,
+                                                       bytes application_info) noexcept;
  @endcode
 
  A failure is `error::backend_failure`, or `errc::not_enough_memory` when the library could not
@@ -179,6 +179,148 @@ struct hkdf_engine {
         "backends::openssl (every hmac but hmac_ripemd_128) and backends::botan (every hmac "
         "but hmac_ripemd_128 and hmac_sha2_512_224).");
 };
+
+#ifdef WEBCPP_HASH_DETAIL_TEST_HKDF_PIECES_SLICE
+// The test seam's value; the Doc Comment is in the #else branch, the one the reference reads.
+inline constexpr std::uint64_t hkdf_pieces_slice_seam = WEBCPP_HASH_DETAIL_TEST_HKDF_PIECES_SLICE;
+#else
+/**
+ The most bytes an engine of HKDF over pieces hands its HMAC in one update, on every backend: no
+ limit, unless the test seam `WEBCPP_HASH_DETAIL_TEST_HKDF_PIECES_SLICE` lowers it, so that a test
+ feeds every piece in small slices and checks the bytes are the same (Review Focus 4 of the change
+ hkdf-pieces).
+*/
+inline constexpr std::uint64_t hkdf_pieces_slice_seam = no_limit;
+#endif
+// A slice of no byte would never advance for_each_slice.
+static_assert(hkdf_pieces_slice_seam >= 1,
+              "WEBCPP_HASH_DETAIL_TEST_HKDF_PIECES_SLICE is at least 1");
+
+/**
+ The most bytes `Backend`'s HMAC takes in one update: a `std::size_t`'s range, the primary
+ template's, for a backend whose update takes a `size_t` (`backends::hash2`); a backend whose
+ update takes a narrower length (an `int`, a `long`, or a `size_t` of 32 bits beside a 64-bit one)
+ specialises it with that type's largest value.
+
+ @tparam Backend A backend of `backends`. A specialisation is at least 1, as
+ @ref for_each_slice requires.
+*/
+template <class Backend>
+inline constexpr std::uint64_t hkdf_pieces_update_max = std::numeric_limits<std::size_t>::max();
+
+/**
+ The most bytes an engine of HKDF over pieces on `Backend` hands its HMAC in one update: the
+ backend's @ref hkdf_pieces_update_max, or the test seam's @ref hkdf_pieces_slice_seam where it is
+ lower. A piece longer than it is fed in slices (@ref for_each_slice), so that no piece is refused
+ for its size.
+
+ @tparam Backend A backend of `backends`.
+*/
+template <class Backend>
+inline constexpr std::uint64_t hkdf_pieces_slice =
+    hkdf_pieces_update_max<Backend> < hkdf_pieces_slice_seam ? hkdf_pieces_update_max<Backend>
+                                                             : hkdf_pieces_slice_seam;
+
+/**
+ Hands `update` every byte of `pieces`, in order, as spans of at most `SliceMax` bytes: each
+ piece in one span when it fits, else in slices of `SliceMax` bytes and a last shorter one. An
+ empty piece is skipped (an HMAC's zero-length update changes nothing, and some C libraries take
+ no null pointer).
+
+ @tparam SliceMax The most bytes of one call, at least 1 (a slice of no byte would never advance,
+ so 0 does not compile). @tparam Update A callable taking a `std::span<std::uint8_t const>`.
+ @param pieces The pieces. @param update What reads each slice.
+*/
+template <std::uint64_t SliceMax, class Update>
+    requires(SliceMax >= 1)
+constexpr void for_each_slice(byte_pieces pieces, Update&& update) noexcept(
+    noexcept(update(byte_pieces::value_type{}))) {
+    for (byte_pieces::value_type rest : pieces) {
+        while (!rest.empty()) {
+            std::size_t const taken =
+                rest.size() > SliceMax ? static_cast<std::size_t>(SliceMax) : rest.size();
+            update(rest.first(taken));
+            rest = rest.subspan(taken);
+        }
+    }
+}
+
+/**
+ HKDF over pieces of a backend over an hmac (design D2 and D4 of the change hkdf-pieces), on the
+ backend's streaming HMAC, which the backend's header specialises for each hmac whose HMAC it has.
+ The primary template is reached only by a backend without that HMAC, and refuses.
+
+ A specialisation has three static member functions, each `noexcept`, called by the public
+ functions of `hkdf.hpp` only after their guards (RFC 5869's output and pseudorandom key sizes,
+ then the backend's HMAC key limits) have passed; an engine feeds each piece to the HMAC, in
+ slices of at most @ref hkdf_pieces_slice bytes (@ref for_each_slice), copies none, allocates
+ nothing in webcpp's code, and wipes every HMAC state, every block T(i) and the pseudorandom key
+ between the steps, on success and on failure:
+
+ @code
+ using digest_type = typename Hmac::result_type;
+ using bytes = std::span<std::uint8_t const>;
+ // RFC 5869 2.2: PRK = HMAC(salt or HashLen zeros, piece_1 | ... | piece_n).
+ static boost::system::result<digest_type> extract(bytes salt,
+                                                   byte_pieces input_key_material) noexcept;
+ // RFC 5869 2.3: T(i) = HMAC(PRK, T(i - 1) | piece_1 | ... | piece_n | i).
+ static boost::system::result<void> expand(std::span<std::uint8_t> output_key_material,
+                                           bytes pseudorandom_key,
+                                           byte_pieces application_info) noexcept;
+ // Both steps, the PRK wiped between them.
+ static boost::system::result<void> extract_and_expand(std::span<std::uint8_t> output_key_material,
+                                                       bytes salt, byte_pieces input_key_material,
+                                                       byte_pieces application_info) noexcept;
+ @endcode
+
+ A failure is `error::backend_failure`, or `errc::not_enough_memory` when the library could not
+ allocate; the public function then zeroes the output.
+
+ @tparam Backend A backend of `backends`. @tparam Hmac A Boost.Hash2 hmac over a digest.
+*/
+template <class Backend, class Hmac>
+struct hkdf_pieces_engine {
+    // clang-format off
+    static_assert(!std::is_same_v<Backend, backends::webcrypto>,
+                  "webcpp::hash: backends::webcrypto is asynchronous: call async_hkdf_extract, async_hkdf_expand or async_hkdf with a completion token, or name a synchronous backend.");
+    // clang-format on
+    static_assert(std::is_same_v<Backend, backends::webcrypto>,
+                  "webcpp::hash: this backend has no HMAC for HKDF over pieces. The backends that "
+                  "have hkdf_extract, hkdf_expand and hkdf over pieces: backends::hash2 (every "
+                  "hmac), backends::sodium (hmac_sha2_256, hmac_sha2_512), backends::bearssl "
+                  "(MD5, SHA-1, SHA-224, SHA-256, SHA-384, SHA-512), backends::openssl (every "
+                  "hmac but hmac_ripemd_128) and backends::botan (every hmac but hmac_ripemd_128 "
+                  "and hmac_sha2_512_224).");
+};
+
+/**
+ The body of `extract_and_expand` of every pieces engine: Extract, an early return of its error,
+ Expand over the PRK, and the PRK wiped before the result returns (on success and on failure of
+ the Expand). One copy, so that the wipe is the same on every backend.
+
+ @tparam Engine A pieces engine with `extract(salt, input_key_material)` returning a
+ `boost::system::result` of the PRK's byte array and `expand(output, pseudorandom_key, info)`.
+ @param output_key_material The OKM. @param salt The salt.
+ @param input_key_material The input keying material's pieces.
+ @param application_info The info's pieces.
+ @return Success, or the Extract's or the Expand's error.
+*/
+template <class Engine>
+[[nodiscard]] boost::system::result<void> hkdf_pieces_extract_and_expand(
+    std::span<std::uint8_t> output_key_material, std::span<std::uint8_t const> salt,
+    byte_pieces input_key_material, byte_pieces application_info) noexcept {
+    auto pseudorandom_key = Engine::extract(salt, input_key_material);
+    if (!pseudorandom_key) {
+        return pseudorandom_key.error();
+    }
+    auto& pseudorandom_key_bytes = pseudorandom_key.unsafe_value();
+    auto derive_result = Engine::expand(
+        output_key_material,
+        std::span<std::uint8_t const>(pseudorandom_key_bytes.data(), pseudorandom_key_bytes.size()),
+        application_info);
+    wipe_object(pseudorandom_key_bytes);
+    return derive_result;
+}
 
 /**
  The most blocks of PBKDF2's output a backend derives: RFC 8018's 2^32 - 1, unless the backend's
@@ -1425,7 +1567,7 @@ struct argon2_limits {
     /** The fewest passes, t (RFC 9106: 1). */
     std::uint32_t min_passes = 1;
     /** The most memory, m, in KiB (RFC 9106: 2^32 - 1). */
-    std::uint32_t max_memory_kib = 0xffffffffU;
+    std::uint32_t max_memory_kibibytes = 0xffffffffU;
     /** The most lanes, p (RFC 9106: 2^24 - 1). */
     std::uint32_t max_lanes = 0xffffffU;
     /** The shortest tag, in bytes (RFC 9106: 4). */
