@@ -108,13 +108,13 @@ struct backend_limits<backends::webcrypto> {
 
 #include <webcpp/hash/byte_pieces.hpp>
 #include <webcpp/hash/detail/limits.hpp>
-#include <webcpp/hash/detail/timing.hpp>
-#include <webcpp/hash/detail/wipe.hpp>
 #include <webcpp/hash/digest.hpp>
 #include <webcpp/hash/error.hpp>
 #include <webcpp/hash/hkdf.hpp>
 #include <webcpp/hash/mac.hpp>
 #include <webcpp/hash/pbkdf2.hpp>
+#include <webcpp/secure/erase_secret.hpp>
+#include <webcpp/secure/timing_guard.hpp>
 
 #include <webcpp/asio/any_io_executor.hpp>
 #include <webcpp/asio/append.hpp>
@@ -544,7 +544,7 @@ public:
 private:
     // The output zeroed, with the completion's error.
     boost::system::error_code fail(boost::system::error_code code) noexcept {
-        wipe(output_);
+        secure::erase_secret(output_);
         return code;
     }
 
@@ -590,7 +590,7 @@ boost::system::error_code webcrypto_refusal(Executor const& executor,
     if (subtle_crypto().isUndefined()) {
         // The backend's failure: the JavaScript runtime has no WebCrypto. The output is zeroed, as
         // every backend's failure leaves it.
-        wipe(output);
+        secure::erase_secret(output);
         return error::backend_failure;
     }
     return {};
@@ -1082,7 +1082,7 @@ private:
 
     // The output zeroed and the buffers released, with the completion's error.
     [[nodiscard]] boost::system::error_code fail(boost::system::error_code code) noexcept {
-        wipe(output_);
+        secure::erase_secret(output_);
         release();
         return code;
     }
@@ -1116,7 +1116,7 @@ struct webcrypto_hmac_hkdf_initiation {
                     boost::system::result<void> const& guarded) const {
         auto refusal = webcrypto_refusal(executor, output, guarded);
         if (!refusal && !request.gathered) {
-            wipe(output);
+            secure::erase_secret(output);
             refusal = error::backend_failure;
         }
         if (refusal) {
@@ -1289,7 +1289,7 @@ public:
     static auto hkdf(Executor const& executor, std::span<std::uint8_t> output_key_material,
                      std::span<std::uint8_t const> salt, byte_pieces input_key_material,
                      byte_pieces application_info, CompletionToken&& token) {
-        timing_guard const timing;
+        secure::timing_guard const timing;
         auto const guarded =
             hkdf_pieces_guards<Hmac, backends::webcrypto>(output_key_material.size(), salt.size());
         auto request = webcrypto_hmac_hkdf_of<Hmac>(webcrypto_hkdf_steps::extract_and_expand);
@@ -1317,7 +1317,7 @@ public:
                              std::span<std::uint8_t const> salt,
                              std::span<std::uint8_t const> input_key_material,
                              CompletionToken&& token) {
-        timing_guard const timing;
+        secure::timing_guard const timing;
         auto guarded = extract_size_guard<Hmac>(pseudorandom_key.size());
         if (guarded) {
             guarded =
@@ -1345,7 +1345,7 @@ public:
     static auto hkdf_extract(Executor const& executor, std::span<std::uint8_t> pseudorandom_key,
                              std::span<std::uint8_t const> salt, byte_pieces input_key_material,
                              CompletionToken&& token) {
-        timing_guard const timing;
+        secure::timing_guard const timing;
         auto guarded = extract_size_guard<Hmac>(pseudorandom_key.size());
         if (guarded) {
             guarded = hkdf_pieces_salt_guard<backends::webcrypto>(salt.size());
@@ -1375,7 +1375,7 @@ public:
                             std::span<std::uint8_t const> pseudorandom_key,
                             std::span<std::uint8_t const> application_info,
                             CompletionToken&& token) {
-        timing_guard const timing;
+        secure::timing_guard const timing;
         auto guarded = expand_guards<Hmac>(output_key_material.size(), pseudorandom_key.size());
         if (guarded && application_info.size() > hkdf_max_application_info_size) {
             guarded = error::input_too_long;
@@ -1403,7 +1403,7 @@ public:
     static auto hkdf_expand(Executor const& executor, std::span<std::uint8_t> output_key_material,
                             std::span<std::uint8_t const> pseudorandom_key,
                             byte_pieces application_info, CompletionToken&& token) {
-        timing_guard const timing;
+        secure::timing_guard const timing;
         auto const guarded =
             expand_guards<Hmac>(output_key_material.size(), pseudorandom_key.size());
         auto request = webcrypto_hmac_hkdf_of<Hmac>(webcrypto_hkdf_steps::expand);

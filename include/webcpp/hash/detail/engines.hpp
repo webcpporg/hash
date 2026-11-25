@@ -10,8 +10,8 @@
 #include <webcpp/hash/config.hpp>
 
 #include <webcpp/hash/byte_pieces.hpp>
-#include <webcpp/hash/detail/wipe.hpp>
 #include <webcpp/hash/error.hpp>
+#include <webcpp/secure/erase_secret.hpp>
 
 #include <boost/hash2/has_constant_size.hpp>
 #include <boost/hash2/hmac.hpp>
@@ -318,7 +318,7 @@ template <class Engine>
         output_key_material,
         std::span<std::uint8_t const>(pseudorandom_key_bytes.data(), pseudorandom_key_bytes.size()),
         application_info);
-    wipe_object(pseudorandom_key_bytes);
+    secure::erase_secret(std::span(&pseudorandom_key_bytes, 1));
     return derive_result;
 }
 

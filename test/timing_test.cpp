@@ -4,17 +4,18 @@
 // accompanying file LICENSE_1_0.txt or copy at
 // https://www.boost.org/LICENSE_1_0.txt)
 
-// detail::timing_guard, with no backend: its seam fires once per engaged guard on every
-// target, and never for a disengaged one, and names the function that holds the guard, which
-// require_enters reads in the spellings of clang, GCC and MSVC; where the CPU has DIT, an engaged
-// guard sets it for its scope and clears it after when it was clear, leaves it set when it was set,
-// and nests; a disengaged guard touches nothing. Built with WEBCPP_TEST_TIMING_THREADS
-// (timing_threads, native, with threads), a guard on one thread leaves another's DIT clear. A copy
-// of libs/crypto/test/timing_test.cpp with hash's names and the engaged flag.
+// webcpp::secure::timing_guard, secure's guard, as hash's seam support sees it, with no backend:
+// its seam fires once per engaged guard on every target, and never for a disengaged one, and names
+// the function that holds the guard, which require_enters reads in the spellings of clang, GCC and
+// MSVC; the own-library filter tells hash's guards by their file in the spellings of clang, GCC and
+// MSVC and on near misses; where the CPU has DIT, an engaged guard sets it for its scope and clears
+// it after when it was clear, leaves it set when it was set, and nests; a disengaged guard touches
+// nothing. Built with WEBCPP_TEST_TIMING_THREADS (timing_threads, native, with threads), a guard on
+// one thread leaves another's DIT clear.
 
 #include "support/timing_dit.hpp"
 
-#include <webcpp/hash/detail/timing.hpp>
+#include <webcpp/secure/timing_guard.hpp>
 #include <webcpp/test/exit_status.hpp>
 
 #include <boost/core/lightweight_test.hpp>
@@ -30,13 +31,13 @@
 
 namespace {
 
-namespace detail = webcpp::hash::detail;
+namespace secure = webcpp::secure;
 
 namespace seam_probe {
 
 /** Holds a guard, as a public function does, for seam_names_function. */
 void guarded_function() {
-    webcpp::hash::detail::timing_guard const guard;
+    secure::timing_guard const guard;
 }
 
 /** Calls guarded_function and holds no guard of its own, as a function that forgot its own. */
@@ -46,14 +47,36 @@ void forwarding_function() {
 
 }  // namespace seam_probe
 
-// Constructing a guard raises the seam's count by exactly one, on every target.
+// Constructing a guard raises the seam's count of every guard by exactly one, on every target; the
+// guard is this test's own, so hash's count does not move.
 void seam_fires() {
-    std::size_t const before = webcpp::test::timing_entries;
+    std::size_t const before = webcpp::test::timing_all_entries;
+    std::size_t const hash_before = webcpp::test::timing_entries;
     {
-        detail::timing_guard const guard;
-        BOOST_TEST_EQ(webcpp::test::timing_entries, before + 1);
+        secure::timing_guard const guard;
+        BOOST_TEST_EQ(webcpp::test::timing_all_entries, before + 1);
     }
-    BOOST_TEST_EQ(webcpp::test::timing_entries, before + 1);
+    BOOST_TEST_EQ(webcpp::test::timing_all_entries, before + 1);
+    BOOST_TEST_EQ(webcpp::test::timing_entries, hash_before);
+}
+
+// The own-library filter reads the paths clang, GCC and MSVC give for hash's headers, and no near
+// miss: another library's header, a test file, a directory whose name only begins with hash, and
+// webcpp/hash/ under a folder that is not an include root.
+void path_in_library_spellings() {
+    using webcpp::test::path_in_library;
+    constexpr std::string_view library = "hash";
+    BOOST_TEST(path_in_library("/w/libs/hash/include/webcpp/hash/mac.hpp", library));
+    BOOST_TEST(path_in_library("../include/webcpp/hash/x.hpp", library));
+    BOOST_TEST(path_in_library("include/webcpp/hash/x.hpp", library));
+    BOOST_TEST(path_in_library(R"(C:\t\a\libs\hash\include\webcpp\hash\x.hpp)", library));
+    BOOST_TEST(path_in_library(R"(C:\t\a\include\webcpp/hash\backends\sodium.hpp)", library));
+    BOOST_TEST(!path_in_library("/w/libs/hash/test/timing_test.cpp", library));
+    BOOST_TEST(!path_in_library("/w/include/webcpp/hashx/x.hpp", library));
+    BOOST_TEST(!path_in_library("/w/myinclude/webcpp/hash/x.hpp", library));
+    BOOST_TEST(!path_in_library("/w/include/webcpp/secure/timing_guard.hpp", library));
+    BOOST_TEST(!path_in_library("/w/include/webcpp/hash", library));
+    BOOST_TEST(path_in_library("/w/include/webcpp/secure/timing_guard.hpp", "secure"));
 }
 
 // The seam records the function that holds the first guard a call enters, as the compiler spells
@@ -127,64 +150,64 @@ void names_function_spellings() {
 // From clear: set inside a guard, clear after it. Where the guard does not apply, never set.
 void guard_sets_and_clears() {
     webcpp::test::force_dit(false);
-    BOOST_TEST(!detail::dit_is_set());
+    BOOST_TEST(!secure::dit_is_set());
     {
-        detail::timing_guard const guard;
-        BOOST_TEST_EQ(detail::dit_is_set(), detail::cpu_has_dit());
+        secure::timing_guard const guard;
+        BOOST_TEST_EQ(secure::dit_is_set(), secure::cpu_has_dit());
     }
-    BOOST_TEST(!detail::dit_is_set());
+    BOOST_TEST(!secure::dit_is_set());
 }
 
 // From set, as a program sets it: still set after a guard.
 void guard_leaves_set_bit() {
     webcpp::test::force_dit(true);
-    BOOST_TEST_EQ(detail::dit_is_set(), detail::cpu_has_dit());
+    BOOST_TEST_EQ(secure::dit_is_set(), secure::cpu_has_dit());
     {
-        detail::timing_guard const guard;
-        BOOST_TEST_EQ(detail::dit_is_set(), detail::cpu_has_dit());
+        secure::timing_guard const guard;
+        BOOST_TEST_EQ(secure::dit_is_set(), secure::cpu_has_dit());
     }
-    BOOST_TEST_EQ(detail::dit_is_set(), detail::cpu_has_dit());
+    BOOST_TEST_EQ(secure::dit_is_set(), secure::cpu_has_dit());
     webcpp::test::force_dit(false);
-    BOOST_TEST(!detail::dit_is_set());
+    BOOST_TEST(!secure::dit_is_set());
 }
 
 // From clear: set inside both guards and after the inner one, clear after the outer one.
 void nested_guards() {
     webcpp::test::force_dit(false);
     {
-        detail::timing_guard const outer;
+        secure::timing_guard const outer;
         {
-            detail::timing_guard const inner;
-            BOOST_TEST_EQ(detail::dit_is_set(), detail::cpu_has_dit());
+            secure::timing_guard const inner;
+            BOOST_TEST_EQ(secure::dit_is_set(), secure::cpu_has_dit());
         }
-        BOOST_TEST_EQ(detail::dit_is_set(), detail::cpu_has_dit());
+        BOOST_TEST_EQ(secure::dit_is_set(), secure::cpu_has_dit());
         {
-            detail::timing_guard const quiet{false};
-            BOOST_TEST_EQ(detail::dit_is_set(), detail::cpu_has_dit());
+            secure::timing_guard const quiet{false};
+            BOOST_TEST_EQ(secure::dit_is_set(), secure::cpu_has_dit());
         }
-        BOOST_TEST_EQ(detail::dit_is_set(), detail::cpu_has_dit());
+        BOOST_TEST_EQ(secure::dit_is_set(), secure::cpu_has_dit());
     }
-    BOOST_TEST(!detail::dit_is_set());
+    BOOST_TEST(!secure::dit_is_set());
 }
 
 // A guard constructed with false fires no seam and touches nothing, whichever state it finds.
 void disengaged_does_nothing() {
-    std::size_t const before = webcpp::test::timing_entries;
+    std::size_t const before = webcpp::test::timing_all_entries;
     webcpp::test::force_dit(false);
     {
-        detail::timing_guard const guard{false};
-        BOOST_TEST_EQ(webcpp::test::timing_entries, before);
-        BOOST_TEST(!detail::dit_is_set());
+        secure::timing_guard const guard{false};
+        BOOST_TEST_EQ(webcpp::test::timing_all_entries, before);
+        BOOST_TEST(!secure::dit_is_set());
     }
-    BOOST_TEST(!detail::dit_is_set());
+    BOOST_TEST(!secure::dit_is_set());
     webcpp::test::force_dit(true);
     {
-        detail::timing_guard const guard{false};
-        BOOST_TEST_EQ(detail::dit_is_set(), detail::cpu_has_dit());
+        secure::timing_guard const guard{false};
+        BOOST_TEST_EQ(secure::dit_is_set(), secure::cpu_has_dit());
     }
-    BOOST_TEST_EQ(detail::dit_is_set(), detail::cpu_has_dit());
+    BOOST_TEST_EQ(secure::dit_is_set(), secure::cpu_has_dit());
     webcpp::test::force_dit(false);
-    BOOST_TEST(!detail::dit_is_set());
+    BOOST_TEST(!secure::dit_is_set());
 }
 
 #ifdef WEBCPP_TEST_TIMING_THREADS
@@ -197,16 +220,16 @@ void other_thread_untouched() {
     std::promise<bool> other_reading;
     std::thread other([entered = guard_entered.get_future(), &other_reading]() mutable {
         entered.wait();
-        other_reading.set_value(detail::dit_is_set());
+        other_reading.set_value(secure::dit_is_set());
     });
     {
-        detail::timing_guard const guard;
+        secure::timing_guard const guard;
         guard_entered.set_value();
         BOOST_TEST(!other_reading.get_future().get());
-        BOOST_TEST_EQ(detail::dit_is_set(), detail::cpu_has_dit());
+        BOOST_TEST_EQ(secure::dit_is_set(), secure::cpu_has_dit());
     }
     other.join();
-    BOOST_TEST(!detail::dit_is_set());
+    BOOST_TEST(!secure::dit_is_set());
 }
 #endif
 
@@ -214,6 +237,7 @@ void other_thread_untouched() {
 
 int main() {
     seam_fires();
+    path_in_library_spellings();
     seam_names_function();
     names_function_spellings();
     guard_sets_and_clears();

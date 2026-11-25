@@ -124,11 +124,11 @@ the library.
 === The timing guard's cost
 
 Every keyed function (a MAC, a key derivation, a password hash, a keyed mode of
-BLAKE2b or BLAKE3) runs inside `detail::timing_guard`, which on 64-bit ARM under
-macOS, iOS, Linux and Android, where the CPU has FEAT_DIT, sets DIT (data-independent
-timing) for the call and restores the thread's state after it
-(<<hash-backends-dit>>): one `mrs`, and where DIT was clear, two `msr` each
-followed by an `isb`. Elsewhere (x86, WebAssembly, Windows on ARM64) it executes no
+BLAKE2b or BLAKE3) runs inside `webcpp::secure::timing_guard`, webcpp::secure's
+guard, which on 64-bit ARM under macOS, iOS, Linux, Android and Windows, where the
+CPU has FEAT_DIT, sets DIT (data-independent timing) for the call and restores the
+thread's state after it (<<hash-backends-dit>>): one `mrs`, and where DIT was clear,
+two `msr` each followed by an `isb`. Elsewhere (x86, WebAssembly) it executes no
 instruction. A function keyed by its arguments, called without a key, holds a
 disengaged guard, which reads its flag and does nothing else.
 

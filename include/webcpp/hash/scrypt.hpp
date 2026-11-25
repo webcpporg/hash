@@ -9,8 +9,8 @@
  `crypto_pwhash_scryptsalsa208sha256_ll`, the default), `backends::openssl` (OpenSSL's "SCRYPT",
  its own memory limit lifted) and `backends::botan` (Botan's "Scrypt", in part).
 
- Every call holds the data-independent-timing guard (`detail::timing_guard`): where the CPU has
- DIT, the call sets it and leaves the thread's state as it found it.
+ Every call holds the data-independent-timing guard (`webcpp::secure::timing_guard`, secure's
+ guard): where the CPU has DIT, the call sets it and leaves the thread's state as it found it.
 
  Every guard runs before any work, and a guard's refusal leaves the output as it was; a backend's
  failure zeroes it. The backend allocates the 128 r (N + p) bytes the costs name.
@@ -37,10 +37,10 @@
 
 #include <webcpp/hash/detail/engines.hpp>
 #include <webcpp/hash/detail/limits.hpp>
-#include <webcpp/hash/detail/timing.hpp>
-#include <webcpp/hash/detail/wipe.hpp>
 #include <webcpp/hash/error.hpp>
 #include <webcpp/hash/kdf.hpp>
+#include <webcpp/secure/erase_secret.hpp>
+#include <webcpp/secure/timing_guard.hpp>
 
 #include <boost/system/result.hpp>
 
@@ -162,7 +162,7 @@ template <class Backend = default_backend<kdfs::scrypt>>
                                                  std::span<std::uint8_t const> password_bytes,
                                                  std::span<std::uint8_t const> salt_bytes,
                                                  scrypt_parameters const& cost_parameters) {
-    detail::timing_guard const timing;
+    secure::timing_guard const timing;
     auto guarded = detail::scrypt_guards<Backend>(output_bytes.size(), password_bytes.size(),
                                                   salt_bytes.size(), cost_parameters);
     if (!guarded) {
@@ -172,7 +172,7 @@ template <class Backend = default_backend<kdfs::scrypt>>
         output_bytes, password_bytes, salt_bytes, cost_parameters.cost, cost_parameters.block_size,
         cost_parameters.parallelism);
     if (!derive_result) {
-        detail::wipe(output_bytes);
+        secure::erase_secret(output_bytes);
     }
     return derive_result;
 }

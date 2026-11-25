@@ -146,9 +146,10 @@ include::{examples}/hex.hpp[tag=hex,indent=0]
 hash is not a new implementation of a primitive: every permutation,
 compression function and hash is Boost.Hash2's or a C library's, and the two
 constructions webcpp writes over them are listed in <<hash-departures>>. It is
-not webcpp::crypto either: encryption, signatures, randomness and
-constant-time comparison stay there, and `webcpp::crypto::constant_time_equal`
-is what compares a MAC. It holds primitives only: what a protocol defines on top
+not webcpp::crypto either: encryption, signatures and randomness stay there.
+Constant-time comparison is webcpp::secure's, which hash depends on:
+`webcpp::secure::constant_time_equal` is what compares a MAC. It holds
+primitives only: what a protocol defines on top
 of them (Bitcoin's BIP39 seeds and hash160, Ethereum's EIP-55 addresses, Nostr's
 event ids and NIP-44's keys) belongs to domain libraries, webcpp::bitcoin,
 webcpp::ethereum and webcpp::nostr, which build them from these functions. The

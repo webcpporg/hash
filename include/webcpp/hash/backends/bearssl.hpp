@@ -40,10 +40,10 @@
 #include <webcpp/hash/detail/canary.h>
 #include <webcpp/hash/detail/engines.hpp>
 #include <webcpp/hash/detail/limits.hpp>
-#include <webcpp/hash/detail/wipe.hpp>
 #include <webcpp/hash/error.hpp>
 #include <webcpp/hash/hmac.hpp>
 #include <webcpp/hash/kdf.hpp>
+#include <webcpp/secure/erase_secret.hpp>
 
 #include <boost/system/result.hpp>
 
@@ -454,7 +454,7 @@ struct hkdf_engine<backends::bearssl, Hmac> {
         const std::size_t produced_count =
             br_hkdf_produce(&hkdf_context, nonnull(application_info), application_info.size(),
                             output_key_material.data(), output_key_material.size());
-        wipe_object(hkdf_context);
+        secure::erase_secret(std::span(&hkdf_context, 1));
         return produced_count == output_key_material.size()
                    ? boost::system::result<void>()
                    : boost::system::result<void>(error::backend_failure);
@@ -517,10 +517,10 @@ struct hkdf_pieces_engine<backends::bearssl, Hmac> {
         update_all(mac_context, input_key_material);
         std::size_t const written_count =
             br_hmac_out(&mac_context, pseudorandom_key.unsafe_value().data());
-        wipe_object(mac_context);
-        wipe_object(key_context);
+        secure::erase_secret(std::span(&mac_context, 1));
+        secure::erase_secret(std::span(&key_context, 1));
         if (written_count != pseudorandom_key.unsafe_value().size()) {
-            wipe_object(pseudorandom_key.unsafe_value());
+            secure::erase_secret(std::span(&pseudorandom_key.unsafe_value(), 1));
             pseudorandom_key = boost::system::result<digest_type>(error::backend_failure);
         }
         return pseudorandom_key;
@@ -556,7 +556,7 @@ struct hkdf_pieces_engine<backends::bearssl, Hmac> {
             auto const octet_value = static_cast<unsigned char>(block_counter);
             br_hmac_update(&mac_context, &octet_value, 1);
             computed = br_hmac_out(&mac_context, t_block.data()) == t_block.size();
-            wipe_object(mac_context);
+            secure::erase_secret(std::span(&mac_context, 1));
             if (computed) {
                 std::size_t const copied_count =
                     std::min(t_block.size(), output_key_material.size() - written_count);
@@ -565,8 +565,8 @@ struct hkdf_pieces_engine<backends::bearssl, Hmac> {
                 written_count += copied_count;
             }
         }
-        wipe_object(t_block);
-        wipe_object(key_context);
+        secure::erase_secret(std::span(&t_block, 1));
+        secure::erase_secret(std::span(&key_context, 1));
         if (!computed) {
             return error::backend_failure;
         }
@@ -652,7 +652,7 @@ struct bearssl_digest_engine : full_engine {
     }
 
     /** Wipes the state. @param hashed The state. */
-    static void destroy(state& hashed) noexcept { wipe_object(hashed); }
+    static void destroy(state& hashed) noexcept { secure::erase_secret(std::span(&hashed, 1)); }
 
     /**
      The digest of `input` at once, BearSSL's context wiped.
@@ -745,8 +745,8 @@ struct bearssl_hmac_engine : full_engine {
         br_hmac_init(&mac_context, &key_context, output.size());
         br_hmac_update(&mac_context, nonnull(input), input.size());
         std::size_t const written_count = br_hmac_out(&mac_context, output.data());
-        wipe_object(mac_context);
-        wipe_object(key_context);
+        secure::erase_secret(std::span(&mac_context, 1));
+        secure::erase_secret(std::span(&key_context, 1));
         return written_count == output.size() ? boost::system::result<void>()
                                               : boost::system::result<void>(error::backend_failure);
     }

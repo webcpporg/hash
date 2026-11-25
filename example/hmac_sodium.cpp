@@ -12,8 +12,8 @@
 // tag::example[]
 #include "hex.hpp"
 
-#include <webcpp/crypto/constant_time_equal.hpp>
 #include <webcpp/hash/mac.hpp>
+#include <webcpp/secure/constant_time_equal.hpp>
 
 #include <array>
 #include <cstddef>
@@ -42,7 +42,7 @@ int main() {
     // The receiver computes the tag again and compares it in constant time.
     std::array<std::uint8_t, 32> again{};
     bool const genuine = hash::mac<hmac<digests::sha2_256>, sodium>(again, key, message) &&
-                         webcpp::crypto::constant_time_equal(again, tag);
+                         webcpp::secure::constant_time_equal(again, tag);
     std::cout << "genuine: " << (genuine ? "yes" : "no") << '\n';
 
     // libsodium's crypto_auth_hmacsha512256 is HMAC-SHA-512 cut to 32 bytes: the same tag, with a

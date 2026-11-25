@@ -78,11 +78,11 @@
 #include <webcpp/hash/argon2.hpp>
 #include <webcpp/hash/detail/engines.hpp>
 #include <webcpp/hash/detail/limits.hpp>
-#include <webcpp/hash/detail/wipe.hpp>
 #include <webcpp/hash/error.hpp>
 #include <webcpp/hash/hmac.hpp>
 #include <webcpp/hash/kdf_standards.hpp>
 #include <webcpp/hash/scrypt.hpp>
+#include <webcpp/secure/erase_secret.hpp>
 
 #include <boost/system/errc.hpp>
 #include <boost/system/result.hpp>
@@ -587,7 +587,7 @@ struct hkdf_engine<backends::openssl, Hmac> {
             std::span<std::uint8_t>(pseudorandom_key_digest.data(), pseudorandom_key_digest.size()),
             ossl_params);
         if (!derive_result) {
-            wipe_object(pseudorandom_key_digest);
+            secure::erase_secret(std::span(&pseudorandom_key_digest, 1));
             pseudorandom_key = derive_result.error();
         }
         return pseudorandom_key;
@@ -747,7 +747,7 @@ struct hkdf_pieces_engine<backends::openssl, Hmac> {
         EVP_MAC_free(mac_algorithm);
         auto const outcome = openssl_outcome(computed);
         if (!outcome) {
-            wipe_object(pseudorandom_key_digest);
+            secure::erase_secret(std::span(&pseudorandom_key_digest, 1));
             pseudorandom_key = outcome.error();
         }
         return pseudorandom_key;
@@ -790,7 +790,7 @@ struct hkdf_pieces_engine<backends::openssl, Hmac> {
                 written_count += copied_count;
             }
         }
-        wipe_object(t_block);
+        secure::erase_secret(std::span(&t_block, 1));
         // The frees raise no error: the outcome read after them is the computation's.
         EVP_MAC_CTX_free(keyed);
         EVP_MAC_free(mac_algorithm);
@@ -1520,7 +1520,7 @@ struct openssl_hmac_engine : full_engine {
         if (computed) {
             std::copy_n(tag.begin(), output.size(), output.begin());
         }
-        wipe_object(whole);
+        secure::erase_secret(whole);
         return computed;
     }
 };

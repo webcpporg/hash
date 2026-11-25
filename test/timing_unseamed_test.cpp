@@ -4,16 +4,16 @@
 // accompanying file LICENSE_1_0.txt or copy at
 // https://www.boost.org/LICENSE_1_0.txt)
 
-// detail::timing_guard in a program's build, without the seam: its constructor takes a bool and no
-// std::source_location, on every target, so that no guarded function's name or header's path can
-// reach a program. Built with WEBCPP_TEST_TIMING_READ_SELF (natively, at release), the program
+// webcpp::secure::timing_guard in a program's build, without the seam: its constructor takes a bool
+// and no std::source_location, on every target, so that no guarded function's name or header's path
+// can reach a program. Built with WEBCPP_TEST_TIMING_READ_SELF (natively, at release), the program
 // reads its own executable and finds neither the name of mac, which it calls over HMAC-SHA-256 on
 // backends::hash2, nor the path of mac.hpp, where mac is declared. A copy of
 // libs/crypto/test/timing_unseamed_test.cpp over hash's mac.
 
 #include <webcpp/hash/algorithms.hpp>
-#include <webcpp/hash/detail/timing.hpp>
 #include <webcpp/hash/mac.hpp>
+#include <webcpp/secure/timing_guard.hpp>
 #include <webcpp/test/exit_status.hpp>
 
 #include <boost/core/lightweight_test.hpp>
@@ -34,16 +34,15 @@
 
 namespace {
 
-namespace detail = webcpp::hash::detail;
 namespace hash = webcpp::hash;
 
-static_assert(!std::is_constructible_v<detail::timing_guard, bool, std::source_location>,
+static_assert(!std::is_constructible_v<webcpp::secure::timing_guard, bool, std::source_location>,
               "without the seam, timing_guard takes no source_location");
-static_assert(!std::is_constructible_v<detail::timing_guard, std::source_location>,
+static_assert(!std::is_constructible_v<webcpp::secure::timing_guard, std::source_location>,
               "without the seam, timing_guard takes no source_location");
-static_assert(std::is_nothrow_constructible_v<detail::timing_guard, bool>,
+static_assert(std::is_nothrow_constructible_v<webcpp::secure::timing_guard, bool>,
               "without the seam, timing_guard is constructed from a bool, and never throws");
-static_assert(std::is_nothrow_default_constructible_v<detail::timing_guard>,
+static_assert(std::is_nothrow_default_constructible_v<webcpp::secure::timing_guard>,
               "without the seam, timing_guard is constructed from nothing, and never throws");
 
 // mac over HMAC-SHA-256 on backends::hash2 runs and answers as it does with the seam. The call is

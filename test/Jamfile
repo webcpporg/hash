@@ -66,8 +66,6 @@ webcpp.headers-alone hash : ../include :
     hash/config.hpp
     hash/detail/engines.hpp
     hash/detail/limits.hpp
-    hash/detail/timing.hpp
-    hash/detail/wipe.hpp
     hash/detail/xkcp.hpp
     hash/digest.hpp
     hash/error.hpp
@@ -212,11 +210,11 @@ hash-run blake3_vectors : blake3_vectors_test.cpp
 # digests and HMACs on backends::hash2, keccak_256 on backends::xkcp and
 # BLAKE3's extendable output on backends::blake3 against the Hash2-form types;
 # every tag's default backend. hasher's state machine, and its wipes reported
-# through the seam WEBCPP_HASH_DETAIL_TEST_WIPE_RECORD.
+# through the seam WEBCPP_SECURE_TEST_WIPE_RECORD.
 hash-run families : families_test.cpp
   : <library>/third_party//xkcp <library>/third_party//blake3 ;
 hash-run hasher_state : hasher_state_test.cpp
-  : <define>WEBCPP_HASH_DETAIL_TEST_WIPE_RECORD ;
+  : <define>WEBCPP_SECURE_TEST_WIPE_RECORD ;
 # SHAKE128 and SHAKE256 on backends::hash2, a whole extendable output, against
 # the SHAKE cases of OpenSSL's evpmd_sha.txt, read at run time: FIPS 202's
 # examples squeezed past several blocks, and NIST's shorter cases.
@@ -231,7 +229,7 @@ hash-run hash2_mac_vectors : hash2_mac_vectors_test.cpp
 
 # HKDF (RFC 5869) on backends::hash2: the RFC's seven cases and three more
 # computed by Python's hmac; the guards at their limits; the wipes, each one
-# reported through the seam WEBCPP_HASH_DETAIL_TEST_WIPE_RECORD.
+# reported through the seam WEBCPP_SECURE_TEST_WIPE_RECORD.
 hash-run hkdf_hash2 : hkdf_hash2_test.cpp ;
 hash-run hkdf_guards : hkdf_guards_test.cpp ;
 
@@ -248,22 +246,22 @@ hash-run hkdf_pieces_sliced : hkdf_pieces_test.cpp
 # crypto_auth_hmacsha512_*) and on backends::bearssl (br_hmac_*, its six
 # hmacs, Extract and Expand over pieces included), each with the wipe of every
 # HMAC state, block and pseudorandom key reported through the seam
-# WEBCPP_HASH_DETAIL_TEST_WIPE_RECORD, and again in slices of 7 bytes.
+# WEBCPP_SECURE_TEST_WIPE_RECORD, and again in slices of 7 bytes.
 hash-run hkdf_pieces_sodium : hkdf_pieces_sodium_test.cpp
-  : <library>/third_party//sodium <define>WEBCPP_HASH_DETAIL_TEST_WIPE_RECORD ;
+  : <library>/third_party//sodium <define>WEBCPP_SECURE_TEST_WIPE_RECORD ;
 hash-run hkdf_pieces_sodium_sliced : hkdf_pieces_sodium_test.cpp
-  : <library>/third_party//sodium <define>WEBCPP_HASH_DETAIL_TEST_WIPE_RECORD
+  : <library>/third_party//sodium <define>WEBCPP_SECURE_TEST_WIPE_RECORD
     <define>WEBCPP_HASH_DETAIL_TEST_HKDF_PIECES_SLICE=7 ;
 hash-run hkdf_pieces_sodium_sha512_sliced : hkdf_pieces_sodium_test.cpp
-  : <library>/third_party//sodium <define>WEBCPP_HASH_DETAIL_TEST_WIPE_RECORD
+  : <library>/third_party//sodium <define>WEBCPP_SECURE_TEST_WIPE_RECORD
     <define>WEBCPP_HASH_DETAIL_TEST_HKDF_PIECES_SLICE=7
     <define>WEBCPP_HASH_DETAIL_TEST_SLICED_HMAC_SHA2_512 ;
 hash-run hkdf_pieces_bearssl : hkdf_pieces_bearssl_test.cpp
-  : <library>/third_party//bearssl <define>WEBCPP_HASH_DETAIL_TEST_WIPE_RECORD ;
+  : <library>/third_party//bearssl <define>WEBCPP_SECURE_TEST_WIPE_RECORD ;
 hash-run hkdf_pieces_bearssl_sliced : hkdf_pieces_bearssl_test.cpp
-  : <library>/third_party//bearssl <define>WEBCPP_HASH_DETAIL_TEST_WIPE_RECORD
+  : <library>/third_party//bearssl <define>WEBCPP_SECURE_TEST_WIPE_RECORD
     <define>WEBCPP_HASH_DETAIL_TEST_HKDF_PIECES_SLICE=7 ;
-hash-run wipe : wipe_test.cpp : <define>WEBCPP_HASH_DETAIL_TEST_WIPE_RECORD ;
+hash-run wipe : wipe_test.cpp : <define>WEBCPP_SECURE_TEST_WIPE_RECORD ;
 
 # digests::blake2b on backends::sodium, libsodium's crypto_generichash_blake2b
 # with key, salt, personalisation and output size: BLAKE2's keyed and unkeyed
@@ -283,10 +281,10 @@ hash-run siphash_sodium : siphash_sodium_test.cpp
 # crypto_generichash_blake2b: BLAKE2's keyed KAT read at run time, Boost.Hash2's
 # keyed blake2b_512 and digests::blake2b on random cases, every key and tag
 # size, the guards, and the wipe of libsodium's state, reported through the
-# seam WEBCPP_HASH_DETAIL_TEST_WIPE_RECORD.
+# seam WEBCPP_SECURE_TEST_WIPE_RECORD.
 hash-run blake2b_mac_sodium : blake2b_mac_sodium_test.cpp
   : <library>/third_party//sodium <library>/third_party//blake2_vectors
-    <define>WEBCPP_HASH_DETAIL_TEST_WIPE_RECORD ;
+    <define>WEBCPP_SECURE_TEST_WIPE_RECORD ;
 
 # blake2b_subkey on backends::sodium, libsodium's
 # crypto_kdf_blake2b_derive_from_key: kdf.exp read at run time, the
@@ -329,9 +327,9 @@ hash-run pbkdf2_guards : pbkdf2_guards_test.cpp ;
 
 # HKDF on backends::bearssl: RFC 5869's seven cases through hkdf, the four
 # other hmacs against backends::hash2, the guards, and the wipe of BearSSL's
-# context, reported through the seam WEBCPP_HASH_DETAIL_TEST_WIPE_RECORD.
+# context, reported through the seam WEBCPP_SECURE_TEST_WIPE_RECORD.
 hash-run hkdf_bearssl : hkdf_bearssl_test.cpp
-  : <library>/third_party//bearssl <define>WEBCPP_HASH_DETAIL_TEST_WIPE_RECORD ;
+  : <library>/third_party//bearssl <define>WEBCPP_SECURE_TEST_WIPE_RECORD ;
 # Its read of webcpp::hash's canary survives optimisation: with the library it
 # links and runs; with another commit's canary it does not link.
 hash-run hkdf_bearssl_canary : hkdf_bearssl_canary_test.cpp
@@ -343,7 +341,7 @@ webcpp.link-fail hkdf_bearssl_canary_other_commit : hkdf_bearssl_canary_test.cpp
 # through digest_of and hasher, HMAC through mac, against Boost.Hash2 on random
 # inputs, RFC 4231 and RFC 2202, and the wipe of BearSSL's contexts.
 hash-run families_bearssl : families_bearssl_test.cpp
-  : <library>/third_party//bearssl <define>WEBCPP_HASH_DETAIL_TEST_WIPE_RECORD ;
+  : <library>/third_party//bearssl <define>WEBCPP_SECURE_TEST_WIPE_RECORD ;
 
 # HKDF and PBKDF2 on backends::openssl (OpenSSL 3.5.9's EVP_KDF), on the
 # targets where webcpp builds OpenSSL: the RFCs' cases and backends::hash2's
@@ -354,13 +352,13 @@ hash-run hkdf_openssl : hkdf_openssl_test.cpp : <library>/webcpp/hash//openssl
   : native wasip2 wasip3 ;
 # HKDF over pieces on backends::openssl, over EVP_MAC "HMAC" (its 15 hmacs):
 # the equality harness, each block and pseudorandom key wiped through the seam
-# WEBCPP_HASH_DETAIL_TEST_WIPE_RECORD, the error queue left empty; again in
+# WEBCPP_SECURE_TEST_WIPE_RECORD, the error queue left empty; again in
 # slices of 7 bytes.
 hash-run hkdf_pieces_openssl : hkdf_pieces_openssl_test.cpp
-  : <library>/webcpp/hash//openssl <define>WEBCPP_HASH_DETAIL_TEST_WIPE_RECORD
+  : <library>/webcpp/hash//openssl <define>WEBCPP_SECURE_TEST_WIPE_RECORD
   : native wasip2 wasip3 ;
 hash-run hkdf_pieces_openssl_sliced : hkdf_pieces_openssl_test.cpp
-  : <library>/webcpp/hash//openssl <define>WEBCPP_HASH_DETAIL_TEST_WIPE_RECORD
+  : <library>/webcpp/hash//openssl <define>WEBCPP_SECURE_TEST_WIPE_RECORD
     <define>WEBCPP_HASH_DETAIL_TEST_HKDF_PIECES_SLICE=7
   : native wasip2 wasip3 ;
 hash-run pbkdf2_openssl : pbkdf2_openssl_test.cpp
@@ -450,11 +448,11 @@ botan-run kdfs_botan : kdfs_botan_test.cpp ;
 # HKDF over pieces on backends::botan, over its HMAC (its 14 hmacs): the
 # equality harness, a salt past Botan's 8,192-byte HMAC key, the digest room,
 # each block and pseudorandom key wiped through the seam
-# WEBCPP_HASH_DETAIL_TEST_WIPE_RECORD; again in slices of 7 bytes.
+# WEBCPP_SECURE_TEST_WIPE_RECORD; again in slices of 7 bytes.
 botan-run hkdf_pieces_botan : hkdf_pieces_botan_test.cpp
-  : <define>WEBCPP_HASH_DETAIL_TEST_WIPE_RECORD ;
+  : <define>WEBCPP_SECURE_TEST_WIPE_RECORD ;
 botan-run hkdf_pieces_botan_sliced : hkdf_pieces_botan_test.cpp
-  : <define>WEBCPP_HASH_DETAIL_TEST_WIPE_RECORD
+  : <define>WEBCPP_SECURE_TEST_WIPE_RECORD
     <define>WEBCPP_HASH_DETAIL_TEST_HKDF_PIECES_SLICE=7 ;
 # Argon2 on backends::botan: RFC 9106's three cases through the family,
 # libsodium's table through argon2id, argon2_ctx on random cases with lanes, a
@@ -756,10 +754,11 @@ hash-run allocation_openssl : allocation_openssl_test.cpp
     <target-os>wasi:<linkflags>-Wl,--wrap=malloc,--wrap=calloc,--wrap=realloc,--wrap=aligned_alloc,--wrap=posix_memalign
   : native wasip2 wasip3 ;
 
-# detail::timing_guard sets DIT for its scope where the CPU has it and leaves
-# the thread's state as it found it; its seam fires on every target for an
-# engaged guard and never for a disengaged one. timing_threads adds a second
-# thread, natively, with threads.
+# webcpp::secure::timing_guard, secure's guard, sets DIT for its scope where
+# the CPU has it and leaves the thread's state as it found it; its seam fires
+# on every target for an engaged guard and never for a disengaged one, and the
+# seam support counts hash's own guards by their file. timing_threads adds a
+# second thread, natively, with threads.
 hash-run timing : timing_test.cpp ;
 hash-run timing_threads : timing_test.cpp
   : <threading>multi <define>WEBCPP_TEST_TIMING_THREADS : native ;
@@ -796,16 +795,17 @@ hash-run timing_during_async : timing_during_test.cpp
   : native emscripten ;
 
 # mac and the keyed modes of BLAKE2b (digest_of, hasher with a key) and of
-# BLAKE3 (keyed, derive_key and the seeds that key) hold detail::timing_guard; a
-# call that is not keyed holds none; no output changes.
+# BLAKE3 (keyed, derive_key and the seeds that key) hold
+# webcpp::secure::timing_guard; a call that is not keyed holds none; no output
+# changes.
 hash-run timing_keyed : timing_keyed_test.cpp
   : $(.hash-tables) <library>/third_party//blake3 <library>/third_party//sodium
     <library>/third_party//blake3_vectors ;
 
-# The key derivations and password hashes hold detail::timing_guard on every
-# backend: timing_keyed covers the default backends'; kbkdf, sskdf and x963kdf,
-# and a second cell of the templates, on backends::openssl, here, and bcrypt,
-# bcrypt_verify and bcrypt_pbkdf, and a cell of the templates, on
+# The key derivations and password hashes hold webcpp::secure::timing_guard on
+# every backend: timing_keyed covers the default backends'; kbkdf, sskdf and
+# x963kdf, and a second cell of the templates, on backends::openssl, here, and
+# bcrypt, bcrypt_verify and bcrypt_pbkdf, and a cell of the templates, on
 # backends::botan (exceptions on, native and Emscripten).
 hash-run timing_keyed_openssl : timing_keyed_openssl_test.cpp
   : <library>/webcpp/hash//openssl : native wasip2 wasip3 ;
@@ -820,7 +820,7 @@ botan-run timing_botan_failure : timing_botan_failure_test.cpp
 # cell of the backend (support/timing_coverage.hpp: macs, key derivations and
 # password hashes, one per hmac a cell lists, and BLAKE2b with a key, the
 # blake3 type's keyed modes and bcrypt_verify) enters its own
-# detail::timing_guard first; every digest cell without a key, and every
+# webcpp::secure::timing_guard first; every digest cell without a key, and every
 # Boost.Hash2-form type, enters none. A new cell of a family the support
 # knows gets its call from backend_has_v, which capabilities keeps equal to the
 # table; a cell of a family or function it does not know fails until its call

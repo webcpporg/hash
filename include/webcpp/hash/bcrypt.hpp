@@ -16,8 +16,8 @@
  another implementation would not. For a new design Argon2id (`argon2id`) is the better choice;
  bcrypt is here to check and make the strings that systems already store.
 
- Every call holds the data-independent-timing guard (`detail::timing_guard`): where the CPU has
- DIT, the call sets it and leaves the thread's state as it found it.
+ Every call holds the data-independent-timing guard (`webcpp::secure::timing_guard`, secure's
+ guard): where the CPU has DIT, the call sets it and leaves the thread's state as it found it.
 
  Every guard runs before any work, and a guard's refusal leaves the output as it was; a backend's
  failure zeroes it. The caller gives every input, the salt included: hash draws no random byte.
@@ -41,10 +41,10 @@
 #include <webcpp/hash/config.hpp>
 
 #include <webcpp/hash/detail/engines.hpp>
-#include <webcpp/hash/detail/timing.hpp>
-#include <webcpp/hash/detail/wipe.hpp>
 #include <webcpp/hash/error.hpp>
 #include <webcpp/hash/kdf.hpp>
+#include <webcpp/secure/erase_secret.hpp>
+#include <webcpp/secure/timing_guard.hpp>
 
 #include <boost/system/result.hpp>
 
@@ -259,7 +259,7 @@ template <class Backend = default_backend<kdfs::bcrypt>>
                                                  std::span<std::uint8_t const> password,
                                                  std::span<std::uint8_t const> salt,
                                                  bcrypt_parameters const& parameters = {}) {
-    detail::timing_guard const timing;
+    secure::timing_guard const timing;
     auto guarded = detail::bcrypt_guards<Backend>(output.size(), password, salt.size(), parameters);
     if (!guarded) {
         return guarded;
@@ -267,7 +267,7 @@ template <class Backend = default_backend<kdfs::bcrypt>>
     auto made = detail::bcrypt_engine<Backend>::generate(output, password, salt, parameters.cost,
                                                          parameters.version);
     if (!made) {
-        detail::wipe(output.data(), output.size());
+        secure::erase_secret(output);
     }
     return made;
 }
@@ -290,7 +290,7 @@ template <class Backend = default_backend<kdfs::bcrypt>>
 template <class Backend = default_backend<kdfs::bcrypt>>
 [[nodiscard]] boost::system::result<bool> bcrypt_verify(std::span<std::uint8_t const> password,
                                                         std::string_view hash) {
-    detail::timing_guard const timing;
+    secure::timing_guard const timing;
     auto const guarded = detail::bcrypt_verify_guards<Backend>(password, hash);
     if (!guarded) {
         return guarded.error();
@@ -317,14 +317,14 @@ template <class Backend = default_backend<kdfs::bcrypt_pbkdf>>
                                                        std::span<std::uint8_t const> password,
                                                        std::span<std::uint8_t const> salt,
                                                        std::uint32_t rounds) {
-    detail::timing_guard const timing;
+    secure::timing_guard const timing;
     auto guarded = detail::bcrypt_pbkdf_guards(output.size(), password.size(), salt.size(), rounds);
     if (!guarded) {
         return guarded;
     }
     auto derived = detail::bcrypt_pbkdf_engine<Backend>::derive(output, password, salt, rounds);
     if (!derived) {
-        detail::wipe(output);
+        secure::erase_secret(output);
     }
     return derived;
 }

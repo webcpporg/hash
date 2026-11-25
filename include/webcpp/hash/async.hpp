@@ -53,7 +53,6 @@
 #include <webcpp/hash/bcrypt.hpp>
 #include <webcpp/hash/byte_pieces.hpp>
 #include <webcpp/hash/detail/engines.hpp>
-#include <webcpp/hash/detail/wipe.hpp>
 #include <webcpp/hash/digest.hpp>
 #include <webcpp/hash/error.hpp>
 #include <webcpp/hash/hkdf.hpp>
@@ -62,6 +61,7 @@
 #include <webcpp/hash/mac.hpp>
 #include <webcpp/hash/pbkdf2.hpp>
 #include <webcpp/hash/scrypt.hpp>
+#include <webcpp/secure/erase_secret.hpp>
 
 #include <webcpp/asio/append.hpp>
 #include <webcpp/asio/associated_allocator.hpp>
@@ -339,11 +339,11 @@ template <class Hmac, class Backend, class InputKeyMaterial>
     }
     auto extracted = hkdf_extract<Hmac, Backend>(salt, input_key_material);
     if (!extracted) {
-        wipe(pseudorandom_key);
+        secure::erase_secret(pseudorandom_key);
         return extracted.error();
     }
     std::ranges::copy(*extracted, pseudorandom_key.begin());
-    wipe_object(*extracted);
+    secure::erase_secret(std::span(&*extracted, 1));
     return {};
 }
 
@@ -454,7 +454,7 @@ public:
             value_.value = outcome ? *outcome : value_type{};
         }
         if (cancelled_.load(std::memory_order_acquire)) {
-            wipe(output_.data(), output_.size());
+            secure::erase_secret(output_);
             code = webcpp::asio::error::operation_aborted;
             value_ = {};
         }

@@ -66,13 +66,13 @@
 #include <webcpp/hash/argon2.hpp>
 #include <webcpp/hash/detail/engines.hpp>
 #include <webcpp/hash/detail/limits.hpp>
-#include <webcpp/hash/detail/wipe.hpp>
 #include <webcpp/hash/digest.hpp>
 #include <webcpp/hash/error.hpp>
 #include <webcpp/hash/hmac.hpp>
 #include <webcpp/hash/kdf.hpp>
 #include <webcpp/hash/kdf_standards.hpp>
 #include <webcpp/hash/mac.hpp>
+#include <webcpp/secure/erase_secret.hpp>
 
 #include <boost/system/errc.hpp>
 #include <boost/system/result.hpp>
@@ -887,8 +887,8 @@ struct botan_hmac_engine : full_engine {
         if (computed) {
             std::copy_n(tag.begin(), output.size(), output.begin());
         }
-        wipe_object(whole);
-        wipe_object(hashed_key);
+        secure::erase_secret(whole);
+        secure::erase_secret(hashed_key);
         return computed;
     }
 };
@@ -1115,7 +1115,7 @@ template <class Digest, class Derive>
     } else {
         derived = used.error();
     }
-    wipe_object(hashed);
+    secure::erase_secret(hashed);
     return derived;
 }
 
@@ -1255,7 +1255,7 @@ struct botan_hkdf_engine {
                                  input_key_material, key, {});
             });
         if (!derived) {
-            wipe_object(pseudorandom_key_digest);
+            secure::erase_secret(std::span(&pseudorandom_key_digest, 1));
             pseudorandom_key = derived.error();
         }
         return pseudorandom_key;
@@ -1380,7 +1380,7 @@ struct hkdf_pieces_engine<backends::botan, Hmac> {
                 });
             });
         if (!derived) {
-            wipe_object(pseudorandom_key_digest);
+            secure::erase_secret(std::span(&pseudorandom_key_digest, 1));
             pseudorandom_key = derived.error();
         }
         return pseudorandom_key;
@@ -1422,7 +1422,7 @@ struct hkdf_pieces_engine<backends::botan, Hmac> {
             }
         });
         mac_object.reset();
-        wipe_object(t_block);
+        secure::erase_secret(std::span(&t_block, 1));
         return derived;
     }
 

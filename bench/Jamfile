@@ -39,11 +39,11 @@ webcpp.run pbkdf2_sha512_key : pbkdf2_sha512.cpp : $(.requirements) ;
 exe pbkdf2_sha512 : pbkdf2_sha512.cpp : $(.requirements) <variant>release ;
 explicit pbkdf2_sha512 ;
 
-# The cost of detail::timing_guard, the scope every keyed function runs in
-# (doc/performance.adoc). timing_check is the correctness test of the measured
-# program, run in every lane of test/: the measurement at 10^3 iterations, its
-# line's form and the thread's DIT checked. It needs no backend:
-# detail/timing.hpp alone.
+# The cost of webcpp::secure::timing_guard, the scope every keyed function runs
+# in (doc/performance.adoc). timing_check is the correctness test of the
+# measured program, run in every lane of test/: the measurement at 10^3
+# iterations, its line's form and the thread's DIT checked. The guard's cost
+# needs no backend: <webcpp/secure/timing_guard.hpp> alone.
 webcpp.run timing_check : timing.cpp : <optimization>speed ;
 
 # The same program at variant=release, the one collect.py --timing measures,

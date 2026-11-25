@@ -4,22 +4,27 @@
 // accompanying file LICENSE_1_0.txt or copy at
 // https://www.boost.org/LICENSE_1_0.txt)
 
-// The seam of detail::timing_guard, recorded: a test includes this header before any hash
-// header, so that every guard a call enters raises timing_entries and the first records the
-// function that holds it, on every target, also where DIT does not apply. require_enters then
-// checks that a call entered a guard, and that the first, the outermost since a guard is its
-// function's first statement, is the one of the function the check names: a public function that
-// forgot its own guard fails, also when it calls another guarded function. The converse, a call
-// that enters no guard, is support/timing_coverage.hpp's uncovered.
-//
-// This is a copy of libs/crypto/test/support/timing_seam.hpp with hash's macro: the duplication is
-// accepted for the reason of detail/timing.hpp's own (hash includes nothing of crypto).
+// The seam of webcpp::secure::timing_guard, secure's guard, recorded for hash's tests: a test
+// includes this header before any webcpp header, so that the seam is defined before
+// <webcpp/secure/timing_guard.hpp> is first read and every engaged guard a call enters is
+// counted, on every target, also where DIT does not apply. A guard is hash's own when one of
+// hash's headers declares it: its source_location's file_name() holds include/webcpp/hash/, with
+// `/` or `\` around each word (MSVC writes backslashes, and joins an include directory to a
+// header's path with either); the include root keeps a checkout whose own folders read
+// webcpp/hash/ from counting a test file's guard. timing_entries counts hash's own guards and
+// timing_all_entries every guard: another library's, which a call may enter inside its own, and a
+// test's own. require_enters then checks that a call entered a guard of hash's, and that the first
+// guard it entered, the outermost since a guard is its function's first statement, is the one of
+// the function the check names: a public function that forgot its own guard fails, also when it
+// calls another guarded function. The converse, a call that enters no guard of hash's, is
+// support/timing_coverage.hpp's uncovered. The recorder is the form of secure's
+// (libs/secure/test/support/timing_seam.hpp) in hash's namespace webcpp::test, counting hash's.
 
 #ifndef WEBCPP_TEST_HASH_SUPPORT_TIMING_SEAM_HPP
 #define WEBCPP_TEST_HASH_SUPPORT_TIMING_SEAM_HPP
 
-#ifdef WEBCPP_HASH_DETAIL_TIMING_HPP
-#error "support/timing_seam.hpp must be included before any hash header"
+#ifdef WEBCPP_SECURE_TIMING_GUARD_HPP
+#error "\"support/timing_seam.hpp\" must be included before any webcpp header"
 #endif
 
 #include <boost/core/lightweight_test.hpp>
@@ -32,34 +37,82 @@
 
 namespace webcpp::test {
 
-/** The number of detail::timing_guard objects this thread has constructed. */
+/** Every timing guard this thread entered: hash's, another library's, a test's. */
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables): the seam's counter
+inline thread_local std::size_t timing_all_entries = 0;
+
+/** The timing guards of hash's headers this thread has entered. */
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables): the seam's counter
 inline thread_local std::size_t timing_entries = 0;
 
 /**
- * The `function_name()` of the first detail::timing_guard this thread entered since it was last
+ * The `function_name()` of the first guard, of any file, this thread entered since it was last
  * reset to null: the function that holds that guard, as the compiler spells it.
  */
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables): the seam's record
 inline thread_local char const* timing_first_entry = nullptr;
 
+/** The `function_name()` of the last guard, of any file, this thread entered. */
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables): the seam's record
+inline thread_local char const* timing_last_entry = nullptr;
+
+/** The library whose guards timing_entries counts. */
+inline constexpr std::string_view timing_library = "hash";
+
+/** Whether `character` separates a path's components, on any system webcpp builds on. */
+constexpr bool path_separator(char character) noexcept {
+    return character == '/' || character == '\\';
+}
+
 /**
- * Records the entry into a detail::timing_guard: counts it, and keeps its function when it is the
- * first since timing_first_entry was reset.
+ * Whether a path names a file under a library's include directory: the components `include`,
+ * `webcpp` and `library`, in that order, each followed by a separator, `/` or `\` in any mix, and
+ * `include` the path's first component or after a separator.
+ *
+ * @param path A `file_name()`.
+ * @param library The library's directory name.
+ * @return Whether the path is under `include/webcpp/<library>/`.
+ */
+constexpr bool path_in_library(std::string_view path, std::string_view library) noexcept {
+    constexpr std::string_view include_root = "include";
+    constexpr std::string_view root = "webcpp";
+    for (std::size_t at = path.find(include_root); at != std::string_view::npos;
+         at = path.find(include_root, at + 1)) {
+        std::size_t const root_at = at + include_root.size() + 1;
+        std::size_t const library_at = root_at + root.size() + 1;
+        std::size_t const after = library_at + library.size();
+        if ((at == 0 || path_separator(path[at - 1])) && after < path.size() &&
+            path_separator(path[root_at - 1]) && path.substr(root_at, root.size()) == root &&
+            path_separator(path[library_at - 1]) &&
+            path.substr(library_at, library.size()) == library && path_separator(path[after])) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/**
+ * Records the entry into a webcpp::secure::timing_guard: counts it, as hash's when its file is
+ * under include/webcpp/hash/, and keeps its function as the first since timing_first_entry was
+ * reset and as the last.
  *
  * @param where Where the guard is declared.
  */
 inline void timing_entered(std::source_location const& where) noexcept {
-    ++timing_entries;
+    ++timing_all_entries;
+    if (path_in_library(where.file_name(), timing_library)) {
+        ++timing_entries;
+    }
     if (timing_first_entry == nullptr) {
         timing_first_entry = where.function_name();
     }
+    timing_last_entry = where.function_name();
 }
 
 }  // namespace webcpp::test
 
-/** Records the entry into a detail::timing_guard declared at `where`. */
-#define WEBCPP_HASH_DETAIL_TIMING_ENTERED(where) (::webcpp::test::timing_entered(where))
+/** Records the entry into a webcpp::secure::timing_guard declared at `where`. */
+#define WEBCPP_SECURE_TIMING_ENTERED(where) (::webcpp::test::timing_entered(where))
 
 namespace webcpp::test {
 
@@ -240,8 +293,8 @@ inline bool names_function(std::string_view entered, named_function const& named
 }
 
 /**
- * Runs `call` and reports an error when it entered no detail::timing_guard, or when the first
- * guard it entered is not the one of `function`.
+ * Runs `call` and reports an error when it entered no webcpp::secure::timing_guard of hash's, or
+ * when the first guard it entered is not the one of `function`.
  *
  * @param name What the call is, as an error names it.
  * @param function The function whose guard the call must enter first, as `function_named` reads
@@ -255,7 +308,8 @@ void require_enters(std::string_view name, std::string_view function, Call&& cal
     timing_first_entry = nullptr;
     std::forward<Call>(call)();
     if (timing_entries == before) {
-        std::string const message = std::string(name) + " did not enter detail::timing_guard";
+        std::string const message =
+            std::string(name) + " did not enter a webcpp::secure::timing_guard of hash's";
         BOOST_ERROR(message.c_str());
     } else if (function_named(function).scope.empty()) {
         std::string const message =
@@ -263,7 +317,7 @@ void require_enters(std::string_view name, std::string_view function, Call&& cal
         BOOST_ERROR(message.c_str());
     } else if (!names_function(timing_first_entry, function_named(function))) {
         std::string const message = std::string(name) +
-                                    " entered first the detail::timing_guard of " +
+                                    " entered first the webcpp::secure::timing_guard of " +
                                     timing_first_entry + ", not its own";
         BOOST_ERROR(message.c_str());
     }
@@ -271,8 +325,8 @@ void require_enters(std::string_view name, std::string_view function, Call&& cal
 }
 
 /**
- * Runs `call` and reports an error when it entered no detail::timing_guard, or when the first
- * guard it entered is not the one of the function the name begins with.
+ * Runs `call` and reports an error when it entered no webcpp::secure::timing_guard of hash's, or
+ * when the first guard it entered is not the one of the function the name begins with.
  *
  * @param name What the call is, `<qualifiers>::<scope>::<function>[ how] on <backend>`, which
  * names the function as `function_named` reads it.

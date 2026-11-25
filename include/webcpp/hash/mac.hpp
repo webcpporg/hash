@@ -8,22 +8,23 @@
  The MAC family (spec 2.15): `mac`, the tag of a message under a key in one call, over a tag of
  `macs` and a backend, `default_backend` of the tag by default.
 
- Every call holds the data-independent-timing guard (`detail::timing_guard`): where the CPU has
- DIT, `mac` sets it for the call and leaves the thread's state as it found it.
+ Every call holds the data-independent-timing guard (`webcpp::secure::timing_guard`, secure's
+ guard): where the CPU has DIT, `mac` sets it for the call and leaves the thread's state as it
+ found it.
 
  The guards are the same on every backend and run before any work: a tag of a size the MAC does
  not produce is `invalid_output_size`, a key of a size it does not take `invalid_key_size`, a value
  the MAC accepts and the chosen backend does not `unsupported_by_backend`. A guard's refusal leaves
  the output as it was; a backend's failure zeroes it.
 
- A program checks a tag with `webcpp::crypto::constant_time_equal`, which runs in constant time,
+ A program checks a tag with `webcpp::secure::constant_time_equal`, which runs in constant time,
  never with `==`:
 
  @code
  std::array<std::uint8_t, 32> tag{};
  auto done = webcpp::hash::mac<webcpp::hash::macs::hmac<webcpp::hash::digests::sha2_256>>(
      tag, key, message);
- bool genuine = done && webcpp::crypto::constant_time_equal(tag, received_tag);
+ bool genuine = done && webcpp::secure::constant_time_equal(tag, received_tag);
  @endcode
 
  @see "Message authentication", in the guide.
@@ -36,11 +37,11 @@
 #include <webcpp/hash/backends/hash2.hpp>
 #include <webcpp/hash/detail/engines.hpp>
 #include <webcpp/hash/detail/limits.hpp>
-#include <webcpp/hash/detail/timing.hpp>
-#include <webcpp/hash/detail/wipe.hpp>
 #include <webcpp/hash/digest.hpp>
 #include <webcpp/hash/error.hpp>
 #include <webcpp/hash/kdf.hpp>
+#include <webcpp/secure/erase_secret.hpp>
+#include <webcpp/secure/timing_guard.hpp>
 
 #include <boost/system/result.hpp>
 
@@ -255,7 +256,7 @@ template <class Mac, class Backend = default_backend<Mac>>
                                               std::span<std::uint8_t const> key,
                                               std::span<std::uint8_t const> input,
                                               mac_options<Mac> const& options = {}) {
-    detail::timing_guard const timing;
+    secure::timing_guard const timing;
     using engine = detail::mac_engine<Backend, Mac>;
     auto checked = detail::mac_guards<Mac>(output.size(), key.size(), options);
     if (!checked) {
@@ -266,7 +267,7 @@ template <class Mac, class Backend = default_backend<Mac>>
     }
     auto computed = engine::compute(output, key, input, options);
     if (!computed) {
-        detail::wipe(output);
+        secure::erase_secret(output);
     }
     return computed;
 }

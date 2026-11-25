@@ -12,9 +12,9 @@
 // tag::example[]
 #include "hex.hpp"
 
-#include <webcpp/crypto/constant_time_equal.hpp>
 #include <webcpp/crypto/random_device.hpp>
 #include <webcpp/hash/argon2.hpp>
+#include <webcpp/secure/constant_time_equal.hpp>
 
 #include <boost/system/result.hpp>
 
@@ -61,7 +61,7 @@ boost::system::result<bool> check(credential const& stored, std::string_view pas
     if (!done) {
         return done.error();
     }
-    return webcpp::crypto::constant_time_equal(candidate, stored.tag);
+    return webcpp::secure::constant_time_equal(candidate, stored.tag);
 }
 
 }  // namespace

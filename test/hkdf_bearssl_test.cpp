@@ -8,7 +8,7 @@
 // over br_sha1_vtable), A.7's absent salt spelled as HashLen zeros too; the four hmacs RFC 5869
 // has no case for against backends::hash2; the guards at their limits, which refuse before
 // BearSSL is reached; and the wipe of BearSSL's context after each call, reported through the
-// seam WEBCPP_HASH_DETAIL_TEST_WIPE_RECORD (spec sections 3.4 and 6.1).
+// seam WEBCPP_SECURE_TEST_WIPE_RECORD (spec sections 3.4 and 6.1).
 
 #include <webcpp/hash/backends/bearssl.hpp>
 #include <webcpp/hash/backends/hash2.hpp>
@@ -32,8 +32,8 @@
 #include <string>
 #include <vector>
 
-#ifndef WEBCPP_HASH_DETAIL_TEST_WIPE_RECORD
-#error "hkdf_bearssl_test is built with WEBCPP_HASH_DETAIL_TEST_WIPE_RECORD (test/Jamfile)"
+#ifndef WEBCPP_SECURE_TEST_WIPE_RECORD
+#error "hkdf_bearssl_test is built with WEBCPP_SECURE_TEST_WIPE_RECORD (test/Jamfile)"
 #endif
 
 namespace hash = webcpp::hash;
@@ -161,8 +161,7 @@ void guards() {
 
 }  // namespace
 
-void webcpp::hash::detail::test::wipe_record(void const* wiped_data,
-                                             std::size_t byte_count) noexcept {
+void webcpp::secure::test::wipe_record(void const* wiped_data, std::size_t byte_count) noexcept {
     const auto* const bytes = static_cast<unsigned char const*>(wiped_data);
     ++wipes.count;
     wipes.last_size = byte_count;

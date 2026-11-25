@@ -4,23 +4,22 @@
 // accompanying file LICENSE_1_0.txt or copy at
 // https://www.boost.org/LICENSE_1_0.txt)
 
-// The coverage of detail::timing_guard, driven by the capability table: every keyed cell of a
-// backend in doc/capabilities.json enters its own guard first and leaves the thread's DIT as it
-// found it, and every digest cell of the backend, called without a key, enters none (design D1,
-// D2). Each backend's timing_coverage_<backend>_test.cpp builds its calls from the helpers here
-// and hands them to check_and_run, which fails on a keyed cell of the table with no call and on a
-// call that names no keyed cell; then it walks the backend's digest cells through
-// uncover_digests. A test includes this header before any hash header.
+// The coverage of webcpp::secure::timing_guard, secure's guard, driven by the capability table:
+// every keyed cell of a backend in doc/capabilities.json enters its own guard first and leaves the
+// thread's DIT as it found it, and every digest cell of the backend, called without a key, enters
+// none (design D1, D2). Each backend's timing_coverage_<backend>_test.cpp builds its calls from the
+// helpers here and hands them to check_and_run, which fails on a keyed cell of the table with no
+// call and on a call that names no keyed cell; then it walks the backend's digest cells through
+// uncover_digests. A test includes this header before any webcpp header.
 //
-// covered, and the support's shape, are a copy of libs/crypto/test/support/timing_coverage.hpp
-// with hash's guard: the duplication is accepted for the reason of detail/timing.hpp's own (hash
-// includes nothing of crypto). The keyed cells are the table's (ruling H6): every function of
-// the chapters macs, kdfs and password_hashing whose kind is not "type", each backend's cell, one
-// per hmac where the cell lists hmacs ("other": a Hash2 hmac the list does not name); plus three
-// keyed functions the table holds no cell of, named here with design D1 as the reason: BLAKE2b
-// with a key (digest_of and a hasher round) wherever the backend has digests::blake2b, the blake3
-// type's keyed modes on backends::blake3, and bcrypt_verify wherever the backend has bcrypt
-// (H12). backends::webcrypto has no coverage test (D6).
+// covered and uncovered count hash's own guards, timing_entries (support/timing_seam.hpp), so
+// that a guard of another library a call enters is not taken for hash's. The keyed cells are the
+// table's (ruling H6): every function of the chapters macs, kdfs and password_hashing whose kind is
+// not "type", each backend's cell, one per hmac where the cell lists hmacs ("other": a Hash2 hmac
+// the list does not name); plus three keyed functions the table holds no cell of, named here with
+// design D1 as the reason: BLAKE2b with a key (digest_of and a hasher round) wherever the backend
+// has digests::blake2b, the blake3 type's keyed modes on backends::blake3, and bcrypt_verify
+// wherever the backend has bcrypt (H12). backends::webcrypto has no coverage test (D6).
 
 #ifndef WEBCPP_TEST_HASH_SUPPORT_TIMING_COVERAGE_HPP
 #define WEBCPP_TEST_HASH_SUPPORT_TIMING_COVERAGE_HPP
@@ -31,7 +30,6 @@
 #include <webcpp/hash/bcrypt.hpp>
 #include <webcpp/hash/blake2b_subkey.hpp>
 #include <webcpp/hash/detail/engines.hpp>
-#include <webcpp/hash/detail/timing.hpp>
 #include <webcpp/hash/digest.hpp>
 #include <webcpp/hash/error.hpp>
 #include <webcpp/hash/hkdf.hpp>
@@ -41,6 +39,7 @@
 #include <webcpp/hash/mac.hpp>
 #include <webcpp/hash/pbkdf2.hpp>
 #include <webcpp/hash/scrypt.hpp>
+#include <webcpp/secure/timing_guard.hpp>
 
 #include "data_file.hpp"
 #include "defaults.hpp"
@@ -68,9 +67,9 @@
 namespace webcpp::test {
 
 /**
- * Runs `call` and reports an error when it entered no detail::timing_guard, when the first guard
- * it entered is not the one of `function` (support/timing_seam.hpp), or when it left the thread's
- * DIT other than it found it.
+ * Runs `call` and reports an error when it entered no webcpp::secure::timing_guard of hash's, when
+ * the first guard it entered is not the one of `function` (support/timing_seam.hpp), or when it
+ * left the thread's DIT other than it found it.
  *
  * @param name What the call is, `<qualifiers>::<function>[ how] on <backend>`, as an error names
  * it.
@@ -80,9 +79,9 @@ namespace webcpp::test {
  */
 template <class Call>
 void covered(std::string const& name, std::string const& function, Call&& call) {
-    bool const before = webcpp::hash::detail::dit_is_set();
+    bool const before = webcpp::secure::dit_is_set();
     require_enters(name, function, std::forward<Call>(call));
-    if (webcpp::hash::detail::dit_is_set() != before) {
+    if (webcpp::secure::dit_is_set() != before) {
         std::string const message = name + (before ? " left DIT clear, though it found it set"
                                                    : " left DIT set, though it found it clear");
         BOOST_ERROR(message.c_str());
@@ -103,10 +102,10 @@ void covered(std::string const& name, Call&& call) {
 }
 
 /**
- * Runs `call` and reports an error when it entered a detail::timing_guard: a public function that
- * computes on public data alone (a digest without a key, a Hash2 type) holds none (design D2,
- * D3). A guard added to one by mistake costs every call, and makes the rule "a guard where a key
- * is" harder to check.
+ * Runs `call` and reports an error when it entered a webcpp::secure::timing_guard of hash's: a
+ * public function that computes on public data alone (a digest without a key, a Hash2 type) holds
+ * none (design D2, D3). A guard added to one by mistake costs every call, and makes the rule "a
+ * guard where a key is" harder to check.
  *
  * @param name What the call is, `<qualifiers>::<function>[ how] on <backend>`, as an error names
  * it.
@@ -118,7 +117,8 @@ void uncovered(std::string_view name, Call&& call) {
     std::forward<Call>(call)();
     if (timing_entries != before) {
         std::string const message =
-            std::string(name) + " entered a detail::timing_guard it should not hold";
+            std::string(name) +
+            " entered a webcpp::secure::timing_guard of hash's it should not hold";
         BOOST_ERROR(message.c_str());
     }
 }

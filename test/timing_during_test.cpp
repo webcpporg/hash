@@ -6,7 +6,7 @@
 
 // DIT is set while a keyed function computes (design D1; spec scenario "A password derived on Apple
 // silicon"): a Boost.Hash2-form hash, dit_probe, records at each update whether DIT was set and
-// whether a detail::timing_guard had been entered, and runs as the hash under the hmac of
+// whether a webcpp::secure::timing_guard had been entered, and runs as the hash under the hmac of
 // hkdf_extract, hkdf_expand, hkdf (each also over byte pieces) and pbkdf2 on backends::hash2, and
 // of mac on a stand-in backend whose HMAC-SHA-256 is backends::hash2's over the probe. From a
 // thread with DIT clear, every update the probe saw ran after a guard was entered and, where the
@@ -21,11 +21,11 @@
 #include "support/timing_dit.hpp"
 
 #include <webcpp/hash/backends/hash2.hpp>
-#include <webcpp/hash/detail/timing.hpp>
 #include <webcpp/hash/hkdf.hpp>
 #include <webcpp/hash/hmac.hpp>
 #include <webcpp/hash/mac.hpp>
 #include <webcpp/hash/pbkdf2.hpp>
+#include <webcpp/secure/timing_guard.hpp>
 #ifdef WEBCPP_TEST_TIMING_DURING_ASYNC
 #include <webcpp/hash/async.hpp>
 
@@ -58,7 +58,7 @@ struct probe_record {
     std::size_t updates = 0;
     /** The updates it ran with DIT clear. */
     std::size_t updates_clear = 0;
-    /** The updates it ran before any detail::timing_guard was entered. */
+    /** The updates it ran before any webcpp::secure::timing_guard was entered. */
     std::size_t updates_unguarded = 0;
 };
 
@@ -75,7 +75,7 @@ void probe_reset() noexcept {
 
 /**
  * SHA-256 in Boost.Hash2's form whose every update records, before it hashes, whether DIT is set
- * and whether a detail::timing_guard has been entered on this thread since probe_reset.
+ * and whether a webcpp::secure::timing_guard has been entered on this thread since probe_reset.
  */
 class dit_probe {
 public:
@@ -108,7 +108,7 @@ public:
      */
     void update(void const* data, std::size_t size) {
         ++probe_seen.updates;
-        if (!webcpp::hash::detail::dit_is_set()) {
+        if (!webcpp::secure::dit_is_set()) {
             ++probe_seen.updates_clear;
         }
         if (timing_entries == 0) {
@@ -185,7 +185,7 @@ void check_record(std::string const& name, test::probe_record const& seen, bool 
                      std::to_string(seen.updates) + " updates ran before any guard")
                         .c_str());
     }
-    std::size_t const expected_clear = hash::detail::cpu_has_dit() ? 0 : seen.updates;
+    std::size_t const expected_clear = webcpp::secure::cpu_has_dit() ? 0 : seen.updates;
     if (seen.updates_clear != expected_clear) {
         BOOST_ERROR((name + ": " + std::to_string(seen.updates_clear) + " of " +
                      std::to_string(seen.updates) + " updates ran with DIT clear")
@@ -202,7 +202,7 @@ void during(std::string const& name, Call call) {
     test::force_dit(false);
     test::probe_reset();
     call();
-    check_record(name, test::probe_seen, hash::detail::dit_is_set());
+    check_record(name, test::probe_seen, webcpp::secure::dit_is_set());
 }
 
 void synchronous() {
@@ -318,12 +318,12 @@ void on_the_pool() {
     };
 
     auto const worker = on_pool(pool, [] {
-        return pool_state{.seen = test::probe_seen, .dit_set = hash::detail::dit_is_set()};
+        return pool_state{.seen = test::probe_seen, .dit_set = webcpp::secure::dit_is_set()};
     });
     check_record("async_pbkdf2 on the pool's thread", worker.seen, worker.dit_set);
     // The calling thread computed nothing.
     BOOST_TEST_EQ(test::probe_seen.updates, 0u);
-    BOOST_TEST(!hash::detail::dit_is_set());
+    BOOST_TEST(!webcpp::secure::dit_is_set());
     pool.join();
 }
 

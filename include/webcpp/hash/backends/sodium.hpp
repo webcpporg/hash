@@ -55,12 +55,12 @@
 #include <webcpp/hash/blake2b_subkey.hpp>
 #include <webcpp/hash/detail/engines.hpp>
 #include <webcpp/hash/detail/limits.hpp>
-#include <webcpp/hash/detail/wipe.hpp>
 #include <webcpp/hash/digest.hpp>
 #include <webcpp/hash/error.hpp>
 #include <webcpp/hash/hmac.hpp>
 #include <webcpp/hash/mac.hpp>
 #include <webcpp/hash/scrypt.hpp>
+#include <webcpp/secure/erase_secret.hpp>
 
 #include <boost/system/errc.hpp>
 #include <boost/system/result.hpp>
@@ -289,7 +289,7 @@ struct sodium_hkdf_engine {
         boost::system::result<digest_type> pseudorandom_key{boost::system::in_place_value};
         if (!sodium_ready() || Traits::extract(pseudorandom_key.unsafe_value().data(), salt,
                                                input_key_material) != 0) {
-            wipe_object(pseudorandom_key.unsafe_value());
+            secure::erase_secret(std::span(&pseudorandom_key.unsafe_value(), 1));
             pseudorandom_key = boost::system::result<digest_type>(error::backend_failure);
         }
         return pseudorandom_key;
@@ -334,7 +334,7 @@ struct sodium_hkdf_engine {
         auto derive_result = expand(
             output_key_material, std::span<std::uint8_t const>(key_bytes.data(), key_bytes.size()),
             application_info);
-        wipe_object(key_bytes);
+        secure::erase_secret(std::span(&key_bytes, 1));
         return derive_result;
     }
 };
@@ -458,9 +458,9 @@ struct sodium_hkdf_pieces_engine {
         bool const computed = sodium_ready() && Init(&mac_state, nonnull(salt), salt.size()) == 0 &&
                               update_all(mac_state, input_key_material) &&
                               Final(&mac_state, pseudorandom_key.unsafe_value().data()) == 0;
-        wipe_object(mac_state);
+        secure::erase_secret(std::span(&mac_state, 1));
         if (!computed) {
-            wipe_object(pseudorandom_key.unsafe_value());
+            secure::erase_secret(std::span(&pseudorandom_key.unsafe_value(), 1));
             pseudorandom_key = boost::system::result<digest_type>(error::backend_failure);
         }
         return pseudorandom_key;
@@ -490,7 +490,7 @@ struct sodium_hkdf_pieces_engine {
                 (block_counter == 1 || Update(&mac_state, t_block.data(), t_block.size()) == 0) &&
                 update_all(mac_state, application_info) &&
                 Update(&mac_state, &octet_value, 1) == 0 && Final(&mac_state, t_block.data()) == 0;
-            wipe_object(mac_state);
+            secure::erase_secret(std::span(&mac_state, 1));
             if (computed) {
                 std::size_t const copied_count =
                     std::min(t_block.size(), output_key_material.size() - written_count);
@@ -499,8 +499,8 @@ struct sodium_hkdf_pieces_engine {
                 written_count += copied_count;
             }
         }
-        wipe_object(t_block);
-        wipe_object(keyed_state);
+        secure::erase_secret(std::span(&t_block, 1));
+        secure::erase_secret(std::span(&keyed_state, 1));
         if (!computed) {
             return error::backend_failure;
         }
@@ -637,7 +637,7 @@ struct digest_engine<backends::sodium, digests::blake2b> : full_engine {
     }
 
     /** Wipes the state. @param hashed The state. */
-    static void destroy(state& hashed) noexcept { wipe_object(hashed); }
+    static void destroy(state& hashed) noexcept { secure::erase_secret(std::span(&hashed, 1)); }
 
     /**
      The digest of `input` at once: `crypto_generichash_blake2b_salt_personal`, whose output size
@@ -700,7 +700,7 @@ struct sodium_incremental_engine : full_engine {
     }
 
     /** Wipes the state. @param hashed The state. */
-    static void destroy(state& hashed) noexcept { wipe_object(hashed); }
+    static void destroy(state& hashed) noexcept { secure::erase_secret(std::span(&hashed, 1)); }
 
     /**
      The digest of `input` at once, on a state of this frame, wiped before the return.
@@ -957,8 +957,8 @@ struct sodium_hmac_engine : full_engine {
         if (computed && !whole) {
             std::copy_n(digest_bytes.begin(), output.size(), output.begin());
         }
-        wipe_object(digest_bytes);
-        wipe_object(keyed);
+        secure::erase_secret(digest_bytes);
+        secure::erase_secret(std::span(&keyed, 1));
         if (!computed) {
             return error::backend_failure;
         }
@@ -1084,7 +1084,7 @@ struct sodium_keyed_blake2b_engine : full_engine {
             crypto_generichash_blake2b_init(&keyed, key.data(), key.size(), output.size()) == 0 &&
             crypto_generichash_blake2b_update(&keyed, nonnull(input), input.size()) == 0 &&
             crypto_generichash_blake2b_final(&keyed, output.data(), output.size()) == 0;
-        wipe_object(keyed);
+        secure::erase_secret(std::span(&keyed, 1));
         if (!computed) {
             return error::backend_failure;
         }

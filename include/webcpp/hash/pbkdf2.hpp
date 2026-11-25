@@ -8,8 +8,8 @@
  PBKDF2, RFC 8018: `pbkdf2`, over any Boost.Hash2 hmac whose result is a digest, on the backend
  the call names or on @ref webcpp::hash::default_kdf_backend.
 
- Every call holds the data-independent-timing guard (`detail::timing_guard`): where the CPU has
- DIT, the call sets it and leaves the thread's state as it found it.
+ Every call holds the data-independent-timing guard (`webcpp::secure::timing_guard`, secure's
+ guard): where the CPU has DIT, the call sets it and leaves the thread's state as it found it.
 
  Every guard runs before any work, and a guard's refusal leaves the output as it was; a backend's
  failure zeroes it.
@@ -33,10 +33,10 @@
 #include <webcpp/hash/backends/hash2.hpp>
 #include <webcpp/hash/detail/engines.hpp>
 #include <webcpp/hash/detail/limits.hpp>
-#include <webcpp/hash/detail/timing.hpp>
-#include <webcpp/hash/detail/wipe.hpp>
 #include <webcpp/hash/error.hpp>
 #include <webcpp/hash/kdf.hpp>
+#include <webcpp/secure/erase_secret.hpp>
+#include <webcpp/secure/timing_guard.hpp>
 
 // The backends the program links, each under its WEBCPP_HASH_HAS_<NAME>, so that a call that names
 // one finds its engines here; the default, backends::hash2, needs none of them.
@@ -128,7 +128,7 @@ template <class Hmac, class Backend = default_kdf_backend<Hmac, kdfs::pbkdf2>>
                                                  std::span<std::uint8_t const> password_bytes,
                                                  std::span<std::uint8_t const> salt_bytes,
                                                  std::uint64_t iteration_count) {
-    detail::timing_guard const timing;
+    secure::timing_guard const timing;
     if constexpr (!detail::takes_hmac<Hmac>()) {
         return error::backend_failure;  // unreachable: takes_hmac has stopped the build
     } else {
@@ -140,7 +140,7 @@ template <class Hmac, class Backend = default_kdf_backend<Hmac, kdfs::pbkdf2>>
         auto derive_result = detail::pbkdf2_engine<Backend, Hmac>::derive(
             output_bytes, password_bytes, salt_bytes, iteration_count);
         if (!derive_result) {
-            detail::wipe(output_bytes);
+            secure::erase_secret(output_bytes);
         }
         return derive_result;
     }

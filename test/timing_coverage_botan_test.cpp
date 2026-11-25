@@ -4,8 +4,8 @@
 // accompanying file LICENSE_1_0.txt or copy at
 // https://www.boost.org/LICENSE_1_0.txt)
 
-// Every keyed cell of backends::botan enters its own detail::timing_guard first and leaves the
-// thread's DIT as it found it, on every target of the backend, also where DIT does not apply,
+// Every keyed cell of backends::botan enters its own webcpp::secure::timing_guard first and leaves
+// the thread's DIT as it found it, on every target of the backend, also where DIT does not apply,
 // each with valid input and with input refused before the backend; every digest cell, called
 // without a key, enters none (support/timing_coverage.hpp).
 //

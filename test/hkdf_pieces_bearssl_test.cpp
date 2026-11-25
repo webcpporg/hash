@@ -14,7 +14,7 @@
 // refused (test/messages/extract_on_bearssl and expand_on_bearssl): the spec's scenario
 // hkdf_extract<hmac_sha2_256, backends::bearssl>(salt, {a, b}). Each step wipes BearSSL's HMAC
 // contexts, its key contexts, every block T(i) and the pseudorandom key between the steps,
-// reported through the seam WEBCPP_HASH_DETAIL_TEST_WIPE_RECORD; a guard's refusal wipes nothing.
+// reported through the seam WEBCPP_SECURE_TEST_WIPE_RECORD; a guard's refusal wipes nothing.
 // Built again as hkdf_pieces_bearssl_sliced with the test seam
 // WEBCPP_HASH_DETAIL_TEST_HKDF_PIECES_SLICE, which makes the engine feed every piece to BearSSL in
 // slices of a few bytes (Review Focus 4), over hmac_sha2_256: the bytes are the same, 1 MiB pieces
@@ -46,8 +46,8 @@
 #include <span>
 #include <vector>
 
-#ifndef WEBCPP_HASH_DETAIL_TEST_WIPE_RECORD
-#error "hkdf_pieces_bearssl_test is built with WEBCPP_HASH_DETAIL_TEST_WIPE_RECORD (test/Jamfile)"
+#ifndef WEBCPP_SECURE_TEST_WIPE_RECORD
+#error "hkdf_pieces_bearssl_test is built with WEBCPP_SECURE_TEST_WIPE_RECORD (test/Jamfile)"
 #endif
 
 namespace hash = webcpp::hash;

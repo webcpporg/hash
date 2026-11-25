@@ -32,19 +32,20 @@ maximum of every single run. A time never fails this script: only a wrong key,
 or a program that does not run, does. `--render-only` rewrites the page from
 the data.
 
-The timing guard's cost (detail::timing_guard, which every keyed function holds and which sets
-64-bit ARM's DIT where the CPU has it) is `timing --measure`'s one line: whether the guard sets DIT
-on this machine, and the nanoseconds a guard adds to a call entered from a thread whose DIT is
-clear, from one where it is already set, and a disengaged guard's (an unkeyed call of a function
-keyed by its arguments), each the median of five runs of 10^7 guards minus an empty loop's, with the
-fastest and slowest run. The data keeps it under "timing_guard" with the date, the machine and the
-load (every date of the data is UTC's); the page renders it as a paragraph and a table after the
-throughput. A line or a "timing_guard" that is not the form this script writes (an older program's,
-a key missing or of another type) is refused with a message naming what is wrong, before anything is
-written. `--provisional` marks the guard's figures as provisional, measured on a shared, loaded
-machine and to be measured again in a final pass on a quiet one, which the page says; measuring the
-guard without it clears the mark. `--exe` alone keeps the data's guard when the data is what this
-script writes, and otherwise replaces the data, saying the guard was not kept.
+The timing guard's cost (webcpp::secure::timing_guard, secure's guard, which every keyed function
+holds and which sets 64-bit ARM's DIT where the CPU has it) is `timing --measure`'s one line:
+whether the guard sets DIT on this machine, and the nanoseconds a guard adds to a call entered from
+a thread whose DIT is clear, from one where it is already set, and a disengaged guard's (an unkeyed
+call of a function keyed by its arguments), each the median of five runs of 10^7 guards minus an
+empty loop's, with the fastest and slowest run. The data keeps it under "timing_guard" with the
+date, the machine and the load (every date of the data is UTC's); the page renders it as a
+paragraph and a table after the throughput. A line or a "timing_guard" that is not the form this
+script writes (an older program's, a key missing or of another type) is refused with a message
+naming what is wrong, before anything is written. `--provisional` marks the guard's figures as
+provisional, measured on a shared, loaded machine and to be measured again in a final pass on a
+quiet one, which the page says; measuring the guard without it clears the mark. `--exe` alone
+keeps the data's guard when the data is what this script writes, and otherwise replaces the data,
+saying the guard was not kept.
 """
 
 import argparse
@@ -283,7 +284,8 @@ def measure_timing(exe, provisional):
                  f"collect.py reads: {found} is wrong; build bench/Jamfile's timing again from "
                  "this tree")
     return {
-        "measurement": "the nanoseconds detail::timing_guard adds to a call, bench/timing.cpp",
+        "measurement": "the nanoseconds webcpp::secure::timing_guard adds to a call, "
+                       "bench/timing.cpp",
         "date": utc_today(),
         "machine": {
             "cpu": sysctl("machdep.cpu.brand_string") or platform.processor() or platform.machine(),
@@ -330,11 +332,11 @@ def render_timing(timing):
         "=== The timing guard's cost",
         "",
         "Every keyed function (a MAC, a key derivation, a password hash, a keyed mode of",
-        "BLAKE2b or BLAKE3) runs inside `detail::timing_guard`, which on 64-bit ARM under",
-        "macOS, iOS, Linux and Android, where the CPU has FEAT_DIT, sets DIT (data-independent",
-        "timing) for the call and restores the thread's state after it",
-        "(<<hash-backends-dit>>): one `mrs`, and where DIT was clear, two `msr` each",
-        "followed by an `isb`. Elsewhere (x86, WebAssembly, Windows on ARM64) it executes no",
+        "BLAKE2b or BLAKE3) runs inside `webcpp::secure::timing_guard`, webcpp::secure's",
+        "guard, which on 64-bit ARM under macOS, iOS, Linux, Android and Windows, where the",
+        "CPU has FEAT_DIT, sets DIT (data-independent timing) for the call and restores the",
+        "thread's state after it (<<hash-backends-dit>>): one `mrs`, and where DIT was clear,",
+        "two `msr` each followed by an `isb`. Elsewhere (x86, WebAssembly) it executes no",
         "instruction. A function keyed by its arguments, called without a key, holds a",
         "disengaged guard, which reads its flag and does nothing else.",
         "",

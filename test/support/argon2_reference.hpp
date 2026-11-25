@@ -11,7 +11,7 @@
 #ifndef WEBCPP_TEST_HASH_SUPPORT_ARGON2_REFERENCE_HPP
 #define WEBCPP_TEST_HASH_SUPPORT_ARGON2_REFERENCE_HPP
 
-#include <webcpp/hash/detail/wipe.hpp>
+#include <webcpp/secure/erase_secret.hpp>
 
 #include <cstdint>
 #include <span>
@@ -61,7 +61,7 @@ inline int argon2_reference(std::span<std::uint8_t> tag, argon2_reference_case c
     };
     // NOLINTEND(cppcoreguidelines-pro-type-const-cast)
     int const code = argon2_ctx(&context, c.variant);
-    webcpp::hash::detail::wipe_object(context);
+    webcpp::secure::erase_secret(std::span(&context, 1));
     return code;
 }
 
