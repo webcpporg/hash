@@ -128,9 +128,9 @@ BLAKE2b or BLAKE3) runs inside `webcpp::secure::timing_guard`, webcpp::secure's
 guard, which on 64-bit ARM under macOS, iOS, Linux, Android and Windows, where the
 CPU has FEAT_DIT, sets DIT (data-independent timing) for the call and restores the
 thread's state after it (<<hash-backends-dit>>): one `mrs`, and where DIT was clear,
-two `msr` each followed by an `isb`. Elsewhere (x86, WebAssembly) it executes no
-instruction. A function keyed by its arguments, called without a key, holds a
-disengaged guard, which reads its flag and does nothing else.
+two `msr` each followed by an `isb`. Elsewhere (x86, WebAssembly, ARM64EC) it
+executes no instruction. A function keyed by its arguments, called without a key,
+holds a disengaged guard, which reads its flag and does nothing else.
 
 Measured natively on 2026-11-22 (UTC) on Apple M5 Max
 (arm64), Darwin 27.0.0, built with variant=release optimization=speed
