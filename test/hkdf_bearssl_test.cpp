@@ -51,7 +51,7 @@ struct record {
     std::size_t not_zero = 0;
 };
 
-// The seam's record, which detail::wipe reaches through a function of this test.
+// The seam's record, which secure::detail::wipe reaches through a function of this test.
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables): the seam's record
 record wipes;
 
