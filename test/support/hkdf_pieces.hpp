@@ -323,8 +323,9 @@ void check_rfc5869(std::string_view backend) {
         ikm_splits.push_back({byte_piece{}, byte_piece(ikm), byte_piece{}});
         info_splits.push_back({byte_piece{}, byte_piece(info), byte_piece{}});
         if (info.empty()) {
-            info_splits.emplace_back();  // the empty list
-            info_splits.push_back(std::vector<byte_piece>{byte_piece{}});  // one empty piece
+            // The empty list, then one empty piece.
+            info_splits.emplace_back();
+            info_splits.push_back(std::vector<byte_piece>{byte_piece{}});
         }
         if (ikm.empty()) {
             ikm_splits.emplace_back();
@@ -377,8 +378,9 @@ void check_edges(std::string_view backend) {
             {byte_piece{}, byte_piece(info), byte_piece{}},
         };
         if (ikm.empty()) {
-            ikm_splits.emplace_back();  // the empty list
-            ikm_splits.push_back(std::vector<byte_piece>{byte_piece{}});  // one empty piece
+            // The empty list, then one empty piece.
+            ikm_splits.emplace_back();
+            ikm_splits.push_back(std::vector<byte_piece>{byte_piece{}});
         }
         if (info.empty()) {
             info_splits.emplace_back();
