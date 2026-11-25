@@ -333,10 +333,11 @@ checked.
 WebCrypto's own HKDF, `deriveBits`, and an application_info longer than 1,024
 bytes (node's limit, where the other backends take 32,768) completes with
 `input_too_long`. The other HKDF functions run RFC 5869's steps on WebCrypto's
-HMAC: the single-buffer `async_hkdf_extract` and `async_hkdf_expand` keep the
-32,768 bytes of every backend, and the forms over pieces have no limit of
-hash's own, so `async_hkdf` over `+byte_pieces{input_key_material}+` and
-`+byte_pieces{info}+` takes a longer info. PBKDF2's iteration count is at most
+HMAC: the single-buffer `async_hkdf_expand` keeps the 32,768 bytes of every
+backend (Extract has no application info), and the forms over pieces have no
+limit of hash's own, so `async_hkdf` over
+`+byte_pieces{input_key_material}+` and `+byte_pieces{info}+` takes a longer
+info. PBKDF2's iteration count is at most
 2^32 - 1 (`invalid_iterations`); an output of HKDF or PBKDF2 is at most
 (2^32 - 1) / 8 bytes. A program that needs more names a synchronous backend.
 * *HKDF over HMAC is a promise per block.* `async_hkdf_extract` imports the

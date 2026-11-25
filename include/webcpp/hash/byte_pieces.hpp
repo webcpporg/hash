@@ -69,8 +69,7 @@ public:
 
      @param pieces The list; its array must outlive this object (it does, written at the call).
     */
-    // NOLINTNEXTLINE(misc-explicit-constructor): a braced list {a, b} converts to its pieces
-    constexpr byte_pieces(
+    constexpr byte_pieces(  // NOLINT(misc-explicit-constructor): {a, b} converts to its pieces
         std::initializer_list<value_type> pieces WEBCPP_HASH_LIFETIMEBOUND) noexcept
         : first_(std::data(pieces)), count_(pieces.size()) {}
 

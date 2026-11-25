@@ -308,7 +308,8 @@ void check_rfc5869(std::string_view backend) {
         auto const okm = from_hex(c.okm);
         pieces_place const place{backend, name_of_hmac<Hmac>(), "RFC 5869 case", ++index};
 
-        // Every split in two, of each input; then one piece per byte, then {empty, input, empty}.
+        // Every split in two, of each input; then one piece per byte, then {empty, input, empty};
+        // where an input is empty, also the empty list and {empty}, one empty piece.
         std::vector<std::vector<byte_piece>> ikm_splits;
         std::vector<std::vector<byte_piece>> info_splits;
         for (std::size_t at = 0; at <= ikm.size(); ++at) {
@@ -323,9 +324,11 @@ void check_rfc5869(std::string_view backend) {
         info_splits.push_back({byte_piece{}, byte_piece(info), byte_piece{}});
         if (info.empty()) {
             info_splits.emplace_back();  // the empty list
+            info_splits.push_back(std::vector<byte_piece>{byte_piece{}});  // one empty piece
         }
         if (ikm.empty()) {
             ikm_splits.emplace_back();
+            ikm_splits.push_back(std::vector<byte_piece>{byte_piece{}});
         }
         for (std::size_t i = 0; i != std::max(ikm_splits.size(), info_splits.size()); ++i) {
             pieces_place here = place;
@@ -343,8 +346,8 @@ void check_rfc5869(std::string_view backend) {
 /**
  * The edge output lengths, each in a case of its own: 1 byte, a digest less one byte, a digest, a
  * digest and one byte, 255 digests less one byte and 255 digests. Each input is split at random,
- * as {empty, input, empty} and, where it is empty, as the empty list. The refused lengths, no
- * byte and 255 digests and one byte, are check_guards'.
+ * as {empty, input, empty} and, where it is empty, as the empty list and as {empty}, one empty
+ * piece. The refused lengths, no byte and 255 digests and one byte, are check_guards'.
  */
 template <class Hmac, class Backend, class Oracle>
 void check_edges(std::string_view backend) {
@@ -375,9 +378,11 @@ void check_edges(std::string_view backend) {
         };
         if (ikm.empty()) {
             ikm_splits.emplace_back();  // the empty list
+            ikm_splits.push_back(std::vector<byte_piece>{byte_piece{}});  // one empty piece
         }
         if (info.empty()) {
             info_splits.emplace_back();
+            info_splits.push_back(std::vector<byte_piece>{byte_piece{}});
         }
         check_case<Hmac, Backend, Oracle>({backend, name_of_hmac<Hmac>(), "edge length", ++index},
                                           salt, ikm, info, length, ikm_splits, info_splits);
