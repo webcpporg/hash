@@ -110,15 +110,15 @@ void test_rfc7914() {
     BOOST_TEST_EQ(to_hex(output), std::string(first.output));
 }
 
-const std::array<std::uint8_t, 8> password{'p', 'a', 's', 's', 'w', 'o', 'r', 'd'};
-const std::array<std::uint8_t, 4> salt{'N', 'a', 'C', 'l'};
+const std::array<std::uint8_t, 8> test_password{'p', 'a', 's', 's', 'w', 'o', 'r', 'd'};
+const std::array<std::uint8_t, 4> test_salt{'N', 'a', 'C', 'l'};
 
 // Whether scrypt refuses `parameters` with `expected` on Backend, the output untouched.
 template <class Backend = hash::backends::sodium>
 bool refuses(hash::scrypt_parameters const& parameters, hash::error expected) {
     std::array<std::uint8_t, 32> buffer{};
     buffer.fill(untouched);
-    auto const refused = hash::scrypt<Backend>(buffer, password, salt, parameters);
+    auto const refused = hash::scrypt<Backend>(buffer, test_password, test_salt, parameters);
     return refused.has_error() && refused.error() == expected && all_of(buffer, untouched);
 }
 
@@ -126,7 +126,8 @@ bool refuses(hash::scrypt_parameters const& parameters, hash::error expected) {
 bool passes(hash::scrypt_parameters const& parameters) {
     std::array<std::uint8_t, 32> buffer{};
     int const before = test_backends::recorded_calls;
-    auto const done = hash::scrypt<test_backends::recording>(buffer, password, salt, parameters);
+    auto const done =
+        hash::scrypt<test_backends::recording>(buffer, test_password, test_salt, parameters);
     return done.has_value() && test_backends::recorded_calls == before + 1;
 }
 
@@ -134,23 +135,25 @@ void test_output_guard() {
     std::array<std::uint8_t, 33> buffer{};
     buffer.fill(untouched);
     constexpr hash::scrypt_parameters cheap{.cost = 16, .block_size = 1, .parallelism = 1};
-    auto refused = hash::scrypt(std::span<std::uint8_t>(buffer.data(), 0), password, salt, cheap);
+    auto refused =
+        hash::scrypt(std::span<std::uint8_t>(buffer.data(), 0), test_password, test_salt, cheap);
     BOOST_TEST(refused.has_error() && refused.error() == hash::error::invalid_output_size);
     // Natively a span of (2^32 - 1) 32 + 1 bytes over 33, refused before anything touches it; on
     // wasm32 no span is that long.
     constexpr std::uint64_t longest = 0xffffffffULL * 32;
     if constexpr (std::numeric_limits<std::size_t>::max() > longest) {
         refused = hash::scrypt(
-            std::span<std::uint8_t>(buffer.data(), static_cast<std::size_t>(longest + 1)), password,
-            salt, cheap);
+            std::span<std::uint8_t>(buffer.data(), static_cast<std::size_t>(longest + 1)),
+            test_password, test_salt, cheap);
         BOOST_TEST(refused.has_error() && refused.error() == hash::error::invalid_output_size);
     }
     BOOST_TEST(all_of(buffer, untouched));
     // One byte, the shortest, then 33, past one block of PBKDF2.
     BOOST_TEST(
-        hash::scrypt(std::span<std::uint8_t>(buffer.data(), 1), password, salt, cheap).has_value());
+        hash::scrypt(std::span<std::uint8_t>(buffer.data(), 1), test_password, test_salt, cheap)
+            .has_value());
     BOOST_TEST(buffer[1] == untouched);
-    BOOST_TEST(hash::scrypt(buffer, password, salt, cheap).has_value());
+    BOOST_TEST(hash::scrypt(buffer, test_password, test_salt, cheap).has_value());
 }
 
 void test_parameters_guard_n() {
@@ -220,8 +223,8 @@ void test_parameters_guard_size() {
     }
     // The output's guard comes first.
     std::array<std::uint8_t, 1> buffer{};
-    auto const refused = hash::scrypt(std::span<std::uint8_t>(buffer.data(), 0), password, salt,
-                                      {.cost = 0, .block_size = 0, .parallelism = 0});
+    auto const refused = hash::scrypt(std::span<std::uint8_t>(buffer.data(), 0), test_password,
+                                      test_salt, {.cost = 0, .block_size = 0, .parallelism = 0});
     BOOST_TEST(refused.has_error() && refused.error() == invalid_output_size);
 }
 
@@ -229,7 +232,7 @@ void test_backend_failure() {
     std::array<std::uint8_t, 32> buffer{};
     buffer.fill(untouched);
     auto const failed = hash::scrypt<test_backends::failing>(
-        buffer, password, salt, {.cost = 16, .block_size = 1, .parallelism = 1});
+        buffer, test_password, test_salt, {.cost = 16, .block_size = 1, .parallelism = 1});
     BOOST_TEST(failed.has_error() && failed.error() == hash::error::backend_failure);
     BOOST_TEST(all_of(buffer, 0));
 

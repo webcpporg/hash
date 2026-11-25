@@ -836,7 +836,11 @@ hash-run timing_coverage_xkcp : timing_coverage_xkcp_test.cpp
   : $(.hash-tables) <library>/third_party//xkcp ;
 hash-run timing_coverage_blake3 : timing_coverage_blake3_test.cpp
   : $(.hash-tables) <library>/third_party//blake3 ;
-botan-run timing_coverage_botan : timing_coverage_botan_test.cpp : $(.hash-tables) ;
+# Its every Botan cell (the HKDF-over-pieces ones too) instantiates enough
+# templates to pass the 65,279 sections of an MSVC 14.3 x64 object (C1128),
+# so MSVC compiles it with /bigobj, as tools/webcpp-botan.jam does Botan.
+botan-run timing_coverage_botan : timing_coverage_botan_test.cpp
+  : $(.hash-tables) <toolset>msvc:<cxxflags>/bigobj ;
 
 build-project messages ;
 

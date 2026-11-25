@@ -125,32 +125,36 @@ completion complete_on_pool(Start start) {
     return c;
 }
 
-// "password", as bytes.
-constexpr std::array<std::uint8_t, 8> password{'p', 'a', 's', 's', 'w', 'o', 'r', 'd'};
-constexpr std::array<std::uint8_t, 16> salt{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16};
+// "password", as bytes, and a salt: named test_*, which no parameter of the library hides (MSVC
+// C4459 at /WX).
+constexpr std::array<std::uint8_t, 8> test_password{'p', 'a', 's', 's', 'w', 'o', 'r', 'd'};
+constexpr std::array<std::uint8_t, 16> test_salt{1, 2,  3,  4,  5,  6,  7,  8,
+                                                 9, 10, 11, 12, 13, 14, 15, 16};
 
 void check_bcrypt(asio::io_context& context, asio::thread_pool& pool) {
     auto work = pool.get_executor();
     hash::bcrypt_parameters const parameters{.cost = 5};
     std::array<char, hash::bcrypt_hash_size> expected{};
-    BOOST_TEST((hash::bcrypt<botan>(expected, password, salt, parameters).has_value()));
+    BOOST_TEST((hash::bcrypt<botan>(expected, test_password, test_salt, parameters).has_value()));
     std::string_view const stored(expected.data(), expected.size());
 
     std::array<char, hash::bcrypt_hash_size> output{};
     auto seen = complete_on_caller(context, [&](auto handler) {
-        hash::async_bcrypt<botan>(work, output, password, salt, parameters, std::move(handler));
+        hash::async_bcrypt<botan>(work, output, test_password, test_salt, parameters,
+                                  std::move(handler));
     });
     BOOST_TEST(!seen.code);
     BOOST_TEST(output == expected);
     output.fill('\0');
     seen = complete_on_pool([&](auto handler) {
-        hash::async_bcrypt<botan>(work, output, password, salt, parameters, std::move(handler));
+        hash::async_bcrypt<botan>(work, output, test_password, test_salt, parameters,
+                                  std::move(handler));
     });
     BOOST_TEST(!seen.code);
     BOOST_TEST(output == expected);
 
     seen = complete_on_caller(context, [&](auto handler) {
-        hash::async_bcrypt_verify<botan>(work, password, stored, std::move(handler));
+        hash::async_bcrypt_verify<botan>(work, test_password, stored, std::move(handler));
     });
     BOOST_TEST(!seen.code);
     BOOST_TEST(seen.same);
@@ -164,13 +168,13 @@ void check_bcrypt(asio::io_context& context, asio::thread_pool& pool) {
     // string not of bcrypt's form, the bool false.
     output.fill('U');
     seen = complete_on_caller(context, [&](auto handler) {
-        hash::async_bcrypt<botan>(work, output, password, std::span(salt).first(15), parameters,
-                                  std::move(handler));
+        hash::async_bcrypt<botan>(work, output, test_password, std::span(test_salt).first(15),
+                                  parameters, std::move(handler));
     });
     BOOST_TEST(seen.code == hash::error::invalid_salt_size);
     BOOST_TEST(std::ranges::all_of(output, [](char c) { return c == 'U'; }));
     seen = complete_on_caller(context, [&](auto handler) {
-        hash::async_bcrypt_verify<botan>(work, password, stored.substr(1), std::move(handler));
+        hash::async_bcrypt_verify<botan>(work, test_password, stored.substr(1), std::move(handler));
     });
     BOOST_TEST(seen.code == hash::error::invalid_parameters);
     BOOST_TEST(!seen.same);
@@ -179,21 +183,24 @@ void check_bcrypt(asio::io_context& context, asio::thread_pool& pool) {
 void check_bcrypt_pbkdf(asio::io_context& context, asio::thread_pool& pool) {
     auto work = pool.get_executor();
     std::array<std::uint8_t, 48> expected{};
-    BOOST_TEST((hash::bcrypt_pbkdf<botan>(expected, password, salt, 4).has_value()));
+    BOOST_TEST((hash::bcrypt_pbkdf<botan>(expected, test_password, test_salt, 4).has_value()));
     std::array<std::uint8_t, 48> output{};
     auto seen = complete_on_caller(context, [&](auto handler) {
-        hash::async_bcrypt_pbkdf<botan>(work, output, password, salt, 4, std::move(handler));
+        hash::async_bcrypt_pbkdf<botan>(work, output, test_password, test_salt, 4,
+                                        std::move(handler));
     });
     BOOST_TEST(!seen.code);
     BOOST_TEST(output == expected);
     output.fill(0);
     seen = complete_on_pool([&](auto handler) {
-        hash::async_bcrypt_pbkdf<botan>(work, output, password, salt, 4, std::move(handler));
+        hash::async_bcrypt_pbkdf<botan>(work, output, test_password, test_salt, 4,
+                                        std::move(handler));
     });
     BOOST_TEST(!seen.code);
     BOOST_TEST(output == expected);
     seen = complete_on_caller(context, [&](auto handler) {
-        hash::async_bcrypt_pbkdf<botan>(work, output, password, salt, 0, std::move(handler));
+        hash::async_bcrypt_pbkdf<botan>(work, output, test_password, test_salt, 0,
+                                        std::move(handler));
     });
     BOOST_TEST(seen.code == hash::error::invalid_iterations);
 }
@@ -202,51 +209,55 @@ void check_families(asio::io_context& context, asio::thread_pool& pool) {
     auto work = pool.get_executor();
     hash::argon2_parameters const family{.passes = 2, .memory_kibibytes = 64, .lanes = 2};
     std::array<std::uint8_t, 32> argon2_expected{};
-    BOOST_TEST((hash::argon2<hash::kdfs::argon2id, botan>(argon2_expected, password, salt, family)
-                    .has_value()));
+    BOOST_TEST((
+        hash::argon2<hash::kdfs::argon2id, botan>(argon2_expected, test_password, test_salt, family)
+            .has_value()));
     std::array<std::uint8_t, 32> argon2_output{};
     auto seen = complete_on_caller(context, [&](auto handler) {
-        hash::async_argon2<hash::kdfs::argon2id, botan>(work, argon2_output, password, salt, family,
-                                                        std::move(handler));
+        hash::async_argon2<hash::kdfs::argon2id, botan>(work, argon2_output, test_password,
+                                                        test_salt, family, std::move(handler));
     });
     BOOST_TEST(!seen.code);
     BOOST_TEST(argon2_output == argon2_expected);
     argon2_output.fill(0);
     seen = complete_on_pool([&](auto handler) {
-        hash::async_argon2<hash::kdfs::argon2id, botan>(work, argon2_output, password, salt, family,
-                                                        std::move(handler));
+        hash::async_argon2<hash::kdfs::argon2id, botan>(work, argon2_output, test_password,
+                                                        test_salt, family, std::move(handler));
     });
     BOOST_TEST(argon2_output == argon2_expected);
 
     hash::scrypt_parameters const costs{.cost = 1024, .block_size = 8, .parallelism = 1};
     std::array<std::uint8_t, 64> scrypt_expected{};
-    BOOST_TEST(hash::scrypt<botan>(scrypt_expected, password, salt, costs).has_value());
+    BOOST_TEST(hash::scrypt<botan>(scrypt_expected, test_password, test_salt, costs).has_value());
     std::array<std::uint8_t, 64> scrypt_output{};
     seen = complete_on_caller(context, [&](auto handler) {
-        hash::async_scrypt<botan>(work, scrypt_output, password, salt, costs, std::move(handler));
+        hash::async_scrypt<botan>(work, scrypt_output, test_password, test_salt, costs,
+                                  std::move(handler));
     });
     BOOST_TEST(!seen.code);
     BOOST_TEST(scrypt_output == scrypt_expected);
     scrypt_output.fill(0);
     seen = complete_on_pool([&](auto handler) {
-        hash::async_scrypt<botan>(work, scrypt_output, password, salt, costs, std::move(handler));
+        hash::async_scrypt<botan>(work, scrypt_output, test_password, test_salt, costs,
+                                  std::move(handler));
     });
     BOOST_TEST(scrypt_output == scrypt_expected);
 
     std::array<std::uint8_t, 32> pbkdf2_expected{};
-    BOOST_TEST((hash::pbkdf2<hash::hmac_sha2_256, botan>(pbkdf2_expected, password, salt, 1000)
-                    .has_value()));
+    BOOST_TEST(
+        (hash::pbkdf2<hash::hmac_sha2_256, botan>(pbkdf2_expected, test_password, test_salt, 1000)
+             .has_value()));
     std::array<std::uint8_t, 32> pbkdf2_output{};
     seen = complete_on_caller(context, [&](auto handler) {
-        hash::async_pbkdf2<hash::hmac_sha2_256, botan>(work, pbkdf2_output, password, salt, 1000,
-                                                       std::move(handler));
+        hash::async_pbkdf2<hash::hmac_sha2_256, botan>(work, pbkdf2_output, test_password,
+                                                       test_salt, 1000, std::move(handler));
     });
     BOOST_TEST(!seen.code);
     BOOST_TEST(pbkdf2_output == pbkdf2_expected);
     pbkdf2_output.fill(0);
     seen = complete_on_pool([&](auto handler) {
-        hash::async_pbkdf2<hash::hmac_sha2_256, botan>(work, pbkdf2_output, password, salt, 1000,
-                                                       std::move(handler));
+        hash::async_pbkdf2<hash::hmac_sha2_256, botan>(work, pbkdf2_output, test_password,
+                                                       test_salt, 1000, std::move(handler));
     });
     BOOST_TEST(pbkdf2_output == pbkdf2_expected);
 }
@@ -287,21 +298,21 @@ void check_cancelled_before(asio::io_context& context) {
     std::array<char, hash::bcrypt_hash_size> output{};
     output.fill('U');
     cancelled([&](auto handler) {
-        hash::async_bcrypt<botan>(busy.get_executor(), output, password, salt, {.cost = 4},
-                                  std::move(handler));
+        hash::async_bcrypt<botan>(busy.get_executor(), output, test_password, test_salt,
+                                  {.cost = 4}, std::move(handler));
     });
     BOOST_TEST(std::ranges::all_of(output, [](char c) { return c == 'U'; }));
     std::array<std::uint8_t, 32> derived{};
     derived.fill(0x5a);
     cancelled([&](auto handler) {
-        hash::async_bcrypt_pbkdf<botan>(busy.get_executor(), derived, password, salt, 2,
+        hash::async_bcrypt_pbkdf<botan>(busy.get_executor(), derived, test_password, test_salt, 2,
                                         std::move(handler));
     });
     BOOST_TEST(std::ranges::all_of(derived, [](std::uint8_t b) { return b == 0x5a; }));
     std::array<char, hash::bcrypt_hash_size> stored{};
-    BOOST_TEST((hash::bcrypt<botan>(stored, password, salt, {.cost = 4}).has_value()));
+    BOOST_TEST((hash::bcrypt<botan>(stored, test_password, test_salt, {.cost = 4}).has_value()));
     auto const seen = cancelled([&](auto handler) {
-        hash::async_bcrypt_verify<botan>(busy.get_executor(), password,
+        hash::async_bcrypt_verify<botan>(busy.get_executor(), test_password,
                                          std::string_view(stored.data(), stored.size()),
                                          std::move(handler));
     });

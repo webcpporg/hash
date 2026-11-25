@@ -420,11 +420,24 @@ struct sodium_hkdf_pieces_engine {
      @return Whether libsodium took every slice.
     */
     [[nodiscard]] static bool update_all(State& state, byte_pieces pieces) noexcept {
+        // The lambda calls update_slice, not `Update` itself: MSVC 14.3 rejects a call of the
+        // template parameter `Update` inside a lambda ("'&' requires l-value", C2102).
         bool updated = true;
         for_each_slice<slice_max>(pieces, [&](std::span<std::uint8_t const> slice) {
-            updated = updated && Update(&state, slice.data(), slice.size()) == 0;
+            updated = updated && update_slice(state, slice);
         });
         return updated;
+    }
+
+    /**
+     Feeds one slice to `state`.
+
+     @param state The HMAC state. @param slice At most @ref slice_max bytes.
+     @return Whether libsodium took it.
+    */
+    [[nodiscard]] static bool update_slice(State& state,
+                                           std::span<std::uint8_t const> slice) noexcept {
+        return Update(&state, slice.data(), slice.size()) == 0;
     }
 
     /**
