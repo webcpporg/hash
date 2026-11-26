@@ -440,7 +440,7 @@ void call_every_async(asio::io_context& context_object) {
                                      [](boost::system::error_code const&, bool) {});
 #endif
 #endif
-    context_object.run();
+    context_object.poll();  // every completion is posted, none waits on I/O or a timer
 }
 
 }  // namespace
