@@ -67,7 +67,7 @@ public:
     /**
      The pieces of a braced list, `{a, b, c}`, each element converted to a span of bytes.
 
-     @param pieces The list; its array must outlive this object (it does, written at the call).
+     @param piece_list The list; its array must outlive this object (it does, written at the call).
     */
     constexpr byte_pieces(  // NOLINT(misc-explicit-constructor): {a, b} converts to its pieces
         std::initializer_list<value_type> piece_list WEBCPP_HASH_LIFETIMEBOUND) noexcept
@@ -78,7 +78,7 @@ public:
      `std::span` of them.
 
      @tparam Range A contiguous, sized range whose value type is `std::span<std::uint8_t const>`.
-     @param pieces The range; it must outlive this object.
+     @param piece_range The range; it must outlive this object.
     */
     template <std::ranges::contiguous_range Range>
         requires std::ranges::sized_range<Range> &&
