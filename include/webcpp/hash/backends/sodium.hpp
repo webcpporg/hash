@@ -966,12 +966,13 @@ struct sodium_hmac_engine : full_engine {
         }
         State keyed_state{};
         std::array<std::uint8_t, Size> digest_bytes{};
-        bool const whole_output = output_bytes.size() == Size;
+        bool const writes_whole_digest = output_bytes.size() == Size;
         bool const call_succeeded =
             Init(&keyed_state, key_bytes.data(), key_bytes.size()) == 0 &&
             Update(&keyed_state, nonnull(input_bytes), input_bytes.size()) == 0 &&
-            Final(&keyed_state, whole_output ? output_bytes.data() : digest_bytes.data()) == 0;
-        if (call_succeeded && !whole_output) {
+            Final(&keyed_state, writes_whole_digest ? output_bytes.data() : digest_bytes.data()) ==
+                0;
+        if (call_succeeded && !writes_whole_digest) {
             std::copy_n(digest_bytes.begin(), output_bytes.size(), output_bytes.begin());
         }
         secure::erase_secret(digest_bytes);

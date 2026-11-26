@@ -920,9 +920,9 @@ auto async_hmac(Executor const& completion_executor, std::span<std::uint8_t> out
  of an `io_context` run on the calling thread (see @ref async_pbkdf2), and a refusal of another goes
  to the handler's associated executor, this one unless the handler is bound to another.
  @param output_key_material The output keying material, 1 to 255 times the digest size.
- @param salt_bytes The salt. @param input_key_material The input keying material. @param
- application_info The context, at most `hkdf_max_application_info_size` bytes; on
- `backends::webcrypto` at most 1,024, WebCrypto's limit
+ @param salt The salt. @param input_key_material The input keying material. @param application_info
+ The context, at most `hkdf_max_application_info_size` bytes; on `backends::webcrypto` at most
+ 1,024, WebCrypto's limit
  (`input_too_long` beyond). The spans are the caller's until completion.
  @param completion_token The completion token, of signature `void(boost::system::error_code)`.
  @return What the completion token's `async_result` gives. The completion's code is empty on
@@ -935,7 +935,7 @@ auto async_hmac(Executor const& completion_executor, std::span<std::uint8_t> out
 template <class Hmac, class Backend = default_async_backend<kdfs::hkdf, Hmac>, class Executor,
           class CompletionToken>
 auto async_hkdf(Executor const& completion_executor, std::span<std::uint8_t> output_key_material,
-                std::span<std::uint8_t const> salt_bytes,
+                std::span<std::uint8_t const> salt,
                 std::span<std::uint8_t const> input_key_material,
                 std::span<std::uint8_t const> application_info,
                 CompletionToken&& completion_token) {
@@ -946,13 +946,13 @@ auto async_hkdf(Executor const& completion_executor, std::span<std::uint8_t> out
                       "hkdf for the others.");
     } else if constexpr (detail::asynchronous_backend_v<Backend>) {
         return detail::async_engine<Backend>::template hkdf<Hmac>(
-            completion_executor, output_key_material, salt_bytes, input_key_material,
-            application_info, std::forward<CompletionToken>(completion_token));
+            completion_executor, output_key_material, salt, input_key_material, application_info,
+            std::forward<CompletionToken>(completion_token));
     } else {
         return detail::complete_by_post(
             completion_executor, completion_token,
-            [output_key_material, salt_bytes, input_key_material, application_info] {
-                return hkdf<Hmac, Backend>(output_key_material, salt_bytes, input_key_material,
+            [output_key_material, salt, input_key_material, application_info] {
+                return hkdf<Hmac, Backend>(output_key_material, salt, input_key_material,
                                            application_info);
             });
     }
@@ -987,7 +987,7 @@ auto async_hkdf(Executor const& completion_executor, std::span<std::uint8_t> out
  to the handler's associated executor, this one unless the handler is bound to another.
  @param output_key_material The output keying material, 1 to 255 times the digest size; the
  caller's until completion.
- @param salt_bytes The salt. @param input_key_material The input keying material's pieces.
+ @param salt The salt. @param input_key_material The input keying material's pieces.
  @param application_info The context's pieces. The salt and the pieces are read in the call.
  @param completion_token The completion token, of signature `void(boost::system::error_code)`.
  @return What the completion token's `async_result` gives. The completion's code is empty on
@@ -997,7 +997,7 @@ auto async_hkdf(Executor const& completion_executor, std::span<std::uint8_t> out
 template <class Hmac, class Backend = default_async_backend<kdfs::hkdf_pieces, Hmac>,
           class Executor, class CompletionToken>
 auto async_hkdf(Executor const& completion_executor, std::span<std::uint8_t> output_key_material,
-                std::span<std::uint8_t const> salt_bytes, byte_pieces input_key_material,
+                std::span<std::uint8_t const> salt, byte_pieces input_key_material,
                 byte_pieces application_info, CompletionToken&& completion_token) {
     if constexpr (!detail::webcrypto_hmac_v<Hmac>) {
         static_assert(detail::always_false<Hmac>,
@@ -1006,11 +1006,11 @@ auto async_hkdf(Executor const& completion_executor, std::span<std::uint8_t> out
                       "hkdf for the others.");
     } else if constexpr (detail::asynchronous_backend_v<Backend>) {
         return detail::async_engine<Backend>::template hkdf<Hmac>(
-            completion_executor, output_key_material, salt_bytes, input_key_material,
-            application_info, std::forward<CompletionToken>(completion_token));
+            completion_executor, output_key_material, salt, input_key_material, application_info,
+            std::forward<CompletionToken>(completion_token));
     } else {
-        auto const call_code = detail::code_of(hkdf<Hmac, Backend>(
-            output_key_material, salt_bytes, input_key_material, application_info));
+        auto const call_code = detail::code_of(
+            hkdf<Hmac, Backend>(output_key_material, salt, input_key_material, application_info));
         return detail::complete_with_code(completion_executor, completion_token, call_code);
     }
 }
@@ -1029,7 +1029,7 @@ auto async_hkdf(Executor const& completion_executor, std::span<std::uint8_t> out
  of an `io_context` run on the calling thread (see @ref async_pbkdf2), and a refusal of another goes
  to the handler's associated executor, this one unless the handler is bound to another.
  @param pseudorandom_key The pseudorandom key, of exactly the digest size.
- @param salt_bytes The salt. @param input_key_material The input keying material. The spans are the
+ @param salt The salt. @param input_key_material The input keying material. The spans are the
  caller's until completion.
  @param completion_token The completion token, of signature `void(boost::system::error_code)`.
  @return What the completion token's `async_result` gives. The completion's code is empty on
@@ -1041,7 +1041,7 @@ template <class Hmac, class Backend = default_async_backend<kdfs::hkdf_extract, 
           class Executor, class CompletionToken>
 auto async_hkdf_extract(Executor const& completion_executor,
                         std::span<std::uint8_t> pseudorandom_key,
-                        std::span<std::uint8_t const> salt_bytes,
+                        std::span<std::uint8_t const> salt,
                         std::span<std::uint8_t const> input_key_material,
                         CompletionToken&& completion_token) {
     if constexpr (!detail::webcrypto_hmac_v<Hmac>) {
@@ -1051,13 +1051,13 @@ auto async_hkdf_extract(Executor const& completion_executor,
                       "hkdf_extract for the others.");
     } else if constexpr (detail::asynchronous_backend_v<Backend>) {
         return detail::async_engine<Backend>::template hkdf_extract<Hmac>(
-            completion_executor, pseudorandom_key, salt_bytes, input_key_material,
+            completion_executor, pseudorandom_key, salt, input_key_material,
             std::forward<CompletionToken>(completion_token));
     } else {
         return detail::complete_by_post(completion_executor, completion_token,
-                                        [pseudorandom_key, salt_bytes, input_key_material] {
+                                        [pseudorandom_key, salt, input_key_material] {
                                             return detail::hkdf_extract_into<Hmac, Backend>(
-                                                pseudorandom_key, salt_bytes, input_key_material);
+                                                pseudorandom_key, salt, input_key_material);
                                         });
     }
 }
@@ -1078,8 +1078,8 @@ auto async_hkdf_extract(Executor const& completion_executor,
  to the handler's associated executor, this one unless the handler is bound to another.
  @param pseudorandom_key The pseudorandom key, of exactly the digest size; the caller's until
  completion.
- @param salt_bytes The salt. @param input_key_material The input keying material's pieces. Both read
- in the call.
+ @param salt The salt. @param input_key_material The input keying material's pieces. Both read in
+ the call.
  @param completion_token The completion token, of signature `void(boost::system::error_code)`.
  @return What the completion token's `async_result` gives. The completion's code is empty on
  success, or `invalid_output_size` for a `pseudorandom_key` of another size than the digest's, or
@@ -1090,7 +1090,7 @@ template <class Hmac, class Backend = default_async_backend<kdfs::hkdf_extract_p
           class Executor, class CompletionToken>
 auto async_hkdf_extract(Executor const& completion_executor,
                         std::span<std::uint8_t> pseudorandom_key,
-                        std::span<std::uint8_t const> salt_bytes, byte_pieces input_key_material,
+                        std::span<std::uint8_t const> salt, byte_pieces input_key_material,
                         CompletionToken&& completion_token) {
     if constexpr (!detail::webcrypto_hmac_v<Hmac>) {
         static_assert(detail::always_false<Hmac>,
@@ -1099,11 +1099,11 @@ auto async_hkdf_extract(Executor const& completion_executor,
                       "hkdf_extract for the others.");
     } else if constexpr (detail::asynchronous_backend_v<Backend>) {
         return detail::async_engine<Backend>::template hkdf_extract<Hmac>(
-            completion_executor, pseudorandom_key, salt_bytes, input_key_material,
+            completion_executor, pseudorandom_key, salt, input_key_material,
             std::forward<CompletionToken>(completion_token));
     } else {
-        auto const call_code = detail::code_of(detail::hkdf_extract_into<Hmac, Backend>(
-            pseudorandom_key, salt_bytes, input_key_material));
+        auto const call_code = detail::code_of(
+            detail::hkdf_extract_into<Hmac, Backend>(pseudorandom_key, salt, input_key_material));
         return detail::complete_with_code(completion_executor, completion_token, call_code);
     }
 }
