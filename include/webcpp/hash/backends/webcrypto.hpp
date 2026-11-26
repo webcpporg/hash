@@ -215,75 +215,80 @@ using io_context_executor_with =
     webcpp::asio_backend::io_context::basic_executor_type<std::allocator<void>, Bits>;
 
 /**
- Whether the type-erased `executor` holds an `io_context`'s executor of one of the bits
+ Whether the type-erased `completion_executor` holds an `io_context`'s executor of one of the bits
  `Bits...`, or a strand over one.
 
- @param executor The type-erased executor. @return Whether its target is one.
+ @param completion_executor The type-erased executor. @return Whether its target is one.
 */
 template <class Executor, std::uintptr_t... Bits>
-bool targets_io_context(Executor const& executor,
-                        std::integer_sequence<std::uintptr_t, Bits...> /*bits*/) noexcept {
-    return ((executor.template target<io_context_executor_with<Bits>>() != nullptr) || ...) ||
-           ((executor.template target<webcpp::asio::strand<io_context_executor_with<Bits>>>() !=
+bool targets_io_context(Executor const& completion_executor,
+                        std::integer_sequence<std::uintptr_t, Bits...> /*bit_sequence*/) noexcept {
+    return ((completion_executor.template target<io_context_executor_with<Bits>>() != nullptr) ||
+            ...) ||
+           ((completion_executor
+                 .template target<webcpp::asio::strand<io_context_executor_with<Bits>>>() !=
              nullptr) ||
             ...);
 }
 
 /**
- Whether `executor` completes on an `io_context` (ruling R73), whatever its form: a concrete
- executor whose context is one (any allocator, any property); a strand, through the executor it
- wraps, recursively; a type-erased executor (`any_io_executor`) that holds an `io_context`'s
- executor with the standard allocator and any property, a strand over one, or a type-erased
- strand, recursively. Anything else is answered false, among it, behind type erasure, an
+ Whether `completion_executor` completes on an `io_context` (ruling R73), whatever its form: a
+ concrete executor whose context is one (any allocator, any property); a strand, through the
+ executor it wraps, recursively; a type-erased executor (`any_io_executor`) that holds an
+ `io_context`'s executor with the standard allocator and any property, a strand over one, or a
+ type-erased strand, recursively. Anything else is answered false, among it, behind type erasure, an
  `io_context`'s executor rebound to another allocator and a concrete strand of a concrete strand
- of one (`make_strand(make_strand(executor))`), whose types the erasure hides: the operation would
- await a promise on a context it cannot tell runs the JavaScript event loop.
+ of one (`make_strand(make_strand(completion_executor))`), whose types the erasure hides: the
+ operation would await a promise on a context it cannot tell runs the JavaScript event loop.
 
- @param executor The executor. @return Whether it completes on an io_context.
+ @param completion_executor The executor. @return Whether it completes on an io_context.
 */
 template <class Executor>
-bool completes_on_io_context(Executor const& executor) noexcept {
-    constexpr auto kind = webcrypto_context_of<Executor>;
-    if constexpr (kind == webcrypto_context::io_context) {
+bool completes_on_io_context(Executor const& completion_executor) noexcept {
+    constexpr auto context_kind = webcrypto_context_of<Executor>;
+    if constexpr (context_kind == webcrypto_context::io_context) {
         return true;
-    } else if constexpr (kind == webcrypto_context::erased &&
-                         requires { executor.get_inner_executor(); }) {
-        return completes_on_io_context(executor.get_inner_executor());
-    } else if constexpr (kind == webcrypto_context::erased &&
-                         requires { executor.template target<webcpp::asio::any_io_executor>(); }) {
+    } else if constexpr (context_kind == webcrypto_context::erased &&
+                         requires { completion_executor.get_inner_executor(); }) {
+        return completes_on_io_context(completion_executor.get_inner_executor());
+    } else if constexpr (context_kind == webcrypto_context::erased && requires {
+                             completion_executor.template target<webcpp::asio::any_io_executor>();
+                         }) {
         // Type-erased strands, unwrapped one after the other, then the executor they wrap.
         using strand = webcpp::asio::strand<webcpp::asio::any_io_executor>;
-        auto const* const nested = executor.template target<strand>();
-        if (nested == nullptr) {
-            return targets_io_context(executor, std::make_integer_sequence<std::uintptr_t, 8>{});
+        auto const* const nested_strand = completion_executor.template target<strand>();
+        if (nested_strand == nullptr) {
+            return targets_io_context(completion_executor,
+                                      std::make_integer_sequence<std::uintptr_t, 8>{});
         }
-        webcpp::asio::any_io_executor inner = nested->get_inner_executor();
-        for (auto const* deeper = inner.template target<strand>(); deeper != nullptr;
-             deeper = inner.template target<strand>()) {
-            inner = deeper->get_inner_executor();
+        webcpp::asio::any_io_executor inner_executor = nested_strand->get_inner_executor();
+        for (auto const* deeper_strand = inner_executor.template target<strand>();
+             deeper_strand != nullptr; deeper_strand = inner_executor.template target<strand>()) {
+            inner_executor = deeper_strand->get_inner_executor();
         }
-        return targets_io_context(inner, std::make_integer_sequence<std::uintptr_t, 8>{});
+        return targets_io_context(inner_executor, std::make_integer_sequence<std::uintptr_t, 8>{});
     } else {
         return false;
     }
 }
 
 /**
- Whether WebCrypto's promise can settle where `executor` completes (ruling R73): the executor's
- context must be an `io_context`, checked at compile time for a concrete executor (another context
- refuses with a `static_assert`) and at run time for a type-erased one, as @ref
+ Whether WebCrypto's promise can settle where `completion_executor` completes (ruling R73): the
+ executor's context must be an `io_context`, checked at compile time for a concrete executor
+ (another context refuses with a `static_assert`) and at run time for a type-erased one, as @ref
  completes_on_io_context says. That the `io_context` runs on the calling thread, whose JavaScript
  event loop settles the promise, is the program's duty: it cannot be checked.
 
- @param executor The executor the call was given. @return Whether its context is an io_context.
+ @param completion_executor The executor the call was given. @return Whether its context is an
+ io_context.
 */
 template <class Executor>
-bool webcrypto_executor_accepted(Executor const& executor) noexcept {
+bool webcrypto_executor_accepted(Executor const& completion_executor) noexcept {
     // clang-format off
     static_assert(webcrypto_context_of<Executor> != webcrypto_context::other,
                   "webcpp::hash: backends::webcrypto completes through an io_context run on the calling thread, whose run returns to the JavaScript event loop where WebCrypto's promise settles: pass that io_context's executor, not a thread_pool's.");
     // clang-format on
-    return completes_on_io_context(executor);
+    return completes_on_io_context(completion_executor);
 }
 
 /**
@@ -292,33 +297,33 @@ bool webcrypto_executor_accepted(Executor const& executor) noexcept {
  @return The `SubtleCrypto` object.
 */
 inline emscripten::val subtle_crypto() {
-    auto const crypto = emscripten::val::global("crypto");
-    if (crypto.isUndefined() || crypto.isNull()) {
+    auto const crypto_object = emscripten::val::global("crypto");
+    if (crypto_object.isUndefined() || crypto_object.isNull()) {
         return emscripten::val::undefined();
     }
-    return crypto["subtle"];
+    return crypto_object["subtle"];
 }
 
 /**
- A JavaScript copy of `bytes`, a `Uint8Array` over an `ArrayBuffer` of its own: WebCrypto takes
- no view of the program's memory, which a build with threads shares.
+ A JavaScript copy of `source_bytes`, a `Uint8Array` over an `ArrayBuffer` of its own: WebCrypto
+ takes no view of the program's memory, which a build with threads shares.
 
- @param bytes The bytes. @return The copy.
+ @param source_bytes The bytes. @return The copy.
 */
-inline emscripten::val webcrypto_bytes(std::span<std::uint8_t const> bytes) {
-    return emscripten::val(emscripten::typed_memory_view(bytes.size(), bytes.data()))
+inline emscripten::val webcrypto_bytes(std::span<std::uint8_t const> source_bytes) {
+    return emscripten::val(emscripten::typed_memory_view(source_bytes.size(), source_bytes.data()))
         .call<emscripten::val>("slice");
 }
 
 /**
  The usages of an imported key: one string, `"sign"` or `"deriveBits"`.
 
- @param usage The usage. @return A JavaScript array of it.
+ @param key_usage The usage. @return A JavaScript array of it.
 */
-inline emscripten::val webcrypto_usages(char const* usage) {
-    auto usages = emscripten::val::array();
-    usages.set(0, emscripten::val(usage));
-    return usages;
+inline emscripten::val webcrypto_usages(char const* key_usage) {
+    auto usage_array = emscripten::val::array();
+    usage_array.set(0, emscripten::val(key_usage));
+    return usage_array;
 }
 
 /** `crypto.subtle.digest(hash, input)`: one promise, of the digest. */
@@ -331,15 +336,15 @@ struct webcrypto_digest_request {
     /** The call has one promise. */
     static constexpr bool two_promises = false;
 
-    /** The digest's promise. @param subtle `crypto.subtle`. @return The promise. */
-    [[nodiscard]] emscripten::val first(emscripten::val const& subtle) const {
-        return subtle.call<emscripten::val>("digest", emscripten::val(hash),
-                                            webcrypto_bytes(input));
+    /** The digest's promise. @param subtle_object `crypto.subtle`. @return The promise. */
+    [[nodiscard]] emscripten::val first(emscripten::val const& subtle_object) const {
+        return subtle_object.call<emscripten::val>("digest", emscripten::val(hash),
+                                                   webcrypto_bytes(input));
     }
 
     /** Never called: the call has one promise. @return `undefined`. */
-    [[nodiscard]] static emscripten::val second(emscripten::val const& /*subtle*/,
-                                                emscripten::val const& /*key*/) {
+    [[nodiscard]] static emscripten::val second(emscripten::val const& /*subtle_object*/,
+                                                emscripten::val const& /*key_bytes*/) {
         return emscripten::val::undefined();
     }
 };
@@ -360,26 +365,26 @@ struct webcrypto_hmac_request {
     /** The call has two promises: the key, then the tag. */
     static constexpr bool two_promises = true;
 
-    /** The key's promise. @param subtle `crypto.subtle`. @return The promise. */
-    [[nodiscard]] emscripten::val first(emscripten::val const& subtle) const {
-        std::array<std::uint8_t, 1> const zero{};
-        auto algorithm = emscripten::val::object();
-        algorithm.set("name", emscripten::val("HMAC"));
-        algorithm.set("hash", emscripten::val(hash));
-        return subtle.call<emscripten::val>(
+    /** The key's promise. @param subtle_object `crypto.subtle`. @return The promise. */
+    [[nodiscard]] emscripten::val first(emscripten::val const& subtle_object) const {
+        std::array<std::uint8_t, 1> const zero_byte{};
+        auto algorithm_object = emscripten::val::object();
+        algorithm_object.set("name", emscripten::val("HMAC"));
+        algorithm_object.set("hash", emscripten::val(hash));
+        return subtle_object.call<emscripten::val>(
             "importKey", emscripten::val("raw"),
-            webcrypto_bytes(key.empty() ? std::span<std::uint8_t const>(zero) : key), algorithm,
-            emscripten::val(false), webcrypto_usages("sign"));
+            webcrypto_bytes(key.empty() ? std::span<std::uint8_t const>(zero_byte) : key),
+            algorithm_object, emscripten::val(false), webcrypto_usages("sign"));
     }
 
     /**
-     The tag's promise. @param subtle `crypto.subtle`. @param imported The key.
+     The tag's promise. @param subtle_object `crypto.subtle`. @param imported_key The key.
      @return The promise.
     */
-    [[nodiscard]] emscripten::val second(emscripten::val const& subtle,
-                                         emscripten::val const& imported) const {
-        return subtle.call<emscripten::val>("sign", emscripten::val("HMAC"), imported,
-                                            webcrypto_bytes(input));
+    [[nodiscard]] emscripten::val second(emscripten::val const& subtle_object,
+                                         emscripten::val const& imported_key) const {
+        return subtle_object.call<emscripten::val>("sign", emscripten::val("HMAC"), imported_key,
+                                                   webcrypto_bytes(input));
     }
 };
 
@@ -402,26 +407,26 @@ struct webcrypto_hkdf_request {
     /** The call has two promises: the key, then the bits. */
     static constexpr bool two_promises = true;
 
-    /** The key's promise. @param subtle `crypto.subtle`. @return The promise. */
-    [[nodiscard]] emscripten::val first(emscripten::val const& subtle) const {
-        return subtle.call<emscripten::val>(
+    /** The key's promise. @param subtle_object `crypto.subtle`. @return The promise. */
+    [[nodiscard]] emscripten::val first(emscripten::val const& subtle_object) const {
+        return subtle_object.call<emscripten::val>(
             "importKey", emscripten::val("raw"), webcrypto_bytes(input_key_material),
             emscripten::val("HKDF"), emscripten::val(false), webcrypto_usages("deriveBits"));
     }
 
     /**
-     The bits' promise. @param subtle `crypto.subtle`. @param imported The key.
+     The bits' promise. @param subtle_object `crypto.subtle`. @param imported_key The key.
      @return The promise.
     */
-    [[nodiscard]] emscripten::val second(emscripten::val const& subtle,
-                                         emscripten::val const& imported) const {
-        auto algorithm = emscripten::val::object();
-        algorithm.set("name", emscripten::val("HKDF"));
-        algorithm.set("hash", emscripten::val(hash));
-        algorithm.set("salt", webcrypto_bytes(salt));
-        algorithm.set("info", webcrypto_bytes(application_info));
-        return subtle.call<emscripten::val>("deriveBits", algorithm, imported,
-                                            emscripten::val(bits));
+    [[nodiscard]] emscripten::val second(emscripten::val const& subtle_object,
+                                         emscripten::val const& imported_key) const {
+        auto algorithm_object = emscripten::val::object();
+        algorithm_object.set("name", emscripten::val("HKDF"));
+        algorithm_object.set("hash", emscripten::val(hash));
+        algorithm_object.set("salt", webcrypto_bytes(salt));
+        algorithm_object.set("info", webcrypto_bytes(application_info));
+        return subtle_object.call<emscripten::val>("deriveBits", algorithm_object, imported_key,
+                                                   emscripten::val(bits));
     }
 };
 
@@ -444,26 +449,26 @@ struct webcrypto_pbkdf2_request {
     /** The call has two promises: the key, then the bits. */
     static constexpr bool two_promises = true;
 
-    /** The key's promise. @param subtle `crypto.subtle`. @return The promise. */
-    [[nodiscard]] emscripten::val first(emscripten::val const& subtle) const {
-        return subtle.call<emscripten::val>("importKey", emscripten::val("raw"),
-                                            webcrypto_bytes(password), emscripten::val("PBKDF2"),
-                                            emscripten::val(false), webcrypto_usages("deriveBits"));
+    /** The key's promise. @param subtle_object `crypto.subtle`. @return The promise. */
+    [[nodiscard]] emscripten::val first(emscripten::val const& subtle_object) const {
+        return subtle_object.call<emscripten::val>(
+            "importKey", emscripten::val("raw"), webcrypto_bytes(password),
+            emscripten::val("PBKDF2"), emscripten::val(false), webcrypto_usages("deriveBits"));
     }
 
     /**
-     The bits' promise. @param subtle `crypto.subtle`. @param imported The key.
+     The bits' promise. @param subtle_object `crypto.subtle`. @param imported_key The key.
      @return The promise.
     */
-    [[nodiscard]] emscripten::val second(emscripten::val const& subtle,
-                                         emscripten::val const& imported) const {
-        auto algorithm = emscripten::val::object();
-        algorithm.set("name", emscripten::val("PBKDF2"));
-        algorithm.set("hash", emscripten::val(hash));
-        algorithm.set("salt", webcrypto_bytes(salt));
-        algorithm.set("iterations", emscripten::val(iterations));
-        return subtle.call<emscripten::val>("deriveBits", algorithm, imported,
-                                            emscripten::val(bits));
+    [[nodiscard]] emscripten::val second(emscripten::val const& subtle_object,
+                                         emscripten::val const& imported_key) const {
+        auto algorithm_object = emscripten::val::object();
+        algorithm_object.set("name", emscripten::val("PBKDF2"));
+        algorithm_object.set("hash", emscripten::val(hash));
+        algorithm_object.set("salt", webcrypto_bytes(salt));
+        algorithm_object.set("iterations", emscripten::val(iterations));
+        return subtle_object.call<emscripten::val>("deriveBits", algorithm_object, imported_key,
+                                                   emscripten::val(bits));
     }
 };
 
@@ -487,78 +492,84 @@ template <class Executor, class Request>
 class webcrypto_operation {
 public:
     /**
-     The operation of `request` into `output`.
+     The operation of `operation_request` into `output_bytes`.
 
-     @param executor The io_context's executor. @param output The output.
-     @param produced The bytes WebCrypto gives: `output`'s size, or an HMAC's whole tag, which
-     `output` takes the first bytes of. @param request The call.
+     @param completion_executor The io_context's executor. @param output_bytes The output.
+     @param produced_size The bytes WebCrypto gives: `output_bytes`'s size, or an HMAC's whole tag,
+     which `output_bytes` takes the first bytes of. @param operation_request The call.
     */
-    webcrypto_operation(Executor executor, std::span<std::uint8_t> output, std::size_t produced,
-                        Request const& request)
-        : executor_(std::move(executor)), output_(output), produced_(produced), request_(request) {}
+    webcrypto_operation(Executor completion_executor, std::span<std::uint8_t> output_bytes,
+                        std::size_t produced_size, Request const& operation_request)
+        : executor_(std::move(completion_executor)),
+          output_(output_bytes),
+          produced_(produced_size),
+          request_(operation_request) {}
 
     /**
      Starts the operation: the first promise.
 
-     @param self The composed operation.
+     @param operation_self The composed operation.
     */
     template <class Self>
-    void operator()(Self& self) {
-        self.reset_cancellation_state(webcpp::asio::enable_partial_cancellation());
-        // A copy: the wait moves `self`, and this operation with it, before it reads the executor.
-        auto const executor = executor_;
-        webcpp::asio::browser::async_await(executor, request_.first(subtle_crypto()),
-                                           std::move(self));
+    void operator()(Self& operation_self) {
+        operation_self.reset_cancellation_state(webcpp::asio::enable_partial_cancellation());
+        // A copy: the wait moves `operation_self`, and this operation with it, before it reads the
+        // executor.
+        auto const completion_executor = executor_;
+        webcpp::asio::browser::async_await(completion_executor, request_.first(subtle_crypto()),
+                                           std::move(operation_self));
     }
 
     /**
      A promise has settled, been rejected, or been cancelled: the next promise, or the completion.
 
-     @param self The composed operation. @param code The wait's error.
-     @param value The promise's value: the imported key, or the result's `ArrayBuffer`.
+     @param operation_self The composed operation. @param completion_code The wait's error.
+     @param promise_value The promise's value: the imported key, or the result's `ArrayBuffer`.
     */
     template <class Self>
-    void operator()(Self& self, boost::system::error_code code, emscripten::val const& value) {
+    void operator()(Self& operation_self, boost::system::error_code completion_code,
+                    emscripten::val const& promise_value) {
         if constexpr (Request::two_promises) {
-            if (!code && !second_) {
+            if (!completion_code && !second_) {
                 second_ = true;
-                if (self.cancelled() != webcpp::asio::cancellation_type::none) {
-                    self.complete(fail(webcpp::asio::error::operation_aborted));
+                if (operation_self.cancelled() != webcpp::asio::cancellation_type::none) {
+                    operation_self.complete(fail(webcpp::asio::error::operation_aborted));
                     return;
                 }
-                auto const executor = executor_;
-                webcpp::asio::browser::async_await(
-                    executor, request_.second(subtle_crypto(), value), std::move(self));
+                auto const completion_executor = executor_;
+                webcpp::asio::browser::async_await(completion_executor,
+                                                   request_.second(subtle_crypto(), promise_value),
+                                                   std::move(operation_self));
                 return;
             }
         }
-        if (code) {
-            self.complete(fail(code == webcpp::asio::error::operation_aborted
-                                   ? code
-                                   : boost::system::error_code(error::backend_failure)));
+        if (completion_code) {
+            operation_self.complete(fail(completion_code == webcpp::asio::error::operation_aborted
+                                             ? completion_code
+                                             : boost::system::error_code(error::backend_failure)));
             return;
         }
-        self.complete(copy(value));
+        operation_self.complete(copy(promise_value));
     }
 
 private:
     // The output zeroed, with the completion's error.
-    boost::system::error_code fail(boost::system::error_code code) noexcept {
+    boost::system::error_code fail(boost::system::error_code failure_code) noexcept {
         secure::erase_secret(output_);
-        return code;
+        return failure_code;
     }
 
     // The result's bytes into the output: an ArrayBuffer of exactly `produced_` bytes, else
     // WebCrypto answered something else, a backend failure.
-    boost::system::error_code copy(emscripten::val const& result) {
-        if (!result.instanceof(emscripten::val::global("ArrayBuffer")) ||
-            result["byteLength"].as<std::size_t>() != produced_) {
+    boost::system::error_code copy(emscripten::val const& promise_result) {
+        if (!promise_result.instanceof(emscripten::val::global("ArrayBuffer")) ||
+            promise_result["byteLength"].as<std::size_t>() != produced_) {
             return fail(error::backend_failure);
         }
-        auto const bytes = emscripten::val::global("Uint8Array")
-                               .new_(result, 0, static_cast<double>(output_.size()));
+        auto const result_bytes = emscripten::val::global("Uint8Array")
+                                      .new_(promise_result, 0, static_cast<double>(output_.size()));
         emscripten::val(emscripten::typed_memory_view(output_.size(), output_.data()))
-            .call<void>("set", bytes);
+            .call<void>("set", result_bytes);
         return {};
     }
 
@@ -574,39 +585,43 @@ private:
  check (ruling R73), then `crypto.subtle`'s presence. The output is untouched by a guard's refusal
  and the executor's, and zeroed when WebCrypto is missing (`backend_failure`).
 
- @param executor The io_context's executor. @param output The output.
- @param guarded The guards' verdict. @return The refusal's error, or none.
+ @param completion_executor The io_context's executor. @param output_bytes The output.
+ @param guard_result The guards' verdict. @return The refusal's error, or none.
 */
 template <class Executor>
-boost::system::error_code webcrypto_refusal(Executor const& executor,
-                                            std::span<std::uint8_t> output,
-                                            boost::system::result<void> const& guarded) {
-    if (!guarded) {
-        return guarded.error();
+boost::system::error_code webcrypto_refusal(Executor const& completion_executor,
+                                            std::span<std::uint8_t> output_bytes,
+                                            boost::system::result<void> const& guard_result) {
+    if (!guard_result) {
+        return guard_result.error();
     }
-    if (!webcrypto_executor_accepted(executor)) {
+    if (!webcrypto_executor_accepted(completion_executor)) {
         return error::invalid_parameters;
     }
     if (subtle_crypto().isUndefined()) {
         // The backend's failure: the JavaScript runtime has no WebCrypto. The output is zeroed, as
         // every backend's failure leaves it.
-        secure::erase_secret(output);
+        secure::erase_secret(output_bytes);
         return error::backend_failure;
     }
     return {};
 }
 
 /**
- Posts a refusal to the handler's associated executor (`executor` by default).
+ Posts a refusal to the handler's associated executor (`completion_executor` by default).
 
- @param handler The completion handler. @param executor The io_context's executor.
- @param refusal The refusal's error.
+ @param completion_handler The completion handler. @param completion_executor The io_context's
+ executor.
+ @param refusal_code The refusal's error.
 */
 template <class Handler, class Executor>
-void post_webcrypto_refusal(Handler&& handler, Executor const& executor,
-                            boost::system::error_code refusal) {
-    auto const target = webcpp::asio::get_associated_executor(handler, executor);
-    webcpp::asio::post(target, webcpp::asio::append(std::forward<Handler>(handler), refusal));
+void post_webcrypto_refusal(Handler&& completion_handler, Executor const& completion_executor,
+                            boost::system::error_code refusal_code) {
+    auto const target_executor =
+        webcpp::asio::get_associated_executor(completion_handler, completion_executor);
+    webcpp::asio::post(
+        target_executor,
+        webcpp::asio::append(std::forward<Handler>(completion_handler), refusal_code));
 }
 
 /**
@@ -618,40 +633,46 @@ struct webcrypto_initiation {
     /**
      Refuses or starts the call.
 
-     @param handler The completion handler. @param executor The io_context's executor.
-     @param output The output. @param produced The bytes WebCrypto gives.
-     @param request The call. @param guarded The guards' verdict.
+     @param completion_handler The completion handler. @param completion_executor The io_context's
+     executor.
+     @param output_bytes The output. @param produced_size The bytes WebCrypto gives.
+     @param operation_request The call. @param guard_result The guards' verdict.
     */
     template <class Handler, class Executor, class Request>
-    void operator()(Handler&& handler, Executor const& executor, std::span<std::uint8_t> output,
-                    std::size_t produced, Request const& request,
-                    boost::system::result<void> const& guarded) const {
-        auto const refusal = webcrypto_refusal(executor, output, guarded);
-        if (refusal) {
-            post_webcrypto_refusal(std::forward<Handler>(handler), executor, refusal);
+    void operator()(Handler&& completion_handler, Executor const& completion_executor,
+                    std::span<std::uint8_t> output_bytes, std::size_t produced_size,
+                    Request const& operation_request,
+                    boost::system::result<void> const& guard_result) const {
+        auto const refusal_code =
+            webcrypto_refusal(completion_executor, output_bytes, guard_result);
+        if (refusal_code) {
+            post_webcrypto_refusal(std::forward<Handler>(completion_handler), completion_executor,
+                                   refusal_code);
             return;
         }
-        std::decay_t<Handler> owned(std::forward<Handler>(handler));
+        std::decay_t<Handler> owned_handler(std::forward<Handler>(completion_handler));
         webcpp::asio::async_compose<std::decay_t<Handler>, void(boost::system::error_code)>(
-            webcrypto_operation<Executor, Request>(executor, output, produced, request), owned,
-            executor);
+            webcrypto_operation<Executor, Request>(completion_executor, output_bytes, produced_size,
+                                                   operation_request),
+            owned_handler, completion_executor);
     }
 };
 
 /**
  Initiates a WebCrypto call.
 
- @param executor The io_context's executor. @param output The output.
- @param produced The bytes WebCrypto gives. @param request The call.
- @param guarded The guards' verdict. @param token The completion token.
+ @param completion_executor The io_context's executor. @param output_bytes The output.
+ @param produced_size The bytes WebCrypto gives. @param operation_request The call.
+ @param guard_result The guards' verdict. @param completion_token The completion token.
  @return What the completion token's `async_result` gives.
 */
 template <class CompletionToken, class Executor, class Request>
-auto start_webcrypto(Executor const& executor, std::span<std::uint8_t> output, std::size_t produced,
-                     Request const& request, boost::system::result<void> guarded,
-                     CompletionToken& token) {
+auto start_webcrypto(Executor const& completion_executor, std::span<std::uint8_t> output_bytes,
+                     std::size_t produced_size, Request const& operation_request,
+                     boost::system::result<void> guard_result, CompletionToken& completion_token) {
     return webcpp::asio_backend::async_initiate<CompletionToken, void(boost::system::error_code)>(
-        webcrypto_initiation{}, token, executor, output, produced, request, guarded);
+        webcrypto_initiation{}, completion_token, completion_executor, output_bytes, produced_size,
+        operation_request, guard_result);
 }
 
 /**
@@ -665,20 +686,23 @@ public:
     /** No buffer. */
     webcrypto_secret() = default;
 
-    /** The buffer `bytes`. @param bytes A `Uint8Array`. */
-    explicit webcrypto_secret(emscripten::val bytes) noexcept : bytes_(std::move(bytes)) {}
+    /** The buffer `secret_bytes`. @param secret_bytes A `Uint8Array`. */
+    explicit webcrypto_secret(emscripten::val secret_bytes) noexcept
+        : bytes_(std::move(secret_bytes)) {}
 
-    /** Takes `other`'s buffer, `other` left with none. @param other The holder. */
-    webcrypto_secret(webcrypto_secret&& other) noexcept
-        : bytes_(std::exchange(other.bytes_, emscripten::val::undefined())) {}
+    /** Takes `moved_secret`'s buffer, `moved_secret` left with none. @param moved_secret The
+     * holder. */
+    webcrypto_secret(webcrypto_secret&& moved_secret) noexcept
+        : bytes_(std::exchange(moved_secret.bytes_, emscripten::val::undefined())) {}
 
     /**
-     Wipes this buffer, then takes `other`'s. @param other The holder. @return This holder.
+     Wipes this buffer, then takes `moved_secret`'s. @param moved_secret The holder. @return This
+     holder.
     */
-    webcrypto_secret& operator=(webcrypto_secret&& other) noexcept {
-        if (this != &other) {
+    webcrypto_secret& operator=(webcrypto_secret&& moved_secret) noexcept {
+        if (this != &moved_secret) {
             wipe();
-            bytes_ = std::exchange(other.bytes_, emscripten::val::undefined());
+            bytes_ = std::exchange(moved_secret.bytes_, emscripten::val::undefined());
         }
         return *this;
     }
@@ -727,13 +751,14 @@ static_assert(webcrypto_max_gathered > 64 + 1,
               "WEBCPP_HASH_DETAIL_TEST_WEBCRYPTO_MAX_GATHERED is more than 65");
 
 /**
- A new JavaScript `Uint8Array` of `length` zero bytes, or `undefined` when the runtime refuses it
- (a `RangeError`, or an out of memory, as its memory allows). The refusal is caught in JavaScript,
- before it can cross a WebAssembly frame, where it would end the program.
+ A new JavaScript `Uint8Array` of `byte_length` zero bytes, or `undefined` when the runtime refuses
+ it (a `RangeError`, or an out of memory, as its memory allows). The refusal is caught in
+ JavaScript, before it can cross a WebAssembly frame, where it would end the program.
 
- @param length The length, at most @ref webcrypto_max_gathered. @return The array, or `undefined`.
+ @param byte_length The length, at most @ref webcrypto_max_gathered. @return The array, or
+ `undefined`.
 */
-inline emscripten::val webcrypto_new_bytes(double length) {
+inline emscripten::val webcrypto_new_bytes(double byte_length) {
     // EM_ASM supports a definition in an inline function across translation units.
     // clang-format off
     return emscripten::val::take_ownership(reinterpret_cast<emscripten::EM_VAL>(EM_ASM_PTR({
@@ -742,38 +767,40 @@ inline emscripten::val webcrypto_new_bytes(double length) {
         } catch (error) {
             return Emval.toHandle(undefined);
         }
-    }, length)));
+    }, byte_length)));
     // clang-format on
 }
 
 /**
- The pieces gathered into one JavaScript `Uint8Array` of its own `ArrayBuffer`, of `prefix +
- pieces.total_size() + suffix` bytes, the pieces one after another from offset `prefix` (each
- copied by `set` from a `typed_memory_view` of it), the rest zeros. It runs in the initiating call,
- so that no completion token keeps the list (ruling R4 of the change hkdf-pieces), and WebCrypto
- then reads no view of the program's memory, which a build with threads shares.
+ The pieces gathered into one JavaScript `Uint8Array` of its own `ArrayBuffer`, of `prefix_size +
+ input_pieces.total_size() + suffix_size` bytes, the pieces one after another from offset
+ `prefix_size` (each copied by `set` from a `typed_memory_view` of it), the rest zeros. It runs in
+ the initiating call, so that no completion token keeps the list (ruling R4 of the change
+ hkdf-pieces), and WebCrypto then reads no view of the program's memory, which a build with threads
+ shares.
 
- @param pieces The pieces. @param prefix The zeros before them. @param suffix The zeros after them,
- the total within @ref webcrypto_max_gathered. @return The buffer, none (`undefined`) when the
- runtime refuses to make it (@ref webcrypto_new_bytes).
+ @param input_pieces The pieces. @param prefix_size The zeros before them. @param suffix_size The
+ zeros after them, the total within @ref webcrypto_max_gathered. @return The buffer, none
+ (`undefined`) when the runtime refuses to make it (@ref webcrypto_new_bytes).
 */
-inline webcrypto_secret webcrypto_gather(byte_pieces pieces, std::size_t prefix,
-                                         std::size_t suffix) {
-    webcrypto_secret gathered(
-        webcrypto_new_bytes(static_cast<double>(prefix + pieces.total_size() + suffix)));
-    if (gathered.bytes().isUndefined()) {
-        return gathered;
+inline webcrypto_secret webcrypto_gather(byte_pieces input_pieces, std::size_t prefix_size,
+                                         std::size_t suffix_size) {
+    webcrypto_secret gathered_secret(webcrypto_new_bytes(
+        static_cast<double>(prefix_size + input_pieces.total_size() + suffix_size)));
+    if (gathered_secret.bytes().isUndefined()) {
+        return gathered_secret;
     }
-    auto offset = static_cast<double>(prefix);
-    for (auto const piece : pieces) {
-        if (!piece.empty()) {
-            gathered.bytes().call<void>(
-                "set", emscripten::val(emscripten::typed_memory_view(piece.size(), piece.data())),
-                offset);
-            offset += static_cast<double>(piece.size());
+    auto byte_offset = static_cast<double>(prefix_size);
+    for (auto const piece_bytes : input_pieces) {
+        if (!piece_bytes.empty()) {
+            gathered_secret.bytes().call<void>("set",
+                                               emscripten::val(emscripten::typed_memory_view(
+                                                   piece_bytes.size(), piece_bytes.data())),
+                                               byte_offset);
+            byte_offset += static_cast<double>(piece_bytes.size());
         }
     }
-    return gathered;
+    return gathered_secret;
 }
 
 /** Which steps of HKDF an operation over WebCrypto's HMAC runs. */
@@ -838,10 +865,10 @@ struct webcrypto_hmac_hkdf_request {
     /**
      Gathers Expand's HMAC key, the caller's pseudorandom key (Expand alone).
 
-     @param key The pseudorandom key.
+     @param key_bytes The pseudorandom key.
     */
-    void gather_pseudorandom_key(std::span<std::uint8_t const> key) {
-        gather(pseudorandom_key, {key}, 0, 0);
+    void gather_pseudorandom_key(std::span<std::uint8_t const> key_bytes) {
+        gather(pseudorandom_key, {key_bytes}, 0, 0);
     }
 
     /**
@@ -861,11 +888,11 @@ struct webcrypto_hmac_hkdf_request {
 
 private:
     // `pieces` into `buffer` (webcrypto_gather) while every earlier input has been gathered.
-    void gather(webcrypto_secret& buffer, byte_pieces pieces, std::size_t prefix,
-                std::size_t suffix) {
+    void gather(webcrypto_secret& target_buffer, byte_pieces input_pieces, std::size_t prefix_size,
+                std::size_t suffix_size) {
         if (gathered) {
-            buffer = webcrypto_gather(pieces, prefix, suffix);
-            gathered = !buffer.bytes().isUndefined();
+            target_buffer = webcrypto_gather(input_pieces, prefix_size, suffix_size);
+            gathered = !target_buffer.bytes().isUndefined();
         }
     }
 };
@@ -892,87 +919,93 @@ template <class Executor>
 class webcrypto_hmac_hkdf_operation {
 public:
     /**
-     The operation of `request` into `output`.
+     The operation of `operation_request` into `output_bytes`.
 
-     @param executor The io_context's executor. @param output The output: the pseudorandom key
-     (Extract alone) or the output keying material. @param request The inputs, gathered.
+     @param completion_executor The io_context's executor. @param output_bytes The output: the
+     pseudorandom key (Extract alone) or the output keying material. @param operation_request The
+     inputs, gathered.
     */
-    webcrypto_hmac_hkdf_operation(Executor executor, std::span<std::uint8_t> output,
-                                  webcrypto_hmac_hkdf_request request)
-        : executor_(std::move(executor)), output_(output), request_(std::move(request)) {}
+    webcrypto_hmac_hkdf_operation(Executor completion_executor,
+                                  std::span<std::uint8_t> output_bytes,
+                                  webcrypto_hmac_hkdf_request operation_request)
+        : executor_(std::move(completion_executor)),
+          output_(output_bytes),
+          request_(std::move(operation_request)) {}
 
     /**
      Starts the operation: the first `importKey`, of the salt, or of the pseudorandom key for
      Expand alone.
 
-     @param self The composed operation.
+     @param operation_self The composed operation.
     */
     template <class Self>
-    void operator()(Self& self) {
-        self.reset_cancellation_state(webcpp::asio::enable_partial_cancellation());
+    void operator()(Self& operation_self) {
+        operation_self.reset_cancellation_state(webcpp::asio::enable_partial_cancellation());
         if (request_.steps == webcrypto_hkdf_steps::expand) {
             step_ = step::import_pseudorandom_key;
-            await(self, import_key(request_.pseudorandom_key.bytes()));
+            await(operation_self, import_key(request_.pseudorandom_key.bytes()));
         } else {
             step_ = step::import_salt;
-            await(self, import_key(request_.salt.bytes()));
+            await(operation_self, import_key(request_.salt.bytes()));
         }
     }
 
     /**
      A promise has settled, been rejected, or been cancelled: the next call, or the completion.
 
-     @param self The composed operation. @param code The wait's error.
-     @param value The promise's value: an imported key, or a tag's `ArrayBuffer`.
+     @param operation_self The composed operation. @param completion_code The wait's error.
+     @param promise_value The promise's value: an imported key, or a tag's `ArrayBuffer`.
     */
     template <class Self>
-    void operator()(Self& self, boost::system::error_code code, emscripten::val const& value) {
-        if (code) {
-            self.complete(fail(code == webcpp::asio::error::operation_aborted
-                                   ? code
-                                   : boost::system::error_code(error::backend_failure)));
+    void operator()(Self& operation_self, boost::system::error_code completion_code,
+                    emscripten::val const& promise_value) {
+        if (completion_code) {
+            operation_self.complete(fail(completion_code == webcpp::asio::error::operation_aborted
+                                             ? completion_code
+                                             : boost::system::error_code(error::backend_failure)));
             return;
         }
         switch (step_) {
             case step::import_salt:
                 request_.salt.wipe();
-                key_ = value;
-                if (!stopped(self)) {
+                key_ = promise_value;
+                if (!stopped(operation_self)) {
                     step_ = step::sign_input_key_material;
-                    await(self, sign(request_.input_key_material.bytes()));
+                    await(operation_self, sign(request_.input_key_material.bytes()));
                 }
                 return;
             case step::sign_input_key_material:
                 request_.input_key_material.wipe();
-                if (!is_tag(value)) {
-                    self.complete(fail(error::backend_failure));
+                if (!is_tag(promise_value)) {
+                    operation_self.complete(fail(error::backend_failure));
                     return;
                 }
                 if (request_.steps == webcrypto_hkdf_steps::extract) {
-                    webcrypto_secret tag(uint8_array(value));
-                    copy(tag.bytes(), 0, output_.size());
-                    tag.wipe();
-                    self.complete(finish());
+                    webcrypto_secret tag_secret(uint8_array(promise_value));
+                    copy(tag_secret.bytes(), 0, output_.size());
+                    tag_secret.wipe();
+                    operation_self.complete(finish());
                     return;
                 }
-                request_.pseudorandom_key = webcrypto_secret(uint8_array(value));
-                if (!stopped(self)) {
+                request_.pseudorandom_key = webcrypto_secret(uint8_array(promise_value));
+                if (!stopped(operation_self)) {
                     step_ = step::import_pseudorandom_key;
-                    await(self, import_key(request_.pseudorandom_key.bytes()));
+                    await(operation_self, import_key(request_.pseudorandom_key.bytes()));
                 }
                 return;
             case step::import_pseudorandom_key:
                 request_.pseudorandom_key.wipe();
-                key_ = value;
-                if (!stopped(self)) {
+                key_ = promise_value;
+                if (!stopped(operation_self)) {
                     block_ = 1;
                     request_.blocks.bytes().set(counter_index(), block_);
                     step_ = step::sign_block;
-                    await(self, sign(request_.blocks.bytes().call<emscripten::val>(
-                                    "subarray", static_cast<double>(request_.digest_length))));
+                    await(operation_self,
+                          sign(request_.blocks.bytes().call<emscripten::val>(
+                              "subarray", static_cast<double>(request_.digest_length))));
                 }
                 return;
-            case step::sign_block: next_block(self, value); return;
+            case step::sign_block: next_block(operation_self, promise_value); return;
         }
     }
 
@@ -987,71 +1020,74 @@ private:
 
     // T(block_) has settled: into the output, then the next block's sign, or the completion.
     template <class Self>
-    void next_block(Self& self, emscripten::val const& value) {
-        if (!is_tag(value)) {
-            self.complete(fail(error::backend_failure));
+    void next_block(Self& operation_self, emscripten::val const& promise_value) {
+        if (!is_tag(promise_value)) {
+            operation_self.complete(fail(error::backend_failure));
             return;
         }
-        webcrypto_secret tag(uint8_array(value));
-        std::size_t const size = std::min(request_.digest_length, output_.size() - written_);
-        copy(tag.bytes(), written_, size);
-        written_ += size;
+        webcrypto_secret tag_secret(uint8_array(promise_value));
+        std::size_t const block_size = std::min(request_.digest_length, output_.size() - written_);
+        copy(tag_secret.bytes(), written_, block_size);
+        written_ += block_size;
         if (written_ == output_.size()) {
-            tag.wipe();
-            self.complete(finish());
+            tag_secret.wipe();
+            operation_self.complete(finish());
             return;
         }
-        request_.blocks.bytes().call<void>("set", tag.bytes(), 0);
-        tag.wipe();
-        if (!stopped(self)) {
+        request_.blocks.bytes().call<void>("set", tag_secret.bytes(), 0);
+        tag_secret.wipe();
+        if (!stopped(operation_self)) {
             ++block_;
             request_.blocks.bytes().set(counter_index(), block_);
-            await(self, sign(request_.blocks.bytes()));
+            await(operation_self, sign(request_.blocks.bytes()));
         }
     }
 
     // Whether a cancellation has come since the last wait: then the completion, operation_aborted.
     template <class Self>
-    bool stopped(Self& self) {
-        if (self.cancelled() == webcpp::asio::cancellation_type::none) {
+    bool stopped(Self& operation_self) {
+        if (operation_self.cancelled() == webcpp::asio::cancellation_type::none) {
             return false;
         }
-        self.complete(fail(webcpp::asio::error::operation_aborted));
+        operation_self.complete(fail(webcpp::asio::error::operation_aborted));
         return true;
     }
 
     // Awaits `promise`, the operation moved into the wait.
     template <class Self>
-    void await(Self& self, emscripten::val promise) {
-        // A copy: the wait moves `self`, and this operation with it, before it reads the executor.
-        auto const executor = executor_;
-        webcpp::asio::browser::async_await(executor, std::move(promise), std::move(self));
+    void await(Self& operation_self, emscripten::val pending_promise) {
+        // A copy: the wait moves `operation_self`, and this operation with it, before it reads the
+        // executor.
+        auto const completion_executor = executor_;
+        webcpp::asio::browser::async_await(completion_executor, std::move(pending_promise),
+                                           std::move(operation_self));
     }
 
     // importKey("raw", bytes, {name: "HMAC", hash}, false, ["sign"]).
-    [[nodiscard]] emscripten::val import_key(emscripten::val const& bytes) const {
-        auto algorithm = emscripten::val::object();
-        algorithm.set("name", emscripten::val("HMAC"));
-        algorithm.set("hash", emscripten::val(request_.hash));
-        return subtle_crypto().call<emscripten::val>("importKey", emscripten::val("raw"), bytes,
-                                                     algorithm, emscripten::val(false),
+    [[nodiscard]] emscripten::val import_key(emscripten::val const& key_bytes) const {
+        auto algorithm_object = emscripten::val::object();
+        algorithm_object.set("name", emscripten::val("HMAC"));
+        algorithm_object.set("hash", emscripten::val(request_.hash));
+        return subtle_crypto().call<emscripten::val>("importKey", emscripten::val("raw"), key_bytes,
+                                                     algorithm_object, emscripten::val(false),
                                                      webcrypto_usages("sign"));
     }
 
     // sign("HMAC", key_, data).
-    [[nodiscard]] emscripten::val sign(emscripten::val const& data) const {
-        return subtle_crypto().call<emscripten::val>("sign", emscripten::val("HMAC"), key_, data);
+    [[nodiscard]] emscripten::val sign(emscripten::val const& message_data) const {
+        return subtle_crypto().call<emscripten::val>("sign", emscripten::val("HMAC"), key_,
+                                                     message_data);
     }
 
     // Whether `value` is a tag: an ArrayBuffer of HashLen bytes.
-    [[nodiscard]] bool is_tag(emscripten::val const& value) const {
-        return value.instanceof(emscripten::val::global("ArrayBuffer")) &&
-               value["byteLength"].as<std::size_t>() == request_.digest_length;
+    [[nodiscard]] bool is_tag(emscripten::val const& promise_value) const {
+        return promise_value.instanceof(emscripten::val::global("ArrayBuffer")) &&
+               promise_value["byteLength"].as<std::size_t>() == request_.digest_length;
     }
 
     // A Uint8Array over the ArrayBuffer `buffer`.
-    [[nodiscard]] static emscripten::val uint8_array(emscripten::val const& buffer) {
-        return emscripten::val::global("Uint8Array").new_(buffer);
+    [[nodiscard]] static emscripten::val uint8_array(emscripten::val const& array_buffer) {
+        return emscripten::val::global("Uint8Array").new_(array_buffer);
     }
 
     // The index of the block counter in the message buffer, its last byte.
@@ -1060,9 +1096,11 @@ private:
     }
 
     // The first `size` bytes of `tag` into the output at `offset`.
-    void copy(emscripten::val const& tag, std::size_t offset, std::size_t size) {
-        emscripten::val(emscripten::typed_memory_view(size, output_.subspan(offset, size).data()))
-            .call<void>("set", tag.call<emscripten::val>("subarray", 0, static_cast<double>(size)));
+    void copy(emscripten::val const& tag_value, std::size_t byte_offset, std::size_t byte_count) {
+        emscripten::val(emscripten::typed_memory_view(
+                            byte_count, output_.subspan(byte_offset, byte_count).data()))
+            .call<void>("set", tag_value.call<emscripten::val>("subarray", 0,
+                                                               static_cast<double>(byte_count)));
     }
 
     // Every JavaScript buffer zeroed and the key let go.
@@ -1081,10 +1119,10 @@ private:
     }
 
     // The output zeroed and the buffers released, with the completion's error.
-    [[nodiscard]] boost::system::error_code fail(boost::system::error_code code) noexcept {
+    [[nodiscard]] boost::system::error_code fail(boost::system::error_code failure_code) noexcept {
         secure::erase_secret(output_);
         release();
-        return code;
+        return failure_code;
     }
 
     Executor executor_;
@@ -1106,61 +1144,68 @@ struct webcrypto_hmac_hkdf_initiation {
     /**
      Refuses or starts the operation.
 
-     @param handler The completion handler. @param executor The io_context's executor.
-     @param output The output. @param request The inputs, gathered.
-     @param guarded The guards' verdict.
+     @param completion_handler The completion handler. @param completion_executor The io_context's
+     executor.
+     @param output_bytes The output. @param operation_request The inputs, gathered.
+     @param guard_result The guards' verdict.
     */
     template <class Handler, class Executor>
-    void operator()(Handler&& handler, Executor const& executor, std::span<std::uint8_t> output,
-                    webcrypto_hmac_hkdf_request request,
-                    boost::system::result<void> const& guarded) const {
-        auto refusal = webcrypto_refusal(executor, output, guarded);
-        if (!refusal && !request.gathered) {
-            secure::erase_secret(output);
-            refusal = error::backend_failure;
+    void operator()(Handler&& completion_handler, Executor const& completion_executor,
+                    std::span<std::uint8_t> output_bytes,
+                    webcrypto_hmac_hkdf_request operation_request,
+                    boost::system::result<void> const& guard_result) const {
+        auto refusal_code = webcrypto_refusal(completion_executor, output_bytes, guard_result);
+        if (!refusal_code && !operation_request.gathered) {
+            secure::erase_secret(output_bytes);
+            refusal_code = error::backend_failure;
         }
-        if (refusal) {
-            post_webcrypto_refusal(std::forward<Handler>(handler), executor, refusal);
+        if (refusal_code) {
+            post_webcrypto_refusal(std::forward<Handler>(completion_handler), completion_executor,
+                                   refusal_code);
             return;
         }
-        std::decay_t<Handler> owned(std::forward<Handler>(handler));
+        std::decay_t<Handler> owned_handler(std::forward<Handler>(completion_handler));
         webcpp::asio::async_compose<std::decay_t<Handler>, void(boost::system::error_code)>(
-            webcrypto_hmac_hkdf_operation<Executor>(executor, output, std::move(request)), owned,
-            executor);
+            webcrypto_hmac_hkdf_operation<Executor>(completion_executor, output_bytes,
+                                                    std::move(operation_request)),
+            owned_handler, completion_executor);
     }
 };
 
 /**
- The request over `Hmac`'s hash running `steps`, with no buffer yet.
+ The request over `Hmac`'s hash running `hkdf_steps`, with no buffer yet.
 
  @tparam Hmac `hmac_sha1_160`, `hmac_sha2_256`, `hmac_sha2_384` or `hmac_sha2_512`.
- @param steps The steps. @return The request.
+ @param hkdf_steps The steps. @return The request.
 */
 template <class Hmac>
-webcrypto_hmac_hkdf_request webcrypto_hmac_hkdf_of(webcrypto_hkdf_steps steps) {
+webcrypto_hmac_hkdf_request webcrypto_hmac_hkdf_of(webcrypto_hkdf_steps hkdf_steps) {
     // Hash2 1.92 declares no std::tuple_size for digest<N>; its size() is constexpr.
     constexpr std::size_t digest_length = typename Hmac::result_type().size();
-    webcrypto_hmac_hkdf_request request;
-    request.hash = webcrypto_hash_name<typename digest_tag_of<Hmac>::type>;
-    request.digest_length = digest_length;
-    request.steps = steps;
-    return request;
+    webcrypto_hmac_hkdf_request operation_request;
+    operation_request.hash = webcrypto_hash_name<typename digest_tag_of<Hmac>::type>;
+    operation_request.digest_length = digest_length;
+    operation_request.steps = hkdf_steps;
+    return operation_request;
 }
 
 /**
  Initiates HKDF over WebCrypto's HMAC.
 
- @param executor The io_context's executor. @param output The output.
- @param request The inputs, gathered. @param guarded The guards' verdict.
- @param token The completion token.
+ @param completion_executor The io_context's executor. @param output_bytes The output.
+ @param operation_request The inputs, gathered. @param guard_result The guards' verdict.
+ @param completion_token The completion token.
  @return What the completion token's `async_result` gives.
 */
 template <class CompletionToken, class Executor>
-auto start_webcrypto_hmac_hkdf(Executor const& executor, std::span<std::uint8_t> output,
-                               webcrypto_hmac_hkdf_request request,
-                               boost::system::result<void> guarded, CompletionToken& token) {
+auto start_webcrypto_hmac_hkdf(Executor const& completion_executor,
+                               std::span<std::uint8_t> output_bytes,
+                               webcrypto_hmac_hkdf_request operation_request,
+                               boost::system::result<void> guard_result,
+                               CompletionToken& completion_token) {
     return webcpp::asio_backend::async_initiate<CompletionToken, void(boost::system::error_code)>(
-        webcrypto_hmac_hkdf_initiation{}, token, executor, output, std::move(request), guarded);
+        webcrypto_hmac_hkdf_initiation{}, completion_token, completion_executor, output_bytes,
+        std::move(operation_request), guard_result);
 }
 
 /**
@@ -1174,10 +1219,11 @@ private:
     // HKDF-Extract's output, the pseudorandom key: exactly the digest size, as
     // hkdf_extract_into requires of a synchronous backend's (invalid_output_size).
     template <class Hmac>
-    [[nodiscard]] static boost::system::result<void> extract_size_guard(std::size_t size) noexcept {
+    [[nodiscard]] static boost::system::result<void> extract_size_guard(
+        std::size_t key_size) noexcept {
         // Hash2 1.92 declares no std::tuple_size for digest<N>; its size() is constexpr.
         constexpr std::size_t digest_length = typename Hmac::result_type().size();
-        if (size != digest_length) {
+        if (key_size != digest_length) {
             return error::invalid_output_size;
         }
         return {};
@@ -1190,11 +1236,11 @@ private:
         std::size_t output_size, std::size_t pseudorandom_key_size) noexcept {
         // Hash2 1.92 declares no std::tuple_size for digest<N>; its size() is constexpr.
         constexpr std::size_t digest_length = typename Hmac::result_type().size();
-        auto guarded = hkdf_pieces_guards<Hmac, backends::webcrypto>(output_size, 0);
-        if (guarded && pseudorandom_key_size != digest_length) {
+        auto guard_result = hkdf_pieces_guards<Hmac, backends::webcrypto>(output_size, 0);
+        if (guard_result && pseudorandom_key_size != digest_length) {
             return error::invalid_key_size;
         }
-        return guarded;
+        return guard_result;
     }
 
 public:
@@ -1202,75 +1248,84 @@ public:
      `async_digest`: `crypto.subtle.digest`.
 
      @tparam Digest `digests::sha1`, `digests::sha2_256`, `digests::sha2_384` or
-     `digests::sha2_512`. @param executor The io_context's executor. @param output The digest.
-     @param input The data. @param token The completion token.
+     `digests::sha2_512`. @param completion_executor The io_context's executor. @param output_bytes
+     The digest.
+     @param input_bytes The data. @param completion_token The completion token.
      @return What the completion token's `async_result` gives.
     */
     template <class Digest, class Executor, class CompletionToken>
-    static auto digest(Executor const& executor, std::span<std::uint8_t> output,
-                       std::span<std::uint8_t const> input, CompletionToken&& token) {
-        auto const guarded = digest_guards<Digest>(output.size(), digest_options<Digest>{});
-        webcrypto_digest_request const request{
+    static auto digest(Executor const& completion_executor, std::span<std::uint8_t> output_bytes,
+                       std::span<std::uint8_t const> input_bytes,
+                       CompletionToken&& completion_token) {
+        auto const guard_result =
+            digest_guards<Digest>(output_bytes.size(), digest_options<Digest>{});
+        webcrypto_digest_request const operation_request{
             .hash = webcrypto_hash_name<Digest>,
-            .input = input,
+            .input = input_bytes,
         };
-        return start_webcrypto(executor, output, output.size(), request, guarded, token);
+        return start_webcrypto(completion_executor, output_bytes, output_bytes.size(),
+                               operation_request, guard_result, completion_token);
     }
 
     /**
      `async_hmac`: `importKey`, then `sign`; a tag shorter than the digest is its first bytes.
 
      @tparam Hmac `hmac_sha1_160`, `hmac_sha2_256`, `hmac_sha2_384` or `hmac_sha2_512`.
-     @param executor The io_context's executor. @param output The tag. @param key The key.
-     @param input The message. @param token The completion token.
+     @param completion_executor The io_context's executor. @param output_bytes The tag. @param
+     key_bytes The key.
+     @param input_bytes The message. @param completion_token The completion token.
      @return What the completion token's `async_result` gives.
     */
     template <class Hmac, class Executor, class CompletionToken>
-    static auto hmac(Executor const& executor, std::span<std::uint8_t> output,
-                     std::span<std::uint8_t const> key, std::span<std::uint8_t const> input,
-                     CompletionToken&& token) {
+    static auto hmac(Executor const& completion_executor, std::span<std::uint8_t> output_bytes,
+                     std::span<std::uint8_t const> key_bytes,
+                     std::span<std::uint8_t const> input_bytes,
+                     CompletionToken&& completion_token) {
         using digest = digest_tag_of<Hmac>::type;
         using tag = macs::hmac<digest>;
-        auto const guarded = mac_guards<tag>(output.size(), key.size(), mac_options<tag>{});
-        webcrypto_hmac_request const request{
+        auto const guard_result =
+            mac_guards<tag>(output_bytes.size(), key_bytes.size(), mac_options<tag>{});
+        webcrypto_hmac_request const operation_request{
             .hash = webcrypto_hash_name<digest>,
-            .key = key,
-            .input = input,
+            .key = key_bytes,
+            .input = input_bytes,
         };
-        return start_webcrypto(executor, output,
-                               static_cast<std::size_t>(mac_traits<tag>::max_output), request,
-                               guarded, token);
+        return start_webcrypto(completion_executor, output_bytes,
+                               static_cast<std::size_t>(mac_traits<tag>::max_output),
+                               operation_request, guard_result, completion_token);
     }
 
     /**
      `async_hkdf`: `importKey`, then `deriveBits`.
 
      @tparam Hmac `hmac_sha1_160`, `hmac_sha2_256`, `hmac_sha2_384` or `hmac_sha2_512`.
-     @param executor The io_context's executor. @param output_key_material The output keying
-     material.
-     @param salt The salt. @param input_key_material The input keying material. @param
+     @param completion_executor The io_context's executor. @param output_key_material The output
+     keying material.
+     @param salt_bytes The salt. @param input_key_material The input keying material. @param
      application_info The application info.
-     @param token The completion token.
+     @param completion_token The completion token.
      @return What the completion token's `async_result` gives.
     */
     template <class Hmac, class Executor, class CompletionToken>
-    static auto hkdf(Executor const& executor, std::span<std::uint8_t> output_key_material,
-                     std::span<std::uint8_t const> salt,
+    static auto hkdf(Executor const& completion_executor,
+                     std::span<std::uint8_t> output_key_material,
+                     std::span<std::uint8_t const> salt_bytes,
                      std::span<std::uint8_t const> input_key_material,
-                     std::span<std::uint8_t const> application_info, CompletionToken&& token) {
+                     std::span<std::uint8_t const> application_info,
+                     CompletionToken&& completion_token) {
         using digest = digest_tag_of<Hmac>::type;
-        auto const guarded = hkdf_guards<Hmac, backends::webcrypto>(
-            output_key_material.size(), salt.size(), input_key_material.size(),
+        auto const guard_result = hkdf_guards<Hmac, backends::webcrypto>(
+            output_key_material.size(), salt_bytes.size(), input_key_material.size(),
             application_info.size());
-        webcrypto_hkdf_request const request{
+        webcrypto_hkdf_request const operation_request{
             .hash = webcrypto_hash_name<digest>,
-            .salt = salt,
+            .salt = salt_bytes,
             .input_key_material = input_key_material,
             .application_info = application_info,
-            .bits = static_cast<std::uint32_t>(guarded ? output_key_material.size() * 8 : 0),
+            .bits = static_cast<std::uint32_t>(guard_result ? output_key_material.size() * 8 : 0),
         };
-        return start_webcrypto(executor, output_key_material, output_key_material.size(), request,
-                               guarded, token);
+        return start_webcrypto(completion_executor, output_key_material, output_key_material.size(),
+                               operation_request, guard_result, completion_token);
     }
 
     /**
@@ -1279,27 +1334,30 @@ public:
      the call. No cap on the application info: WebCrypto's 1,024 bytes are `deriveBits`'.
 
      @tparam Hmac `hmac_sha1_160`, `hmac_sha2_256`, `hmac_sha2_384` or `hmac_sha2_512`.
-     @param executor The io_context's executor. @param output_key_material The output keying
-     material. @param salt The salt. @param input_key_material The input keying material's
-     pieces. @param application_info The application info's pieces.
-     @param token The completion token.
+     @param completion_executor The io_context's executor. @param output_key_material The output
+     keying material. @param salt_bytes The salt. @param input_key_material The input keying
+     material's pieces. @param application_info The application info's pieces.
+     @param completion_token The completion token.
      @return What the completion token's `async_result` gives.
     */
     template <class Hmac, class Executor, class CompletionToken>
-    static auto hkdf(Executor const& executor, std::span<std::uint8_t> output_key_material,
-                     std::span<std::uint8_t const> salt, byte_pieces input_key_material,
-                     byte_pieces application_info, CompletionToken&& token) {
-        secure::timing_guard const timing;
-        auto const guarded =
-            hkdf_pieces_guards<Hmac, backends::webcrypto>(output_key_material.size(), salt.size());
-        auto request = webcrypto_hmac_hkdf_of<Hmac>(webcrypto_hkdf_steps::extract_and_expand);
-        if (guarded) {
-            request.gather_extract(salt, input_key_material);
+    static auto hkdf(Executor const& completion_executor,
+                     std::span<std::uint8_t> output_key_material,
+                     std::span<std::uint8_t const> salt_bytes, byte_pieces input_key_material,
+                     byte_pieces application_info, CompletionToken&& completion_token) {
+        secure::timing_guard const timing_scope;
+        auto const guard_result = hkdf_pieces_guards<Hmac, backends::webcrypto>(
+            output_key_material.size(), salt_bytes.size());
+        auto operation_request =
+            webcrypto_hmac_hkdf_of<Hmac>(webcrypto_hkdf_steps::extract_and_expand);
+        if (guard_result) {
+            operation_request.gather_extract(salt_bytes, input_key_material);
             // Nothing when Extract's inputs were not gathered: the operation fails then.
-            request.gather_expand(application_info);
+            operation_request.gather_expand(application_info);
         }
-        return start_webcrypto_hmac_hkdf(executor, output_key_material, std::move(request), guarded,
-                                         token);
+        return start_webcrypto_hmac_hkdf(completion_executor, output_key_material,
+                                         std::move(operation_request), guard_result,
+                                         completion_token);
     }
 
     /**
@@ -1307,28 +1365,30 @@ public:
      salt, then `sign`), the input keying material its one piece.
 
      @tparam Hmac `hmac_sha1_160`, `hmac_sha2_256`, `hmac_sha2_384` or `hmac_sha2_512`.
-     @param executor The io_context's executor. @param pseudorandom_key The pseudorandom key, of
-     exactly the digest size. @param salt The salt. @param input_key_material The input keying
-     material. @param token The completion token.
+     @param completion_executor The io_context's executor. @param pseudorandom_key The pseudorandom
+     key, of exactly the digest size. @param salt_bytes The salt. @param input_key_material The
+     input keying material. @param completion_token The completion token.
      @return What the completion token's `async_result` gives.
     */
     template <class Hmac, class Executor, class CompletionToken>
-    static auto hkdf_extract(Executor const& executor, std::span<std::uint8_t> pseudorandom_key,
-                             std::span<std::uint8_t const> salt,
+    static auto hkdf_extract(Executor const& completion_executor,
+                             std::span<std::uint8_t> pseudorandom_key,
+                             std::span<std::uint8_t const> salt_bytes,
                              std::span<std::uint8_t const> input_key_material,
-                             CompletionToken&& token) {
-        secure::timing_guard const timing;
-        auto guarded = extract_size_guard<Hmac>(pseudorandom_key.size());
-        if (guarded) {
-            guarded =
-                hkdf_extract_guards<backends::webcrypto>(salt.size(), input_key_material.size());
+                             CompletionToken&& completion_token) {
+        secure::timing_guard const timing_scope;
+        auto guard_result = extract_size_guard<Hmac>(pseudorandom_key.size());
+        if (guard_result) {
+            guard_result = hkdf_extract_guards<backends::webcrypto>(salt_bytes.size(),
+                                                                    input_key_material.size());
         }
-        auto request = webcrypto_hmac_hkdf_of<Hmac>(webcrypto_hkdf_steps::extract);
-        if (guarded) {
-            request.gather_extract(salt, {input_key_material});
+        auto operation_request = webcrypto_hmac_hkdf_of<Hmac>(webcrypto_hkdf_steps::extract);
+        if (guard_result) {
+            operation_request.gather_extract(salt_bytes, {input_key_material});
         }
-        return start_webcrypto_hmac_hkdf(executor, pseudorandom_key, std::move(request), guarded,
-                                         token);
+        return start_webcrypto_hmac_hkdf(completion_executor, pseudorandom_key,
+                                         std::move(operation_request), guard_result,
+                                         completion_token);
     }
 
     /**
@@ -1336,26 +1396,28 @@ public:
      into JavaScript memory in the call.
 
      @tparam Hmac `hmac_sha1_160`, `hmac_sha2_256`, `hmac_sha2_384` or `hmac_sha2_512`.
-     @param executor The io_context's executor. @param pseudorandom_key The pseudorandom key, of
-     exactly the digest size. @param salt The salt. @param input_key_material The input keying
-     material's pieces. @param token The completion token.
+     @param completion_executor The io_context's executor. @param pseudorandom_key The pseudorandom
+     key, of exactly the digest size. @param salt_bytes The salt. @param input_key_material The
+     input keying material's pieces. @param completion_token The completion token.
      @return What the completion token's `async_result` gives.
     */
     template <class Hmac, class Executor, class CompletionToken>
-    static auto hkdf_extract(Executor const& executor, std::span<std::uint8_t> pseudorandom_key,
-                             std::span<std::uint8_t const> salt, byte_pieces input_key_material,
-                             CompletionToken&& token) {
-        secure::timing_guard const timing;
-        auto guarded = extract_size_guard<Hmac>(pseudorandom_key.size());
-        if (guarded) {
-            guarded = hkdf_pieces_salt_guard<backends::webcrypto>(salt.size());
+    static auto hkdf_extract(Executor const& completion_executor,
+                             std::span<std::uint8_t> pseudorandom_key,
+                             std::span<std::uint8_t const> salt_bytes,
+                             byte_pieces input_key_material, CompletionToken&& completion_token) {
+        secure::timing_guard const timing_scope;
+        auto guard_result = extract_size_guard<Hmac>(pseudorandom_key.size());
+        if (guard_result) {
+            guard_result = hkdf_pieces_salt_guard<backends::webcrypto>(salt_bytes.size());
         }
-        auto request = webcrypto_hmac_hkdf_of<Hmac>(webcrypto_hkdf_steps::extract);
-        if (guarded) {
-            request.gather_extract(salt, input_key_material);
+        auto operation_request = webcrypto_hmac_hkdf_of<Hmac>(webcrypto_hkdf_steps::extract);
+        if (guard_result) {
+            operation_request.gather_extract(salt_bytes, input_key_material);
         }
-        return start_webcrypto_hmac_hkdf(executor, pseudorandom_key, std::move(request), guarded,
-                                         token);
+        return start_webcrypto_hmac_hkdf(completion_executor, pseudorandom_key,
+                                         std::move(operation_request), guard_result,
+                                         completion_token);
     }
 
     /**
@@ -1365,28 +1427,31 @@ public:
      hkdf-pieces), not the 1,024 bytes of `deriveBits`, which only `async_hkdf` calls.
 
      @tparam Hmac `hmac_sha1_160`, `hmac_sha2_256`, `hmac_sha2_384` or `hmac_sha2_512`.
-     @param executor The io_context's executor. @param output_key_material The output keying
-     material. @param pseudorandom_key The pseudorandom key. @param application_info The
-     application info. @param token The completion token.
+     @param completion_executor The io_context's executor. @param output_key_material The output
+     keying material. @param pseudorandom_key The pseudorandom key. @param application_info The
+     application info. @param completion_token The completion token.
      @return What the completion token's `async_result` gives.
     */
     template <class Hmac, class Executor, class CompletionToken>
-    static auto hkdf_expand(Executor const& executor, std::span<std::uint8_t> output_key_material,
+    static auto hkdf_expand(Executor const& completion_executor,
+                            std::span<std::uint8_t> output_key_material,
                             std::span<std::uint8_t const> pseudorandom_key,
                             std::span<std::uint8_t const> application_info,
-                            CompletionToken&& token) {
-        secure::timing_guard const timing;
-        auto guarded = expand_guards<Hmac>(output_key_material.size(), pseudorandom_key.size());
-        if (guarded && application_info.size() > hkdf_max_application_info_size) {
-            guarded = error::input_too_long;
+                            CompletionToken&& completion_token) {
+        secure::timing_guard const timing_scope;
+        auto guard_result =
+            expand_guards<Hmac>(output_key_material.size(), pseudorandom_key.size());
+        if (guard_result && application_info.size() > hkdf_max_application_info_size) {
+            guard_result = error::input_too_long;
         }
-        auto request = webcrypto_hmac_hkdf_of<Hmac>(webcrypto_hkdf_steps::expand);
-        if (guarded) {
-            request.gather_pseudorandom_key(pseudorandom_key);
-            request.gather_expand({application_info});
+        auto operation_request = webcrypto_hmac_hkdf_of<Hmac>(webcrypto_hkdf_steps::expand);
+        if (guard_result) {
+            operation_request.gather_pseudorandom_key(pseudorandom_key);
+            operation_request.gather_expand({application_info});
         }
-        return start_webcrypto_hmac_hkdf(executor, output_key_material, std::move(request), guarded,
-                                         token);
+        return start_webcrypto_hmac_hkdf(completion_executor, output_key_material,
+                                         std::move(operation_request), guard_result,
+                                         completion_token);
     }
 
     /**
@@ -1394,40 +1459,44 @@ public:
      the pieces gathered into JavaScript memory in the call; no cap on the application info.
 
      @tparam Hmac `hmac_sha1_160`, `hmac_sha2_256`, `hmac_sha2_384` or `hmac_sha2_512`.
-     @param executor The io_context's executor. @param output_key_material The output keying
-     material. @param pseudorandom_key The pseudorandom key. @param application_info The
-     application info's pieces. @param token The completion token.
+     @param completion_executor The io_context's executor. @param output_key_material The output
+     keying material. @param pseudorandom_key The pseudorandom key. @param application_info The
+     application info's pieces. @param completion_token The completion token.
      @return What the completion token's `async_result` gives.
     */
     template <class Hmac, class Executor, class CompletionToken>
-    static auto hkdf_expand(Executor const& executor, std::span<std::uint8_t> output_key_material,
+    static auto hkdf_expand(Executor const& completion_executor,
+                            std::span<std::uint8_t> output_key_material,
                             std::span<std::uint8_t const> pseudorandom_key,
-                            byte_pieces application_info, CompletionToken&& token) {
-        secure::timing_guard const timing;
-        auto const guarded =
+                            byte_pieces application_info, CompletionToken&& completion_token) {
+        secure::timing_guard const timing_scope;
+        auto const guard_result =
             expand_guards<Hmac>(output_key_material.size(), pseudorandom_key.size());
-        auto request = webcrypto_hmac_hkdf_of<Hmac>(webcrypto_hkdf_steps::expand);
-        if (guarded) {
-            request.gather_pseudorandom_key(pseudorandom_key);
-            request.gather_expand(application_info);
+        auto operation_request = webcrypto_hmac_hkdf_of<Hmac>(webcrypto_hkdf_steps::expand);
+        if (guard_result) {
+            operation_request.gather_pseudorandom_key(pseudorandom_key);
+            operation_request.gather_expand(application_info);
         }
-        return start_webcrypto_hmac_hkdf(executor, output_key_material, std::move(request), guarded,
-                                         token);
+        return start_webcrypto_hmac_hkdf(completion_executor, output_key_material,
+                                         std::move(operation_request), guard_result,
+                                         completion_token);
     }
 
     /**
      `async_pbkdf2`: `importKey`, then `deriveBits`.
 
      @tparam Hmac `hmac_sha1_160`, `hmac_sha2_256`, `hmac_sha2_384` or `hmac_sha2_512`; another
-     refuses at compile time. @param executor The io_context's executor.
-     @param output The derived key. @param password The password. @param salt The salt.
-     @param iterations The iteration count. @param token The completion token.
+     refuses at compile time. @param work_executor The io_context's executor.
+     @param output_bytes The derived key. @param password_bytes The password. @param salt_bytes The
+     salt.
+     @param iteration_count The iteration count. @param completion_token The completion token.
      @return What the completion token's `async_result` gives.
     */
     template <class Hmac, class Executor, class CompletionToken>
-    static auto pbkdf2(Executor const& executor, std::span<std::uint8_t> output,
-                       std::span<std::uint8_t const> password, std::span<std::uint8_t const> salt,
-                       std::uint64_t iterations, CompletionToken&& token) {
+    static auto pbkdf2(Executor const& work_executor, std::span<std::uint8_t> output_bytes,
+                       std::span<std::uint8_t const> password_bytes,
+                       std::span<std::uint8_t const> salt_bytes, std::uint64_t iteration_count,
+                       CompletionToken&& completion_token) {
         if constexpr (!webcrypto_hmac_v<Hmac>) {
             // clang-format off
             static_assert(always_false<Hmac>,
@@ -1435,17 +1504,18 @@ public:
             // clang-format on
         } else {
             using digest = digest_tag_of<Hmac>::type;
-            auto const guarded = pbkdf2_guards<Hmac, backends::webcrypto>(
-                output.size(), password.size(), salt.size(), iterations);
+            auto const guard_result = pbkdf2_guards<Hmac, backends::webcrypto>(
+                output_bytes.size(), password_bytes.size(), salt_bytes.size(), iteration_count);
             // Within backend_limits once the guards pass: 2^32 - 1 iterations, (2^32 - 1) bits.
-            webcrypto_pbkdf2_request const request{
+            webcrypto_pbkdf2_request const operation_request{
                 .hash = webcrypto_hash_name<digest>,
-                .password = password,
-                .salt = salt,
-                .iterations = static_cast<std::uint32_t>(guarded ? iterations : 0),
-                .bits = static_cast<std::uint32_t>(guarded ? output.size() * 8 : 0),
+                .password = password_bytes,
+                .salt = salt_bytes,
+                .iterations = static_cast<std::uint32_t>(guard_result ? iteration_count : 0),
+                .bits = static_cast<std::uint32_t>(guard_result ? output_bytes.size() * 8 : 0),
             };
-            return start_webcrypto(executor, output, output.size(), request, guarded, token);
+            return start_webcrypto(work_executor, output_bytes, output_bytes.size(),
+                                   operation_request, guard_result, completion_token);
         }
     }
 };

@@ -70,8 +70,8 @@ public:
      @param pieces The list; its array must outlive this object (it does, written at the call).
     */
     constexpr byte_pieces(  // NOLINT(misc-explicit-constructor): {a, b} converts to its pieces
-        std::initializer_list<value_type> pieces WEBCPP_HASH_LIFETIMEBOUND) noexcept
-        : first_(std::data(pieces)), count_(pieces.size()) {}
+        std::initializer_list<value_type> piece_list WEBCPP_HASH_LIFETIMEBOUND) noexcept
+        : first_(std::data(piece_list)), count_(piece_list.size()) {}
 
     /**
      The pieces of a contiguous range of spans of bytes: a `std::array`, a `std::vector`, a
@@ -85,8 +85,8 @@ public:
                      std::same_as<std::ranges::range_value_t<Range>, value_type> &&
                      (!std::same_as<std::remove_cvref_t<Range>, byte_pieces>)
     // NOLINTNEXTLINE(misc-explicit-constructor): a range of spans is its pieces, as {a, b} is
-    constexpr byte_pieces(Range const& pieces WEBCPP_HASH_LIFETIMEBOUND) noexcept
-        : first_(std::ranges::data(pieces)), count_(std::ranges::size(pieces)) {}
+    constexpr byte_pieces(Range const& piece_range WEBCPP_HASH_LIFETIMEBOUND) noexcept
+        : first_(std::ranges::data(piece_range)), count_(std::ranges::size(piece_range)) {}
 
     /** The start of the pieces. @return A pointer to the first piece. */
     [[nodiscard]] constexpr value_type const* begin() const noexcept { return first_; }
@@ -102,11 +102,11 @@ public:
 
     /** The length of the input the pieces make. @return The bytes of all pieces, summed. */
     [[nodiscard]] constexpr std::uint64_t total_size() const noexcept {
-        std::uint64_t total = 0;
-        for (value_type const piece : *this) {
-            total += piece.size();
+        std::uint64_t total_bytes = 0;
+        for (value_type const piece_bytes : *this) {
+            total_bytes += piece_bytes.size();
         }
-        return total;
+        return total_bytes;
     }
 
 private:

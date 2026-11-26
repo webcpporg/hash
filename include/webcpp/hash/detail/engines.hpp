@@ -222,25 +222,26 @@ inline constexpr std::uint64_t hkdf_pieces_slice =
                                                              : hkdf_pieces_slice_seam;
 
 /**
- Hands `update` every byte of `pieces`, in order, as spans of at most `SliceMax` bytes: each
- piece in one span when it fits, else in slices of `SliceMax` bytes and a last shorter one. An
+ Hands `update_call` every byte of `input_pieces`, in order, as spans of at most `SliceMax` bytes:
+ each piece in one span when it fits, else in slices of `SliceMax` bytes and a last shorter one. An
  empty piece is skipped (an HMAC's zero-length update changes nothing, and some C libraries take
  no null pointer).
 
  @tparam SliceMax The most bytes of one call, at least 1 (a slice of no byte would never advance,
  so 0 does not compile). @tparam Update A callable taking a `std::span<std::uint8_t const>`.
- @param pieces The pieces. @param update What reads each slice.
+ @param input_pieces The pieces. @param update_call What reads each slice.
 */
 template <std::uint64_t SliceMax, class Update>
     requires(SliceMax >= 1)
-constexpr void for_each_slice(byte_pieces pieces, Update&& update) noexcept(
-    noexcept(update(byte_pieces::value_type{}))) {
-    for (byte_pieces::value_type rest : pieces) {
-        while (!rest.empty()) {
-            std::size_t const taken =
-                rest.size() > SliceMax ? static_cast<std::size_t>(SliceMax) : rest.size();
-            update(rest.first(taken));
-            rest = rest.subspan(taken);
+constexpr void for_each_slice(byte_pieces input_pieces, Update&& update_call) noexcept(
+    noexcept(update_call(byte_pieces::value_type{}))) {
+    for (byte_pieces::value_type remaining_piece : input_pieces) {
+        while (!remaining_piece.empty()) {
+            std::size_t const slice_size = remaining_piece.size() > SliceMax
+                                               ? static_cast<std::size_t>(SliceMax)
+                                               : remaining_piece.size();
+            update_call(remaining_piece.first(slice_size));
+            remaining_piece = remaining_piece.subspan(slice_size);
         }
     }
 }
@@ -298,18 +299,18 @@ struct hkdf_pieces_engine {
  Expand over the PRK, and the PRK wiped before the result returns (on success and on failure of
  the Expand). One copy, so that the wipe is the same on every backend.
 
- @tparam Engine A pieces engine with `extract(salt, input_key_material)` returning a
+ @tparam Engine A pieces engine with `extract(salt_bytes, input_key_material)` returning a
  `boost::system::result` of the PRK's byte array and `expand(output, pseudorandom_key, info)`.
- @param output_key_material The OKM. @param salt The salt.
+ @param output_key_material The OKM. @param salt_bytes The salt.
  @param input_key_material The input keying material's pieces.
  @param application_info The info's pieces.
  @return Success, or the Extract's or the Expand's error.
 */
 template <class Engine>
 [[nodiscard]] boost::system::result<void> hkdf_pieces_extract_and_expand(
-    std::span<std::uint8_t> output_key_material, std::span<std::uint8_t const> salt,
+    std::span<std::uint8_t> output_key_material, std::span<std::uint8_t const> salt_bytes,
     byte_pieces input_key_material, byte_pieces application_info) noexcept {
-    auto pseudorandom_key = Engine::extract(salt, input_key_material);
+    auto pseudorandom_key = Engine::extract(salt_bytes, input_key_material);
     if (!pseudorandom_key) {
         return pseudorandom_key.error();
     }
@@ -548,7 +549,7 @@ struct blake2b_subkey_engine {
     /** Never called: the refusal has stopped the build. */
     [[nodiscard]] static boost::system::result<void> derive(
         std::span<std::uint8_t> /*output_bytes*/, std::span<std::uint8_t const> /*master_key*/,
-        std::uint64_t /*subkey_id*/, std::span<std::uint8_t const> /*context*/) noexcept {
+        std::uint64_t /*subkey_id*/, std::span<std::uint8_t const> /*context_bytes*/) noexcept {
         return error::backend_failure;
     }
 };
@@ -703,7 +704,7 @@ struct full_engine {
      @return true.
     */
     template <class Options>
-    static constexpr bool accepts(Options const& /*options*/) noexcept {
+    static constexpr bool accepts(Options const& /*algorithm_options*/) noexcept {
         return true;
     }
 
@@ -713,7 +714,7 @@ struct full_engine {
      @return true.
     */
     template <class Options>
-    static constexpr bool accepts(Options const& /*options*/, std::size_t /*key_size*/,
+    static constexpr bool accepts(Options const& /*algorithm_options*/, std::size_t /*key_size*/,
                                   std::size_t /*output_size*/) noexcept {
         return true;
     }
@@ -783,29 +784,29 @@ struct refused_digest_engine : full_engine {
 
     /** Never called. @return backend_failure. */
     [[nodiscard]] static boost::system::result<void> init(
-        state& /*hashed*/, digest_options<Digest> const& /*options*/) noexcept {
+        state& /*digest_state*/, digest_options<Digest> const& /*algorithm_options*/) noexcept {
         return error::backend_failure;
     }
 
     /** Never called. @return backend_failure. */
     [[nodiscard]] static boost::system::result<void> update(
-        state& /*hashed*/, std::span<std::uint8_t const> /*input*/) noexcept {
+        state& /*digest_state*/, std::span<std::uint8_t const> /*input_bytes*/) noexcept {
         return error::backend_failure;
     }
 
     /** Never called. @return backend_failure. */
     [[nodiscard]] static boost::system::result<void> finish(
-        state& /*hashed*/, std::span<std::uint8_t> /*output*/) noexcept {
+        state& /*digest_state*/, std::span<std::uint8_t> /*output_bytes*/) noexcept {
         return error::backend_failure;
     }
 
     /** Never called. */
-    static void destroy(state& /*hashed*/) noexcept {}
+    static void destroy(state& /*digest_state*/) noexcept {}
 
     /** Never called. @return backend_failure. */
     [[nodiscard]] static boost::system::result<void> one_shot(
-        std::span<std::uint8_t> /*output*/, std::span<std::uint8_t const> /*input*/,
-        digest_options<Digest> const& /*options*/) noexcept {
+        std::span<std::uint8_t> /*output_bytes*/, std::span<std::uint8_t const> /*input_bytes*/,
+        digest_options<Digest> const& /*algorithm_options*/) noexcept {
         return error::backend_failure;
     }
 };
@@ -1228,8 +1229,9 @@ template <class Mac>
 struct refused_mac_engine : full_engine {
     /** Never called. @return backend_failure. */
     [[nodiscard]] static boost::system::result<void> compute(
-        std::span<std::uint8_t> /*output*/, std::span<std::uint8_t const> /*key*/,
-        std::span<std::uint8_t const> /*input*/, mac_options<Mac> const& /*options*/) noexcept {
+        std::span<std::uint8_t> /*output_bytes*/, std::span<std::uint8_t const> /*key_bytes*/,
+        std::span<std::uint8_t const> /*input_bytes*/,
+        mac_options<Mac> const& /*algorithm_options*/) noexcept {
         return error::backend_failure;
     }
 };
@@ -1621,8 +1623,9 @@ struct refused_argon2_engine {
 
     /** Never called. @return backend_failure. */
     [[nodiscard]] static boost::system::result<void> derive(
-        std::span<std::uint8_t> /*output*/, std::span<std::uint8_t const> /*password*/,
-        std::span<std::uint8_t const> /*salt*/, argon2_parameters const& /*parameters*/) noexcept {
+        std::span<std::uint8_t> /*output_bytes*/, std::span<std::uint8_t const> /*password_bytes*/,
+        std::span<std::uint8_t const> /*salt_bytes*/,
+        argon2_parameters const& /*cost_parameters*/) noexcept {
         return error::backend_failure;
     }
 };
@@ -1720,8 +1723,8 @@ struct kbkdf_engine : needs_library<Backend> {
 
     /** Never called: the refusal has stopped the build. @return backend_failure. */
     [[nodiscard]] static boost::system::result<void> derive(
-        std::span<std::uint8_t> /*output*/, std::span<std::uint8_t const> /*key*/,
-        kbkdf_options const& /*options*/) noexcept {
+        std::span<std::uint8_t> /*output_bytes*/, std::span<std::uint8_t const> /*key_bytes*/,
+        kbkdf_options const& /*algorithm_options*/) noexcept {
         return error::backend_failure;
     }
 };
@@ -1736,8 +1739,8 @@ struct refused_digest_kdf_engine {
 
     /** Never called. @return backend_failure. */
     [[nodiscard]] static boost::system::result<void> derive(
-        std::span<std::uint8_t> /*output*/, std::span<std::uint8_t const> /*secret*/,
-        std::span<std::uint8_t const> /*info*/) noexcept {
+        std::span<std::uint8_t> /*output_bytes*/, std::span<std::uint8_t const> /*secret_bytes*/,
+        std::span<std::uint8_t const> /*info_bytes*/) noexcept {
         return error::backend_failure;
     }
 };
@@ -1840,14 +1843,16 @@ struct bcrypt_engine : needs_library<Backend> {
 
     /** Never called: the refusal has stopped the build. @return backend_failure. */
     [[nodiscard]] static boost::system::result<void> generate(
-        std::span<char> /*output*/, std::span<std::uint8_t const> /*password*/,
-        std::span<std::uint8_t const> /*salt*/, std::uint32_t /*cost*/, char /*version*/) noexcept {
+        std::span<char> /*output_characters*/, std::span<std::uint8_t const> /*password_bytes*/,
+        std::span<std::uint8_t const> /*salt_bytes*/, std::uint32_t /*bcrypt_cost*/,
+        char /*version_character*/) noexcept {
         return error::backend_failure;
     }
 
     /** Never called: the refusal has stopped the build. @return backend_failure. */
     [[nodiscard]] static boost::system::result<bool> verify(
-        std::span<std::uint8_t const> /*password*/, std::string_view /*hash*/) noexcept {
+        std::span<std::uint8_t const> /*password_bytes*/,
+        std::string_view /*encoded_hash*/) noexcept {
         return error::backend_failure;
     }
 };
@@ -1879,8 +1884,8 @@ struct bcrypt_pbkdf_engine : needs_library<Backend> {
 
     /** Never called: the refusal has stopped the build. @return backend_failure. */
     [[nodiscard]] static boost::system::result<void> derive(
-        std::span<std::uint8_t> /*output*/, std::span<std::uint8_t const> /*password*/,
-        std::span<std::uint8_t const> /*salt*/, std::uint32_t /*rounds*/) noexcept {
+        std::span<std::uint8_t> /*output_bytes*/, std::span<std::uint8_t const> /*password_bytes*/,
+        std::span<std::uint8_t const> /*salt_bytes*/, std::uint32_t /*round_count*/) noexcept {
         return error::backend_failure;
     }
 };

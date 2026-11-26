@@ -50,48 +50,52 @@ struct digest_engine<backends::blake3, digests::blake3> : full_engine {
     /** webcpp's BLAKE3 over the C implementation, which is all of the state. */
     using state = webcpp::hash::blake3;
 
-    /** Starts a hash. @param hashed The state. @return Success. */
+    /** Starts a hash. @param digest_state The state. @return Success. */
     [[nodiscard]] static boost::system::result<void> init(
-        state& hashed, digest_options<digests::blake3> const& /*options*/) noexcept {
-        hashed = webcpp::hash::blake3();
+        state& digest_state,
+        digest_options<digests::blake3> const& /*algorithm_options*/) noexcept {
+        digest_state = webcpp::hash::blake3();
         return {};
     }
 
-    /** Absorbs `input`. @param hashed The state. @param input The bytes. @return Success. */
+    /** Absorbs `input_bytes`. @param digest_state The state. @param input_bytes The bytes. @return
+     * Success. */
     [[nodiscard]] static boost::system::result<void> update(
-        state& hashed, std::span<std::uint8_t const> input) noexcept {
-        hashed.update(input.data(), input.size());
+        state& digest_state, std::span<std::uint8_t const> input_bytes) noexcept {
+        digest_state.update(input_bytes.data(), input_bytes.size());
         return {};
     }
 
     /**
-     Writes the first `output.size()` bytes of the extendable output.
+     Writes the first `output_bytes.size()` bytes of the extendable output.
 
-     @param hashed The state. @param output The output, of any size. @return Success.
+     @param digest_state The state. @param output_bytes The output, of any size. @return Success.
     */
     [[nodiscard]] static boost::system::result<void> finish(
-        state& hashed, std::span<std::uint8_t> output) noexcept {
-        hashed.squeeze(output, 0);
+        state& digest_state, std::span<std::uint8_t> output_bytes) noexcept {
+        digest_state.squeeze(output_bytes, 0);
         return {};
     }
 
-    /** Wipes the state. @param hashed The state. */
-    static void destroy(state& hashed) noexcept { secure::erase_secret(std::span(&hashed, 1)); }
+    /** Wipes the state. @param digest_state The state. */
+    static void destroy(state& digest_state) noexcept {
+        secure::erase_secret(std::span(&digest_state, 1));
+    }
 
     /**
-     The output of `input` at once, the state wiped.
+     The output of `input_bytes` at once, the state wiped.
 
-     @param output The output. @param input The bytes. @param options None.
+     @param output_bytes The output. @param input_bytes The bytes. @param algorithm_options None.
      @return Success.
     */
     [[nodiscard]] static boost::system::result<void> one_shot(
-        std::span<std::uint8_t> output, std::span<std::uint8_t const> input,
-        digest_options<digests::blake3> const& options) noexcept {
-        state hashed;
-        static_cast<void>(init(hashed, options));
-        static_cast<void>(update(hashed, input));
-        static_cast<void>(finish(hashed, output));
-        destroy(hashed);
+        std::span<std::uint8_t> output_bytes, std::span<std::uint8_t const> input_bytes,
+        digest_options<digests::blake3> const& algorithm_options) noexcept {
+        state digest_state;
+        static_cast<void>(init(digest_state, algorithm_options));
+        static_cast<void>(update(digest_state, input_bytes));
+        static_cast<void>(finish(digest_state, output_bytes));
+        destroy(digest_state);
         return {};
     }
 };

@@ -47,7 +47,7 @@ include::generated/compare-kdfs.adoc[]
 === HKDF
 
 HKDF (RFC 5869, 2010, Krawczyk) has two steps, both HMACs. *Extract* takes an
-optional `salt` and the `input_key_material` (RFC 5869's IKM) and returns a
+optional `salt_bytes` and the `input_key_material` (RFC 5869's IKM) and returns a
 `pseudorandom_key` (the PRK) of the hmac's digest size:
 `PRK = HMAC(salt, IKM)`. *Expand* takes the `pseudorandom_key` and the
 `application_info` (RFC 5869's info), the label of one purpose, and returns up
@@ -78,7 +78,7 @@ include::{examples}/hkdf.expected[]
 Diffie-Hellman result) but must hold enough entropy: extract concentrates
 entropy, it never adds any. A password has too little; it goes through
 Argon2id.
-* *`salt`* is optional and public: a random value per session, or a constant
+* *`salt_bytes`* is optional and public: a random value per session, or a constant
 that names the application or the protocol (NIP-44 uses `nip44-v2`). It
 separates the keys of different applications that might share a secret. An
 empty salt is RFC 5869's string of zeros, and fine when the IKM is never
@@ -146,10 +146,10 @@ On a synchronous backend each piece goes to the backend's HMAC: no buffer, no
 copy of the secret. WebCrypto's asynchronous forms copy the pieces into
 JavaScript memory instead (<<hash-async-webcrypto>>).
 
-* `hkdf_extract<Hmac, Backend>(salt, input_key_material)`
+* `hkdf_extract<Hmac, Backend>(salt_bytes, input_key_material)`
 * `hkdf_expand<Hmac, Backend>(output_key_material, pseudorandom_key,
 application_info)`
-* `hkdf<Hmac, Backend>(output_key_material, salt, input_key_material,
+* `hkdf<Hmac, Backend>(output_key_material, salt_bytes, input_key_material,
 application_info)`
 
 The salt and the pseudorandom key stay one span each. The bytes are those of

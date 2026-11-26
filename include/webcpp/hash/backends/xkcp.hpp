@@ -61,50 +61,54 @@ struct digest_engine<backends::xkcp, digests::keccak_256> : full_engine {
     /** webcpp's Keccak-256 over XKCP's permutation, which is all of the state. */
     using state = keccak_256;
 
-    /** Starts a hash. @param hashed The state. @return Success. */
+    /** Starts a hash. @param digest_state The state. @return Success. */
     [[nodiscard]] static boost::system::result<void> init(
-        state& hashed, digest_options<digests::keccak_256> const& /*options*/) noexcept {
-        hashed = keccak_256();
+        state& digest_state,
+        digest_options<digests::keccak_256> const& /*algorithm_options*/) noexcept {
+        digest_state = keccak_256();
         return {};
     }
 
-    /** Absorbs `input`. @param hashed The state. @param input The bytes. @return Success. */
+    /** Absorbs `input_bytes`. @param digest_state The state. @param input_bytes The bytes. @return
+     * Success. */
     [[nodiscard]] static boost::system::result<void> update(
-        state& hashed, std::span<std::uint8_t const> input) noexcept {
-        hashed.update(input.data(), input.size());
+        state& digest_state, std::span<std::uint8_t const> input_bytes) noexcept {
+        digest_state.update(input_bytes.data(), input_bytes.size());
         return {};
     }
 
     /**
      Writes the 32-byte digest.
 
-     @param hashed The state. @param output The digest. @return Success.
+     @param digest_state The state. @param output_bytes The digest. @return Success.
     */
     [[nodiscard]] static boost::system::result<void> finish(
-        state& hashed, std::span<std::uint8_t> output) noexcept {
-        auto result_bytes = hashed.result();
-        std::memcpy(output.data(), result_bytes.data(), output.size());
+        state& digest_state, std::span<std::uint8_t> output_bytes) noexcept {
+        auto result_bytes = digest_state.result();
+        std::memcpy(output_bytes.data(), result_bytes.data(), output_bytes.size());
         secure::erase_secret(std::span(&result_bytes, 1));
         return {};
     }
 
-    /** Wipes the state. @param hashed The state. */
-    static void destroy(state& hashed) noexcept { secure::erase_secret(std::span(&hashed, 1)); }
+    /** Wipes the state. @param digest_state The state. */
+    static void destroy(state& digest_state) noexcept {
+        secure::erase_secret(std::span(&digest_state, 1));
+    }
 
     /**
-     The digest of `input` at once, the state wiped.
+     The digest of `input_bytes` at once, the state wiped.
 
-     @param output The digest. @param input The bytes. @param options None.
+     @param output_bytes The digest. @param input_bytes The bytes. @param algorithm_options None.
      @return Success.
     */
     [[nodiscard]] static boost::system::result<void> one_shot(
-        std::span<std::uint8_t> output, std::span<std::uint8_t const> input,
-        digest_options<digests::keccak_256> const& options) noexcept {
-        state hashed;
-        static_cast<void>(init(hashed, options));
-        static_cast<void>(update(hashed, input));
-        static_cast<void>(finish(hashed, output));
-        destroy(hashed);
+        std::span<std::uint8_t> output_bytes, std::span<std::uint8_t const> input_bytes,
+        digest_options<digests::keccak_256> const& algorithm_options) noexcept {
+        state digest_state;
+        static_cast<void>(init(digest_state, algorithm_options));
+        static_cast<void>(update(digest_state, input_bytes));
+        static_cast<void>(finish(digest_state, output_bytes));
+        destroy(digest_state);
         return {};
     }
 };
@@ -127,71 +131,75 @@ struct xkcp_keccak_hash_engine : full_engine {
     /** XKCP's `Keccak_HashInstance`, in storage the adapter checks is large enough. */
     using state = xkcp_keccak_hash_storage;
 
-    /** Starts a hash. @param hashed The state. @return Success, or backend_failure. */
+    /** Starts a hash. @param digest_state The state. @return Success, or backend_failure. */
     [[nodiscard]] static boost::system::result<void> init(
-        state& hashed, digest_options<Digest> const& /*options*/) noexcept {
-        if (webcpp_hash_xkcp_keccak_hash_initialize(hashed.data(), 1600 - Capacity, Capacity, Fixed,
-                                                    Suffix) != 0) {
+        state& digest_state, digest_options<Digest> const& /*algorithm_options*/) noexcept {
+        if (webcpp_hash_xkcp_keccak_hash_initialize(digest_state.data(), 1600 - Capacity, Capacity,
+                                                    Fixed, Suffix) != 0) {
             return error::backend_failure;
         }
         return {};
     }
 
     /**
-     Absorbs `input`. @param hashed The state. @param input The bytes.
+     Absorbs `input_bytes`. @param digest_state The state. @param input_bytes The bytes.
      @return Success, or backend_failure.
     */
     [[nodiscard]] static boost::system::result<void> update(
-        state& hashed, std::span<std::uint8_t const> input) noexcept {
-        if (webcpp_hash_xkcp_keccak_hash_update(hashed.data(), input.data(), input.size()) != 0) {
+        state& digest_state, std::span<std::uint8_t const> input_bytes) noexcept {
+        if (webcpp_hash_xkcp_keccak_hash_update(digest_state.data(), input_bytes.data(),
+                                                input_bytes.size()) != 0) {
             return error::backend_failure;
         }
         return {};
     }
 
     /**
-     Writes the digest, or the first `output.size()` bytes of the extendable output.
+     Writes the digest, or the first `output_bytes.size()` bytes of the extendable output.
 
-     @param hashed The state. @param output The output. @return Success, or backend_failure.
+     @param digest_state The state. @param output_bytes The output. @return Success, or
+     backend_failure.
     */
     [[nodiscard]] static boost::system::result<void> finish(
-        state& hashed, std::span<std::uint8_t> output) noexcept {
+        state& digest_state, std::span<std::uint8_t> output_bytes) noexcept {
         if constexpr (Fixed != 0) {
-            if (webcpp_hash_xkcp_keccak_hash_final(hashed.data(), output.data()) != 0) {
+            if (webcpp_hash_xkcp_keccak_hash_final(digest_state.data(), output_bytes.data()) != 0) {
                 return error::backend_failure;
             }
         } else {
-            if (webcpp_hash_xkcp_keccak_hash_final(hashed.data(), nullptr) != 0 ||
-                webcpp_hash_xkcp_keccak_hash_squeeze(hashed.data(), output.data(), output.size()) !=
-                    0) {
+            if (webcpp_hash_xkcp_keccak_hash_final(digest_state.data(), nullptr) != 0 ||
+                webcpp_hash_xkcp_keccak_hash_squeeze(digest_state.data(), output_bytes.data(),
+                                                     output_bytes.size()) != 0) {
                 return error::backend_failure;
             }
         }
         return {};
     }
 
-    /** Wipes the state. @param hashed The state. */
-    static void destroy(state& hashed) noexcept { secure::erase_secret(std::span(&hashed, 1)); }
+    /** Wipes the state. @param digest_state The state. */
+    static void destroy(state& digest_state) noexcept {
+        secure::erase_secret(std::span(&digest_state, 1));
+    }
 
     /**
-     The output of `input` at once, the state wiped.
+     The output of `input_bytes` at once, the state wiped.
 
-     @param output The output. @param input The bytes. @param options None.
+     @param output_bytes The output. @param input_bytes The bytes. @param algorithm_options None.
      @return Success, or backend_failure.
     */
     [[nodiscard]] static boost::system::result<void> one_shot(
-        std::span<std::uint8_t> output, std::span<std::uint8_t const> input,
-        digest_options<Digest> const& options) noexcept {
-        state hashed;
-        auto done = init(hashed, options);
-        if (done) {
-            done = update(hashed, input);
+        std::span<std::uint8_t> output_bytes, std::span<std::uint8_t const> input_bytes,
+        digest_options<Digest> const& algorithm_options) noexcept {
+        state digest_state;
+        auto init_result = init(digest_state, algorithm_options);
+        if (init_result) {
+            init_result = update(digest_state, input_bytes);
         }
-        if (done) {
-            done = finish(hashed, output);
+        if (init_result) {
+            init_result = finish(digest_state, output_bytes);
         }
-        destroy(hashed);
-        return done;
+        destroy(digest_state);
+        return init_result;
     }
 };
 
@@ -357,67 +365,75 @@ struct xkcp_cshake_engine : full_engine {
     /**
      Starts a hash with the function name and the customisation.
 
-     @param hashed The state. @param options N and S. @return Success, or backend_failure.
+     @param digest_state The state. @param algorithm_options N and S. @return Success, or
+     backend_failure.
     */
     [[nodiscard]] static boost::system::result<void> init(
-        state& hashed, digest_options<Digest> const& options) noexcept {
-        if (Functions::initialize(hashed.data(), 0, options.function_name.data(),
-                                  options.function_name.size(), options.customisation.data(),
-                                  options.customisation.size()) != 0) {
+        state& digest_state, digest_options<Digest> const& algorithm_options) noexcept {
+        if (Functions::initialize(digest_state.data(), 0, algorithm_options.function_name.data(),
+                                  algorithm_options.function_name.size(),
+                                  algorithm_options.customisation.data(),
+                                  algorithm_options.customisation.size()) != 0) {
             return error::backend_failure;
         }
         return {};
     }
 
     /**
-     Absorbs `input`, which the adapter passes to XKCP in pieces of at most `SIZE_MAX / 8` bytes.
+     Absorbs `input_bytes`, which the adapter passes to XKCP in pieces of at most `SIZE_MAX / 8`
+     bytes.
 
-     @param hashed The state. @param input The bytes. @return Success, or backend_failure.
+     @param digest_state The state. @param input_bytes The bytes. @return Success, or
+     backend_failure.
     */
     [[nodiscard]] static boost::system::result<void> update(
-        state& hashed, std::span<std::uint8_t const> input) noexcept {
-        if (Functions::update(hashed.data(), input.data(), input.size()) != 0) {
+        state& digest_state, std::span<std::uint8_t const> input_bytes) noexcept {
+        if (Functions::update(digest_state.data(), input_bytes.data(), input_bytes.size()) != 0) {
             return error::backend_failure;
         }
         return {};
     }
 
     /**
-     Writes the first `output.size()` bytes of the stream.
+     Writes the first `output_bytes.size()` bytes of the stream.
 
-     @param hashed The state. @param output The output. @return Success, or backend_failure.
+     @param digest_state The state. @param output_bytes The output. @return Success, or
+     backend_failure.
     */
     [[nodiscard]] static boost::system::result<void> finish(
-        state& hashed, std::span<std::uint8_t> output) noexcept {
-        if (Functions::final(hashed.data(), nullptr) != 0 ||
-            Functions::squeeze(hashed.data(), output.data(), output.size()) != 0) {
+        state& digest_state, std::span<std::uint8_t> output_bytes) noexcept {
+        if (Functions::final(digest_state.data(), nullptr) != 0 ||
+            Functions::squeeze(digest_state.data(), output_bytes.data(), output_bytes.size()) !=
+                0) {
             return error::backend_failure;
         }
         return {};
     }
 
-    /** Wipes the state. @param hashed The state. */
-    static void destroy(state& hashed) noexcept { secure::erase_secret(std::span(&hashed, 1)); }
+    /** Wipes the state. @param digest_state The state. */
+    static void destroy(state& digest_state) noexcept {
+        secure::erase_secret(std::span(&digest_state, 1));
+    }
 
     /**
-     The output of `input` at once, the state wiped.
+     The output of `input_bytes` at once, the state wiped.
 
-     @param output The output. @param input The bytes. @param options N and S.
+     @param output_bytes The output. @param input_bytes The bytes. @param algorithm_options N and S.
      @return Success, or backend_failure.
     */
     [[nodiscard]] static boost::system::result<void> one_shot(
-        std::span<std::uint8_t> output, std::span<std::uint8_t const> input,
-        digest_options<Digest> const& options) noexcept {
-        state hashed{};
-        auto done = init(hashed, options);
-        if (done) {
-            done = update(hashed, input);
+        std::span<std::uint8_t> output_bytes, std::span<std::uint8_t const> input_bytes,
+        digest_options<Digest> const& algorithm_options) noexcept {
+        state digest_state{};
+        auto init_result = init(digest_state, algorithm_options);
+        if (init_result) {
+            init_result = update(digest_state, input_bytes);
         }
-        if (done) {
-            done = finish(hashed, output);
+        if (init_result) {
+            init_result = finish(digest_state, output_bytes);
         }
-        destroy(hashed);
-        return done;
+        destroy(digest_state);
+        return init_result;
     }
 };
 
@@ -440,23 +456,24 @@ struct xkcp_sp800_185_state {
 
 /**
  Ends a TupleHash or a ParallelHash: in the fixed-length form, `final_length` with L the output's
- size, which writes it; in the XOF form, `final_length` with 0, then `output.size()` bytes
+ size, which writes it; in the XOF form, `final_length` with 0, then `output_bytes.size()` bytes
  squeezed. The output's size is L itself, so the length the digest encodes is always the one it
  writes.
 
  @tparam Functions The adapter's functions.
  @tparam State `xkcp_sp800_185_state` of the instance's storage.
- @param hashed The state. @param output The output. @return Success, or backend_failure.
+ @param digest_state The state. @param output_bytes The output. @return Success, or backend_failure.
 */
 template <class Functions, class State>
 [[nodiscard]] boost::system::result<void> xkcp_finish_with_length(
-    State& hashed, std::span<std::uint8_t> output) noexcept {
-    bool const ended =
-        hashed.xof
-            ? Functions::final_length(hashed.storage.data(), nullptr, 0) == 0 &&
-                  Functions::squeeze(hashed.storage.data(), output.data(), output.size()) == 0
-            : Functions::final_length(hashed.storage.data(), output.data(), output.size()) == 0;
-    if (!ended) {
+    State& digest_state, std::span<std::uint8_t> output_bytes) noexcept {
+    bool const finish_succeeded =
+        digest_state.xof ? Functions::final_length(digest_state.storage.data(), nullptr, 0) == 0 &&
+                               Functions::squeeze(digest_state.storage.data(), output_bytes.data(),
+                                                  output_bytes.size()) == 0
+                         : Functions::final_length(digest_state.storage.data(), output_bytes.data(),
+                                                   output_bytes.size()) == 0;
+    if (!finish_succeeded) {
         return error::backend_failure;
     }
     return {};
@@ -479,67 +496,74 @@ struct xkcp_tuplehash_engine : full_engine {
     /**
      Starts a hash with the customisation, in the form the options name.
 
-     @param hashed The state. @param options S and the form. @return Success, or backend_failure.
+     @param digest_state The state. @param algorithm_options S and the form. @return Success, or
+     backend_failure.
     */
     [[nodiscard]] static boost::system::result<void> init(
-        state& hashed, digest_options<Digest> const& options) noexcept {
-        hashed.xof = options.xof;
-        if (Functions::initialize(hashed.storage.data(), 0, options.customisation.data(),
-                                  options.customisation.size()) != 0) {
+        state& digest_state, digest_options<Digest> const& algorithm_options) noexcept {
+        digest_state.xof = algorithm_options.xof;
+        if (Functions::initialize(digest_state.storage.data(), 0,
+                                  algorithm_options.customisation.data(),
+                                  algorithm_options.customisation.size()) != 0) {
             return error::backend_failure;
         }
         return {};
     }
 
     /**
-     Adds `input` to the tuple as its next element.
+     Adds `input_bytes` to the tuple as its next element.
 
-     @param hashed The state. @param input The element.
+     @param digest_state The state. @param input_bytes The element.
      @return Success, `input_too_long`, or backend_failure.
     */
     [[nodiscard]] static boost::system::result<void> update(
-        state& hashed, std::span<std::uint8_t const> input) noexcept {
-        if (exceeds(input.size(), sp800_185_max_bytes)) {
+        state& digest_state, std::span<std::uint8_t const> input_bytes) noexcept {
+        if (exceeds(input_bytes.size(), sp800_185_max_bytes)) {
             return error::input_too_long;
         }
-        if (Functions::update(hashed.storage.data(), input.data(), input.size()) != 0) {
+        if (Functions::update(digest_state.storage.data(), input_bytes.data(),
+                              input_bytes.size()) != 0) {
             return error::backend_failure;
         }
         return {};
     }
 
     /**
-     Writes the digest of `output.size()` bytes, the form's.
+     Writes the digest of `output_bytes.size()` bytes, the form's.
 
-     @param hashed The state. @param output The output. @return Success, or backend_failure.
+     @param digest_state The state. @param output_bytes The output. @return Success, or
+     backend_failure.
     */
     [[nodiscard]] static boost::system::result<void> finish(
-        state& hashed, std::span<std::uint8_t> output) noexcept {
-        return xkcp_finish_with_length<Functions>(hashed, output);
+        state& digest_state, std::span<std::uint8_t> output_bytes) noexcept {
+        return xkcp_finish_with_length<Functions>(digest_state, output_bytes);
     }
 
-    /** Wipes the state. @param hashed The state. */
-    static void destroy(state& hashed) noexcept { secure::erase_secret(std::span(&hashed, 1)); }
+    /** Wipes the state. @param digest_state The state. */
+    static void destroy(state& digest_state) noexcept {
+        secure::erase_secret(std::span(&digest_state, 1));
+    }
 
     /**
-     The digest of the tuple of one element, `input`, the state wiped.
+     The digest of the tuple of one element, `input_bytes`, the state wiped.
 
-     @param output The output. @param input The element. @param options S and the form.
+     @param output_bytes The output. @param input_bytes The element. @param algorithm_options S and
+     the form.
      @return Success, `input_too_long`, or backend_failure.
     */
     [[nodiscard]] static boost::system::result<void> one_shot(
-        std::span<std::uint8_t> output, std::span<std::uint8_t const> input,
-        digest_options<Digest> const& options) noexcept {
-        state hashed{};
-        auto done = init(hashed, options);
-        if (done) {
-            done = update(hashed, input);
+        std::span<std::uint8_t> output_bytes, std::span<std::uint8_t const> input_bytes,
+        digest_options<Digest> const& algorithm_options) noexcept {
+        state digest_state{};
+        auto init_result = init(digest_state, algorithm_options);
+        if (init_result) {
+            init_result = update(digest_state, input_bytes);
         }
-        if (done) {
-            done = finish(hashed, output);
+        if (init_result) {
+            init_result = finish(digest_state, output_bytes);
         }
-        destroy(hashed);
-        return done;
+        destroy(digest_state);
+        return init_result;
     }
 };
 
@@ -566,82 +590,87 @@ struct xkcp_parallelhash_engine : full_engine {
     /**
      Whether XKCP takes the options' block size: a power of two of at least 8.
 
-     @param options The options. @return Whether it does.
+     @param algorithm_options The options. @return Whether it does.
     */
-    static constexpr bool accepts(digest_options<Digest> const& options) noexcept {
-        auto const block_size = options.block_size;
+    static constexpr bool accepts(digest_options<Digest> const& algorithm_options) noexcept {
+        auto const block_size = algorithm_options.block_size;
         return block_size >= min_block_size && (block_size & (block_size - 1)) == 0;
     }
 
     /**
      Starts a hash with the block size and the customisation, in the form the options name.
 
-     @param hashed The state. @param options B, S and the form.
+     @param digest_state The state. @param algorithm_options B, S and the form.
      @return Success, or backend_failure.
     */
     [[nodiscard]] static boost::system::result<void> init(
-        state& hashed, digest_options<Digest> const& options) noexcept {
-        hashed.xof = options.xof;
-        if (Functions::initialize(hashed.storage.data(), options.block_size, 0,
-                                  options.customisation.data(),
-                                  options.customisation.size()) != 0) {
+        state& digest_state, digest_options<Digest> const& algorithm_options) noexcept {
+        digest_state.xof = algorithm_options.xof;
+        if (Functions::initialize(digest_state.storage.data(), algorithm_options.block_size, 0,
+                                  algorithm_options.customisation.data(),
+                                  algorithm_options.customisation.size()) != 0) {
             return error::backend_failure;
         }
         return {};
     }
 
     /**
-     Absorbs `input`, which the adapter passes to XKCP in pieces of at most `SIZE_MAX / 8` bytes,
-     unless the whole input would pass `sp800_185_max_bytes`.
+     Absorbs `input_bytes`, which the adapter passes to XKCP in pieces of at most `SIZE_MAX / 8`
+     bytes, unless the whole input would pass `sp800_185_max_bytes`.
 
-     @param hashed The state. @param input The bytes.
+     @param digest_state The state. @param input_bytes The bytes.
      @return Success, `input_too_long`, or backend_failure.
     */
     [[nodiscard]] static boost::system::result<void> update(
-        state& hashed, std::span<std::uint8_t const> input) noexcept {
+        state& digest_state, std::span<std::uint8_t const> input_bytes) noexcept {
         // hashed.absorbed never exceeds the limit, so the subtraction does not wrap.
-        if (exceeds(input.size(), sp800_185_max_bytes - hashed.absorbed)) {
+        if (exceeds(input_bytes.size(), sp800_185_max_bytes - digest_state.absorbed)) {
             return error::input_too_long;
         }
-        if (Functions::update(hashed.storage.data(), input.data(), input.size()) != 0) {
+        if (Functions::update(digest_state.storage.data(), input_bytes.data(),
+                              input_bytes.size()) != 0) {
             return error::backend_failure;
         }
-        hashed.absorbed += input.size();
+        digest_state.absorbed += input_bytes.size();
         return {};
     }
 
     /**
-     Writes the digest of `output.size()` bytes, the form's.
+     Writes the digest of `output_bytes.size()` bytes, the form's.
 
-     @param hashed The state. @param output The output. @return Success, or backend_failure.
+     @param digest_state The state. @param output_bytes The output. @return Success, or
+     backend_failure.
     */
     [[nodiscard]] static boost::system::result<void> finish(
-        state& hashed, std::span<std::uint8_t> output) noexcept {
-        return xkcp_finish_with_length<Functions>(hashed, output);
+        state& digest_state, std::span<std::uint8_t> output_bytes) noexcept {
+        return xkcp_finish_with_length<Functions>(digest_state, output_bytes);
     }
 
-    /** Wipes the state. @param hashed The state. */
-    static void destroy(state& hashed) noexcept { secure::erase_secret(std::span(&hashed, 1)); }
+    /** Wipes the state. @param digest_state The state. */
+    static void destroy(state& digest_state) noexcept {
+        secure::erase_secret(std::span(&digest_state, 1));
+    }
 
     /**
-     The digest of `input` at once, the state wiped.
+     The digest of `input_bytes` at once, the state wiped.
 
-     @param output The output. @param input The bytes. @param options B, S and the form.
+     @param output_bytes The output. @param input_bytes The bytes. @param algorithm_options B, S and
+     the form.
      @return Success, `input_too_long`, or backend_failure.
     */
     [[nodiscard]] static boost::system::result<void> one_shot(
-        std::span<std::uint8_t> output, std::span<std::uint8_t const> input,
-        digest_options<Digest> const& options) noexcept {
-        state hashed{};
-        auto done = init(hashed, options);
-        if (done) {
-            done = update(hashed, input);
+        std::span<std::uint8_t> output_bytes, std::span<std::uint8_t const> input_bytes,
+        digest_options<Digest> const& algorithm_options) noexcept {
+        state digest_state{};
+        auto init_result = init(digest_state, algorithm_options);
+        if (init_result) {
+            init_result = update(digest_state, input_bytes);
         }
-        if (done) {
-            done = finish(hashed, output);
+        if (init_result) {
+            init_result = finish(digest_state, output_bytes);
         }
-        destroy(hashed);
-        return done;
+        destroy(digest_state);
+        return init_result;
     }
 };
 
@@ -655,28 +684,32 @@ struct xkcp_parallelhash_engine : full_engine {
 template <class Mac, class Functions>
 struct xkcp_kmac_engine : full_engine {
     /**
-     The tag of `input` under `key`, of `output.size()` bytes.
+     The tag of `input_bytes` under `key_bytes`, of `output_bytes.size()` bytes.
 
-     @param output The tag. @param key The key. @param input The message.
-     @param options S and the form.
+     @param output_bytes The tag. @param key_bytes The key. @param input_bytes The message.
+     @param algorithm_options S and the form.
      @return Success, or backend_failure.
     */
     [[nodiscard]] static boost::system::result<void> compute(
-        std::span<std::uint8_t> output, std::span<std::uint8_t const> key,
-        std::span<std::uint8_t const> input, mac_options<Mac> const& options) noexcept {
-        xkcp_kmac_storage storage{};
-        bool done = Functions::initialize(
-                        storage.data(), key.data(), key.size(), options.xof ? 0 : output.size(),
-                        options.customisation.data(), options.customisation.size()) == 0 &&
-                    Functions::update(storage.data(), input.data(), input.size()) == 0;
-        if (done) {
-            done = options.xof
-                       ? Functions::final(storage.data(), nullptr) == 0 &&
-                             Functions::squeeze(storage.data(), output.data(), output.size()) == 0
-                       : Functions::final(storage.data(), output.data()) == 0;
+        std::span<std::uint8_t> output_bytes, std::span<std::uint8_t const> key_bytes,
+        std::span<std::uint8_t const> input_bytes,
+        mac_options<Mac> const& algorithm_options) noexcept {
+        xkcp_kmac_storage kmac_storage{};
+        bool call_succeeded =
+            Functions::initialize(kmac_storage.data(), key_bytes.data(), key_bytes.size(),
+                                  algorithm_options.xof ? 0 : output_bytes.size(),
+                                  algorithm_options.customisation.data(),
+                                  algorithm_options.customisation.size()) == 0 &&
+            Functions::update(kmac_storage.data(), input_bytes.data(), input_bytes.size()) == 0;
+        if (call_succeeded) {
+            call_succeeded = algorithm_options.xof
+                                 ? Functions::final(kmac_storage.data(), nullptr) == 0 &&
+                                       Functions::squeeze(kmac_storage.data(), output_bytes.data(),
+                                                          output_bytes.size()) == 0
+                                 : Functions::final(kmac_storage.data(), output_bytes.data()) == 0;
         }
-        secure::erase_secret(std::span(&storage, 1));
-        if (!done) {
+        secure::erase_secret(std::span(&kmac_storage, 1));
+        if (!call_succeeded) {
             return error::backend_failure;
         }
         return {};
@@ -705,67 +738,71 @@ struct xkcp_turboshake_engine : full_engine {
     /**
      Starts a hash with the domain byte the options name.
 
-     @param hashed The state. @param options D. @return Success, or backend_failure.
+     @param digest_state The state. @param algorithm_options D. @return Success, or backend_failure.
     */
     [[nodiscard]] static boost::system::result<void> init(
-        state& hashed, digest_options<Digest> const& options) noexcept {
-        hashed.domain = options.domain;
-        if (webcpp_hash_xkcp_turboshake_initialize(hashed.storage.data(), Capacity) != 0) {
+        state& digest_state, digest_options<Digest> const& algorithm_options) noexcept {
+        digest_state.domain = algorithm_options.domain;
+        if (webcpp_hash_xkcp_turboshake_initialize(digest_state.storage.data(), Capacity) != 0) {
             return error::backend_failure;
         }
         return {};
     }
 
     /**
-     Absorbs `input`. @param hashed The state. @param input The bytes.
+     Absorbs `input_bytes`. @param digest_state The state. @param input_bytes The bytes.
      @return Success, or backend_failure.
     */
     [[nodiscard]] static boost::system::result<void> update(
-        state& hashed, std::span<std::uint8_t const> input) noexcept {
-        if (webcpp_hash_xkcp_turboshake_update(hashed.storage.data(), input.data(), input.size()) !=
-            0) {
+        state& digest_state, std::span<std::uint8_t const> input_bytes) noexcept {
+        if (webcpp_hash_xkcp_turboshake_update(digest_state.storage.data(), input_bytes.data(),
+                                               input_bytes.size()) != 0) {
             return error::backend_failure;
         }
         return {};
     }
 
     /**
-     Absorbs D and writes the first `output.size()` bytes of the stream.
+     Absorbs D and writes the first `output_bytes.size()` bytes of the stream.
 
-     @param hashed The state. @param output The output. @return Success, or backend_failure.
+     @param digest_state The state. @param output_bytes The output. @return Success, or
+     backend_failure.
     */
     [[nodiscard]] static boost::system::result<void> finish(
-        state& hashed, std::span<std::uint8_t> output) noexcept {
-        if (webcpp_hash_xkcp_turboshake_final(hashed.storage.data(), hashed.domain) != 0 ||
-            webcpp_hash_xkcp_turboshake_squeeze(hashed.storage.data(), output.data(),
-                                                output.size()) != 0) {
+        state& digest_state, std::span<std::uint8_t> output_bytes) noexcept {
+        if (webcpp_hash_xkcp_turboshake_final(digest_state.storage.data(), digest_state.domain) !=
+                0 ||
+            webcpp_hash_xkcp_turboshake_squeeze(digest_state.storage.data(), output_bytes.data(),
+                                                output_bytes.size()) != 0) {
             return error::backend_failure;
         }
         return {};
     }
 
-    /** Wipes the state. @param hashed The state. */
-    static void destroy(state& hashed) noexcept { secure::erase_secret(std::span(&hashed, 1)); }
+    /** Wipes the state. @param digest_state The state. */
+    static void destroy(state& digest_state) noexcept {
+        secure::erase_secret(std::span(&digest_state, 1));
+    }
 
     /**
-     The output of `input` at once, the state wiped.
+     The output of `input_bytes` at once, the state wiped.
 
-     @param output The output. @param input The bytes. @param options D.
+     @param output_bytes The output. @param input_bytes The bytes. @param algorithm_options D.
      @return Success, or backend_failure.
     */
     [[nodiscard]] static boost::system::result<void> one_shot(
-        std::span<std::uint8_t> output, std::span<std::uint8_t const> input,
-        digest_options<Digest> const& options) noexcept {
-        state hashed{};
-        auto done = init(hashed, options);
-        if (done) {
-            done = update(hashed, input);
+        std::span<std::uint8_t> output_bytes, std::span<std::uint8_t const> input_bytes,
+        digest_options<Digest> const& algorithm_options) noexcept {
+        state digest_state{};
+        auto init_result = init(digest_state, algorithm_options);
+        if (init_result) {
+            init_result = update(digest_state, input_bytes);
         }
-        if (done) {
-            done = finish(hashed, output);
+        if (init_result) {
+            init_result = finish(digest_state, output_bytes);
         }
-        destroy(hashed);
-        return done;
+        destroy(digest_state);
+        return init_result;
     }
 };
 
@@ -798,83 +835,86 @@ struct xkcp_kangarootwelve_engine : full_engine {
     /**
      Starts a hash, keeping the customisation's span for `finish`.
 
-     @param hashed The state. @param options C.
+     @param digest_state The state. @param algorithm_options C.
      @return Success, `input_too_long` for a C past `kangarootwelve_max_bytes`, or
      backend_failure.
     */
     [[nodiscard]] static boost::system::result<void> init(
-        state& hashed, digest_options<Digest> const& options) noexcept {
-        if (exceeds(options.customisation.size(), kangarootwelve_max_bytes)) {
+        state& digest_state, digest_options<Digest> const& algorithm_options) noexcept {
+        if (exceeds(algorithm_options.customisation.size(), kangarootwelve_max_bytes)) {
             return error::input_too_long;
         }
-        hashed.customisation = options.customisation;
-        hashed.counted = options.customisation.size();
-        if (webcpp_hash_xkcp_kangarootwelve_initialize(hashed.storage.data(), SecurityLevel, 0) !=
-            0) {
+        digest_state.customisation = algorithm_options.customisation;
+        digest_state.counted = algorithm_options.customisation.size();
+        if (webcpp_hash_xkcp_kangarootwelve_initialize(digest_state.storage.data(), SecurityLevel,
+                                                       0) != 0) {
             return error::backend_failure;
         }
         return {};
     }
 
     /**
-     Absorbs `input`, unless it would take the message and C past `kangarootwelve_max_bytes`.
+     Absorbs `input_bytes`, unless it would take the message and C past `kangarootwelve_max_bytes`.
 
-     @param hashed The state. @param input The bytes.
+     @param digest_state The state. @param input_bytes The bytes.
      @return Success, `input_too_long`, or backend_failure.
     */
     [[nodiscard]] static boost::system::result<void> update(
-        state& hashed, std::span<std::uint8_t const> input) noexcept {
+        state& digest_state, std::span<std::uint8_t const> input_bytes) noexcept {
         // hashed.counted never exceeds the limit, so the subtraction does not wrap.
-        if (exceeds(input.size(), kangarootwelve_max_bytes - hashed.counted)) {
+        if (exceeds(input_bytes.size(), kangarootwelve_max_bytes - digest_state.counted)) {
             return error::input_too_long;
         }
-        if (webcpp_hash_xkcp_kangarootwelve_update(hashed.storage.data(), input.data(),
-                                                   input.size()) != 0) {
+        if (webcpp_hash_xkcp_kangarootwelve_update(digest_state.storage.data(), input_bytes.data(),
+                                                   input_bytes.size()) != 0) {
             return error::backend_failure;
         }
-        hashed.counted += input.size();
+        digest_state.counted += input_bytes.size();
         return {};
     }
 
     /**
-     Absorbs C, ends the input, and writes the first `output.size()` bytes of the stream.
+     Absorbs C, ends the input, and writes the first `output_bytes.size()` bytes of the stream.
 
-     @param hashed The state. @param output The output. @return Success, or backend_failure.
+     @param digest_state The state. @param output_bytes The output. @return Success, or
+     backend_failure.
     */
     [[nodiscard]] static boost::system::result<void> finish(
-        state& hashed, std::span<std::uint8_t> output) noexcept {
-        if (webcpp_hash_xkcp_kangarootwelve_final(hashed.storage.data(), nullptr,
-                                                  hashed.customisation.data(),
-                                                  hashed.customisation.size()) != 0 ||
-            webcpp_hash_xkcp_kangarootwelve_squeeze(hashed.storage.data(), output.data(),
-                                                    output.size()) != 0) {
+        state& digest_state, std::span<std::uint8_t> output_bytes) noexcept {
+        if (webcpp_hash_xkcp_kangarootwelve_final(digest_state.storage.data(), nullptr,
+                                                  digest_state.customisation.data(),
+                                                  digest_state.customisation.size()) != 0 ||
+            webcpp_hash_xkcp_kangarootwelve_squeeze(
+                digest_state.storage.data(), output_bytes.data(), output_bytes.size()) != 0) {
             return error::backend_failure;
         }
         return {};
     }
 
-    /** Wipes the state. @param hashed The state. */
-    static void destroy(state& hashed) noexcept { secure::erase_secret(std::span(&hashed, 1)); }
+    /** Wipes the state. @param digest_state The state. */
+    static void destroy(state& digest_state) noexcept {
+        secure::erase_secret(std::span(&digest_state, 1));
+    }
 
     /**
-     The output of `input` at once, the state wiped.
+     The output of `input_bytes` at once, the state wiped.
 
-     @param output The output. @param input The bytes. @param options C.
+     @param output_bytes The output. @param input_bytes The bytes. @param algorithm_options C.
      @return Success, `input_too_long`, or backend_failure.
     */
     [[nodiscard]] static boost::system::result<void> one_shot(
-        std::span<std::uint8_t> output, std::span<std::uint8_t const> input,
-        digest_options<Digest> const& options) noexcept {
-        state hashed{};
-        auto done = init(hashed, options);
-        if (done) {
-            done = update(hashed, input);
+        std::span<std::uint8_t> output_bytes, std::span<std::uint8_t const> input_bytes,
+        digest_options<Digest> const& algorithm_options) noexcept {
+        state digest_state{};
+        auto init_result = init(digest_state, algorithm_options);
+        if (init_result) {
+            init_result = update(digest_state, input_bytes);
         }
-        if (done) {
-            done = finish(hashed, output);
+        if (init_result) {
+            init_result = finish(digest_state, output_bytes);
         }
-        destroy(hashed);
-        return done;
+        destroy(digest_state);
+        return init_result;
     }
 };
 

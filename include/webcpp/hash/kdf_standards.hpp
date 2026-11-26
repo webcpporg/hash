@@ -216,9 +216,9 @@ inline constexpr std::uint64_t standard_kdf_counter_size = 4;
 template <class Digest>
 constexpr bool standard_kdf_input_too_long(std::uint64_t secret_size,
                                            std::uint64_t fixed_info_size) noexcept {
-    constexpr std::uint64_t room =
+    constexpr std::uint64_t input_room =
         standard_kdf_digest<Digest>::max_input - standard_kdf_counter_size;
-    return exceeds(secret_size, room) || exceeds(fixed_info_size, room - secret_size);
+    return exceeds(secret_size, input_room) || exceeds(fixed_info_size, input_room - secret_size);
 }
 
 /**
@@ -257,8 +257,8 @@ inline constexpr std::uint64_t kbkdf_max_output_with_length = 0xffffffffULL / 8;
 
 /**
  SP 800-108's key-based key derivation (NIST SP 800-108r1, section 4.1, counter mode) over the
- HMAC `Hmac`: fills `output` from the key-derivation key `key`, each block an HMAC under `key` of
- the counter, then the fixed input `options` states.
+ HMAC `Hmac`: fills `output_bytes` from the key-derivation key `key_bytes`, each block an HMAC under
+ `key_bytes` of the counter, then the fixed input `algorithm_options` states.
 
  @code
  std::array<std::uint8_t, 32> derived{};
@@ -276,64 +276,66 @@ inline constexpr std::uint64_t kbkdf_max_output_with_length = 0xffffffffULL / 8;
  `hmac_ripemd_128`, or `backends::botan`, which has every one but `hmac_ripemd_128` and
  `hmac_sha2_512_224` and writes the separator and L always (`unsupported_by_backend` without
  either).
- @param output K_OUT, its size the length L: 1 byte up to (2^r - 1) digests, and, when
- `options.length`, at most 536,870,911 bytes (L in bits fits its 32 bits). It must not overlap the
- inputs.
- @param key K_IN, the key-derivation key: at least 1 byte (`backends::openssl`: at most `INT_MAX`,
- HMAC's key length in OpenSSL, `unsupported_by_backend` beyond).
- @param options The label, the context, the counter's width and which parts the fixed input holds.
+ @param output_bytes K_OUT, its size the length L: 1 byte up to (2^r - 1) digests, and, when
+ `algorithm_options.length`, at most 536,870,911 bytes (L in bits fits its 32 bits). It must not
+ overlap the inputs.
+ @param key_bytes K_IN, the key-derivation key: at least 1 byte (`backends::openssl`: at most
+ `INT_MAX`, HMAC's key length in OpenSSL, `unsupported_by_backend` beyond).
+ @param algorithm_options The label, the context, the counter's width and which parts the fixed
+ input holds.
  @return Success; or the first guard's error (`invalid_parameters` for a counter width other than
- 8, 16, 24 or 32, `invalid_output_size`, `invalid_key_size`, `unsupported_by_backend`), `output`
- untouched; or `errc::not_enough_memory` or `backend_failure`, `output` zeroed.
+ 8, 16, 24 or 32, `invalid_output_size`, `invalid_key_size`, `unsupported_by_backend`),
+ `output_bytes` untouched; or `errc::not_enough_memory` or `backend_failure`, `output_bytes` zeroed.
 */
 template <class Hmac, class Backend = default_backend<kdfs::kbkdf_hmac, Hmac>>
-[[nodiscard]] boost::system::result<void> kbkdf(std::span<std::uint8_t> output,
-                                                std::span<std::uint8_t const> key,
-                                                kbkdf_options const& options = {}) {
-    secure::timing_guard const timing;
+[[nodiscard]] boost::system::result<void> kbkdf(std::span<std::uint8_t> output_bytes,
+                                                std::span<std::uint8_t const> key_bytes,
+                                                kbkdf_options const& algorithm_options = {}) {
+    secure::timing_guard const timing_scope;
     if constexpr (!detail::takes_hmac<Hmac>()) {
         return error::backend_failure;  // unreachable: takes_hmac has stopped the build
     } else {
         using engine = detail::kbkdf_engine<Backend, Hmac>;
         constexpr std::uint64_t digest_length = typename Hmac::result_type().size();
-        if (options.counter_bits != 8 && options.counter_bits != 16 && options.counter_bits != 24 &&
-            options.counter_bits != 32) {
+        if (algorithm_options.counter_bits != 8 && algorithm_options.counter_bits != 16 &&
+            algorithm_options.counter_bits != 24 && algorithm_options.counter_bits != 32) {
             return error::invalid_parameters;
         }
         // n = ceil(L / h) blocks, each numbered by the counter, 1 to 2^r - 1 (section 4.1).
-        std::uint64_t const max_blocks = (std::uint64_t{1} << options.counter_bits) - 1;
-        if (output.empty() || detail::exceeds(output.size(), max_blocks * digest_length) ||
-            (options.length &&
-             detail::exceeds(output.size(), detail::kbkdf_max_output_with_length))) {
+        std::uint64_t const max_blocks = (std::uint64_t{1} << algorithm_options.counter_bits) - 1;
+        if (output_bytes.empty() ||
+            detail::exceeds(output_bytes.size(), max_blocks * digest_length) ||
+            (algorithm_options.length &&
+             detail::exceeds(output_bytes.size(), detail::kbkdf_max_output_with_length))) {
             return error::invalid_output_size;
         }
-        if (key.empty()) {
+        if (key_bytes.empty()) {
             return error::invalid_key_size;
         }
-        if (detail::exceeds(key.size(), engine::limits.max_key) ||
-            detail::exceeds(output.size(), engine::limits.max_output)) {
+        if (detail::exceeds(key_bytes.size(), engine::limits.max_key) ||
+            detail::exceeds(output_bytes.size(), engine::limits.max_output)) {
             return error::unsupported_by_backend;
         }
         // A backend that writes one form of the fixed input alone (backends::botan: the
         // separator and L, always) refuses the others.
-        if constexpr (requires { engine::accepts(options); }) {
-            if (!engine::accepts(options)) {
+        if constexpr (requires { engine::accepts(algorithm_options); }) {
+            if (!engine::accepts(algorithm_options)) {
                 return error::unsupported_by_backend;
             }
         }
-        auto derived = engine::derive(output, key, options);
-        if (!derived) {
-            secure::erase_secret(output);
+        auto derive_result = engine::derive(output_bytes, key_bytes, algorithm_options);
+        if (!derive_result) {
+            secure::erase_secret(output_bytes);
         }
-        return derived;
+        return derive_result;
     }
 }
 
 /**
  SP 800-56C's one-step key derivation over the digest `Digest` (NIST SP 800-56C revision 2,
- section 4.1, with H a hash function): fills `output` from the shared secret `secret` and
- `fixed_info`, block after block, each `Digest(counter || secret || fixed_info)` with a 32-bit
- big-endian counter from 1.
+ section 4.1, with H a hash function): fills `output_bytes` from the shared secret `secret_bytes`
+ and `fixed_info`, block after block, each `Digest(counter || secret_bytes || fixed_info)` with a
+ 32-bit big-endian counter from 1.
 
  @code
  std::array<std::uint8_t, 32> derived{};
@@ -346,53 +348,55 @@ template <class Hmac, class Backend = default_backend<kdfs::kbkdf_hmac, Hmac>>
  @tparam Backend The backend; by default @ref default_backend of `kdfs::sskdf`, which has none
  (design D34): the call names `backends::openssl` or `backends::botan` (every digest but
  SHA-512/224, which Botan lacks: refused at compile time).
- @param output The derived keying material: 1 byte to 2^32 - 1 digests (`backends::openssl`: at
- most 2^30 bytes). It must not overlap the inputs.
- @param secret Z, the shared secret: at least 1 byte (`backends::openssl`: at most 2^30).
+ @param output_bytes The derived keying material: 1 byte to 2^32 - 1 digests (`backends::openssl`:
+ at most 2^30 bytes). It must not overlap the inputs.
+ @param secret_bytes Z, the shared secret: at least 1 byte (`backends::openssl`: at most 2^30).
  @param fixed_info FixedInfo, which binds the derived key to its parties and purpose; empty for
  none (`backends::openssl`: at most 2^30 bytes).
  @return Success; or the first guard's error (`invalid_output_size`, `invalid_key_size`,
  `input_too_long` past what the digest hashes, `unsupported_by_backend` past the backend's
- limits), `output` untouched; or `errc::not_enough_memory` or `backend_failure`, `output` zeroed.
+ limits), `output_bytes` untouched; or `errc::not_enough_memory` or `backend_failure`,
+ `output_bytes` zeroed.
 */
 template <class Digest, class Backend = default_backend<kdfs::sskdf>>
-[[nodiscard]] boost::system::result<void> sskdf(std::span<std::uint8_t> output,
-                                                std::span<std::uint8_t const> secret,
+[[nodiscard]] boost::system::result<void> sskdf(std::span<std::uint8_t> output_bytes,
+                                                std::span<std::uint8_t const> secret_bytes,
                                                 std::span<std::uint8_t const> fixed_info = {}) {
-    secure::timing_guard const timing;
+    secure::timing_guard const timing_scope;
     if constexpr (!detail::sskdf_takes<Digest>()) {
         return error::backend_failure;  // unreachable: sskdf_takes has stopped the build
     } else {
         using engine = detail::sskdf_engine<Backend, Digest>;
         using digest = detail::standard_kdf_digest<Digest>;
         // reps = ceil(L / H_outputBits) is at most 2^32 - 1 (section 4.1, step 2).
-        if (output.empty() ||
-            detail::exceeds(output.size(), detail::standard_kdf_max_blocks * digest::size)) {
+        if (output_bytes.empty() ||
+            detail::exceeds(output_bytes.size(), detail::standard_kdf_max_blocks * digest::size)) {
             return error::invalid_output_size;
         }
-        if (secret.empty()) {
+        if (secret_bytes.empty()) {
             return error::invalid_key_size;
         }
-        if (detail::standard_kdf_input_too_long<Digest>(secret.size(), fixed_info.size())) {
+        if (detail::standard_kdf_input_too_long<Digest>(secret_bytes.size(), fixed_info.size())) {
             return error::input_too_long;
         }
-        if (detail::exceeds(secret.size(), engine::limits.max_key) ||
+        if (detail::exceeds(secret_bytes.size(), engine::limits.max_key) ||
             detail::exceeds(fixed_info.size(), engine::limits.max_info) ||
-            detail::exceeds(output.size(), engine::limits.max_output)) {
+            detail::exceeds(output_bytes.size(), engine::limits.max_output)) {
             return error::unsupported_by_backend;
         }
-        auto derived = engine::derive(output, secret, fixed_info);
-        if (!derived) {
-            secure::erase_secret(output);
+        auto derive_result = engine::derive(output_bytes, secret_bytes, fixed_info);
+        if (!derive_result) {
+            secure::erase_secret(output_bytes);
         }
-        return derived;
+        return derive_result;
     }
 }
 
 /**
  ANSI X9.63's key derivation (ANSI X9.63-2011, section 5.6.3; SEC 1 v2, section 3.6.1) over the
- digest `Digest`: fills `output` from the shared secret `secret` and `shared_info`, block after
- block, each `Digest(secret || counter || shared_info)` with a 32-bit big-endian counter from 1.
+ digest `Digest`: fills `output_bytes` from the shared secret `secret_bytes` and `shared_info`,
+ block after block, each `Digest(secret_bytes || counter || shared_info)` with a 32-bit big-endian
+ counter from 1.
 
  ECIES and the elliptic-curve key agreements of SEC 1, BSI TR-03111 and smart cards use it.
 
@@ -407,46 +411,47 @@ template <class Digest, class Backend = default_backend<kdfs::sskdf>>
  another, SHA-512/224 and SHA-512/256 included, refuses at compile time.
  @tparam Backend The backend; by default @ref default_backend of `kdfs::x963kdf`, which has none
  (design D34): the call names `backends::openssl` or `backends::botan`.
- @param output The derived keying material: 1 byte to 2^32 - 1 digests less 1 byte (the standard
- refuses keydatalen >= hashlen (2^32 - 1); `backends::openssl`: at most 2^30 bytes). It must not
- overlap the inputs.
- @param secret Z, the shared secret: at least 1 byte (`backends::openssl`: at most 2^30).
+ @param output_bytes The derived keying material: 1 byte to 2^32 - 1 digests less 1 byte (the
+ standard refuses keydatalen >= hashlen (2^32 - 1); `backends::openssl`: at most 2^30 bytes). It
+ must not overlap the inputs.
+ @param secret_bytes Z, the shared secret: at least 1 byte (`backends::openssl`: at most 2^30).
  @param shared_info SharedInfo, the data both parties share; empty for none
  (`backends::openssl`: at most 2^30 bytes).
  @return Success; or the first guard's error (`invalid_output_size`, `invalid_key_size`,
  `input_too_long` past what the digest hashes, `unsupported_by_backend` past the backend's
- limits), `output` untouched; or `errc::not_enough_memory` or `backend_failure`, `output` zeroed.
+ limits), `output_bytes` untouched; or `errc::not_enough_memory` or `backend_failure`,
+ `output_bytes` zeroed.
 */
 template <class Digest, class Backend = default_backend<kdfs::x963kdf>>
-[[nodiscard]] boost::system::result<void> x963kdf(std::span<std::uint8_t> output,
-                                                  std::span<std::uint8_t const> secret,
+[[nodiscard]] boost::system::result<void> x963kdf(std::span<std::uint8_t> output_bytes,
+                                                  std::span<std::uint8_t const> secret_bytes,
                                                   std::span<std::uint8_t const> shared_info = {}) {
-    secure::timing_guard const timing;
+    secure::timing_guard const timing_scope;
     if constexpr (!detail::x963kdf_takes<Digest>()) {
         return error::backend_failure;  // unreachable: x963kdf_takes has stopped the build
     } else {
         using engine = detail::x963kdf_engine<Backend, Digest>;
         using digest = detail::standard_kdf_digest<Digest>;
-        if (output.empty() ||
-            !detail::exceeds(detail::standard_kdf_max_blocks * digest::size, output.size())) {
+        if (output_bytes.empty() ||
+            !detail::exceeds(detail::standard_kdf_max_blocks * digest::size, output_bytes.size())) {
             return error::invalid_output_size;
         }
-        if (secret.empty()) {
+        if (secret_bytes.empty()) {
             return error::invalid_key_size;
         }
-        if (detail::standard_kdf_input_too_long<Digest>(secret.size(), shared_info.size())) {
+        if (detail::standard_kdf_input_too_long<Digest>(secret_bytes.size(), shared_info.size())) {
             return error::input_too_long;
         }
-        if (detail::exceeds(secret.size(), engine::limits.max_key) ||
+        if (detail::exceeds(secret_bytes.size(), engine::limits.max_key) ||
             detail::exceeds(shared_info.size(), engine::limits.max_info) ||
-            detail::exceeds(output.size(), engine::limits.max_output)) {
+            detail::exceeds(output_bytes.size(), engine::limits.max_output)) {
             return error::unsupported_by_backend;
         }
-        auto derived = engine::derive(output, secret, shared_info);
-        if (!derived) {
-            secure::erase_secret(output);
+        auto derive_result = engine::derive(output_bytes, secret_bytes, shared_info);
+        if (!derive_result) {
+            secure::erase_secret(output_bytes);
         }
-        return derived;
+        return derive_result;
     }
 }
 

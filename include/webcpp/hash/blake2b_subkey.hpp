@@ -60,9 +60,9 @@ inline constexpr std::size_t blake2b_subkey_key_size = 32;
 inline constexpr std::size_t blake2b_subkey_context_size = 8;
 
 /**
- The subkey `subkey_id` of `master_key` in `context`, libsodium's `crypto_kdf_derive_from_key`:
- keys for different purposes from one master key, each unrelated to the others and to the master
- key without it.
+ The subkey `subkey_id` of `master_key` in `context_bytes`, libsodium's
+ `crypto_kdf_derive_from_key`: keys for different purposes from one master key, each unrelated to
+ the others and to the master key without it.
 
  @code
  std::array<std::uint8_t, 32> file_key{};
@@ -72,37 +72,38 @@ inline constexpr std::size_t blake2b_subkey_context_size = 8;
  @tparam Backend The backend; by default @ref default_backend of `kdfs::blake2b_subkey` (spec
  4.1), `backends::sodium`, the only one that has it. Another backend, or a program that does not
  link libsodium, refuses at compile time.
- @param output The subkey, 16 to 64 bytes; it must not overlap `master_key` or `context`. Its
- length is a parameter of BLAKE2b: a subkey of 32 bytes is not the first 32 bytes of the one of 64.
+ @param output_bytes The subkey, 16 to 64 bytes; it must not overlap `master_key` or
+ `context_bytes`. Its length is a parameter of BLAKE2b: a subkey of 32 bytes is not the first 32
+ bytes of the one of 64.
  @param master_key The master key, 32 bytes, secret and uniformly random.
  @param subkey_id The subkey's number, any 64-bit value: one per key the application needs.
- @param context 8 bytes naming the application or its purpose, as "vault v1": the same id in
+ @param context_bytes 8 bytes naming the application or its purpose, as "vault v1": the same id in
  another context gives an unrelated subkey. Not secret.
  @return Success; or the first guard's error (`invalid_output_size`, `invalid_key_size`,
- `invalid_parameters` for the context), `output` untouched; or `backend_failure`, `output`
- zeroed.
+ `invalid_parameters` for the context), `output_bytes` untouched; or `backend_failure`,
+ `output_bytes` zeroed.
 */
 template <class Backend = default_backend<kdfs::blake2b_subkey>>
-[[nodiscard]] boost::system::result<void> blake2b_subkey(std::span<std::uint8_t> output,
-                                                         std::span<std::uint8_t const> master_key,
-                                                         std::uint64_t subkey_id,
-                                                         std::span<std::uint8_t const> context) {
-    secure::timing_guard const timing;
+[[nodiscard]] boost::system::result<void> blake2b_subkey(
+    std::span<std::uint8_t> output_bytes, std::span<std::uint8_t const> master_key,
+    std::uint64_t subkey_id, std::span<std::uint8_t const> context_bytes) {
+    secure::timing_guard const timing_scope;
     using engine = detail::blake2b_subkey_engine<Backend>;
-    if (output.size() < blake2b_subkey_min_size || output.size() > blake2b_subkey_max_size) {
+    if (output_bytes.size() < blake2b_subkey_min_size ||
+        output_bytes.size() > blake2b_subkey_max_size) {
         return error::invalid_output_size;
     }
     if (master_key.size() != blake2b_subkey_key_size) {
         return error::invalid_key_size;
     }
-    if (context.size() != blake2b_subkey_context_size) {
+    if (context_bytes.size() != blake2b_subkey_context_size) {
         return error::invalid_parameters;
     }
-    auto derived = engine::derive(output, master_key, subkey_id, context);
-    if (!derived) {
-        secure::erase_secret(output);
+    auto derive_result = engine::derive(output_bytes, master_key, subkey_id, context_bytes);
+    if (!derive_result) {
+        secure::erase_secret(output_bytes);
     }
-    return derived;
+    return derive_result;
 }
 
 }  // namespace webcpp::hash

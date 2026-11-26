@@ -128,14 +128,14 @@ template <class Hmac, class Backend = default_kdf_backend<Hmac, kdfs::pbkdf2>>
                                                  std::span<std::uint8_t const> password_bytes,
                                                  std::span<std::uint8_t const> salt_bytes,
                                                  std::uint64_t iteration_count) {
-    secure::timing_guard const timing;
+    secure::timing_guard const timing_scope;
     if constexpr (!detail::takes_hmac<Hmac>()) {
         return error::backend_failure;  // unreachable: takes_hmac has stopped the build
     } else {
-        auto guarded = detail::pbkdf2_guards<Hmac, Backend>(
+        auto guard_result = detail::pbkdf2_guards<Hmac, Backend>(
             output_bytes.size(), password_bytes.size(), salt_bytes.size(), iteration_count);
-        if (!guarded) {
-            return guarded;
+        if (!guard_result) {
+            return guard_result;
         }
         auto derive_result = detail::pbkdf2_engine<Backend, Hmac>::derive(
             output_bytes, password_bytes, salt_bytes, iteration_count);

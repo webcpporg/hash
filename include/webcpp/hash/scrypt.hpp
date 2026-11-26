@@ -162,11 +162,11 @@ template <class Backend = default_backend<kdfs::scrypt>>
                                                  std::span<std::uint8_t const> password_bytes,
                                                  std::span<std::uint8_t const> salt_bytes,
                                                  scrypt_parameters const& cost_parameters) {
-    secure::timing_guard const timing;
-    auto guarded = detail::scrypt_guards<Backend>(output_bytes.size(), password_bytes.size(),
-                                                  salt_bytes.size(), cost_parameters);
-    if (!guarded) {
-        return guarded;
+    secure::timing_guard const timing_scope;
+    auto guard_result = detail::scrypt_guards<Backend>(output_bytes.size(), password_bytes.size(),
+                                                       salt_bytes.size(), cost_parameters);
+    if (!guard_result) {
+        return guard_result;
     }
     auto derive_result = detail::scrypt_engine<Backend>::derive(
         output_bytes, password_bytes, salt_bytes, cost_parameters.cost, cost_parameters.block_size,

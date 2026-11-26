@@ -154,13 +154,13 @@ inline void touch_sodium_canary() noexcept {
 */
 inline bool sodium_ready() noexcept {
     touch_sodium_canary();
-    bool const ready = sodium_init() >= 0;
+    bool const sodium_initialised = sodium_init() >= 0;
 #if defined(WEBCPP_TARGET_EMSCRIPTEN) && defined(__EMSCRIPTEN_PTHREADS__)
-    if (ready) {
+    if (sodium_initialised) {
         randombytes_stir();
     }
 #endif
-    return ready;
+    return sodium_initialised;
 }
 
 /**
@@ -192,15 +192,15 @@ struct sodium_hkdf_sha256 {
     /**
      `crypto_kdf_hkdf_sha256_extract`.
 
-     @param pseudorandom_key The PRK. @param salt The salt. @param input_key_material The input
-     keying material.
+     @param pseudorandom_key The PRK. @param salt_bytes The salt. @param input_key_material The
+     input keying material.
      @return libsodium's status, 0 on success.
     */
-    static int extract(std::uint8_t* pseudorandom_key, std::span<std::uint8_t const> salt,
+    static int extract(std::uint8_t* pseudorandom_key, std::span<std::uint8_t const> salt_bytes,
                        std::span<std::uint8_t const> input_key_material) noexcept {
         // SHA-256's extract declares the IKM nonnull; an empty span's data() may be null.
-        return crypto_kdf_hkdf_sha256_extract(pseudorandom_key, salt.data(), salt.size(),
-                                              nonnull(input_key_material),
+        return crypto_kdf_hkdf_sha256_extract(pseudorandom_key, salt_bytes.data(),
+                                              salt_bytes.size(), nonnull(input_key_material),
                                               input_key_material.size());
     }
 
@@ -231,16 +231,16 @@ struct sodium_hkdf_sha512 {
     /**
      `crypto_kdf_hkdf_sha512_extract`.
 
-     @param pseudorandom_key The PRK. @param salt The salt. @param input_key_material The input
-     keying material.
+     @param pseudorandom_key The PRK. @param salt_bytes The salt. @param input_key_material The
+     input keying material.
      @return libsodium's status, 0 on success.
     */
-    static int extract(std::uint8_t* pseudorandom_key, std::span<std::uint8_t const> salt,
+    static int extract(std::uint8_t* pseudorandom_key, std::span<std::uint8_t const> salt_bytes,
                        std::span<std::uint8_t const> input_key_material) noexcept {
         // SHA-512's extract declares no IKM nonnull; it is passed as SHA-256's is all the same, so
         // that the two traits are alike: a non-null pointer where null is allowed is harmless.
-        return crypto_kdf_hkdf_sha512_extract(pseudorandom_key, salt.data(), salt.size(),
-                                              nonnull(input_key_material),
+        return crypto_kdf_hkdf_sha512_extract(pseudorandom_key, salt_bytes.data(),
+                                              salt_bytes.size(), nonnull(input_key_material),
                                               input_key_material.size());
     }
 
@@ -276,18 +276,18 @@ struct sodium_hkdf_engine {
      RFC 5869, 2.2: PRK = HMAC-Hash(salt, IKM), by libsodium's `_extract`; an empty salt is
      HashLen zeros, which libsodium's hmac keys as zeros of the block, the same key.
 
-     @param salt The salt. @param input_key_material The input keying material.
+     @param salt_bytes The salt. @param input_key_material The input keying material.
      @return The PRK, or `error::backend_failure`.
     */
     [[nodiscard]] static boost::system::result<digest_type> extract(
-        std::span<std::uint8_t const> salt,
+        std::span<std::uint8_t const> salt_bytes,
         std::span<std::uint8_t const> input_key_material) noexcept {
         // The PRK is built in the result returned and libsodium writes into it: a single return
         // path of the one named object, so that C++20 permits NRVO (guaranteed by no compiler:
         // without it a copy or move would leave a PRK behind). The failure path reassigns the
         // object after wiping it, and the PRK leaves this function only as the result.
         boost::system::result<digest_type> pseudorandom_key{boost::system::in_place_value};
-        if (!sodium_ready() || Traits::extract(pseudorandom_key.unsafe_value().data(), salt,
+        if (!sodium_ready() || Traits::extract(pseudorandom_key.unsafe_value().data(), salt_bytes,
                                                input_key_material) != 0) {
             secure::erase_secret(std::span(&pseudorandom_key.unsafe_value(), 1));
             pseudorandom_key = boost::system::result<digest_type>(error::backend_failure);
@@ -317,16 +317,16 @@ struct sodium_hkdf_engine {
     /**
      RFC 5869, 2: HKDF-Extract into a local PRK, HKDF-Expand, and the PRK wiped.
 
-     @param output_key_material The OKM. @param salt The salt. @param input_key_material The input
-     keying material.
+     @param output_key_material The OKM. @param salt_bytes The salt. @param input_key_material The
+     input keying material.
      @param application_info The info.
      @return Success, or `error::backend_failure`.
     */
     [[nodiscard]] static boost::system::result<void> extract_and_expand(
-        std::span<std::uint8_t> output_key_material, std::span<std::uint8_t const> salt,
+        std::span<std::uint8_t> output_key_material, std::span<std::uint8_t const> salt_bytes,
         std::span<std::uint8_t const> input_key_material,
         std::span<std::uint8_t const> application_info) noexcept {
-        auto pseudorandom_key = extract(salt, input_key_material);
+        auto pseudorandom_key = extract(salt_bytes, input_key_material);
         if (!pseudorandom_key) {
             return pseudorandom_key.error();
         }
@@ -365,7 +365,7 @@ struct hkdf_engine<backends::sodium, Hmac> {
 
     /** Never called: the refusal has stopped the build. */
     [[nodiscard]] static boost::system::result<typename Hmac::result_type> extract(
-        std::span<std::uint8_t const> /*salt*/,
+        std::span<std::uint8_t const> /*salt_bytes*/,
         std::span<std::uint8_t const> /*input_key_material*/) noexcept {
         return error::backend_failure;
     }
@@ -380,7 +380,8 @@ struct hkdf_engine<backends::sodium, Hmac> {
 
     /** Never called: the refusal has stopped the build. */
     [[nodiscard]] static boost::system::result<void> extract_and_expand(
-        std::span<std::uint8_t> /*output_key_material*/, std::span<std::uint8_t const> /*salt*/,
+        std::span<std::uint8_t> /*output_key_material*/,
+        std::span<std::uint8_t const> /*salt_bytes*/,
         std::span<std::uint8_t const> /*input_key_material*/,
         std::span<std::uint8_t const> /*application_info*/) noexcept {
         return error::backend_failure;
@@ -414,52 +415,53 @@ struct sodium_hkdf_pieces_engine {
                   "libsodium's _update takes every slice's length");
 
     /**
-     Feeds every byte of `pieces` to `state`, in slices of at most @ref slice_max bytes.
+     Feeds every byte of `input_pieces` to `mac_state`, in slices of at most @ref slice_max bytes.
 
-     @param state The HMAC state. @param pieces The pieces.
+     @param mac_state The HMAC state. @param input_pieces The pieces.
      @return Whether libsodium took every slice.
     */
-    [[nodiscard]] static bool update_all(State& state, byte_pieces pieces) noexcept {
+    [[nodiscard]] static bool update_all(State& mac_state, byte_pieces input_pieces) noexcept {
         // The lambda calls update_slice, not `Update` itself: MSVC 14.3 rejects a call of the
         // template parameter `Update` inside a lambda ("'&' requires l-value", C2102).
-        bool updated = true;
-        for_each_slice<slice_max>(pieces, [&](std::span<std::uint8_t const> slice) {
-            updated = updated && update_slice(state, slice);
+        bool update_succeeded = true;
+        for_each_slice<slice_max>(input_pieces, [&](std::span<std::uint8_t const> slice_bytes) {
+            update_succeeded = update_succeeded && update_slice(mac_state, slice_bytes);
         });
-        return updated;
+        return update_succeeded;
     }
 
     /**
-     Feeds one slice to `state`.
+     Feeds one slice to `mac_state`.
 
-     @param state The HMAC state. @param slice At most @ref slice_max bytes.
+     @param mac_state The HMAC state. @param slice_bytes At most @ref slice_max bytes.
      @return Whether libsodium took it.
     */
-    [[nodiscard]] static bool update_slice(State& state,
-                                           std::span<std::uint8_t const> slice) noexcept {
-        return Update(&state, slice.data(), slice.size()) == 0;
+    [[nodiscard]] static bool update_slice(State& mac_state,
+                                           std::span<std::uint8_t const> slice_bytes) noexcept {
+        return Update(&mac_state, slice_bytes.data(), slice_bytes.size()) == 0;
     }
 
     /**
      RFC 5869, 2.2: PRK = HMAC-Hash(salt, piece_1 | ... | piece_n). An empty salt is HashLen
      zeros, which libsodium's HMAC keys as zeros of the block, the same key.
 
-     @param salt The salt. @param input_key_material The input keying material's pieces.
+     @param salt_bytes The salt. @param input_key_material The input keying material's pieces.
      @return The PRK, or `error::backend_failure`.
     */
     [[nodiscard]] static boost::system::result<digest_type> extract(
-        std::span<std::uint8_t const> salt, byte_pieces input_key_material) noexcept {
+        std::span<std::uint8_t const> salt_bytes, byte_pieces input_key_material) noexcept {
         // The PRK is built in the result returned and libsodium writes into it: a single return
         // path of the one named object, so that C++20 permits NRVO (guaranteed by no compiler:
         // without it a copy or move would leave a PRK behind). The failure path reassigns the
         // object after wiping it, and the PRK leaves this function only as the result.
         boost::system::result<digest_type> pseudorandom_key{boost::system::in_place_value};
         State mac_state{};
-        bool const computed = sodium_ready() && Init(&mac_state, nonnull(salt), salt.size()) == 0 &&
-                              update_all(mac_state, input_key_material) &&
-                              Final(&mac_state, pseudorandom_key.unsafe_value().data()) == 0;
+        bool const call_succeeded = sodium_ready() &&
+                                    Init(&mac_state, nonnull(salt_bytes), salt_bytes.size()) == 0 &&
+                                    update_all(mac_state, input_key_material) &&
+                                    Final(&mac_state, pseudorandom_key.unsafe_value().data()) == 0;
         secure::erase_secret(std::span(&mac_state, 1));
-        if (!computed) {
+        if (!call_succeeded) {
             secure::erase_secret(std::span(&pseudorandom_key.unsafe_value(), 1));
             pseudorandom_key = boost::system::result<digest_type>(error::backend_failure);
         }
@@ -478,20 +480,20 @@ struct sodium_hkdf_pieces_engine {
         std::span<std::uint8_t> output_key_material, std::span<std::uint8_t const> pseudorandom_key,
         byte_pieces application_info) noexcept {
         State keyed_state{};
-        bool computed = sodium_ready() &&
-                        Init(&keyed_state, pseudorandom_key.data(), pseudorandom_key.size()) == 0;
+        bool call_succeeded = sodium_ready() && Init(&keyed_state, pseudorandom_key.data(),
+                                                     pseudorandom_key.size()) == 0;
         digest_type t_block{};
         std::size_t written_count = 0;
-        for (unsigned block_counter = 1; computed && written_count < output_key_material.size();
-             ++block_counter) {
+        for (unsigned block_counter = 1;
+             call_succeeded && written_count < output_key_material.size(); ++block_counter) {
             State mac_state = keyed_state;
             auto const octet_value = static_cast<unsigned char>(block_counter);
-            computed =
+            call_succeeded =
                 (block_counter == 1 || Update(&mac_state, t_block.data(), t_block.size()) == 0) &&
                 update_all(mac_state, application_info) &&
                 Update(&mac_state, &octet_value, 1) == 0 && Final(&mac_state, t_block.data()) == 0;
             secure::erase_secret(std::span(&mac_state, 1));
-            if (computed) {
+            if (call_succeeded) {
                 std::size_t const copied_count =
                     std::min(t_block.size(), output_key_material.size() - written_count);
                 std::copy_n(t_block.data(), copied_count,
@@ -501,7 +503,7 @@ struct sodium_hkdf_pieces_engine {
         }
         secure::erase_secret(std::span(&t_block, 1));
         secure::erase_secret(std::span(&keyed_state, 1));
-        if (!computed) {
+        if (!call_succeeded) {
             return error::backend_failure;
         }
         return {};
@@ -510,16 +512,16 @@ struct sodium_hkdf_pieces_engine {
     /**
      RFC 5869, 2: HKDF-Extract, then HKDF-Expand, over pieces; the PRK is wiped between them.
 
-     @param output_key_material The OKM. @param salt The salt.
+     @param output_key_material The OKM. @param salt_bytes The salt.
      @param input_key_material The input keying material's pieces.
      @param application_info The info's pieces.
      @return Success, or `error::backend_failure`.
     */
     [[nodiscard]] static boost::system::result<void> extract_and_expand(
-        std::span<std::uint8_t> output_key_material, std::span<std::uint8_t const> salt,
+        std::span<std::uint8_t> output_key_material, std::span<std::uint8_t const> salt_bytes,
         byte_pieces input_key_material, byte_pieces application_info) noexcept {
         return hkdf_pieces_extract_and_expand<sodium_hkdf_pieces_engine>(
-            output_key_material, salt, input_key_material, application_info);
+            output_key_material, salt_bytes, input_key_material, application_info);
     }
 };
 
@@ -567,10 +569,11 @@ struct pbkdf2_engine<backends::sodium, Hmac> {
  A pointer libsodium reads as "absent" for an empty span, the span's bytes otherwise: its salt and
  personalisation are 16 bytes or a null pointer.
 
- @param bytes The span. @return Null when `bytes` is empty, else its data.
+ @param source_bytes The span. @return Null when `source_bytes` is empty, else its data.
 */
-[[nodiscard]] inline std::uint8_t const* or_null(std::span<std::uint8_t const> bytes) noexcept {
-    return bytes.empty() ? nullptr : bytes.data();
+[[nodiscard]] inline std::uint8_t const* or_null(
+    std::span<std::uint8_t const> source_bytes) noexcept {
+    return source_bytes.empty() ? nullptr : source_bytes.data();
 }
 
 /**
@@ -592,30 +595,34 @@ struct digest_engine<backends::sodium, digests::blake2b> : full_engine {
     /**
      Starts a hash: `crypto_generichash_blake2b_init_salt_personal`.
 
-     @param hashed The state. @param options The key, salt, personalisation and output size.
+     @param digest_state The state. @param algorithm_options The key, salt, personalisation and
+     output size.
      @return Success, or `error::backend_failure`.
     */
     [[nodiscard]] static boost::system::result<void> init(
-        state& hashed, digest_options<digests::blake2b> const& options) noexcept {
+        state& digest_state, digest_options<digests::blake2b> const& algorithm_options) noexcept {
         if (!sodium_ready()) {
             return error::backend_failure;
         }
         if (crypto_generichash_blake2b_init_salt_personal(
-                &hashed, or_null(options.key), options.key.size(), options.output_size,
-                or_null(options.salt), or_null(options.personalisation)) != 0) {
+                &digest_state, or_null(algorithm_options.key), algorithm_options.key.size(),
+                algorithm_options.output_size, or_null(algorithm_options.salt),
+                or_null(algorithm_options.personalisation)) != 0) {
             return error::backend_failure;
         }
         return {};
     }
 
     /**
-     Absorbs `input`: `crypto_generichash_blake2b_update`.
+     Absorbs `input_bytes`: `crypto_generichash_blake2b_update`.
 
-     @param hashed The state. @param input The bytes. @return Success, or `error::backend_failure`.
+     @param digest_state The state. @param input_bytes The bytes. @return Success, or
+     `error::backend_failure`.
     */
     [[nodiscard]] static boost::system::result<void> update(
-        state& hashed, std::span<std::uint8_t const> input) noexcept {
-        if (crypto_generichash_blake2b_update(&hashed, input.data(), input.size()) != 0) {
+        state& digest_state, std::span<std::uint8_t const> input_bytes) noexcept {
+        if (crypto_generichash_blake2b_update(&digest_state, input_bytes.data(),
+                                              input_bytes.size()) != 0) {
             return error::backend_failure;
         }
         return {};
@@ -625,37 +632,41 @@ struct digest_engine<backends::sodium, digests::blake2b> : full_engine {
      Writes the digest, of the size the hash was started for (the family's guard holds it):
      `crypto_generichash_blake2b_final`.
 
-     @param hashed The state. @param output The digest.
+     @param digest_state The state. @param output_bytes The digest.
      @return Success, or `error::backend_failure`.
     */
     [[nodiscard]] static boost::system::result<void> finish(
-        state& hashed, std::span<std::uint8_t> output) noexcept {
-        if (crypto_generichash_blake2b_final(&hashed, output.data(), output.size()) != 0) {
+        state& digest_state, std::span<std::uint8_t> output_bytes) noexcept {
+        if (crypto_generichash_blake2b_final(&digest_state, output_bytes.data(),
+                                             output_bytes.size()) != 0) {
             return error::backend_failure;
         }
         return {};
     }
 
-    /** Wipes the state. @param hashed The state. */
-    static void destroy(state& hashed) noexcept { secure::erase_secret(std::span(&hashed, 1)); }
+    /** Wipes the state. @param digest_state The state. */
+    static void destroy(state& digest_state) noexcept {
+        secure::erase_secret(std::span(&digest_state, 1));
+    }
 
     /**
-     The digest of `input` at once: `crypto_generichash_blake2b_salt_personal`, whose output size
-     is `output.size()`, equal to the options' (the family's guard).
+     The digest of `input_bytes` at once: `crypto_generichash_blake2b_salt_personal`, whose output
+     size is `output_bytes.size()`, equal to the options' (the family's guard).
 
-     @param output The digest. @param input The bytes. @param options The key, salt and
-     personalisation.
+     @param output_bytes The digest. @param input_bytes The bytes. @param algorithm_options The key,
+     salt and personalisation.
      @return Success, or `error::backend_failure`.
     */
     [[nodiscard]] static boost::system::result<void> one_shot(
-        std::span<std::uint8_t> output, std::span<std::uint8_t const> input,
-        digest_options<digests::blake2b> const& options) noexcept {
+        std::span<std::uint8_t> output_bytes, std::span<std::uint8_t const> input_bytes,
+        digest_options<digests::blake2b> const& algorithm_options) noexcept {
         if (!sodium_ready()) {
             return error::backend_failure;
         }
         if (crypto_generichash_blake2b_salt_personal(
-                output.data(), output.size(), input.data(), input.size(), or_null(options.key),
-                options.key.size(), or_null(options.salt), or_null(options.personalisation)) != 0) {
+                output_bytes.data(), output_bytes.size(), input_bytes.data(), input_bytes.size(),
+                or_null(algorithm_options.key), algorithm_options.key.size(),
+                or_null(algorithm_options.salt), or_null(algorithm_options.personalisation)) != 0) {
             return error::backend_failure;
         }
         return {};
@@ -687,40 +698,44 @@ struct sodium_incremental_engine : full_engine {
     using state = State;
 
     /**
-     Absorbs `input`.
+     Absorbs `input_bytes`.
 
-     @param hashed The state. @param input The bytes. @return Success, or `error::backend_failure`.
+     @param digest_state The state. @param input_bytes The bytes. @return Success, or
+     `error::backend_failure`.
     */
     [[nodiscard]] static boost::system::result<void> update(
-        state& hashed, std::span<std::uint8_t const> input) noexcept {
-        if (Update(&hashed, nonnull(input), input.size()) != 0) {
+        state& digest_state, std::span<std::uint8_t const> input_bytes) noexcept {
+        if (Update(&digest_state, nonnull(input_bytes), input_bytes.size()) != 0) {
             return error::backend_failure;
         }
         return {};
     }
 
-    /** Wipes the state. @param hashed The state. */
-    static void destroy(state& hashed) noexcept { secure::erase_secret(std::span(&hashed, 1)); }
+    /** Wipes the state. @param digest_state The state. */
+    static void destroy(state& digest_state) noexcept {
+        secure::erase_secret(std::span(&digest_state, 1));
+    }
 
     /**
-     The digest of `input` at once, on a state of this frame, wiped before the return.
+     The digest of `input_bytes` at once, on a state of this frame, wiped before the return.
 
-     @param output The digest. @param input The bytes. @param options The tag's options.
+     @param output_bytes The digest. @param input_bytes The bytes. @param algorithm_options The
+     tag's options.
      @return Success, or `error::backend_failure`.
     */
     [[nodiscard]] static boost::system::result<void> one_shot(
-        std::span<std::uint8_t> output, std::span<std::uint8_t const> input,
-        digest_options<Digest> const& options) noexcept {
-        state hashed{};
-        auto done = Engine::init(hashed, options);
-        if (done) {
-            done = update(hashed, input);
+        std::span<std::uint8_t> output_bytes, std::span<std::uint8_t const> input_bytes,
+        digest_options<Digest> const& algorithm_options) noexcept {
+        state digest_state{};
+        auto init_result = Engine::init(digest_state, algorithm_options);
+        if (init_result) {
+            init_result = update(digest_state, input_bytes);
         }
-        if (done) {
-            done = Engine::finish(hashed, output);
+        if (init_result) {
+            init_result = Engine::finish(digest_state, output_bytes);
         }
-        destroy(hashed);
-        return done;
+        destroy(digest_state);
+        return init_result;
     }
 
 private:
@@ -749,17 +764,17 @@ struct sodium_fixed_digest_engine
     /**
      Starts a hash.
 
-     @param hashed The state. @return Success, or `error::backend_failure`.
+     @param digest_state The state. @return Success, or `error::backend_failure`.
     */
     [[nodiscard]] static boost::system::result<void> init(
-        State& hashed, digest_options<Digest> const& /*options*/) noexcept {
+        State& digest_state, digest_options<Digest> const& /*algorithm_options*/) noexcept {
         // The family's size is libsodium's, so that the guard passes exactly what _final writes.
         static_assert(digest_traits<Digest>::min_output(digest_options<Digest>{}) == Size &&
                       digest_traits<Digest>::max_output(digest_options<Digest>{}) == Size);
         if (!sodium_ready()) {
             return error::backend_failure;
         }
-        if (Init(&hashed) != 0) {
+        if (Init(&digest_state) != 0) {
             return error::backend_failure;
         }
         return {};
@@ -768,12 +783,13 @@ struct sodium_fixed_digest_engine
     /**
      Writes the digest.
 
-     @param hashed The state. @param output The digest, of `Size` bytes (the family's guard).
+     @param digest_state The state. @param output_bytes The digest, of `Size` bytes (the family's
+     guard).
      @return Success, or `error::backend_failure`.
     */
     [[nodiscard]] static boost::system::result<void> finish(
-        State& hashed, std::span<std::uint8_t> output) noexcept {
-        if (Final(&hashed, output.data()) != 0) {
+        State& digest_state, std::span<std::uint8_t> output_bytes) noexcept {
+        if (Final(&digest_state, output_bytes.data()) != 0) {
             return error::backend_failure;
         }
         return {};
@@ -831,13 +847,13 @@ struct sodium_xof_engine
      The domain byte the sponge pads with: TurboSHAKE's option `domain`, or SHAKE's standard byte,
      0x1F, for a tag whose options have no domain.
 
-     @param options The tag's options.
+     @param algorithm_options The tag's options.
      @return The domain byte, D of RFC 9861 for TurboSHAKE.
     */
     static constexpr unsigned char domain_of(
-        [[maybe_unused]] digest_options<Digest> const& options) noexcept {
-        if constexpr (requires { options.domain; }) {
-            return options.domain;
+        [[maybe_unused]] digest_options<Digest> const& algorithm_options) noexcept {
+        if constexpr (requires { algorithm_options.domain; }) {
+            return algorithm_options.domain;
         } else {
             return StandardDomain;
         }
@@ -846,31 +862,31 @@ struct sodium_xof_engine
     /**
      Starts a hash with the options' domain byte.
 
-     @param hashed The state. @param options The tag's options.
+     @param digest_state The state. @param algorithm_options The tag's options.
      @return Success, or `error::backend_failure`.
     */
     [[nodiscard]] static boost::system::result<void> init(
-        State& hashed, digest_options<Digest> const& options) noexcept {
+        State& digest_state, digest_options<Digest> const& algorithm_options) noexcept {
         // SHAKE's and TurboSHAKE's standard byte, RFC 9861's default, is libsodium's.
         static_assert(StandardDomain == 0x1F);
         if (!sodium_ready()) {
             return error::backend_failure;
         }
-        if (Init(&hashed, domain_of(options)) != 0) {
+        if (Init(&digest_state, domain_of(algorithm_options)) != 0) {
             return error::backend_failure;
         }
         return {};
     }
 
     /**
-     Writes `output.size()` bytes of the output stream.
+     Writes `output_bytes.size()` bytes of the output stream.
 
-     @param hashed The state. @param output The output, of any size from 1 byte.
+     @param digest_state The state. @param output_bytes The output, of any size from 1 byte.
      @return Success, or `error::backend_failure`.
     */
     [[nodiscard]] static boost::system::result<void> finish(
-        State& hashed, std::span<std::uint8_t> output) noexcept {
-        if (Squeeze(&hashed, output.data(), output.size()) != 0) {
+        State& digest_state, std::span<std::uint8_t> output_bytes) noexcept {
+        if (Squeeze(&digest_state, output_bytes.data(), output_bytes.size()) != 0) {
             return error::backend_failure;
         }
         return {};
@@ -932,34 +948,35 @@ template <class Digest, class State, std::size_t Size,
           int (*Final)(State*, unsigned char*)>
 struct sodium_hmac_engine : full_engine {
     /**
-     The tag of `input` under `key`.
+     The tag of `input_bytes` under `key_bytes`.
 
-     @param output The tag, 10 bytes to the digest's size (the family's guard). @param key The key,
-     of any size. @param input The message.
+     @param output_bytes The tag, 10 bytes to the digest's size (the family's guard). @param
+     key_bytes The key, of any size. @param input_bytes The message.
      @return Success, or `error::backend_failure`.
     */
     [[nodiscard]] static boost::system::result<void> compute(
-        std::span<std::uint8_t> output, std::span<std::uint8_t const> key,
-        std::span<std::uint8_t const> input,
-        mac_options<macs::hmac<Digest>> const& /*options*/) noexcept {
+        std::span<std::uint8_t> output_bytes, std::span<std::uint8_t const> key_bytes,
+        std::span<std::uint8_t const> input_bytes,
+        mac_options<macs::hmac<Digest>> const& /*algorithm_options*/) noexcept {
         // The family's longest tag is libsodium's digest. Checked here, where mac.hpp's traits are
         // complete whatever the order of includes.
         static_assert(mac_traits<macs::hmac<Digest>>::max_output == Size);
         if (!sodium_ready()) {
             return error::backend_failure;
         }
-        State keyed{};
+        State keyed_state{};
         std::array<std::uint8_t, Size> digest_bytes{};
-        bool const whole = output.size() == Size;
-        bool const computed = Init(&keyed, key.data(), key.size()) == 0 &&
-                              Update(&keyed, nonnull(input), input.size()) == 0 &&
-                              Final(&keyed, whole ? output.data() : digest_bytes.data()) == 0;
-        if (computed && !whole) {
-            std::copy_n(digest_bytes.begin(), output.size(), output.begin());
+        bool const whole_output = output_bytes.size() == Size;
+        bool const call_succeeded =
+            Init(&keyed_state, key_bytes.data(), key_bytes.size()) == 0 &&
+            Update(&keyed_state, nonnull(input_bytes), input_bytes.size()) == 0 &&
+            Final(&keyed_state, whole_output ? output_bytes.data() : digest_bytes.data()) == 0;
+        if (call_succeeded && !whole_output) {
+            std::copy_n(digest_bytes.begin(), output_bytes.size(), output_bytes.begin());
         }
         secure::erase_secret(digest_bytes);
-        secure::erase_secret(std::span(&keyed, 1));
-        if (!computed) {
+        secure::erase_secret(std::span(&keyed_state, 1));
+        if (!call_succeeded) {
             return error::backend_failure;
         }
         return {};
@@ -1004,15 +1021,17 @@ template <class Mac,
           std::size_t TagSize, std::size_t KeySize>
 struct sodium_siphash_engine : full_engine {
     /**
-     The tag of `input` under `key`.
+     The tag of `input_bytes` under `key_bytes`.
 
-     @param output The tag, of the tag's size (the family's guard). @param key The 16-byte key.
-     @param input The message.
+     @param output_bytes The tag, of the tag's size (the family's guard). @param key_bytes The
+     16-byte key.
+     @param input_bytes The message.
      @return Success, or `error::backend_failure`.
     */
     [[nodiscard]] static boost::system::result<void> compute(
-        std::span<std::uint8_t> output, std::span<std::uint8_t const> key,
-        std::span<std::uint8_t const> input, mac_options<Mac> const& /*options*/) noexcept {
+        std::span<std::uint8_t> output_bytes, std::span<std::uint8_t const> key_bytes,
+        std::span<std::uint8_t const> input_bytes,
+        mac_options<Mac> const& /*algorithm_options*/) noexcept {
         // The family's sizes are libsodium's, so that its guards pass exactly what libsodium
         // takes. Checked here, where mac.hpp's traits are complete whatever the order of includes.
         static_assert(mac_traits<Mac>::min_output == TagSize &&
@@ -1021,7 +1040,8 @@ struct sodium_siphash_engine : full_engine {
         if (!sodium_ready()) {
             return error::backend_failure;
         }
-        if (Function(output.data(), input.data(), input.size(), key.data()) != 0) {
+        if (Function(output_bytes.data(), input_bytes.data(), input_bytes.size(),
+                     key_bytes.data()) != 0) {
             return error::backend_failure;
         }
         return {};
@@ -1059,15 +1079,16 @@ struct mac_engine<backends::sodium, macs::siphash_2_4x>
 template <class Mac>
 struct sodium_keyed_blake2b_engine : full_engine {
     /**
-     The tag of `input` under `key`.
+     The tag of `input_bytes` under `key_bytes`.
 
-     @param output The tag, 1 to 64 bytes (the family's guard). @param key The key, 1 to 64 bytes
-     (the family's guard). @param input The message.
+     @param output_bytes The tag, 1 to 64 bytes (the family's guard). @param key_bytes The key, 1 to
+     64 bytes (the family's guard). @param input_bytes The message.
      @return Success, or `error::backend_failure`.
     */
     [[nodiscard]] static boost::system::result<void> compute(
-        std::span<std::uint8_t> output, std::span<std::uint8_t const> key,
-        std::span<std::uint8_t const> input, mac_options<Mac> const& /*options*/) noexcept {
+        std::span<std::uint8_t> output_bytes, std::span<std::uint8_t const> key_bytes,
+        std::span<std::uint8_t const> input_bytes,
+        mac_options<Mac> const& /*algorithm_options*/) noexcept {
         // The family's sizes are libsodium's bounds, so that libsodium never refuses what its
         // guards pass. Checked here, where mac.hpp's traits are complete whatever the order of
         // includes.
@@ -1079,13 +1100,16 @@ struct sodium_keyed_blake2b_engine : full_engine {
         if (!sodium_ready()) {
             return error::backend_failure;
         }
-        crypto_generichash_blake2b_state keyed{};
-        bool const computed =
-            crypto_generichash_blake2b_init(&keyed, key.data(), key.size(), output.size()) == 0 &&
-            crypto_generichash_blake2b_update(&keyed, nonnull(input), input.size()) == 0 &&
-            crypto_generichash_blake2b_final(&keyed, output.data(), output.size()) == 0;
-        secure::erase_secret(std::span(&keyed, 1));
-        if (!computed) {
+        crypto_generichash_blake2b_state keyed_state{};
+        bool const call_succeeded =
+            crypto_generichash_blake2b_init(&keyed_state, key_bytes.data(), key_bytes.size(),
+                                            output_bytes.size()) == 0 &&
+            crypto_generichash_blake2b_update(&keyed_state, nonnull(input_bytes),
+                                              input_bytes.size()) == 0 &&
+            crypto_generichash_blake2b_final(&keyed_state, output_bytes.data(),
+                                             output_bytes.size()) == 0;
+        secure::erase_secret(std::span(&keyed_state, 1));
+        if (!call_succeeded) {
             return error::backend_failure;
         }
         return {};
@@ -1109,17 +1133,17 @@ struct blake2b_subkey_engine<backends::sodium> {
      The subkey, by `crypto_kdf_blake2b_derive_from_key`.
 
      @param output_bytes The subkey, 16 to 64 bytes. @param master_key The 32-byte master key.
-     @param subkey_id The subkey's id. @param context The 8-byte context.
+     @param subkey_id The subkey's id. @param context_bytes The 8-byte context.
      @return Success, or `error::backend_failure`.
     */
     [[nodiscard]] static boost::system::result<void> derive(
         std::span<std::uint8_t> output_bytes, std::span<std::uint8_t const> master_key,
-        std::uint64_t subkey_id, std::span<std::uint8_t const> context) noexcept {
+        std::uint64_t subkey_id, std::span<std::uint8_t const> context_bytes) noexcept {
         if (!sodium_ready()) {
             return error::backend_failure;
         }
         // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): libsodium types it char
-        auto const* const context_chars = reinterpret_cast<char const*>(context.data());
+        auto const* const context_chars = reinterpret_cast<char const*>(context_bytes.data());
         if (crypto_kdf_blake2b_derive_from_key(output_bytes.data(), output_bytes.size(), subkey_id,
                                                context_chars, master_key.data()) != 0) {
             return error::backend_failure;
@@ -1201,24 +1225,26 @@ struct sodium_argon2_engine {
      The tag, by libsodium, which computes it in a buffer of its own that it wipes; webcpp holds no
      copy of a secret.
 
-     @param output The tag. @param password The password. @param salt The 16-byte salt.
-     @param parameters The passes and the memory in KiB, within `limits`.
+     @param output_bytes The tag. @param password_bytes The password. @param salt_bytes The 16-byte
+     salt.
+     @param cost_parameters The passes and the memory in KiB, within `limits`.
      @return Success, `errc::not_enough_memory` or `error::backend_failure`.
     */
     [[nodiscard]] static boost::system::result<void> derive(
-        std::span<std::uint8_t> output, std::span<std::uint8_t const> password,
-        std::span<std::uint8_t const> salt, argon2_parameters const& parameters) noexcept {
+        std::span<std::uint8_t> output_bytes, std::span<std::uint8_t const> password_bytes,
+        std::span<std::uint8_t const> salt_bytes,
+        argon2_parameters const& cost_parameters) noexcept {
         if (!sodium_ready()) {
             return error::backend_failure;
         }
         errno = 0;
         // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): libsodium types it char
-        auto const* const password_chars = reinterpret_cast<char const*>(nonnull(password));
+        auto const* const password_chars = reinterpret_cast<char const*>(nonnull(password_bytes));
         // limits holds the memory to MaxMemory, a size_t, so the bytes never wrap.
         int const status_code =
-            Hash(output.data(), output.size(), password_chars, password.size(), salt.data(),
-                 parameters.passes, std::size_t{parameters.memory_kibibytes} * argon2id_memory_unit,
-                 Algorithm);
+            Hash(output_bytes.data(), output_bytes.size(), password_chars, password_bytes.size(),
+                 salt_bytes.data(), cost_parameters.passes,
+                 std::size_t{cost_parameters.memory_kibibytes} * argon2id_memory_unit, Algorithm);
         return sodium_pwhash_status(status_code, errno);
     }
 };

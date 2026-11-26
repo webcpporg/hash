@@ -17,8 +17,10 @@
 // gave a local or a parameter until each took two words; then every public header. Every cell of
 // every backend the program links is called (digests and hashers, MACs, the HKDFs over spans and
 // over pieces, PBKDF2, KBKDF, SSKDF, X9.63, BLAKE2b's subkeys, Argon2, scrypt and bcrypt), and
-// every asynchronous function on its default backend, which instantiates every template the calls
-// reach.
+// every asynchronous function on its default backend (bcrypt's on Botan, which is no default),
+// which instantiates every template the calls reach. The parameters of detail/xkcp.hpp's C
+// declarations, which have no body, raise no C4459 (14.3, with the globals `storage`, `input`,
+// `output` and `length` below) and keep the C adapter's names.
 //
 // How the list was made: an aggregate translation unit of every header of include/, every backend
 // and webcpp::asio linked, its AST dumped (clang -Xclang -ast-dump=json, filtered to webcpp::hash),
@@ -390,9 +392,9 @@ void call_every_async(asio::io_context& context_object) {
                                                  on_done);
     hash::async_hkdf_expand<hash::hmac_sha2_256>(io_executor, output_buffer, key_buffer,
                                                  piece_array, on_done);
+#ifdef WEBCPP_HASH_HAS_THREADS
     hash::async_pbkdf2<hash::hmac_sha2_256>(io_executor, output_buffer, test_key, test_salt, 1,
                                             on_done);
-#ifdef WEBCPP_HASH_HAS_THREADS
     hash::async_argon2id(io_executor, output_buffer, test_key, test_salt,
                          {.passes = 1, .memory = 8192}, on_done);
     hash::async_argon2<kdfs::argon2id>(io_executor, output_buffer, test_key, test_salt,
