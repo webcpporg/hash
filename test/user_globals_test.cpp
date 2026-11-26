@@ -222,10 +222,18 @@ template <class Backend, class Tag, class Key = void>
 inline constexpr bool cell_v =
     hash::detail::linked_v<Backend> && hash::backend_has_v<Backend, Tag, Key>;
 
-inline constexpr std::array<std::uint8_t, 32> test_key{1, 2,  3,  4,  5,  6,  7,  8,
-                                                       9, 10, 11, 12, 13, 14, 15, 16};
-inline constexpr std::array<std::uint8_t, 16> test_salt{16, 15, 14, 13, 12, 11, 10, 9,
-                                                        8,  7,  6,  5,  4,  3,  2,  1};
+/** `Size` bytes, each its index plus `first_byte`. */
+template <std::size_t Size>
+constexpr std::array<std::uint8_t, Size> counted_bytes(std::uint8_t first_byte) {
+    std::array<std::uint8_t, Size> counted_array{};
+    for (std::size_t byte_index = 0; byte_index < Size; ++byte_index) {
+        counted_array[byte_index] = static_cast<std::uint8_t>(first_byte + byte_index);
+    }
+    return counted_array;
+}
+
+inline constexpr std::array<std::uint8_t, 32> test_key = counted_bytes<32>(1);
+inline constexpr std::array<std::uint8_t, 16> test_salt = counted_bytes<16>(101);
 inline constexpr std::array<std::uint8_t, 24> test_input{9, 8, 7, 6, 5, 4, 3, 2, 1};
 
 /** The pieces of `test_input`, one of them empty. */
@@ -238,14 +246,20 @@ std::array<std::span<std::uint8_t const>, 3> test_pieces() {
 template <class Digest, class Backend>
 void call_digest() {
     using traits = hash::detail::digest_traits<Digest>;
-    hash::digest_options<Digest> digest_choice{};
-    if constexpr (requires { digest_choice.block_size; }) {
-        digest_choice.block_size = 8;  // ParallelHash's, which has no default
-    }
+    // The default options, but ParallelHash's block size, which has no default.
+    auto const digest_choice = [] {
+        hash::digest_options<Digest> chosen_options{};
+        if constexpr (requires { chosen_options.block_size; }) {
+            chosen_options.block_size = 8;
+        }
+        return chosen_options;
+    }();
     std::array<std::uint8_t, 64> output_buffer{};
-    auto const output_size = static_cast<std::size_t>(
-        std::min({traits::max_output(digest_choice),
-                  hash::detail::digest_engine<Backend, Digest>::max_output, std::uint64_t{64}}));
+    auto const output_size = static_cast<std::size_t>(std::min({
+        traits::max_output(digest_choice),
+        hash::detail::digest_engine<Backend, Digest>::max_output,
+        std::uint64_t{64},
+    }));
     auto const output_span = std::span(output_buffer).first(output_size);
     static_cast<void>(hash::digest_of<Digest, Backend>(output_span, test_input, digest_choice));
     auto made_hasher = hash::hasher<Digest, Backend>::make(digest_choice);
@@ -278,38 +292,51 @@ void call_mac() {
         hash::mac<Mac, Backend>(output_span, std::span(test_key).first(key_size), test_input));
 }
 
+/** Whether `Backend` has a key derivation over `Hmac`. */
+template <class Backend, class Hmac>
+inline constexpr bool hmac_family_v =
+    cell_v<Backend, kdfs::hkdf_extract, Hmac> || cell_v<Backend, kdfs::hkdf_expand, Hmac> ||
+    cell_v<Backend, kdfs::hkdf, Hmac> || cell_v<Backend, kdfs::hkdf_extract_pieces, Hmac> ||
+    cell_v<Backend, kdfs::hkdf_expand_pieces, Hmac> || cell_v<Backend, kdfs::hkdf_pieces, Hmac> ||
+    cell_v<Backend, kdfs::pbkdf2, Hmac> || cell_v<Backend, kdfs::kbkdf_hmac, Hmac>;
+
 /** Every key derivation over `Hmac` that `Backend` has: the HKDFs, PBKDF2 and KBKDF. */
 template <class Hmac, class Backend>
 void call_hmac_family() {
-    std::array<std::uint8_t, 42> output_buffer{};
-    std::array<std::uint8_t, 64> key_buffer{};
-    auto const prk_span = std::span(key_buffer).first(typename Hmac::result_type().size());
-    auto const piece_array = test_pieces();
-    if constexpr (cell_v<Backend, kdfs::hkdf_extract, Hmac>) {
-        static_cast<void>(hash::hkdf_extract<Hmac, Backend>(test_salt, test_key));
-    }
-    if constexpr (cell_v<Backend, kdfs::hkdf_expand, Hmac>) {
-        static_cast<void>(hash::hkdf_expand<Hmac, Backend>(output_buffer, prk_span, test_input));
-    }
-    if constexpr (cell_v<Backend, kdfs::hkdf, Hmac>) {
-        static_cast<void>(
-            hash::hkdf<Hmac, Backend>(output_buffer, test_salt, test_key, test_input));
-    }
-    if constexpr (cell_v<Backend, kdfs::hkdf_extract_pieces, Hmac>) {
-        static_cast<void>(hash::hkdf_extract<Hmac, Backend>(test_salt, piece_array));
-    }
-    if constexpr (cell_v<Backend, kdfs::hkdf_expand_pieces, Hmac>) {
-        static_cast<void>(hash::hkdf_expand<Hmac, Backend>(output_buffer, prk_span, piece_array));
-    }
-    if constexpr (cell_v<Backend, kdfs::hkdf_pieces, Hmac>) {
-        static_cast<void>(
-            hash::hkdf<Hmac, Backend>(output_buffer, test_salt, piece_array, piece_array));
-    }
-    if constexpr (cell_v<Backend, kdfs::pbkdf2, Hmac>) {
-        static_cast<void>(hash::pbkdf2<Hmac, Backend>(output_buffer, test_key, test_salt, 1));
-    }
-    if constexpr (cell_v<Backend, kdfs::kbkdf_hmac, Hmac>) {
-        static_cast<void>(hash::kbkdf<Hmac, Backend>(output_buffer, test_key));
+    if constexpr (hmac_family_v<Backend, Hmac>) {
+        std::array<std::uint8_t, 42> output_buffer{};
+        std::array<std::uint8_t, 64> key_buffer{};
+        auto const pseudorandom_key =
+            std::span(key_buffer).first(typename Hmac::result_type().size());
+        auto const piece_array = test_pieces();
+        if constexpr (cell_v<Backend, kdfs::hkdf_extract, Hmac>) {
+            static_cast<void>(hash::hkdf_extract<Hmac, Backend>(test_salt, test_key));
+        }
+        if constexpr (cell_v<Backend, kdfs::hkdf_expand, Hmac>) {
+            static_cast<void>(
+                hash::hkdf_expand<Hmac, Backend>(output_buffer, pseudorandom_key, test_input));
+        }
+        if constexpr (cell_v<Backend, kdfs::hkdf, Hmac>) {
+            static_cast<void>(
+                hash::hkdf<Hmac, Backend>(output_buffer, test_salt, test_key, test_input));
+        }
+        if constexpr (cell_v<Backend, kdfs::hkdf_extract_pieces, Hmac>) {
+            static_cast<void>(hash::hkdf_extract<Hmac, Backend>(test_salt, piece_array));
+        }
+        if constexpr (cell_v<Backend, kdfs::hkdf_expand_pieces, Hmac>) {
+            static_cast<void>(
+                hash::hkdf_expand<Hmac, Backend>(output_buffer, pseudorandom_key, piece_array));
+        }
+        if constexpr (cell_v<Backend, kdfs::hkdf_pieces, Hmac>) {
+            static_cast<void>(
+                hash::hkdf<Hmac, Backend>(output_buffer, test_salt, piece_array, piece_array));
+        }
+        if constexpr (cell_v<Backend, kdfs::pbkdf2, Hmac>) {
+            static_cast<void>(hash::pbkdf2<Hmac, Backend>(output_buffer, test_key, test_salt, 1));
+        }
+        if constexpr (cell_v<Backend, kdfs::kbkdf_hmac, Hmac>) {
+            static_cast<void>(hash::kbkdf<Hmac, Backend>(output_buffer, test_key));
+        }
     }
 }
 
@@ -317,17 +344,17 @@ void call_hmac_family() {
 template <class Backend>
 void call_every_cell() {
     if constexpr (hash::detail::linked_v<Backend>) {
-        for_each_tag<every_digest>([]<class Digest>() {
+        for_each_tag<every_digest>([]<class Digest> {
             if constexpr (cell_v<Backend, Digest>) {
                 call_digest<Digest, Backend>();
             }
         });
-        for_each_tag<every_mac>([]<class Mac>() {
+        for_each_tag<every_mac>([]<class Mac> {
             if constexpr (cell_v<Backend, Mac>) {
                 call_mac<Mac, Backend>();
             }
         });
-        for_each_tag<every_hmac>([]<class Hmac>() { call_hmac_family<Hmac, Backend>(); });
+        for_each_tag<every_hmac>([]<class Hmac> { call_hmac_family<Hmac, Backend>(); });
         std::array<std::uint8_t, 32> output_buffer{};
         if constexpr (cell_v<Backend, kdfs::blake2b_subkey>) {
             std::array<std::uint8_t, 8> const context_bytes{'c', 't', 'x', '_', 't', 'e', 's', 't'};
@@ -346,7 +373,7 @@ void call_every_cell() {
             static_cast<void>(hash::argon2id<Backend>(output_buffer, test_key, test_salt,
                                                       {.passes = 1, .memory = 8192}));
         }
-        for_each_tag<every_argon2>([&output_buffer]<class Variant>() {
+        for_each_tag<every_argon2>([&output_buffer]<class Variant> {
             if constexpr (cell_v<Backend, Variant, hash::argon2_parameters>) {
                 static_cast<void>(hash::argon2<Variant, Backend>(
                     output_buffer, test_key, test_salt, {.passes = 3, .memory_kibibytes = 8}));
