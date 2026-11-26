@@ -12,15 +12,17 @@
 // compilers it only runs the calls. A local takes two words, the role then the kind
 // (`timing_scope`, `completion_token`, `salt_bytes`), which no program names a global.
 //
-// Every header of another library that a hash header includes comes first, so that their own
-// names are parsed before the globals exist; then a global of every one-word name a hash header
-// gave a local or a parameter until each took two words; then every public header. Every cell of
-// every backend the program links is called (digests and hashers, MACs, the HKDFs over spans and
-// over pieces, PBKDF2, KBKDF, SSKDF, X9.63, BLAKE2b's subkeys, Argon2, scrypt and bcrypt), and
-// every asynchronous function on its default backend (bcrypt's on Botan, which is no default),
-// which instantiates every template the calls reach. The parameters of detail/xkcp.hpp's C
-// declarations, which have no body, raise no C4459 (14.3, with the globals `storage`, `input`,
-// `output` and `length` below) and keep the C adapter's names.
+// Every header of another library that a hash header includes comes first, so that their own names
+// are parsed before the globals exist; then a global of every one-word name a hash header gave a
+// local or a parameter until each took two words (but the public HKDF functions' `salt`, which the
+// change hkdf-pieces names so, and which, a function template's parameter, raises no C4459: 14.3
+// and 14.5 say nothing of a template's parameters); then every public header. Every cell of every
+// backend the program links is called (digests and hashers, MACs, the HKDFs over spans and over
+// pieces, PBKDF2, KBKDF, SSKDF, X9.63, BLAKE2b's subkeys, Argon2, scrypt and bcrypt), and every
+// asynchronous function on its default backend (bcrypt's on Botan, which is no default), which
+// instantiates every template the calls reach. The parameters of detail/xkcp.hpp's C declarations,
+// which have no body, raise no C4459 (14.3, with the globals `storage`, `input`, `output` and
+// `length` below) and keep the C adapter's names.
 //
 // How the list was made: an aggregate translation unit of every header of include/, every backend
 // and webcpp::asio linked, its AST dumped (clang -Xclang -ast-dump=json, filtered to webcpp::hash),
@@ -397,7 +399,7 @@ void call_every_cell() {
     }
 }
 
-/** Every asynchronous function, on its default backend, each completing on `io_context`. */
+/** Every asynchronous function, on its default backend, each completing on `context_object`. */
 void call_every_async(asio::io_context& context_object) {
     auto const io_executor = context_object.get_executor();
     std::array<std::uint8_t, 32> output_buffer{};

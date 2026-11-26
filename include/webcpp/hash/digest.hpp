@@ -345,11 +345,12 @@ struct extendable_output {
 };
 
 /**
- The family's guards of a tag of `digests`, in one place (spec 2.15): `min_output(options)` and
- `max_output(options)`, the output sizes the tag produces (`invalid_output_size` outside them);
- `check(options)`, the options' own guards (`invalid_parameters`, `invalid_key_size`,
- `invalid_salt_size` or `input_too_long`), success for a tag without options. Every tag of `digests`
- has a specialisation; the increment that gives a tag options adds their check to it.
+ The family's guards of a tag of `digests`, in one place (spec 2.15):
+ `min_output(algorithm_options)` and `max_output(algorithm_options)`, the output sizes the tag
+ produces (`invalid_output_size` outside them); `check(algorithm_options)`, the options' own guards
+ (`invalid_parameters`, `invalid_key_size`, `invalid_salt_size` or `input_too_long`), success for a
+ tag without options. Every tag of `digests` has a specialisation; the increment that gives a tag
+ options adds their check to it.
 
  The primary template, reached only by a type that is not a tag, guards nothing: the engine's
  refusal is then the call's only error.

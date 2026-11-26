@@ -235,8 +235,9 @@ using heavy_value_of = std::invoke_result_t<Work&>::value_type;
 
 /**
  The initiation of a cheap function on a synchronous backend: runs the function's work (its guards
- first) at once and posts the completion, with its error code, to `executor`, whence it reaches the
- handler's associated executor; the post's storage is the handler's associated allocator's.
+ first) at once and posts the completion, with its error code, to `completion_executor`, whence it
+ reaches the handler's associated executor; the post's storage is the handler's associated
+ allocator's.
 */
 struct post_initiation {
     /**
@@ -271,8 +272,8 @@ auto complete_by_post(Executor const& completion_executor, CompletionToken& comp
 
 /**
  The initiation of a form over pieces on a synchronous backend, whose work has already run: posts
- the completion, with the work's error code, to `executor`, whence it reaches the handler's
- associated executor; the post's storage is the handler's associated allocator's.
+ the completion, with the work's error code, to `completion_executor`, whence it reaches the
+ handler's associated executor; the post's storage is the handler's associated allocator's.
 */
 struct code_initiation {
     /**
@@ -375,10 +376,10 @@ enum class heavy_phase : std::uint8_t {
  `partial` are (no C library here can be interrupted: the work ends, then the output is zeroed and
  the completion is `operation_aborted`, a side effect that `total` does not allow).
 
- The completion runs on the handler's associated executor (`work` by default), where the slot's
- signal is emitted: it clears the cancellation slot, moves the handler out, destroys the state and
- gives its storage back to the handler's allocator, and only then calls the handler, so that
- nothing of that allocator outlives the call (Asio's rule). The job queued in the work executor
+ The completion runs on the handler's associated executor (`work_executor` by default), where the
+ slot's signal is emitted: it clears the cancellation slot, moves the handler out, destroys the
+ state and gives its storage back to the handler's allocator, and only then calls the handler, so
+ that nothing of that allocator outlives the call (Asio's rule). The job queued in the work executor
  holds the state through one atomic pointer, whose location the state records under a lock each
  time the job moves; a cancellation before the work starts takes the state back from that
  location, so that the job, which may wait behind other work for long, holds nothing of the
@@ -391,7 +392,7 @@ enum class heavy_phase : std::uint8_t {
 template <class Handler, class WorkExecutor, class Work>
 class heavy_state {
 public:
-    /** The handler's associated executor, `work` by default. */
+    /** The handler's associated executor, `work_executor` by default. */
     using executor_type = webcpp::asio::associated_executor_t<Handler, WorkExecutor>;
     /** The value the handler receives beside its code: `void` (none), or `bcrypt_verify`'s bool. */
     using value_type = heavy_value_of<Work>;
@@ -531,11 +532,11 @@ private:
     };
 
     // The completion, on the handler's executor, its storage the handler's allocator's. It owns
-    // the state: run, it frees the state and calls the handler (`invoke`), or, for a job destroyed
-    // unrun, only frees it, the handler with it; destroyed without running (its executor shut down
-    // or destroyed with it queued, as Asio destroys a queued operation), it frees the state and
-    // the handler too, never calling it, so that nothing of the handler's allocator is left and a
-    // handler that owns a promise breaks it.
+    // the state: run, it frees the state and calls the handler (`invoke_handler`), or, for a job
+    // destroyed unrun, only frees it, the handler with it; destroyed without running (its executor
+    // shut down or destroyed with it queued, as Asio destroys a queued operation), it frees the
+    // state and the handler too, never calling it, so that nothing of the handler's allocator is
+    // left and a handler that owns a promise breaks it.
     class completion {
     public:
         completion(heavy_state* operation_state, boost::system::error_code completion_code,
@@ -580,7 +581,7 @@ private:
           run_(std::move(bound_call)),
           output_(output_bytes) {}
 
-    // Constructs the state in `storage`, which is given back if the construction throws.
+    // Constructs the state in `state_storage`, which is given back if the construction throws.
     static void try_construct(allocator_type& handler_allocator, heavy_state* state_storage,
                               Handler completion_handler, WorkExecutor const& work_executor,
                               Work bound_call, std::span<std::byte> output_bytes) {
@@ -608,7 +609,8 @@ private:
 
     void unlock() noexcept { lock_.clear(std::memory_order_release); }
 
-    // The completion bound to the handler's associated allocator; `invoke` false only discards.
+    // The completion bound to the handler's associated allocator; `invoke_handler` false only
+    // discards.
     auto bound_completion(boost::system::error_code completion_code, bool invoke_handler = true) {
         // NOLINTNEXTLINE(bugprone-unchecked-optional-access): engaged until the completion
         return webcpp::asio::bind_allocator(webcpp::asio::get_associated_allocator(*handler_),
@@ -810,8 +812,7 @@ auto run_on_work(WorkExecutor const& work_executor, std::span<std::byte> output_
 /**
  Hashes `input_bytes` into `output_bytes` with the digest `Digest`, asynchronously (spec 11): on a
  synchronous backend, the default, at once, completing through a post on the handler's associated
- executor
- (`completion_executor` by default), never inside the call.
+ executor (`completion_executor` by default), never inside the call.
 
  @code
  webcpp::hash::async_digest<webcpp::hash::digests::sha2_256>(
@@ -860,8 +861,7 @@ auto async_digest(Executor const& completion_executor, std::span<std::uint8_t> o
 
 /**
  The HMAC of `input_bytes` under `key_bytes` over the Boost.Hash2 hmac `Hmac`, asynchronously (spec
- 11), as
- @ref async_digest runs: the tag of `mac<macs::hmac<...>>` over `Hmac`'s digest.
+ 11), as @ref async_digest runs: the tag of `mac<macs::hmac<...>>` over `Hmac`'s digest.
 
  @tparam Hmac `hmac_sha1_160`, `hmac_sha2_256`, `hmac_sha2_384` or `hmac_sha2_512`, the hmacs
  WebCrypto has; another refuses at compile time (`mac` has them all).
@@ -922,8 +922,7 @@ auto async_hmac(Executor const& completion_executor, std::span<std::uint8_t> out
  @param output_key_material The output keying material, 1 to 255 times the digest size.
  @param salt The salt. @param input_key_material The input keying material. @param application_info
  The context, at most `hkdf_max_application_info_size` bytes; on `backends::webcrypto` at most
- 1,024, WebCrypto's limit
- (`input_too_long` beyond). The spans are the caller's until completion.
+ 1,024, WebCrypto's limit (`input_too_long` beyond). The spans are the caller's until completion.
  @param completion_token The completion token, of signature `void(boost::system::error_code)`.
  @return What the completion token's `async_result` gives. The completion's code is empty on
  success, or `hkdf`'s error, `output_key_material` untouched by a guard's refusal and zeroed by a
@@ -1216,9 +1215,8 @@ auto async_hkdf_expand(Executor const& completion_executor,
  behind another allocator or two concrete strands, completes with `invalid_parameters`, posted to
  the handler's associated executor. The calling thread is the program's duty, not checked. WebCrypto
  takes at most 2^32 - 1 iterations (`invalid_iterations`) and an output of at most (2^32 - 1) / 8
- bytes
- (`invalid_output_size`), over `hmac_sha1_160`, `hmac_sha2_256`, `hmac_sha2_384` and `hmac_sha2_512`
- alone.
+ bytes (`invalid_output_size`), over `hmac_sha1_160`, `hmac_sha2_256`, `hmac_sha2_384` and
+ `hmac_sha2_512` alone.
 
  Cancellation through the handler's slot, on a synchronous backend: before the work starts, any
  type completes the operation at once with `operation_aborted`, the work never runs; during it, a

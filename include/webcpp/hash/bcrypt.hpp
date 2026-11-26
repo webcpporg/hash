@@ -246,8 +246,8 @@ template <class Backend>
 
 /**
  The modular crypt string of `password_bytes` under the caller's 16-byte `salt_bytes`, into 60
- chars:
- "$2", the version, "$", the cost in two digits, "$", the salt then the hash in bcrypt's base 64.
+ chars: "$2", the version, "$", the cost in two digits, "$", the salt then the hash in bcrypt's base
+ 64.
 
  @tparam Backend The backend; @ref default_backend of `kdfs::bcrypt` has none (design D34): the
  call names `backends::botan`.

@@ -131,8 +131,9 @@ inline constexpr std::uint64_t hmac_min_output = 10;
 /**
  The family's guards of a tag of `macs`, in one place (spec 2.15): `min_output` and `max_output`
  (`invalid_output_size` outside them), `min_key` and `max_key` (`invalid_key_size`), and
- `check(options)`, the options' own guards (`input_too_long` for KMAC's customisation). Every tag of
- `macs` has a specialisation; the increment that gives a tag options adds their check to it.
+ `check(algorithm_options)`, the options' own guards (`input_too_long` for KMAC's customisation).
+ Every tag of `macs` has a specialisation; the increment that gives a tag options adds their check
+ to it.
 
  The primary template, reached only by a type that is not a tag, guards nothing: the engine's
  refusal is then the call's only error.

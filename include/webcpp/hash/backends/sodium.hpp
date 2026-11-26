@@ -298,8 +298,8 @@ struct sodium_hkdf_engine {
     /**
      RFC 5869, 2.3, by libsodium's `_expand`.
 
-     @param output_key_material The OKM, its size L. @param pseudorandom_key The PRK. @param
-     application_info The info.
+     @param output_key_material The OKM, its size L. @param pseudorandom_key The PRK.
+     @param application_info The info.
      @return Success, or `error::backend_failure`.
     */
     [[nodiscard]] static boost::system::result<void> expand(
@@ -950,8 +950,8 @@ struct sodium_hmac_engine : full_engine {
     /**
      The tag of `input_bytes` under `key_bytes`.
 
-     @param output_bytes The tag, 10 bytes to the digest's size (the family's guard). @param
-     key_bytes The key, of any size. @param input_bytes The message.
+     @param output_bytes The tag, 10 bytes to the digest's size (the family's guard).
+     @param key_bytes The key, of any size. @param input_bytes The message.
      @return Success, or `error::backend_failure`.
     */
     [[nodiscard]] static boost::system::result<void> compute(

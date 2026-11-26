@@ -1487,8 +1487,8 @@ struct botan_pbkdf2_engine {
     /**
      RFC 8018, 5.2.
 
-     @param output_key_material DK. @param password_bytes P. @param salt_bytes S. @param
-     iteration_count c.
+     @param output_key_material DK. @param password_bytes P. @param salt_bytes S.
+     @param iteration_count c.
      @return Success, or Botan's failure.
     */
     [[nodiscard]] static boost::system::result<void> derive(

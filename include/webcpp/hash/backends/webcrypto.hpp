@@ -475,7 +475,7 @@ struct webcrypto_pbkdf2_request {
 /**
  One WebCrypto call as an Asio composed operation (`async_compose`): the request's first promise
  awaited through `browser::async_await`, then, for a call of two, its second with the first's
- result (the imported key); the completion copies the resulting `ArrayBuffer` into `output`.
+ result (the imported key); the completion copies the resulting `ArrayBuffer` into `output_bytes`.
 
  Its storage is the bridge's, one wait at a time, taken from the handler's associated allocator
  and given back before the wait's completion is posted, so that nothing of that allocator
@@ -626,8 +626,8 @@ void post_webcrypto_refusal(Handler&& completion_handler, Executor const& comple
 
 /**
  The initiation of a WebCrypto call: @ref webcrypto_refusal, whose refusal is posted to the
- handler's associated executor (`executor` by default) with its error; else the composed operation
- starts.
+ handler's associated executor (`completion_executor` by default) with its error; else the composed
+ operation starts.
 */
 struct webcrypto_initiation {
     /**
@@ -887,7 +887,8 @@ struct webcrypto_hmac_hkdf_request {
     }
 
 private:
-    // `pieces` into `buffer` (webcrypto_gather) while every earlier input has been gathered.
+    // `input_pieces` into `target_buffer` (webcrypto_gather) while every earlier input has been
+    // gathered.
     void gather(webcrypto_secret& target_buffer, byte_pieces input_pieces, std::size_t prefix_size,
                 std::size_t suffix_size) {
         if (gathered) {
@@ -1053,7 +1054,7 @@ private:
         return true;
     }
 
-    // Awaits `promise`, the operation moved into the wait.
+    // Awaits `pending_promise`, the operation moved into the wait.
     template <class Self>
     void await(Self& operation_self, emscripten::val pending_promise) {
         // A copy: the wait moves `operation_self`, and this operation with it, before it reads the
@@ -1079,13 +1080,13 @@ private:
                                                      message_data);
     }
 
-    // Whether `value` is a tag: an ArrayBuffer of HashLen bytes.
+    // Whether `promise_value` is a tag: an ArrayBuffer of HashLen bytes.
     [[nodiscard]] bool is_tag(emscripten::val const& promise_value) const {
         return promise_value.instanceof(emscripten::val::global("ArrayBuffer")) &&
                promise_value["byteLength"].as<std::size_t>() == request_.digest_length;
     }
 
-    // A Uint8Array over the ArrayBuffer `buffer`.
+    // A Uint8Array over the ArrayBuffer `array_buffer`.
     [[nodiscard]] static emscripten::val uint8_array(emscripten::val const& array_buffer) {
         return emscripten::val::global("Uint8Array").new_(array_buffer);
     }
@@ -1095,7 +1096,7 @@ private:
         return request_.blocks.bytes()["length"].as<double>() - 1;
     }
 
-    // The first `size` bytes of `tag` into the output at `offset`.
+    // The first `byte_count` bytes of `tag_value` into the output at `byte_offset`.
     void copy(emscripten::val const& tag_value, std::size_t byte_offset, std::size_t byte_count) {
         emscripten::val(emscripten::typed_memory_view(
                             byte_count, output_.subspan(byte_offset, byte_count).data()))
@@ -1271,8 +1272,8 @@ public:
      `async_hmac`: `importKey`, then `sign`; a tag shorter than the digest is its first bytes.
 
      @tparam Hmac `hmac_sha1_160`, `hmac_sha2_256`, `hmac_sha2_384` or `hmac_sha2_512`.
-     @param completion_executor The io_context's executor. @param output_bytes The tag. @param
-     key_bytes The key.
+     @param completion_executor The io_context's executor. @param output_bytes The tag.
+     @param key_bytes The key.
      @param input_bytes The message. @param completion_token The completion token.
      @return What the completion token's `async_result` gives.
     */
@@ -1301,8 +1302,8 @@ public:
      @tparam Hmac `hmac_sha1_160`, `hmac_sha2_256`, `hmac_sha2_384` or `hmac_sha2_512`.
      @param completion_executor The io_context's executor. @param output_key_material The output
      keying material.
-     @param salt_bytes The salt. @param input_key_material The input keying material. @param
-     application_info The application info.
+     @param salt_bytes The salt. @param input_key_material The input keying material.
+     @param application_info The application info.
      @param completion_token The completion token.
      @return What the completion token's `async_result` gives.
     */

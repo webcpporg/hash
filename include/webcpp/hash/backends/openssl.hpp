@@ -596,8 +596,8 @@ struct hkdf_engine<backends::openssl, Hmac> {
     /**
      RFC 5869, 2.3, in expand-only mode.
 
-     @param output_key_material The OKM, its size L. @param pseudorandom_key The PRK. @param
-     application_info The info.
+     @param output_key_material The OKM, its size L. @param pseudorandom_key The PRK.
+     @param application_info The info.
      @return Success, or OpenSSL's failure.
     */
     [[nodiscard]] static boost::system::result<void> expand(
@@ -1861,14 +1861,14 @@ struct sskdf_engine<backends::openssl, Digest> : openssl_digest_kdf_engine<Diges
     /**
      SP 800-56C Rev. 2, section 4.1.
 
-     @param output_bytes The output. @param secret_bytes Z. @param fixed_info_bytes FixedInfo.
+     @param output_bytes The output. @param secret_bytes Z. @param fixed_info FixedInfo.
      @return Success, or OpenSSL's failure.
     */
     [[nodiscard]] static boost::system::result<void> derive(
         std::span<std::uint8_t> output_bytes, std::span<std::uint8_t const> secret_bytes,
-        std::span<std::uint8_t const> fixed_info_bytes) noexcept {
+        std::span<std::uint8_t const> fixed_info) noexcept {
         return openssl_digest_kdf_engine<Digest>::derive_with("SSKDF", output_bytes, secret_bytes,
-                                                              fixed_info_bytes);
+                                                              fixed_info);
     }
 };
 
@@ -1883,14 +1883,14 @@ struct x963kdf_engine<backends::openssl, Digest> : openssl_digest_kdf_engine<Dig
     /**
      ANSI X9.63-2011, section 5.6.3.
 
-     @param output_bytes The output. @param secret_bytes Z. @param shared_info_bytes SharedInfo.
+     @param output_bytes The output. @param secret_bytes Z. @param shared_info SharedInfo.
      @return Success, or OpenSSL's failure.
     */
     [[nodiscard]] static boost::system::result<void> derive(
         std::span<std::uint8_t> output_bytes, std::span<std::uint8_t const> secret_bytes,
-        std::span<std::uint8_t const> shared_info_bytes) noexcept {
+        std::span<std::uint8_t const> shared_info) noexcept {
         return openssl_digest_kdf_engine<Digest>::derive_with("X963KDF", output_bytes, secret_bytes,
-                                                              shared_info_bytes);
+                                                              shared_info);
     }
 };
 

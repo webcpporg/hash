@@ -117,8 +117,8 @@ struct digest_engine<backends::xkcp, digests::keccak_256> : full_engine {
  A digest of `digests` on backends::xkcp over FIPS 202's `Keccak_Hash` (its interface is
  @ref digest_engine); Keccak-n, SHA3-n or SHAKE, by the sponge's capacity and padding. The state
  is the instance's storage, `xkcp_keccak_hash_storage`, wiped by `destroy`. A fixed-size digest
- is written by `final`; an extendable output is squeezed, `output.size()` bytes from the first.
- A refusal of XKCP's, which the family's guards leave no way to reach, is `backend_failure`.
+ is written by `final`; an extendable output is squeezed, `output_bytes.size()` bytes from the
+ first. A refusal of XKCP's, which the family's guards leave no way to reach, is `backend_failure`.
 
  @tparam Digest The tag.
  @tparam Capacity The sponge's capacity in bits (twice the digest's size; 256 for SHAKE128, 512
@@ -351,7 +351,7 @@ struct xkcp_kmac256_functions {
 /**
  cSHAKE on backends::xkcp (its interface is @ref digest_engine); XKCP's `cSHAKE_Instance` in
  `xkcp_cshake_storage`, wiped by `destroy`. It starts in the XOF form, since cSHAKE does not
- encode the output's length, and squeezes `output.size()` bytes. The family's guards hold the
+ encode the output's length, and squeezes `output_bytes.size()` bytes. The family's guards hold the
  strings within `sp800_185_max_bytes`, the adapter's only refusal at `initialize`; any other
  nonzero answer of XKCP's is `backend_failure`.
 
@@ -676,8 +676,8 @@ struct xkcp_parallelhash_engine : full_engine {
 
 /**
  KMAC on backends::xkcp (its interface is @ref mac_engine); XKCP's `KMAC_Instance`, on the stack
- and wiped. The fixed-length form starts with L = `output.size()` and writes the tag at `final`;
- the XOF form starts with 0 and squeezes it. Every key and tag size the family accepts.
+ and wiped. The fixed-length form starts with L = `output_bytes.size()` and writes the tag at
+ `final`; the XOF form starts with 0 and squeezes it. Every key and tag size the family accepts.
 
  @tparam Mac The tag. @tparam Functions The adapter's functions of its security strength.
 */
@@ -719,8 +719,8 @@ struct xkcp_kmac_engine : full_engine {
 /**
  TurboSHAKE on backends::xkcp (its interface is @ref digest_engine); XKCP's `TurboSHAKE_Instance`
  in `xkcp_turboshake_storage`, with the domain byte, both wiped by `destroy`. `finish` absorbs D
- and squeezes `output.size()` bytes. The family's guard holds D within 0x01 to 0x7F (XKCP takes
- any byte but 0); any nonzero answer of XKCP's is `backend_failure`. Every option and output
+ and squeezes `output_bytes.size()` bytes. The family's guard holds D within 0x01 to 0x7F (XKCP
+ takes any byte but 0); any nonzero answer of XKCP's is `backend_failure`. Every option and output
  size the family accepts.
 
  @tparam Digest The tag. @tparam Capacity 256 for TurboSHAKE128, 512 for TurboSHAKE256.
@@ -811,8 +811,8 @@ struct xkcp_turboshake_engine : full_engine {
  `KangarooTwelve_Instance` in `xkcp_kangarootwelve_storage`, started with no fixed output, the
  customisation's span, and the bytes counted so far, all wiped by `destroy`. XKCP takes C at
  `KangarooTwelve_Final`, so the state keeps the span `init` took (ruling R33) and `finish` reads
- it, then squeezes `output.size()` bytes. XKCP counts the 8,192-byte chunks of the message and C
- in a `size_t`, which on wasm32 would wrap past 32 TiB: the engine counts the bytes of C and the
+ it, then squeezes `output_bytes.size()` bytes. XKCP counts the 8,192-byte chunks of the message and
+ C in a `size_t`, which on wasm32 would wrap past 32 TiB: the engine counts the bytes of C and the
  message in 64 bits and refuses the call that would take them past `kangarootwelve_max_bytes`
  with `input_too_long`, before XKCP sees the bytes, after which a hasher is spent and
  `digest_of`'s output zeroed. XKCP computes the chunks one after another (no parallel permutation

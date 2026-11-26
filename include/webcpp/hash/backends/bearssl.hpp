@@ -735,7 +735,7 @@ struct digest_engine<backends::bearssl, digests::shake_256>
  mac_engine.
 
  It runs `br_hmac_key_init` with the digest's `br_hash_class` and the key,
- `br_hmac_init` for a tag of `output.size()` bytes (BearSSL cuts the digest to it, RFC 2104
+ `br_hmac_init` for a tag of `output_bytes.size()` bytes (BearSSL cuts the digest to it, RFC 2104
  section 5), `br_hmac_update` and `br_hmac_out`; both contexts are wiped.
 
  @tparam Digest The digest's tag.

@@ -92,8 +92,8 @@ struct hkdf_engine<backends::hash2, Hmac> {
      RFC 5869, 2.3: T(0) = empty; T(i) = HMAC-Hash(PRK, T(i-1) | info | i); OKM = the first L
      octets of T(1) | T(2) | ... | T(N), N = ceil(L/HashLen).
 
-     @param output_key_material The OKM, its size L. @param pseudorandom_key The PRK. @param
-     application_info The info.
+     @param output_key_material The OKM, its size L. @param pseudorandom_key The PRK.
+     @param application_info The info.
      @return Success.
     */
     [[nodiscard]] static boost::system::result<void> expand(
@@ -307,10 +307,10 @@ struct pbkdf2_engine<backends::hash2, Hmac> {
 /**
  A digest of `digests` on backends::hash2, over the Boost.Hash2 algorithm `Hash` (its interface is
  @ref digest_engine); the state is a `Hash`, wiped by `destroy`. The output is the first
- `output.size()` bytes of the results of `result()`, called one after the other: one result, the
- whole of it, for a fixed-size digest, which the family's guards hold to its size; for SHAKE, whose
- every `result()` permutes and gives the next block of the stream, as many blocks as the output
- needs.
+ `output_bytes.size()` bytes of the results of `result()`, called one after the other: one result,
+ the whole of it, for a fixed-size digest, which the family's guards hold to its size; for SHAKE,
+ whose every `result()` permutes and gives the next block of the stream, as many blocks as the
+ output needs.
 
  @tparam Digest The tag. @tparam Hash Its Boost.Hash2 algorithm.
 */
@@ -643,8 +643,8 @@ struct mac_engine<backends::hash2, macs::blake2s_mac> : full_engine {
     /**
      The tag of `input_bytes` under `key_bytes`.
 
-     @param output_bytes The tag, 32 bytes. @param key_bytes The key, 1 to 32 bytes. @param
-     input_bytes The message.
+     @param output_bytes The tag, 32 bytes. @param key_bytes The key, 1 to 32 bytes.
+     @param input_bytes The message.
      @return Success.
     */
     [[nodiscard]] static boost::system::result<void> compute(
