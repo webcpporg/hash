@@ -164,11 +164,11 @@ template <class Backend = default_backend<kdfs::argon2id>>
                                                    std::span<std::uint8_t const> password_bytes,
                                                    std::span<std::uint8_t const> salt_bytes,
                                                    argon2id_parameters const& cost_parameters) {
-    secure::timing_guard const timing;
-    auto guarded = detail::argon2id_guards<Backend>(output_bytes.size(), password_bytes.size(),
-                                                    salt_bytes.size(), cost_parameters);
-    if (!guarded) {
-        return guarded;
+    secure::timing_guard const timing_scope;
+    auto guard_result = detail::argon2id_guards<Backend>(output_bytes.size(), password_bytes.size(),
+                                                         salt_bytes.size(), cost_parameters);
+    if (!guard_result) {
+        return guard_result;
     }
     auto derive_result = detail::argon2id_engine<Backend>::derive(
         output_bytes, password_bytes, salt_bytes, cost_parameters.passes, cost_parameters.memory);
@@ -217,20 +217,22 @@ inline constexpr std::uint64_t argon2_min_salt = 8;
  The backend's limits within RFC 9106's: whether `Engine` takes these values.
 
  @param output_size The tag's size. @param salt_size The salt's size.
- @param parameters The parameters.
+ @param cost_parameters The parameters.
  @return Whether the engine's `limits` hold them all.
 */
 template <class Engine>
 bool argon2_engine_takes(std::size_t output_size, std::size_t salt_size,
-                         argon2_parameters const& parameters) noexcept {
+                         argon2_parameters const& cost_parameters) noexcept {
     // Each bound through exceeds: a limit at the type's own bound would be a tautology.
-    constexpr argon2_limits limits = Engine::limits;
-    return !exceeds(limits.min_passes, parameters.passes) &&
-           !exceeds(parameters.memory_kibibytes, limits.max_memory_kibibytes) &&
-           !exceeds(parameters.lanes, limits.max_lanes) &&
-           !exceeds(limits.min_output, output_size) && !exceeds(limits.min_salt, salt_size) &&
-           !exceeds(salt_size, limits.max_salt) && (limits.secret || parameters.secret.empty()) &&
-           (limits.associated_data || parameters.associated_data.empty());
+    constexpr argon2_limits engine_limits = Engine::limits;
+    return !exceeds(engine_limits.min_passes, cost_parameters.passes) &&
+           !exceeds(cost_parameters.memory_kibibytes, engine_limits.max_memory_kibibytes) &&
+           !exceeds(cost_parameters.lanes, engine_limits.max_lanes) &&
+           !exceeds(engine_limits.min_output, output_size) &&
+           !exceeds(engine_limits.min_salt, salt_size) &&
+           !exceeds(salt_size, engine_limits.max_salt) &&
+           (engine_limits.secret || cost_parameters.secret.empty()) &&
+           (engine_limits.associated_data || cost_parameters.associated_data.empty());
 }
 
 /**
@@ -239,13 +241,13 @@ bool argon2_engine_takes(std::size_t output_size, std::size_t salt_size,
 
  @tparam Variant The variant. @tparam Backend The backend.
  @param output_size The tag's size. @param password_size The password's size.
- @param salt_size The salt's size. @param parameters The parameters.
+ @param salt_size The salt's size. @param cost_parameters The parameters.
  @return Success, or the error of the first guard that fails, as `argon2` returns it.
 */
 template <class Variant, class Backend>
 [[nodiscard]] boost::system::result<void> argon2_guards(
     std::size_t output_size, std::size_t password_size, std::size_t salt_size,
-    argon2_parameters const& parameters) noexcept {
+    argon2_parameters const& cost_parameters) noexcept {
     using engine = argon2_engine<Backend, Variant>;
     if (exceeds(argon2_min_output, output_size) || exceeds(output_size, argon2id_max_size)) {
         return error::invalid_output_size;
@@ -254,16 +256,17 @@ template <class Variant, class Backend>
         return error::invalid_salt_size;
     }
     if (exceeds(password_size, argon2id_max_size) ||
-        exceeds(parameters.secret.size(), argon2id_max_size) ||
-        exceeds(parameters.associated_data.size(), argon2id_max_size)) {
+        exceeds(cost_parameters.secret.size(), argon2id_max_size) ||
+        exceeds(cost_parameters.associated_data.size(), argon2id_max_size)) {
         return error::input_too_long;
     }
-    if (parameters.passes < 1 || parameters.lanes < 1 || parameters.lanes > argon2_max_lanes ||
-        parameters.memory_kibibytes <
-            argon2_min_memory_kibibytes_per_lane * std::uint64_t{parameters.lanes}) {
+    if (cost_parameters.passes < 1 || cost_parameters.lanes < 1 ||
+        cost_parameters.lanes > argon2_max_lanes ||
+        cost_parameters.memory_kibibytes <
+            argon2_min_memory_kibibytes_per_lane * std::uint64_t{cost_parameters.lanes}) {
         return error::invalid_parameters;
     }
-    if (!argon2_engine_takes<engine>(output_size, salt_size, parameters)) {
+    if (!argon2_engine_takes<engine>(output_size, salt_size, cost_parameters)) {
         return error::unsupported_by_backend;
     }
     return {};
@@ -272,42 +275,42 @@ template <class Variant, class Backend>
 }  // namespace detail
 
 /**
- Argon2 version 0x13 (RFC 9106) of the variant `Variant` with every parameter: fills `output` from
- `password` and `salt`.
+ Argon2 version 0x13 (RFC 9106) of the variant `Variant` with every parameter: fills `output_bytes`
+ from `password_bytes` and `salt_bytes`.
 
  Every guard of RFC 9106 runs first, then the backend's own limits (`unsupported_by_backend`), and
- a refusal leaves `output` as it was; a backend's failure zeroes it.
+ a refusal leaves `output_bytes` as it was; a backend's failure zeroes it.
 
  @tparam Variant `kdfs::argon2id` (recommended for passwords), `kdfs::argon2i` or `kdfs::argon2d`.
  @tparam Backend The backend; by default @ref default_backend of `Variant` (spec 4.1):
  `backends::sodium` for Argon2id and Argon2i, none for Argon2d, which names its backend
  (`backends::openssl`, which has every variant with every parameter, or `backends::botan`, which
  has every variant with at most 128 lanes and 8 GiB of memory, 2 GiB on wasm32).
- @param output The tag, 4 to 4,294,967,295 bytes; it must not overlap the inputs.
- @param password The password, at most 4,294,967,295 bytes.
- @param salt The salt, 8 to 4,294,967,295 bytes (16 random bytes are the usual choice).
- @param parameters The costs, the lanes, the secret and the associated data.
+ @param output_bytes The tag, 4 to 4,294,967,295 bytes; it must not overlap the inputs.
+ @param password_bytes The password, at most 4,294,967,295 bytes.
+ @param salt_bytes The salt, 8 to 4,294,967,295 bytes (16 random bytes are the usual choice).
+ @param cost_parameters The costs, the lanes, the secret and the associated data.
  @return Success; or the first guard's error (`invalid_output_size`, `invalid_salt_size`,
- `input_too_long`, `invalid_parameters`, `unsupported_by_backend`), `output` untouched; or
- `errc::not_enough_memory` or `backend_failure`, `output` zeroed.
+ `input_too_long`, `invalid_parameters`, `unsupported_by_backend`), `output_bytes` untouched; or
+ `errc::not_enough_memory` or `backend_failure`, `output_bytes` zeroed.
 */
 template <class Variant, class Backend = default_backend<Variant>>
-[[nodiscard]] boost::system::result<void> argon2(std::span<std::uint8_t> output,
-                                                 std::span<std::uint8_t const> password,
-                                                 std::span<std::uint8_t const> salt,
-                                                 argon2_parameters const& parameters) {
-    secure::timing_guard const timing;
-    auto guarded = detail::argon2_guards<Variant, Backend>(output.size(), password.size(),
-                                                           salt.size(), parameters);
-    if (!guarded) {
-        return guarded;
+[[nodiscard]] boost::system::result<void> argon2(std::span<std::uint8_t> output_bytes,
+                                                 std::span<std::uint8_t const> password_bytes,
+                                                 std::span<std::uint8_t const> salt_bytes,
+                                                 argon2_parameters const& cost_parameters) {
+    secure::timing_guard const timing_scope;
+    auto guard_result = detail::argon2_guards<Variant, Backend>(
+        output_bytes.size(), password_bytes.size(), salt_bytes.size(), cost_parameters);
+    if (!guard_result) {
+        return guard_result;
     }
-    auto derived =
-        detail::argon2_engine<Backend, Variant>::derive(output, password, salt, parameters);
-    if (!derived) {
-        secure::erase_secret(output);
+    auto derive_result = detail::argon2_engine<Backend, Variant>::derive(
+        output_bytes, password_bytes, salt_bytes, cost_parameters);
+    if (!derive_result) {
+        secure::erase_secret(output_bytes);
     }
-    return derived;
+    return derive_result;
 }
 
 }  // namespace webcpp::hash

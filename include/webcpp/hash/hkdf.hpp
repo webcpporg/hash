@@ -188,14 +188,14 @@ template <class Hmac, class Backend>
 template <class Hmac, class Backend = default_kdf_backend<Hmac, kdfs::hkdf_extract>>
 [[nodiscard]] boost::system::result<typename detail::hmac_result<Hmac>::type> hkdf_extract(
     std::span<std::uint8_t const> salt, std::span<std::uint8_t const> input_key_material) {
-    secure::timing_guard const timing;
+    secure::timing_guard const timing_scope;
     if constexpr (!detail::takes_hmac<Hmac>()) {
         return error::backend_failure;  // unreachable: takes_hmac has stopped the build
     } else {
-        auto const guarded =
+        auto const guard_result =
             detail::hkdf_extract_guards<Backend>(salt.size(), input_key_material.size());
-        if (!guarded) {
-            return guarded.error();
+        if (!guard_result) {
+            return guard_result.error();
         }
         return detail::hkdf_engine<Backend, Hmac>::extract(salt, input_key_material);
     }
@@ -219,7 +219,7 @@ template <class Hmac, class Backend = default_kdf_backend<Hmac, kdfs::hkdf_expan
 [[nodiscard]] boost::system::result<void> hkdf_expand(
     std::span<std::uint8_t> output_key_material, std::span<std::uint8_t const> pseudorandom_key,
     std::span<std::uint8_t const> application_info) {
-    secure::timing_guard const timing;
+    secure::timing_guard const timing_scope;
     if constexpr (!detail::takes_hmac<Hmac>()) {
         return error::backend_failure;  // unreachable: takes_hmac has stopped the build
     } else {
@@ -270,15 +270,15 @@ template <class Hmac, class Backend = default_kdf_backend<Hmac>>
                                                std::span<std::uint8_t const> salt,
                                                std::span<std::uint8_t const> input_key_material,
                                                std::span<std::uint8_t const> application_info) {
-    secure::timing_guard const timing;
+    secure::timing_guard const timing_scope;
     if constexpr (!detail::takes_hmac<Hmac>()) {
         return error::backend_failure;  // unreachable: takes_hmac has stopped the build
     } else {
-        auto guarded =
+        auto guard_result =
             detail::hkdf_guards<Hmac, Backend>(output_key_material.size(), salt.size(),
                                                input_key_material.size(), application_info.size());
-        if (!guarded) {
-            return guarded;
+        if (!guard_result) {
+            return guard_result;
         }
         auto derive_result = detail::hkdf_engine<Backend, Hmac>::extract_and_expand(
             output_key_material, salt, input_key_material, application_info);
@@ -309,13 +309,13 @@ template <class Hmac, class Backend = default_kdf_backend<Hmac>>
 template <class Hmac, class Backend = default_kdf_backend<Hmac, kdfs::hkdf_extract_pieces>>
 [[nodiscard]] boost::system::result<typename detail::hmac_result<Hmac>::type> hkdf_extract(
     std::span<std::uint8_t const> salt, byte_pieces input_key_material) {
-    secure::timing_guard const timing;
+    secure::timing_guard const timing_scope;
     if constexpr (!detail::takes_hmac<Hmac>()) {
         return error::backend_failure;  // unreachable: takes_hmac has stopped the build
     } else {
-        auto const guarded = detail::hkdf_pieces_salt_guard<Backend>(salt.size());
-        if (!guarded) {
-            return guarded.error();
+        auto const guard_result = detail::hkdf_pieces_salt_guard<Backend>(salt.size());
+        if (!guard_result) {
+            return guard_result.error();
         }
         return detail::hkdf_pieces_engine<Backend, Hmac>::extract(salt, input_key_material);
     }
@@ -339,13 +339,14 @@ template <class Hmac, class Backend = default_kdf_backend<Hmac, kdfs::hkdf_expan
 [[nodiscard]] boost::system::result<void> hkdf_expand(
     std::span<std::uint8_t> output_key_material, std::span<std::uint8_t const> pseudorandom_key,
     byte_pieces application_info) {
-    secure::timing_guard const timing;
+    secure::timing_guard const timing_scope;
     if constexpr (!detail::takes_hmac<Hmac>()) {
         return error::backend_failure;  // unreachable: takes_hmac has stopped the build
     } else {
-        auto guarded = detail::hkdf_pieces_guards<Hmac, Backend>(output_key_material.size(), 0);
-        if (!guarded) {
-            return guarded;
+        auto guard_result =
+            detail::hkdf_pieces_guards<Hmac, Backend>(output_key_material.size(), 0);
+        if (!guard_result) {
+            return guard_result;
         }
         // Hash2 1.92 declares no std::tuple_size for digest<N>; its size() is constexpr.
         constexpr std::size_t digest_length = typename Hmac::result_type().size();
@@ -387,14 +388,14 @@ template <class Hmac, class Backend = default_kdf_backend<Hmac, kdfs::hkdf_piece
                                                std::span<std::uint8_t const> salt,
                                                byte_pieces input_key_material,
                                                byte_pieces application_info) {
-    secure::timing_guard const timing;
+    secure::timing_guard const timing_scope;
     if constexpr (!detail::takes_hmac<Hmac>()) {
         return error::backend_failure;  // unreachable: takes_hmac has stopped the build
     } else {
-        auto guarded =
+        auto guard_result =
             detail::hkdf_pieces_guards<Hmac, Backend>(output_key_material.size(), salt.size());
-        if (!guarded) {
-            return guarded;
+        if (!guard_result) {
+            return guard_result;
         }
         auto derive_result = detail::hkdf_pieces_engine<Backend, Hmac>::extract_and_expand(
             output_key_material, salt, input_key_material, application_info);

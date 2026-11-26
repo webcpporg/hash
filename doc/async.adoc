@@ -230,10 +230,12 @@ to the synchronous function.
 
 HKDF's three asynchronous functions are those of <<hash-hkdf>>, the
 pseudorandom key written into a span of the digest's size:
-`async_hkdf_extract(executor, pseudorandom_key, salt, input_key_material,
-token)`, `async_hkdf_expand(executor, output_key_material, pseudorandom_key,
-application_info, token)` and `async_hkdf(executor, output_key_material, salt,
-input_key_material, application_info, token)`. Each also has a form over
+`async_hkdf_extract(completion_executor, pseudorandom_key, salt,
+input_key_material, completion_token)`,
+`async_hkdf_expand(completion_executor, output_key_material, pseudorandom_key,
+application_info, completion_token)` and `async_hkdf(completion_executor,
+output_key_material, salt, input_key_material, application_info,
+completion_token)`. Each also has a form over
 `byte_pieces` (<<hash-hkdf-pieces>>), with no limit on the pieces, whose
 inputs are read in the call: on a synchronous backend the synchronous function
 over pieces runs in the call itself and only its error code is posted, and on

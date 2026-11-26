@@ -181,18 +181,18 @@ inline void touch_botan_canary() noexcept {
 }
 
 /**
- Runs `work`, every call of Botan an engine function makes, inside one `try`, after reading the
- canary: the boundary no exception crosses.
+ Runs `boundary_call`, every call of Botan an engine function makes, inside one `try`, after reading
+ the canary: the boundary no exception crosses.
 
- @param work A callable that calls Botan.
+ @param boundary_call A callable that calls Botan.
  @return Success; `errc::not_enough_memory` when Botan or the standard library could not allocate
  (`std::bad_alloc`); `error::backend_failure` for any other exception.
 */
 template <class Work>
-[[nodiscard]] boost::system::result<void> botan_boundary(Work&& work) noexcept {
+[[nodiscard]] boost::system::result<void> botan_boundary(Work&& boundary_call) noexcept {
     touch_botan_canary();
     try {
-        std::forward<Work>(work)();
+        std::forward<Work>(boundary_call)();
     } catch (std::bad_alloc const&) {
         return boost::system::errc::make_error_code(boost::system::errc::not_enough_memory);
     } catch (...) {
@@ -203,34 +203,34 @@ template <class Work>
 
 /**
  Makes the Botan object of `T` (`HashFunction`, `XOF` or `MessageAuthenticationCode`) Botan names
- `name`, or, in a test that defines `WEBCPP_HASH_DETAIL_TEST_BOTAN_NAME` (a string literal), that
- one, to provoke a failure, as backends::openssl's seam does.
+ `algorithm_name`, or, in a test that defines `WEBCPP_HASH_DETAIL_TEST_BOTAN_NAME` (a string
+ literal), that one, to provoke a failure, as backends::openssl's seam does.
 
- @param name Botan's name of the algorithm.
+ @param algorithm_name Botan's name of the algorithm.
  @return The object; Botan throws `Lookup_Error` for a name it does not know.
 */
 template <class T>
-std::unique_ptr<T> botan_create(std::string_view name) {
+std::unique_ptr<T> botan_create(std::string_view algorithm_name) {
 #ifdef WEBCPP_HASH_DETAIL_TEST_BOTAN_NAME
-    static_cast<void>(name);
+    static_cast<void>(algorithm_name);
     return T::create_or_throw(WEBCPP_HASH_DETAIL_TEST_BOTAN_NAME);
 #else
-    return T::create_or_throw(name);
+    return T::create_or_throw(algorithm_name);
 #endif
 }
 
 /**
- `prefix`, the decimal `bits` and ")": Botan's name of an algorithm of a chosen size, as
+ `name_prefix`, the decimal `output_bits` and ")": Botan's name of an algorithm of a chosen size, as
  "BLAKE2b(256)" or "KMAC-128(128)".
 
- @param prefix The name up to its argument, "(" included. @param bits The size in bits.
+ @param name_prefix The name up to its argument, "(" included. @param output_bits The size in bits.
  @return The name.
 */
-inline std::string botan_sized_name(std::string_view prefix, std::size_t bits) {
-    std::string name(prefix);
-    name += std::to_string(bits);
-    name += ')';
-    return name;
+inline std::string botan_sized_name(std::string_view name_prefix, std::size_t output_bits) {
+    std::string algorithm_name(name_prefix);
+    algorithm_name += std::to_string(output_bits);
+    algorithm_name += ')';
+    return algorithm_name;
 }
 
 /**
@@ -276,13 +276,13 @@ public:
     ~botan_owned() { reset(); }
 
     /**
-     Owns `object` from here on, clearing and freeing the one it held.
+     Owns `botan_object` from here on, clearing and freeing the one it held.
 
-     @param object An object of Botan's.
+     @param botan_object An object of Botan's.
     */
-    void adopt(std::unique_ptr<T> object) noexcept {
+    void adopt(std::unique_ptr<T> botan_object) noexcept {
         reset();
-        object_ = std::move(object);
+        object_ = std::move(botan_object);
     }
 
     /**
@@ -517,63 +517,66 @@ struct botan_hash_engine : full_engine {
     /**
      Makes the hash.
 
-     @param hashed The state. @return Success, or the boundary's failure.
+     @param digest_state The state. @return Success, or the boundary's failure.
     */
     [[nodiscard]] static boost::system::result<void> init(
-        state& hashed, digest_options<Digest> const& /*options*/) noexcept {
+        state& digest_state, digest_options<Digest> const& /*algorithm_options*/) noexcept {
         return botan_boundary([&] {
-            hashed.adopt(botan_create<Botan::HashFunction>(botan_hash_name<Digest>::value));
+            digest_state.adopt(botan_create<Botan::HashFunction>(botan_hash_name<Digest>::value));
         });
     }
 
     /**
-     Absorbs `input`.
+     Absorbs `input_bytes`.
 
-     @param hashed The state. @param input The bytes. @return Success, or the boundary's failure.
+     @param digest_state The state. @param input_bytes The bytes. @return Success, or the boundary's
+     failure.
     */
     [[nodiscard]] static boost::system::result<void> update(
-        state& hashed, std::span<std::uint8_t const> input) noexcept {
-        return botan_boundary([&] { hashed.get().update(input); });
+        state& digest_state, std::span<std::uint8_t const> input_bytes) noexcept {
+        return botan_boundary([&] { digest_state.get().update(input_bytes); });
     }
 
     /**
      Writes the digest, then clears and releases the object.
 
-     @param hashed The state. @param output The digest, of its size.
+     @param digest_state The state. @param output_bytes The digest, of its size.
      @return Success, or the boundary's failure.
     */
     [[nodiscard]] static boost::system::result<void> finish(
-        state& hashed, std::span<std::uint8_t> output) noexcept {
-        auto done = botan_boundary([&] { hashed.get().final(output); });
-        hashed.reset();
-        return done;
+        state& digest_state, std::span<std::uint8_t> output_bytes) noexcept {
+        auto finish_result = botan_boundary([&] { digest_state.get().final(output_bytes); });
+        digest_state.reset();
+        return finish_result;
     }
 
-    /** Clears and releases the object; a second call does nothing. @param hashed The state. */
-    static void destroy(state& hashed) noexcept {
+    /** Clears and releases the object; a second call does nothing. @param digest_state The state.
+     */
+    static void destroy(state& digest_state) noexcept {
         touch_botan_canary();
-        hashed.reset();
+        digest_state.reset();
     }
 
     /**
-     The digest of `input` at once, on an object released before the return.
+     The digest of `input_bytes` at once, on an object released before the return.
 
-     @param output The digest. @param input The bytes. @param options The digest's parameters.
+     @param output_bytes The digest. @param input_bytes The bytes. @param algorithm_options The
+     digest's parameters.
      @return Success, or the boundary's failure.
     */
     [[nodiscard]] static boost::system::result<void> one_shot(
-        std::span<std::uint8_t> output, std::span<std::uint8_t const> input,
-        digest_options<Digest> const& options) noexcept {
-        state hashed;
-        auto done = init(hashed, options);
-        if (done) {
-            done = update(hashed, input);
+        std::span<std::uint8_t> output_bytes, std::span<std::uint8_t const> input_bytes,
+        digest_options<Digest> const& algorithm_options) noexcept {
+        state digest_state;
+        auto init_result = init(digest_state, algorithm_options);
+        if (init_result) {
+            init_result = update(digest_state, input_bytes);
         }
-        if (done) {
-            done = finish(hashed, output);
+        if (init_result) {
+            init_result = finish(digest_state, output_bytes);
         }
-        destroy(hashed);
-        return done;
+        destroy(digest_state);
+        return init_result;
     }
 };
 
@@ -589,60 +592,64 @@ struct botan_xof_engine : full_engine {
     /** The object, owned. */
     using state = botan_owned<Botan::XOF>;
 
-    /** Makes the XOF. @param hashed The state. @return Success, or the boundary's failure. */
+    /** Makes the XOF. @param digest_state The state. @return Success, or the boundary's failure. */
     [[nodiscard]] static boost::system::result<void> init(
-        state& hashed, digest_options<Digest> const& /*options*/) noexcept {
+        state& digest_state, digest_options<Digest> const& /*algorithm_options*/) noexcept {
         return botan_boundary(
-            [&] { hashed.adopt(botan_create<Botan::XOF>(botan_hash_name<Digest>::value)); });
+            [&] { digest_state.adopt(botan_create<Botan::XOF>(botan_hash_name<Digest>::value)); });
     }
 
     /**
-     Absorbs `input`.
+     Absorbs `input_bytes`.
 
-     @param hashed The state. @param input The bytes. @return Success, or the boundary's failure.
+     @param digest_state The state. @param input_bytes The bytes. @return Success, or the boundary's
+     failure.
     */
     [[nodiscard]] static boost::system::result<void> update(
-        state& hashed, std::span<std::uint8_t const> input) noexcept {
-        return botan_boundary([&] { hashed.get().update(input); });
+        state& digest_state, std::span<std::uint8_t const> input_bytes) noexcept {
+        return botan_boundary([&] { digest_state.get().update(input_bytes); });
     }
 
     /**
-     Squeezes `output.size()` bytes, then clears and releases the object.
+     Squeezes `output_bytes.size()` bytes, then clears and releases the object.
 
-     @param hashed The state. @param output The output. @return Success, or the boundary's failure.
+     @param digest_state The state. @param output_bytes The output. @return Success, or the
+     boundary's failure.
     */
     [[nodiscard]] static boost::system::result<void> finish(
-        state& hashed, std::span<std::uint8_t> output) noexcept {
-        auto done = botan_boundary([&] { hashed.get().output(output); });
-        hashed.reset();
-        return done;
+        state& digest_state, std::span<std::uint8_t> output_bytes) noexcept {
+        auto finish_result = botan_boundary([&] { digest_state.get().output(output_bytes); });
+        digest_state.reset();
+        return finish_result;
     }
 
-    /** Clears and releases the object; a second call does nothing. @param hashed The state. */
-    static void destroy(state& hashed) noexcept {
+    /** Clears and releases the object; a second call does nothing. @param digest_state The state.
+     */
+    static void destroy(state& digest_state) noexcept {
         touch_botan_canary();
-        hashed.reset();
+        digest_state.reset();
     }
 
     /**
-     The output of `input` at once, on an object released before the return.
+     The output of `input_bytes` at once, on an object released before the return.
 
-     @param output The output. @param input The bytes. @param options The digest's parameters.
+     @param output_bytes The output. @param input_bytes The bytes. @param algorithm_options The
+     digest's parameters.
      @return Success, or the boundary's failure.
     */
     [[nodiscard]] static boost::system::result<void> one_shot(
-        std::span<std::uint8_t> output, std::span<std::uint8_t const> input,
-        digest_options<Digest> const& options) noexcept {
-        state hashed;
-        auto done = init(hashed, options);
-        if (done) {
-            done = update(hashed, input);
+        std::span<std::uint8_t> output_bytes, std::span<std::uint8_t const> input_bytes,
+        digest_options<Digest> const& algorithm_options) noexcept {
+        state digest_state;
+        auto init_result = init(digest_state, algorithm_options);
+        if (init_result) {
+            init_result = update(digest_state, input_bytes);
         }
-        if (done) {
-            done = finish(hashed, output);
+        if (init_result) {
+            init_result = finish(digest_state, output_bytes);
         }
-        destroy(hashed);
-        return done;
+        destroy(digest_state);
+        return init_result;
     }
 };
 
@@ -724,45 +731,48 @@ struct digest_engine<backends::botan, digests::blake2b> : full_engine {
      Whether Botan's BLAKE2b computes these options: no salt, no personalisation. A template, so
      that it reads `digest_options<digests::blake2b>`, which digest.hpp defines after this header.
 
-     @param options The options. @return Whether they have no salt and no personalisation.
+     @param algorithm_options The options. @return Whether they have no salt and no personalisation.
     */
     template <class Options>
-    static constexpr bool accepts(Options const& options) noexcept {
-        return options.salt.empty() && options.personalisation.empty();
+    static constexpr bool accepts(Options const& algorithm_options) noexcept {
+        return algorithm_options.salt.empty() && algorithm_options.personalisation.empty();
     }
 
     /**
      Makes the hash, or the MAC keyed with the options' key.
 
-     @param hashed The state. @param options The key and the output's size.
+     @param digest_state The state. @param algorithm_options The key and the output's size.
      @return Success, or the boundary's failure.
     */
     template <class Options>
-    [[nodiscard]] static boost::system::result<void> init(state& hashed,
-                                                          Options const& options) noexcept {
+    [[nodiscard]] static boost::system::result<void> init(
+        state& digest_state, Options const& algorithm_options) noexcept {
         return botan_boundary([&] {
-            std::string const name = botan_sized_name("BLAKE2b(", options.output_size * 8);
-            if (options.key.empty()) {
-                hashed.unkeyed.adopt(botan_create<Botan::HashFunction>(name));
+            std::string const algorithm_name =
+                botan_sized_name("BLAKE2b(", algorithm_options.output_size * 8);
+            if (algorithm_options.key.empty()) {
+                digest_state.unkeyed.adopt(botan_create<Botan::HashFunction>(algorithm_name));
             } else {
-                hashed.keyed.adopt(botan_create<Botan::MessageAuthenticationCode>(name));
-                hashed.keyed.get().set_key(options.key);
+                digest_state.keyed.adopt(
+                    botan_create<Botan::MessageAuthenticationCode>(algorithm_name));
+                digest_state.keyed.get().set_key(algorithm_options.key);
             }
         });
     }
 
     /**
-     Absorbs `input`.
+     Absorbs `input_bytes`.
 
-     @param hashed The state. @param input The bytes. @return Success, or the boundary's failure.
+     @param digest_state The state. @param input_bytes The bytes. @return Success, or the boundary's
+     failure.
     */
     [[nodiscard]] static boost::system::result<void> update(
-        state& hashed, std::span<std::uint8_t const> input) noexcept {
+        state& digest_state, std::span<std::uint8_t const> input_bytes) noexcept {
         return botan_boundary([&] {
-            if (hashed.keyed.has_object()) {
-                hashed.keyed.get().update(input);
+            if (digest_state.keyed.has_object()) {
+                digest_state.keyed.get().update(input_bytes);
             } else {
-                hashed.unkeyed.get().update(input);
+                digest_state.unkeyed.get().update(input_bytes);
             }
         });
     }
@@ -770,70 +780,75 @@ struct digest_engine<backends::botan, digests::blake2b> : full_engine {
     /**
      Writes the digest, of the options' size, then clears and releases the object.
 
-     @param hashed The state. @param output The digest. @return Success, or the boundary's failure.
+     @param digest_state The state. @param output_bytes The digest. @return Success, or the
+     boundary's failure.
     */
     [[nodiscard]] static boost::system::result<void> finish(
-        state& hashed, std::span<std::uint8_t> output) noexcept {
-        auto done = botan_boundary([&] {
-            if (hashed.keyed.has_object()) {
-                hashed.keyed.get().final(output);
+        state& digest_state, std::span<std::uint8_t> output_bytes) noexcept {
+        auto finish_result = botan_boundary([&] {
+            if (digest_state.keyed.has_object()) {
+                digest_state.keyed.get().final(output_bytes);
             } else {
-                hashed.unkeyed.get().final(output);
+                digest_state.unkeyed.get().final(output_bytes);
             }
         });
-        destroy(hashed);
-        return done;
+        destroy(digest_state);
+        return finish_result;
     }
 
-    /** Clears and releases the object; a second call does nothing. @param hashed The state. */
-    static void destroy(state& hashed) noexcept {
+    /** Clears and releases the object; a second call does nothing. @param digest_state The state.
+     */
+    static void destroy(state& digest_state) noexcept {
         touch_botan_canary();
-        hashed.unkeyed.reset();
-        hashed.keyed.reset();
+        digest_state.unkeyed.reset();
+        digest_state.keyed.reset();
     }
 
     /**
-     The digest of `input` at once, on an object released before the return.
+     The digest of `input_bytes` at once, on an object released before the return.
 
-     @param output The digest. @param input The bytes. @param options The digest's parameters.
+     @param output_bytes The digest. @param input_bytes The bytes. @param algorithm_options The
+     digest's parameters.
      @return Success, or the boundary's failure.
     */
     template <class Options>
-    [[nodiscard]] static boost::system::result<void> one_shot(std::span<std::uint8_t> output,
-                                                              std::span<std::uint8_t const> input,
-                                                              Options const& options) noexcept {
-        state hashed;
-        auto done = init(hashed, options);
-        if (done) {
-            done = update(hashed, input);
+    [[nodiscard]] static boost::system::result<void> one_shot(
+        std::span<std::uint8_t> output_bytes, std::span<std::uint8_t const> input_bytes,
+        Options const& algorithm_options) noexcept {
+        state digest_state;
+        auto init_result = init(digest_state, algorithm_options);
+        if (init_result) {
+            init_result = update(digest_state, input_bytes);
         }
-        if (done) {
-            done = finish(hashed, output);
+        if (init_result) {
+            init_result = finish(digest_state, output_bytes);
         }
-        destroy(hashed);
-        return done;
+        destroy(digest_state);
+        return init_result;
     }
 };
 
 /**
- Computes a MAC on Botan's `MessageAuthenticationCode` named `name`: makes it, keys it, starts it
- with `nonce` (KMAC's customisation; empty for the others), absorbs `input`, and writes its tag,
- of its whole size, into `tag`; the object is cleared and released before the return.
+ Computes a MAC on Botan's `MessageAuthenticationCode` named `algorithm_name`: makes it, keys it,
+ starts it with `nonce_bytes` (KMAC's customisation; empty for the others), absorbs `input_bytes`,
+ and writes its tag, of its whole size, into `tag_bytes`; the object is cleared and released before
+ the return.
 
- @param name Botan's name of the MAC. @param tag The tag, of the MAC's size.
- @param key The key. @param input The message. @param nonce What `start` takes.
+ @param algorithm_name Botan's name of the MAC. @param tag_bytes The tag, of the MAC's size.
+ @param key_bytes The key. @param input_bytes The message. @param nonce_bytes What `start` takes.
  @return Success, or the boundary's failure.
 */
 [[nodiscard]] inline boost::system::result<void> botan_mac(
-    std::string_view name, std::span<std::uint8_t> tag, std::span<std::uint8_t const> key,
-    std::span<std::uint8_t const> input, std::span<std::uint8_t const> nonce) noexcept {
+    std::string_view algorithm_name, std::span<std::uint8_t> tag_bytes,
+    std::span<std::uint8_t const> key_bytes, std::span<std::uint8_t const> input_bytes,
+    std::span<std::uint8_t const> nonce_bytes) noexcept {
     botan_owned<Botan::MessageAuthenticationCode> mac_object;
     return botan_boundary([&] {
-        mac_object.adopt(botan_create<Botan::MessageAuthenticationCode>(name));
-        mac_object.get().set_key(key);
-        mac_object.get().start(nonce);
-        mac_object.get().update(input);
-        mac_object.get().final(tag);
+        mac_object.adopt(botan_create<Botan::MessageAuthenticationCode>(algorithm_name));
+        mac_object.get().set_key(key_bytes);
+        mac_object.get().start(nonce_bytes);
+        mac_object.get().update(input_bytes);
+        mac_object.get().final(tag_bytes);
     });
 }
 
@@ -852,44 +867,43 @@ inline constexpr std::size_t botan_hmac_max_key = 8192;
 template <class Digest>
 struct botan_hmac_engine : full_engine {
     /**
-     The tag of `input` under `key`, the HMAC cut to `output.size()` bytes.
+     The tag of `input_bytes` under `key_bytes`, the HMAC cut to `output_bytes.size()` bytes.
 
-     @param output The tag. @param key The key. @param input The message.
+     @param output_bytes The tag. @param key_bytes The key. @param input_bytes The message.
      @return Success, or the boundary's failure.
     */
     template <class Options>
-    [[nodiscard]] static boost::system::result<void> compute(std::span<std::uint8_t> output,
-                                                             std::span<std::uint8_t const> key,
-                                                             std::span<std::uint8_t const> input,
-                                                             Options const& /*options*/) noexcept {
+    [[nodiscard]] static boost::system::result<void> compute(
+        std::span<std::uint8_t> output_bytes, std::span<std::uint8_t const> key_bytes,
+        std::span<std::uint8_t const> input_bytes, Options const& /*algorithm_options*/) noexcept {
         constexpr std::uint64_t digest_size = mac_traits<macs::hmac<Digest>>::max_output;
-        std::array<std::uint8_t, 64> whole{};
-        static_assert(digest_size <= whole.size());
-        auto const tag = std::span(whole).first(digest_size);
+        std::array<std::uint8_t, 64> whole_tag{};
+        static_assert(digest_size <= whole_tag.size());
+        auto const tag_bytes = std::span(whole_tag).first(digest_size);
         std::array<std::uint8_t, 64> hashed_key{};
-        auto used_key = key;
-        auto computed = boost::system::result<void>{};
-        if (key.size() > botan_hmac_max_key) {
-            computed = digest_engine<backends::botan, Digest>::one_shot(
-                std::span(hashed_key).first(digest_size), key, digest_options<Digest>{});
+        auto used_key = key_bytes;
+        auto compute_result = boost::system::result<void>{};
+        if (key_bytes.size() > botan_hmac_max_key) {
+            compute_result = digest_engine<backends::botan, Digest>::one_shot(
+                std::span(hashed_key).first(digest_size), key_bytes, digest_options<Digest>{});
             used_key = std::span(hashed_key).first(digest_size);
         }
-        if (computed) {
-            std::string name;
-            computed = botan_boundary([&] {
-                name = "HMAC(";
-                name.append(botan_hash_name<Digest>::value) += ')';
+        if (compute_result) {
+            std::string algorithm_name;
+            compute_result = botan_boundary([&] {
+                algorithm_name = "HMAC(";
+                algorithm_name.append(botan_hash_name<Digest>::value) += ')';
             });
-            if (computed) {
-                computed = botan_mac(name, tag, used_key, input, {});
+            if (compute_result) {
+                compute_result = botan_mac(algorithm_name, tag_bytes, used_key, input_bytes, {});
             }
         }
-        if (computed) {
-            std::copy_n(tag.begin(), output.size(), output.begin());
+        if (compute_result) {
+            std::copy_n(tag_bytes.begin(), output_bytes.size(), output_bytes.begin());
         }
-        secure::erase_secret(whole);
+        secure::erase_secret(whole_tag);
         secure::erase_secret(hashed_key);
-        return computed;
+        return compute_result;
     }
 };
 
@@ -910,35 +924,36 @@ struct botan_kmac_engine : full_engine {
      Whether Botan's KMAC takes these options and key size. A template, so that it reads
      `mac_options<Mac>`, which mac.hpp defines after this header.
 
-     @param options The customisation and the form. @param key_size The key's size.
+     @param algorithm_options The customisation and the form. @param key_size The key's size.
      @return Whether Botan takes them.
     */
     template <class Options>
-    static constexpr bool accepts(Options const& options, std::size_t key_size,
+    static constexpr bool accepts(Options const& algorithm_options, std::size_t key_size,
                                   std::size_t /*output_size*/) noexcept {
-        return !options.xof && key_size <= max_key;
+        return !algorithm_options.xof && key_size <= max_key;
     }
 
     /**
-     The tag of `input` under `key`, of `output.size()` bytes, customised.
+     The tag of `input_bytes` under `key_bytes`, of `output_bytes.size()` bytes, customised.
 
-     @param output The tag. @param key The key. @param input The message.
-     @param options The customisation.
+     @param output_bytes The tag. @param key_bytes The key. @param input_bytes The message.
+     @param algorithm_options The customisation.
      @return Success, or the boundary's failure.
     */
     template <class Options>
-    [[nodiscard]] static boost::system::result<void> compute(std::span<std::uint8_t> output,
-                                                             std::span<std::uint8_t const> key,
-                                                             std::span<std::uint8_t const> input,
-                                                             Options const& options) noexcept {
-        constexpr std::string_view prefix =
+    [[nodiscard]] static boost::system::result<void> compute(
+        std::span<std::uint8_t> output_bytes, std::span<std::uint8_t const> key_bytes,
+        std::span<std::uint8_t const> input_bytes, Options const& algorithm_options) noexcept {
+        constexpr std::string_view name_prefix =
             std::is_same_v<Mac, macs::kmac_128> ? "KMAC-128(" : "KMAC-256(";
-        std::string name;
-        auto computed = botan_boundary([&] { name = botan_sized_name(prefix, output.size() * 8); });
-        if (computed) {
-            computed = botan_mac(name, output, key, input, options.customisation);
+        std::string algorithm_name;
+        auto compute_result = botan_boundary(
+            [&] { algorithm_name = botan_sized_name(name_prefix, output_bytes.size() * 8); });
+        if (compute_result) {
+            compute_result = botan_mac(algorithm_name, output_bytes, key_bytes, input_bytes,
+                                       algorithm_options.customisation);
         }
-        return computed;
+        return compute_result;
     }
 };
 
@@ -954,17 +969,16 @@ struct mac_engine<backends::botan, macs::kmac_256> : botan_kmac_engine<macs::kma
 template <>
 struct mac_engine<backends::botan, macs::siphash_2_4> : full_engine {
     /**
-     The tag of `input` under `key`.
+     The tag of `input_bytes` under `key_bytes`.
 
-     @param output The tag. @param key The key. @param input The message.
+     @param output_bytes The tag. @param key_bytes The key. @param input_bytes The message.
      @return Success, or the boundary's failure.
     */
     template <class Options>
-    [[nodiscard]] static boost::system::result<void> compute(std::span<std::uint8_t> output,
-                                                             std::span<std::uint8_t const> key,
-                                                             std::span<std::uint8_t const> input,
-                                                             Options const& /*options*/) noexcept {
-        return botan_mac("SipHash(2,4)", output, key, input, {});
+    [[nodiscard]] static boost::system::result<void> compute(
+        std::span<std::uint8_t> output_bytes, std::span<std::uint8_t const> key_bytes,
+        std::span<std::uint8_t const> input_bytes, Options const& /*algorithm_options*/) noexcept {
+        return botan_mac("SipHash(2,4)", output_bytes, key_bytes, input_bytes, {});
     }
 };
 
@@ -975,23 +989,22 @@ struct mac_engine<backends::botan, macs::siphash_2_4> : full_engine {
 template <>
 struct mac_engine<backends::botan, macs::blake2b_mac> : full_engine {
     /**
-     The tag of `input` under `key`, of `output.size()` bytes.
+     The tag of `input_bytes` under `key_bytes`, of `output_bytes.size()` bytes.
 
-     @param output The tag. @param key The key. @param input The message.
+     @param output_bytes The tag. @param key_bytes The key. @param input_bytes The message.
      @return Success, or the boundary's failure.
     */
     template <class Options>
-    [[nodiscard]] static boost::system::result<void> compute(std::span<std::uint8_t> output,
-                                                             std::span<std::uint8_t const> key,
-                                                             std::span<std::uint8_t const> input,
-                                                             Options const& /*options*/) noexcept {
-        std::string name;
-        auto computed =
-            botan_boundary([&] { name = botan_sized_name("BLAKE2b(", output.size() * 8); });
-        if (computed) {
-            computed = botan_mac(name, output, key, input, {});
+    [[nodiscard]] static boost::system::result<void> compute(
+        std::span<std::uint8_t> output_bytes, std::span<std::uint8_t const> key_bytes,
+        std::span<std::uint8_t const> input_bytes, Options const& /*algorithm_options*/) noexcept {
+        std::string algorithm_name;
+        auto compute_result = botan_boundary(
+            [&] { algorithm_name = botan_sized_name("BLAKE2b(", output_bytes.size() * 8); });
+        if (compute_result) {
+            compute_result = botan_mac(algorithm_name, output_bytes, key_bytes, input_bytes, {});
         }
-        return computed;
+        return compute_result;
     }
 };
 
@@ -1060,118 +1073,126 @@ inline constexpr bool botan_hmac_v =
              hmac_sha3_512, hmac_ripemd_160, hmac_blake2b_512, hmac_blake2s_256>;
 
 /**
- The bytes of `bytes` as the characters Botan's password interfaces take (`std::string_view`,
+ The bytes of `source_bytes` as the characters Botan's password interfaces take (`std::string_view`,
  `const char*` with a length): the same bytes, any of them, a zero included.
 
- @param bytes The password. @return A view of its bytes.
+ @param source_bytes The password. @return A view of its bytes.
 */
-inline std::string_view botan_chars(std::span<std::uint8_t const> bytes) noexcept {
+inline std::string_view botan_chars(std::span<std::uint8_t const> source_bytes) noexcept {
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): char may alias any byte
-    return {reinterpret_cast<char const*>(nonnull(bytes)), bytes.size()};
+    return {reinterpret_cast<char const*>(nonnull(source_bytes)), source_bytes.size()};
 }
 
 /**
- The key Botan's HMAC over `Digest` is given for `key`: `key` itself, or, when it is longer than
- the 8,192 bytes `HMAC::key_spec` takes, its digest under `Digest`, written into `hashed`; as RFC
- 2104 hashes every key longer than the hash's block, the HMAC is the same.
+ The key Botan's HMAC over `Digest` is given for `key_bytes`: `key_bytes` itself, or, when it is
+ longer than the 8,192 bytes `HMAC::key_spec` takes, its digest under `Digest`, written into
+ `digest_buffer`; as RFC 2104 hashes every key longer than the hash's block, the HMAC is the same.
 
  @tparam Digest A tag of `digests` of a fixed size that Botan has.
- @param key The key. @param hashed Room for the digest, which the caller wipes.
+ @param key_bytes The key. @param digest_buffer Room for the digest, which the caller wipes.
  @return The key to give Botan, or the digest's failure.
 */
 template <class Digest>
 [[nodiscard]] boost::system::result<std::span<std::uint8_t const>> botan_hmac_key(
-    std::span<std::uint8_t const> key, std::array<std::uint8_t, 64>& hashed) noexcept {
-    if (key.size() <= botan_hmac_max_key) {
-        return key;
+    std::span<std::uint8_t const> key_bytes, std::array<std::uint8_t, 64>& digest_buffer) noexcept {
+    if (key_bytes.size() <= botan_hmac_max_key) {
+        return key_bytes;
     }
     constexpr std::uint64_t digest_size = mac_traits<macs::hmac<Digest>>::max_output;
     static_assert(digest_size <= std::tuple_size_v<std::array<std::uint8_t, 64>>);
-    auto const digest = std::span(hashed).first(digest_size);
-    auto const done =
-        digest_engine<backends::botan, Digest>::one_shot(digest, key, digest_options<Digest>{});
-    if (!done) {
-        return done.error();
+    auto const digest_bytes = std::span(digest_buffer).first(digest_size);
+    auto const digest_result = digest_engine<backends::botan, Digest>::one_shot(
+        digest_bytes, key_bytes, digest_options<Digest>{});
+    if (!digest_result) {
+        return digest_result.error();
     }
-    return std::span<std::uint8_t const>(digest);
+    return std::span<std::uint8_t const>(digest_bytes);
 }
 
 /**
- Runs `derive` with the key Botan's HMAC over `Digest` is given for `key` (@ref botan_hmac_key),
- the digest of a long key wiped after.
+ Runs `derive_call` with the key Botan's HMAC over `Digest` is given for `key_bytes` (@ref
+ botan_hmac_key), the digest of a long key wiped after.
 
  @tparam Digest A tag of `digests` of a fixed size that Botan has.
- @param key The key. @param derive A callable taking the key Botan is given, `noexcept`.
- @return `derive`'s result, or the digest's failure.
+ @param key_bytes The key. @param derive_call A callable taking the key Botan is given, `noexcept`.
+ @return `derive_call`'s result, or the digest's failure.
 */
 template <class Digest, class Derive>
-[[nodiscard]] boost::system::result<void> botan_keyed(std::span<std::uint8_t const> key,
-                                                      Derive const& derive) noexcept {
-    std::array<std::uint8_t, 64> hashed{};
-    auto const used = botan_hmac_key<Digest>(key, hashed);
-    boost::system::result<void> derived{};
-    if (used) {
-        derived = derive(used.unsafe_value());
+[[nodiscard]] boost::system::result<void> botan_keyed(std::span<std::uint8_t const> key_bytes,
+                                                      Derive const& derive_call) noexcept {
+    std::array<std::uint8_t, 64> digest_buffer{};
+    auto const key_result = botan_hmac_key<Digest>(key_bytes, digest_buffer);
+    boost::system::result<void> derive_result{};
+    if (key_result) {
+        derive_result = derive_call(key_result.unsafe_value());
     } else {
-        derived = used.error();
+        derive_result = key_result.error();
     }
-    secure::erase_secret(hashed);
-    return derived;
+    secure::erase_secret(digest_buffer);
+    return derive_result;
 }
 
 /**
- Derives `output` by Botan's `KDF` whose name is the concatenation of `name`: makes it, calls its
- `derive_key(output, secret, salt, label)` and releases it before the return. Botan's HMAC keeps
- its key in a `secure_vector`, which Botan zeroes when it frees it.
+ Derives `output_bytes` by Botan's `KDF` whose name is the concatenation of `name_parts`: makes it,
+ calls its `derive_key(output_bytes, secret_bytes, salt_bytes, label_bytes)` and releases it before
+ the return. Botan's HMAC keeps its key in a `secure_vector`, which Botan zeroes when it frees it.
 
- @param name Botan's name of the KDF, in parts. @param output What is derived, its whole size.
- @param secret The KDF's secret. @param salt Its salt. @param label Its label.
+ @param name_parts Botan's name of the KDF, in parts. @param output_bytes What is derived, its whole
+ size.
+ @param secret_bytes The KDF's secret. @param salt_bytes Its salt. @param label_bytes Its label.
  @return Success, or the boundary's failure.
 */
 [[nodiscard]] inline boost::system::result<void> botan_kdf(
-    std::initializer_list<std::string_view> name, std::span<std::uint8_t> output,
-    std::span<std::uint8_t const> secret, std::span<std::uint8_t const> salt,
-    std::span<std::uint8_t const> label) noexcept {
+    std::initializer_list<std::string_view> name_parts, std::span<std::uint8_t> output_bytes,
+    std::span<std::uint8_t const> secret_bytes, std::span<std::uint8_t const> salt_bytes,
+    std::span<std::uint8_t const> label_bytes) noexcept {
     return botan_boundary([&] {
-        std::string joined;
-        for (std::string_view const part : name) {
-            joined.append(part);
+        std::string joined_name;
+        for (std::string_view const name_part : name_parts) {
+            joined_name.append(name_part);
         }
-        botan_create<Botan::KDF>(joined)->derive_key(output, secret, salt, label);
+        botan_create<Botan::KDF>(joined_name)
+            ->derive_key(output_bytes, secret_bytes, salt_bytes, label_bytes);
     });
 }
 
 /**
- Derives `output` by Botan's `PasswordHash` of the family whose name is the concatenation of
- `name`, from its parameters `i1`, `i2` and `i3` (Botan's `from_params`), over `password` and
- `salt`, and, for Argon2, `associated_data` and `secret`; both objects are released before the
- return.
+ Derives `output_bytes` by Botan's `PasswordHash` of the family whose name is the concatenation of
+ `name_parts`, from its parameters `i1`, `i2` and `i3` (Botan's `from_params`), over
+ `password_bytes` and `salt_bytes`, and, for Argon2, `associated_data` and `secret_bytes`; both
+ objects are released before the return.
 
- @param name Botan's name of the family, in parts. @param parameters `from_params`'s three.
- @param output The derived key. @param password The password. @param salt The salt.
- @param associated_data Argon2's X, else empty. @param secret Argon2's K, else empty.
+ @param name_parts Botan's name of the family, in parts. @param cost_parameters `from_params`'s
+ three.
+ @param output_bytes The derived key. @param password_bytes The password. @param salt_bytes The
+ salt.
+ @param associated_data Argon2's X, else empty. @param secret_bytes Argon2's K, else empty.
  @return Success, or the boundary's failure.
 */
 [[nodiscard]] inline boost::system::result<void> botan_password_hash(
-    std::initializer_list<std::string_view> name, std::array<std::size_t, 3> parameters,
-    std::span<std::uint8_t> output, std::span<std::uint8_t const> password,
-    std::span<std::uint8_t const> salt, std::span<std::uint8_t const> associated_data = {},
-    std::span<std::uint8_t const> secret = {}) noexcept {
+    std::initializer_list<std::string_view> name_parts, std::array<std::size_t, 3> cost_parameters,
+    std::span<std::uint8_t> output_bytes, std::span<std::uint8_t const> password_bytes,
+    std::span<std::uint8_t const> salt_bytes, std::span<std::uint8_t const> associated_data = {},
+    std::span<std::uint8_t const> secret_bytes = {}) noexcept {
     return botan_boundary([&] {
-        std::string joined;
-        for (std::string_view const part : name) {
-            joined.append(part);
+        std::string joined_name;
+        for (std::string_view const name_part : name_parts) {
+            joined_name.append(name_part);
         }
-        auto const hash = botan_create<Botan::PasswordHashFamily>(joined)->from_params(
-            parameters[0], parameters[1], parameters[2]);
-        std::string_view const characters = botan_chars(password);
-        if (associated_data.empty() && secret.empty()) {
-            hash->derive_key(output.data(), output.size(), characters.data(), characters.size(),
-                             nonnull(salt), salt.size());
+        auto const password_hash =
+            botan_create<Botan::PasswordHashFamily>(joined_name)
+                ->from_params(cost_parameters[0], cost_parameters[1], cost_parameters[2]);
+        std::string_view const password_characters = botan_chars(password_bytes);
+        if (associated_data.empty() && secret_bytes.empty()) {
+            password_hash->derive_key(output_bytes.data(), output_bytes.size(),
+                                      password_characters.data(), password_characters.size(),
+                                      nonnull(salt_bytes), salt_bytes.size());
         } else {
-            hash->derive_key(output.data(), output.size(), characters.data(), characters.size(),
-                             nonnull(salt), salt.size(), nonnull(associated_data),
-                             associated_data.size(), nonnull(secret), secret.size());
+            password_hash->derive_key(output_bytes.data(), output_bytes.size(),
+                                      password_characters.data(), password_characters.size(),
+                                      nonnull(salt_bytes), salt_bytes.size(),
+                                      nonnull(associated_data), associated_data.size(),
+                                      nonnull(secret_bytes), secret_bytes.size());
         }
     });
 }
@@ -1192,7 +1213,7 @@ struct botan_refused_hmac_kdf {
 
     /** Never called: the refusal has stopped the build. */
     [[nodiscard]] static boost::system::result<typename Hmac::result_type> extract(
-        std::span<std::uint8_t const> /*salt*/,
+        std::span<std::uint8_t const> /*salt_bytes*/,
         std::span<std::uint8_t const> /*input_key_material*/) noexcept {
         return error::backend_failure;
     }
@@ -1207,7 +1228,8 @@ struct botan_refused_hmac_kdf {
 
     /** Never called: the refusal has stopped the build. */
     [[nodiscard]] static boost::system::result<void> extract_and_expand(
-        std::span<std::uint8_t> /*output_key_material*/, std::span<std::uint8_t const> /*salt*/,
+        std::span<std::uint8_t> /*output_key_material*/,
+        std::span<std::uint8_t const> /*salt_bytes*/,
         std::span<std::uint8_t const> /*input_key_material*/,
         std::span<std::uint8_t const> /*application_info*/) noexcept {
         return error::backend_failure;
@@ -1238,25 +1260,25 @@ struct botan_hkdf_engine {
     /**
      RFC 5869, 2.2: the PRK, HashLen bytes; an empty salt is HashLen zeros, as Botan keys it.
 
-     @param salt The salt. @param input_key_material The input keying material.
+     @param salt_bytes The salt. @param input_key_material The input keying material.
      @return The PRK, or Botan's failure.
     */
     [[nodiscard]] static boost::system::result<digest_type> extract(
-        std::span<std::uint8_t const> salt,
+        std::span<std::uint8_t const> salt_bytes,
         std::span<std::uint8_t const> input_key_material) noexcept {
         // The PRK is derived into the result returned, whose wiping is the caller's.
         boost::system::result<digest_type> pseudorandom_key{boost::system::in_place_value};
         digest_type& pseudorandom_key_digest = pseudorandom_key.unsafe_value();
-        auto const derived =
-            botan_keyed<digest>(salt, [&](std::span<std::uint8_t const> key) noexcept {
+        auto const derive_result =
+            botan_keyed<digest>(salt_bytes, [&](std::span<std::uint8_t const> key_bytes) noexcept {
                 return botan_kdf({"HKDF-Extract(HMAC(", botan_hash_name<digest>::value, "))"},
                                  std::span<std::uint8_t>(pseudorandom_key_digest.data(),
                                                          pseudorandom_key_digest.size()),
-                                 input_key_material, key, {});
+                                 input_key_material, key_bytes, {});
             });
-        if (!derived) {
+        if (!derive_result) {
             secure::erase_secret(std::span(&pseudorandom_key_digest, 1));
-            pseudorandom_key = derived.error();
+            pseudorandom_key = derive_result.error();
         }
         return pseudorandom_key;
     }
@@ -1278,18 +1300,20 @@ struct botan_hkdf_engine {
     /**
      RFC 5869, 2: both steps, the PRK inside Botan's KDF.
 
-     @param output_key_material The OKM. @param salt The salt. @param input_key_material The input
-     keying material. @param application_info The info.
+     @param output_key_material The OKM. @param salt_bytes The salt. @param input_key_material The
+     input keying material. @param application_info The info.
      @return Success, or Botan's failure.
     */
     [[nodiscard]] static boost::system::result<void> extract_and_expand(
-        std::span<std::uint8_t> output_key_material, std::span<std::uint8_t const> salt,
+        std::span<std::uint8_t> output_key_material, std::span<std::uint8_t const> salt_bytes,
         std::span<std::uint8_t const> input_key_material,
         std::span<std::uint8_t const> application_info) noexcept {
-        return botan_keyed<digest>(salt, [&](std::span<std::uint8_t const> key) noexcept {
-            return botan_kdf({"HKDF(HMAC(", botan_hash_name<digest>::value, "))"},
-                             output_key_material, input_key_material, key, application_info);
-        });
+        return botan_keyed<digest>(
+            salt_bytes, [&](std::span<std::uint8_t const> key_bytes) noexcept {
+                return botan_kdf({"HKDF(HMAC(", botan_hash_name<digest>::value, "))"},
+                                 output_key_material, input_key_material, key_bytes,
+                                 application_info);
+            });
     }
 };
 
@@ -1340,48 +1364,51 @@ struct hkdf_pieces_engine<backends::botan, Hmac> {
      @param mac_object The owner of the HMAC made.
     */
     static void make(botan_owned<Botan::MessageAuthenticationCode>& mac_object) {
-        std::string name = "HMAC(";
-        name.append(botan_hash_name<digest>::value) += ')';
-        mac_object.adopt(botan_create<Botan::MessageAuthenticationCode>(name));
+        std::string algorithm_name = "HMAC(";
+        algorithm_name.append(botan_hash_name<digest>::value) += ')';
+        mac_object.adopt(botan_create<Botan::MessageAuthenticationCode>(algorithm_name));
     }
 
     /**
-     Feeds every byte of `pieces` to `mac`, in slices of at most @ref slice_max bytes.
+     Feeds every byte of `input_pieces` to `mac_instance`, in slices of at most @ref slice_max
+     bytes.
 
-     @param mac The keyed HMAC. @param pieces The pieces.
+     @param mac_instance The keyed HMAC. @param input_pieces The pieces.
     */
-    static void update_all(Botan::MessageAuthenticationCode& mac, byte_pieces pieces) {
-        for_each_slice<slice_max>(pieces,
-                                  [&](std::span<std::uint8_t const> slice) { mac.update(slice); });
+    static void update_all(Botan::MessageAuthenticationCode& mac_instance,
+                           byte_pieces input_pieces) {
+        for_each_slice<slice_max>(input_pieces, [&](std::span<std::uint8_t const> slice_bytes) {
+            mac_instance.update(slice_bytes);
+        });
     }
 
     /**
      RFC 5869, 2.2: PRK = HMAC-Hash(salt, piece_1 | ... | piece_n). An empty salt, of length 0,
      is padded by HMAC with zeros to the block: RFC 5869's HashLen zeros.
 
-     @param salt The salt. @param input_key_material The input keying material's pieces.
+     @param salt_bytes The salt. @param input_key_material The input keying material's pieces.
      @return The PRK, or Botan's failure.
     */
     [[nodiscard]] static boost::system::result<digest_type> extract(
-        std::span<std::uint8_t const> salt, byte_pieces input_key_material) noexcept {
+        std::span<std::uint8_t const> salt_bytes, byte_pieces input_key_material) noexcept {
         // The PRK is built in the result returned and Botan writes into it: a single return path
         // of the one named object, so that no copy of the PRK is left behind unwiped.
         boost::system::result<digest_type> pseudorandom_key{boost::system::in_place_value};
         digest_type& pseudorandom_key_digest = pseudorandom_key.unsafe_value();
-        auto const derived =
-            botan_keyed<digest>(salt, [&](std::span<std::uint8_t const> key) noexcept {
+        auto const derive_result =
+            botan_keyed<digest>(salt_bytes, [&](std::span<std::uint8_t const> key_bytes) noexcept {
                 botan_owned<Botan::MessageAuthenticationCode> mac_object;
                 return botan_boundary([&] {
                     make(mac_object);
-                    mac_object.get().set_key(key);
+                    mac_object.get().set_key(key_bytes);
                     update_all(mac_object.get(), input_key_material);
                     mac_object.get().final(std::span<std::uint8_t>(pseudorandom_key_digest.data(),
                                                                    pseudorandom_key_digest.size()));
                 });
             });
-        if (!derived) {
+        if (!derive_result) {
             secure::erase_secret(std::span(&pseudorandom_key_digest, 1));
-            pseudorandom_key = derived.error();
+            pseudorandom_key = derive_result.error();
         }
         return pseudorandom_key;
     }
@@ -1400,20 +1427,21 @@ struct hkdf_pieces_engine<backends::botan, Hmac> {
         byte_pieces application_info) noexcept {
         digest_type t_block{};
         botan_owned<Botan::MessageAuthenticationCode> mac_object;
-        auto const derived = botan_boundary([&] {
+        auto const derive_result = botan_boundary([&] {
             make(mac_object);
-            Botan::MessageAuthenticationCode& mac = mac_object.get();
+            Botan::MessageAuthenticationCode& mac_instance = mac_object.get();
             std::size_t written_count = 0;
             for (unsigned block_counter = 1; written_count < output_key_material.size();
                  ++block_counter) {
-                mac.clear();
-                mac.set_key(pseudorandom_key);
+                mac_instance.clear();
+                mac_instance.set_key(pseudorandom_key);
                 if (block_counter > 1) {
-                    mac.update(std::span<std::uint8_t const>(t_block.data(), t_block.size()));
+                    mac_instance.update(
+                        std::span<std::uint8_t const>(t_block.data(), t_block.size()));
                 }
-                update_all(mac, application_info);
-                mac.update(static_cast<std::uint8_t>(block_counter));
-                mac.final(std::span<std::uint8_t>(t_block.data(), t_block.size()));
+                update_all(mac_instance, application_info);
+                mac_instance.update(static_cast<std::uint8_t>(block_counter));
+                mac_instance.final(std::span<std::uint8_t>(t_block.data(), t_block.size()));
                 std::size_t const copied_count =
                     std::min(t_block.size(), output_key_material.size() - written_count);
                 std::copy_n(t_block.data(), copied_count,
@@ -1423,22 +1451,22 @@ struct hkdf_pieces_engine<backends::botan, Hmac> {
         });
         mac_object.reset();
         secure::erase_secret(std::span(&t_block, 1));
-        return derived;
+        return derive_result;
     }
 
     /**
      RFC 5869, 2: HKDF-Extract, then HKDF-Expand, over pieces; the PRK is wiped between them.
 
-     @param output_key_material The OKM. @param salt The salt.
+     @param output_key_material The OKM. @param salt_bytes The salt.
      @param input_key_material The input keying material's pieces.
      @param application_info The info's pieces.
      @return Success, or Botan's failure.
     */
     [[nodiscard]] static boost::system::result<void> extract_and_expand(
-        std::span<std::uint8_t> output_key_material, std::span<std::uint8_t const> salt,
+        std::span<std::uint8_t> output_key_material, std::span<std::uint8_t const> salt_bytes,
         byte_pieces input_key_material, byte_pieces application_info) noexcept {
         return hkdf_pieces_extract_and_expand<hkdf_pieces_engine<backends::botan, Hmac>>(
-            output_key_material, salt, input_key_material, application_info);
+            output_key_material, salt_bytes, input_key_material, application_info);
     }
 };
 
@@ -1459,18 +1487,19 @@ struct botan_pbkdf2_engine {
     /**
      RFC 8018, 5.2.
 
-     @param output_key_material DK. @param password_bytes P. @param salt S. @param iteration_count
-     c.
+     @param output_key_material DK. @param password_bytes P. @param salt_bytes S.
+     @param iteration_count c.
      @return Success, or Botan's failure.
     */
     [[nodiscard]] static boost::system::result<void> derive(
         std::span<std::uint8_t> output_key_material, std::span<std::uint8_t const> password_bytes,
-        std::span<std::uint8_t const> salt, std::uint64_t iteration_count) noexcept {
-        return botan_keyed<digest>(password_bytes, [&](std::span<std::uint8_t const> key) noexcept {
-            return botan_password_hash({"PBKDF2(HMAC(", botan_hash_name<digest>::value, "))"},
-                                       {static_cast<std::size_t>(iteration_count), 0, 0},
-                                       output_key_material, key, salt);
-        });
+        std::span<std::uint8_t const> salt_bytes, std::uint64_t iteration_count) noexcept {
+        return botan_keyed<digest>(
+            password_bytes, [&](std::span<std::uint8_t const> key_bytes) noexcept {
+                return botan_password_hash({"PBKDF2(HMAC(", botan_hash_name<digest>::value, "))"},
+                                           {static_cast<std::size_t>(iteration_count), 0, 0},
+                                           output_key_material, key_bytes, salt_bytes);
+            });
     }
 };
 
@@ -1537,16 +1566,18 @@ struct botan_argon2_engine {
      RFC 9106, version 0x13.
 
      @param output_bytes The tag. @param password_bytes The password. @param salt_bytes The salt.
-     @param parameters The costs, the lanes, the secret and the associated data.
+     @param cost_parameters The costs, the lanes, the secret and the associated data.
      @return Success, `errc::not_enough_memory` or `error::backend_failure`.
     */
     [[nodiscard]] static boost::system::result<void> derive(
         std::span<std::uint8_t> output_bytes, std::span<std::uint8_t const> password_bytes,
-        std::span<std::uint8_t const> salt_bytes, argon2_parameters const& parameters) noexcept {
+        std::span<std::uint8_t const> salt_bytes,
+        argon2_parameters const& cost_parameters) noexcept {
         return botan_password_hash(
             {botan_argon2_name<Variant>::value},
-            {parameters.memory_kibibytes, parameters.passes, parameters.lanes}, output_bytes,
-            password_bytes, salt_bytes, parameters.associated_data, parameters.secret);
+            {cost_parameters.memory_kibibytes, cost_parameters.passes, cost_parameters.lanes},
+            output_bytes, password_bytes, salt_bytes, cost_parameters.associated_data,
+            cost_parameters.secret);
     }
 };
 
@@ -1623,10 +1654,10 @@ struct scrypt_engine<backends::botan> {
         std::span<std::uint8_t const> salt_bytes, std::uint64_t cost_n, std::uint32_t block_size_r,
         std::uint32_t parallelism_p) noexcept {
         return botan_keyed<digests::sha2_256>(
-            password_bytes, [&](std::span<std::uint8_t const> key) noexcept {
+            password_bytes, [&](std::span<std::uint8_t const> key_bytes) noexcept {
                 return botan_password_hash(
                     {"Scrypt"}, {static_cast<std::size_t>(cost_n), block_size_r, parallelism_p},
-                    output_bytes, key, salt_bytes);
+                    output_bytes, key_bytes, salt_bytes);
             });
     }
 };
@@ -1641,11 +1672,11 @@ struct scrypt_engine<backends::botan> {
 class botan_salt final : public Botan::RandomNumberGenerator {
 public:
     /**
-     The generator of `salt`, which outlives it.
+     The generator of `salt_bytes`, which outlives it.
 
-     @param salt The 16 bytes of the salt.
+     @param salt_bytes The 16 bytes of the salt.
     */
-    explicit botan_salt(std::span<std::uint8_t const> salt) noexcept : salt_(salt) {}
+    explicit botan_salt(std::span<std::uint8_t const> salt_bytes) noexcept : salt_(salt_bytes) {}
 
     /** Takes no input. @return false. */
     [[nodiscard]] bool accepts_input() const override { return false; }
@@ -1661,20 +1692,20 @@ public:
 
 protected:
     /**
-     Writes the salt into `output`, the one draw; throws on a second draw or another size.
+     Writes the salt into `output_bytes`, the one draw; throws on a second draw or another size.
 
-     @param output The 16 bytes drawn.
+     @param output_bytes The 16 bytes drawn.
     */
-    void fill_bytes_with_input(std::span<std::uint8_t> output,
-                               std::span<std::uint8_t const> /*input*/) override {
-        if (output.empty()) {
+    void fill_bytes_with_input(std::span<std::uint8_t> output_bytes,
+                               std::span<std::uint8_t const> /*input_bytes*/) override {
+        if (output_bytes.empty()) {
             return;
         }
-        if (drawn_ || output.size() != salt_.size()) {
+        if (drawn_ || output_bytes.size() != salt_.size()) {
             boost::throw_exception(
                 Botan::Invalid_State("webcpp::hash's bcrypt salt is drawn once, whole"));
         }
-        std::ranges::copy(salt_, output.begin());
+        std::ranges::copy(salt_, output_bytes.begin());
         drawn_ = true;
     }
 
@@ -1699,41 +1730,44 @@ struct bcrypt_engine<backends::botan> {
     /**
      The 60 characters.
 
-     @param output The string. @param password The password. @param salt The 16-byte salt.
-     @param cost The cost, 4 to 18. @param version 'a', 'b' or 'y'.
+     @param output_characters The string. @param password_bytes The password. @param salt_bytes The
+     16-byte salt.
+     @param bcrypt_cost The cost, 4 to 18. @param version_character 'a', 'b' or 'y'.
      @return Success, or the boundary's failure.
     */
     [[nodiscard]] static boost::system::result<void> generate(
-        std::span<char> output, std::span<std::uint8_t const> password,
-        std::span<std::uint8_t const> salt, std::uint32_t cost, char version) noexcept {
+        std::span<char> output_characters, std::span<std::uint8_t const> password_bytes,
+        std::span<std::uint8_t const> salt_bytes, std::uint32_t bcrypt_cost,
+        char version_character) noexcept {
         return botan_boundary([&] {
-            botan_salt generator(salt);
-            std::string const made = Botan::generate_bcrypt(
-                botan_chars(password), generator, static_cast<std::uint16_t>(cost), version);
-            if (made.size() != output.size()) {
+            botan_salt salt_generator(salt_bytes);
+            std::string const made_hash =
+                Botan::generate_bcrypt(botan_chars(password_bytes), salt_generator,
+                                       static_cast<std::uint16_t>(bcrypt_cost), version_character);
+            if (made_hash.size() != output_characters.size()) {
                 boost::throw_exception(
                     Botan::Invalid_State("bcrypt's string is not 60 characters"));
             }
-            std::ranges::copy(made, output.begin());
+            std::ranges::copy(made_hash, output_characters.begin());
         });
     }
 
     /**
-     Whether `password` gives `hash`.
+     Whether `password_bytes` gives `encoded_hash`.
 
-     @param password The password. @param hash The string, of bcrypt's form and a cost of at most
-     18.
+     @param password_bytes The password. @param encoded_hash The string, of bcrypt's form and a cost
+     of at most 18.
      @return Whether it does, or the boundary's failure.
     */
-    [[nodiscard]] static boost::system::result<bool> verify(std::span<std::uint8_t const> password,
-                                                            std::string_view hash) noexcept {
-        bool same = false;
-        auto const checked =
-            botan_boundary([&] { same = Botan::check_bcrypt(botan_chars(password), hash); });
-        if (!checked) {
-            return checked.error();
+    [[nodiscard]] static boost::system::result<bool> verify(
+        std::span<std::uint8_t const> password_bytes, std::string_view encoded_hash) noexcept {
+        bool same_hash = false;
+        auto const boundary_result = botan_boundary(
+            [&] { same_hash = Botan::check_bcrypt(botan_chars(password_bytes), encoded_hash); });
+        if (!boundary_result) {
+            return boundary_result.error();
         }
-        return same;
+        return same_hash;
     }
 };
 
@@ -1747,15 +1781,16 @@ struct bcrypt_pbkdf_engine<backends::botan> {
     /**
      OpenBSD's bcrypt_pbkdf.
 
-     @param output The derived key. @param password The password. @param salt The salt.
-     @param rounds The rounds.
+     @param output_bytes The derived key. @param password_bytes The password. @param salt_bytes The
+     salt.
+     @param round_count The rounds.
      @return Success, or the boundary's failure.
     */
-    [[nodiscard]] static boost::system::result<void> derive(std::span<std::uint8_t> output,
-                                                            std::span<std::uint8_t const> password,
-                                                            std::span<std::uint8_t const> salt,
-                                                            std::uint32_t rounds) noexcept {
-        return botan_password_hash({"Bcrypt-PBKDF"}, {rounds, 0, 0}, output, password, salt);
+    [[nodiscard]] static boost::system::result<void> derive(
+        std::span<std::uint8_t> output_bytes, std::span<std::uint8_t const> password_bytes,
+        std::span<std::uint8_t const> salt_bytes, std::uint32_t round_count) noexcept {
+        return botan_password_hash({"Bcrypt-PBKDF"}, {round_count, 0, 0}, output_bytes,
+                                   password_bytes, salt_bytes);
     }
 };
 
@@ -1793,31 +1828,32 @@ struct botan_kbkdf_engine {
     /**
      Whether Botan writes this fixed input: with the separator and L.
 
-     @param options The fixed input. @return Whether both are on.
+     @param algorithm_options The fixed input. @return Whether both are on.
     */
-    static constexpr bool accepts(kbkdf_options const& options) noexcept {
-        return options.separator && options.length;
+    static constexpr bool accepts(kbkdf_options const& algorithm_options) noexcept {
+        return algorithm_options.separator && algorithm_options.length;
     }
 
     /**
      K_OUT.
 
-     @param output K_OUT. @param key K_IN. @param options The label, the context and r.
+     @param output_bytes K_OUT. @param key_bytes K_IN. @param algorithm_options The label, the
+     context and r.
      @return Success, or the boundary's failure.
     */
-    [[nodiscard]] static boost::system::result<void> derive(std::span<std::uint8_t> output,
-                                                            std::span<std::uint8_t const> key,
-                                                            kbkdf_options const& options) noexcept {
-        return botan_keyed<digest>(key, [&](std::span<std::uint8_t const> used_key) noexcept {
+    [[nodiscard]] static boost::system::result<void> derive(
+        std::span<std::uint8_t> output_bytes, std::span<std::uint8_t const> key_bytes,
+        kbkdf_options const& algorithm_options) noexcept {
+        return botan_keyed<digest>(key_bytes, [&](std::span<std::uint8_t const> used_key) noexcept {
             return botan_kdf(
                 {
                     "SP800-108-Counter(HMAC(",
                     botan_hash_name<digest>::value,
                     "),",
-                    botan_counter_width(options.counter_bits),
+                    botan_counter_width(algorithm_options.counter_bits),
                     ",32)",
                 },
-                output, used_key, options.context, options.label);
+                output_bytes, used_key, algorithm_options.context, algorithm_options.label);
         });
     }
 };
@@ -1840,8 +1876,8 @@ struct botan_refused_kbkdf {
 
     /** Never called. @return backend_failure. */
     [[nodiscard]] static boost::system::result<void> derive(
-        std::span<std::uint8_t> /*output*/, std::span<std::uint8_t const> /*key*/,
-        kbkdf_options const& /*options*/) noexcept {
+        std::span<std::uint8_t> /*output_bytes*/, std::span<std::uint8_t const> /*key_bytes*/,
+        kbkdf_options const& /*algorithm_options*/) noexcept {
         return error::backend_failure;
     }
 };
@@ -1866,14 +1902,14 @@ struct botan_sskdf_engine {
     /**
      The derived keying material.
 
-     @param output The output. @param secret Z. @param fixed_info FixedInfo.
+     @param output_bytes The output. @param secret_bytes Z. @param fixed_info FixedInfo.
      @return Success, or the boundary's failure.
     */
     [[nodiscard]] static boost::system::result<void> derive(
-        std::span<std::uint8_t> output, std::span<std::uint8_t const> secret,
+        std::span<std::uint8_t> output_bytes, std::span<std::uint8_t const> secret_bytes,
         std::span<std::uint8_t const> fixed_info) noexcept {
-        return botan_kdf({"SP800-56A(", botan_hash_name<Digest>::value, ")"}, output, secret, {},
-                         fixed_info);
+        return botan_kdf({"SP800-56A(", botan_hash_name<Digest>::value, ")"}, output_bytes,
+                         secret_bytes, {}, fixed_info);
     }
 };
 
@@ -1913,13 +1949,13 @@ struct x963kdf_engine<backends::botan, Digest> {
     /**
      The derived keying material.
 
-     @param output The output. @param secret Z. @param shared_info SharedInfo.
+     @param output_bytes The output. @param secret_bytes Z. @param shared_info SharedInfo.
      @return Success, or the boundary's failure.
     */
     [[nodiscard]] static boost::system::result<void> derive(
-        std::span<std::uint8_t> output, std::span<std::uint8_t const> secret,
+        std::span<std::uint8_t> output_bytes, std::span<std::uint8_t const> secret_bytes,
         std::span<std::uint8_t const> shared_info) noexcept {
-        return botan_kdf({"KDF2(", botan_hash_name<Digest>::value, ")"}, output, secret,
+        return botan_kdf({"KDF2(", botan_hash_name<Digest>::value, ")"}, output_bytes, secret_bytes,
                          shared_info, {});
     }
 };

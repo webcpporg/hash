@@ -24,7 +24,7 @@ namespace webcpp::hash::detail {
 
  @param checked_value The size, widened.
  @param size_limit The limit.
- @return `value > limit`.
+ @return `checked_value > size_limit`.
 */
 inline bool exceeds(std::uint64_t checked_value, std::uint64_t size_limit) noexcept {
     return checked_value > size_limit;

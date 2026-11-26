@@ -147,15 +147,16 @@ struct backend_limits {
  @code
  using digest_type = typename Hmac::result_type;
  using bytes = std::span<std::uint8_t const>;
- // RFC 5869 2.2: the PRK of `input_key_material` under `salt` (empty: HashLen zeros).
- static boost::system::result<digest_type> extract(bytes salt, bytes input_key_material) noexcept;
+ // RFC 5869 2.2: the PRK of `input_key_material` under `salt_bytes` (empty: HashLen zeros).
+ static boost::system::result<digest_type> extract(bytes salt_bytes,
+                                                   bytes input_key_material) noexcept;
  // RFC 5869 2.3: `output_key_material` (1 to 255 digests) from `pseudorandom_key` (one digest)
  // and `application_info` (at most hkdf_max_application_info_size bytes).
  static boost::system::result<void> expand(std::span<std::uint8_t> output_key_material,
                                            bytes pseudorandom_key, bytes application_info) noexcept;
  // Both steps.
  static boost::system::result<void> extract_and_expand(std::span<std::uint8_t> output_key_material,
-                                                       bytes salt, bytes input_key_material,
+                                                       bytes salt_bytes, bytes input_key_material,
                                                        bytes application_info) noexcept;
  @endcode
 
@@ -222,25 +223,26 @@ inline constexpr std::uint64_t hkdf_pieces_slice =
                                                              : hkdf_pieces_slice_seam;
 
 /**
- Hands `update` every byte of `pieces`, in order, as spans of at most `SliceMax` bytes: each
- piece in one span when it fits, else in slices of `SliceMax` bytes and a last shorter one. An
+ Hands `update_call` every byte of `input_pieces`, in order, as spans of at most `SliceMax` bytes:
+ each piece in one span when it fits, else in slices of `SliceMax` bytes and a last shorter one. An
  empty piece is skipped (an HMAC's zero-length update changes nothing, and some C libraries take
  no null pointer).
 
  @tparam SliceMax The most bytes of one call, at least 1 (a slice of no byte would never advance,
  so 0 does not compile). @tparam Update A callable taking a `std::span<std::uint8_t const>`.
- @param pieces The pieces. @param update What reads each slice.
+ @param input_pieces The pieces. @param update_call What reads each slice.
 */
 template <std::uint64_t SliceMax, class Update>
     requires(SliceMax >= 1)
-constexpr void for_each_slice(byte_pieces pieces, Update&& update) noexcept(
-    noexcept(update(byte_pieces::value_type{}))) {
-    for (byte_pieces::value_type rest : pieces) {
-        while (!rest.empty()) {
-            std::size_t const taken =
-                rest.size() > SliceMax ? static_cast<std::size_t>(SliceMax) : rest.size();
-            update(rest.first(taken));
-            rest = rest.subspan(taken);
+constexpr void for_each_slice(byte_pieces input_pieces, Update&& update_call) noexcept(
+    noexcept(update_call(byte_pieces::value_type{}))) {
+    for (byte_pieces::value_type remaining_piece : input_pieces) {
+        while (!remaining_piece.empty()) {
+            std::size_t const slice_size = remaining_piece.size() > SliceMax
+                                               ? static_cast<std::size_t>(SliceMax)
+                                               : remaining_piece.size();
+            update_call(remaining_piece.first(slice_size));
+            remaining_piece = remaining_piece.subspan(slice_size);
         }
     }
 }
@@ -261,7 +263,7 @@ constexpr void for_each_slice(byte_pieces pieces, Update&& update) noexcept(
  using digest_type = typename Hmac::result_type;
  using bytes = std::span<std::uint8_t const>;
  // RFC 5869 2.2: PRK = HMAC(salt or HashLen zeros, piece_1 | ... | piece_n).
- static boost::system::result<digest_type> extract(bytes salt,
+ static boost::system::result<digest_type> extract(bytes salt_bytes,
                                                    byte_pieces input_key_material) noexcept;
  // RFC 5869 2.3: T(i) = HMAC(PRK, T(i - 1) | piece_1 | ... | piece_n | i).
  static boost::system::result<void> expand(std::span<std::uint8_t> output_key_material,
@@ -269,7 +271,8 @@ constexpr void for_each_slice(byte_pieces pieces, Update&& update) noexcept(
                                            byte_pieces application_info) noexcept;
  // Both steps, the PRK wiped between them.
  static boost::system::result<void> extract_and_expand(std::span<std::uint8_t> output_key_material,
-                                                       bytes salt, byte_pieces input_key_material,
+                                                       bytes salt_bytes,
+                                                       byte_pieces input_key_material,
                                                        byte_pieces application_info) noexcept;
  @endcode
 
@@ -298,18 +301,19 @@ struct hkdf_pieces_engine {
  Expand over the PRK, and the PRK wiped before the result returns (on success and on failure of
  the Expand). One copy, so that the wipe is the same on every backend.
 
- @tparam Engine A pieces engine with `extract(salt, input_key_material)` returning a
- `boost::system::result` of the PRK's byte array and `expand(output, pseudorandom_key, info)`.
- @param output_key_material The OKM. @param salt The salt.
+ @tparam Engine A pieces engine with `extract(salt_bytes, input_key_material)` returning a
+ `boost::system::result` of the PRK's byte array and `expand(output_key_material, pseudorandom_key,
+ application_info)`.
+ @param output_key_material The OKM. @param salt_bytes The salt.
  @param input_key_material The input keying material's pieces.
  @param application_info The info's pieces.
  @return Success, or the Extract's or the Expand's error.
 */
 template <class Engine>
 [[nodiscard]] boost::system::result<void> hkdf_pieces_extract_and_expand(
-    std::span<std::uint8_t> output_key_material, std::span<std::uint8_t const> salt,
+    std::span<std::uint8_t> output_key_material, std::span<std::uint8_t const> salt_bytes,
     byte_pieces input_key_material, byte_pieces application_info) noexcept {
-    auto pseudorandom_key = Engine::extract(salt, input_key_material);
+    auto pseudorandom_key = Engine::extract(salt_bytes, input_key_material);
     if (!pseudorandom_key) {
         return pseudorandom_key.error();
     }
@@ -337,12 +341,12 @@ inline constexpr std::uint64_t pbkdf2_max_blocks = 0xffffffffULL;
  A specialisation has one static member function, called after the guards of spec 2.9:
 
  @code
- // RFC 8018 5.2: `output` (1 to (2^32 - 1) digests) from `password` and `salt`, by
- // `iterations` (at least 1) rounds of Hmac.
- static boost::system::result<void> derive(std::span<std::uint8_t> output,
-                                           std::span<std::uint8_t const> password,
-                                           std::span<std::uint8_t const> salt,
-                                           std::uint64_t iterations) noexcept;
+ // RFC 8018 5.2: `output_bytes` (1 to (2^32 - 1) digests) from `password_bytes` and
+ // `salt_bytes`, by `iteration_count` (at least 1) rounds of Hmac.
+ static boost::system::result<void> derive(std::span<std::uint8_t> output_bytes,
+                                           std::span<std::uint8_t const> password_bytes,
+                                           std::span<std::uint8_t const> salt_bytes,
+                                           std::uint64_t iteration_count) noexcept;
  @endcode
 
  @tparam Backend A backend of `backends`. @tparam Hmac A Boost.Hash2 hmac over a digest.
@@ -403,10 +407,11 @@ struct scrypt_limits {
 
  @code
  static constexpr argon2id_limits limits{...};
- static boost::system::result<void> derive(std::span<std::uint8_t> output,
-                                           std::span<std::uint8_t const> password,
-                                           std::span<std::uint8_t const> salt,
-                                           std::uint64_t passes, std::size_t memory) noexcept;
+ static boost::system::result<void> derive(std::span<std::uint8_t> output_bytes,
+                                           std::span<std::uint8_t const> password_bytes,
+                                           std::span<std::uint8_t const> salt_bytes,
+                                           std::uint64_t pass_count,
+                                           std::size_t memory_limit) noexcept;
  @endcode
 
  A failure is `error::backend_failure`, or `errc::not_enough_memory` when the library could not
@@ -462,10 +467,11 @@ struct argon2id_engine {
 
  @code
  static constexpr scrypt_limits limits{...};
- static boost::system::result<void> derive(std::span<std::uint8_t> output,
-                                           std::span<std::uint8_t const> password,
-                                           std::span<std::uint8_t const> salt, std::uint64_t n,
-                                           std::uint32_t r, std::uint32_t p) noexcept;
+ static boost::system::result<void> derive(std::span<std::uint8_t> output_bytes,
+                                           std::span<std::uint8_t const> password_bytes,
+                                           std::span<std::uint8_t const> salt_bytes,
+                                           std::uint64_t cost_n, std::uint32_t block_size_r,
+                                           std::uint32_t parallelism_p) noexcept;
  @endcode
 
  @tparam Backend A backend of `backends`.
@@ -520,13 +526,13 @@ struct scrypt_engine {
  subkey of 16 to 64 bytes, the master key of 32 bytes, the context of 8 bytes; ruling R22):
 
  @code
- // The subkey of output.size() bytes: BLAKE2b of the empty message under master_key, with
- // subkey_id in 8 little-endian bytes then 8 zero bytes as the salt, and context then 8 zero
+ // The subkey of output_bytes.size() bytes: BLAKE2b of the empty message under master_key, with
+ // subkey_id in 8 little-endian bytes then 8 zero bytes as the salt, and context_bytes then 8 zero
  // bytes as the personalisation.
- static boost::system::result<void> derive(std::span<std::uint8_t> output,
+ static boost::system::result<void> derive(std::span<std::uint8_t> output_bytes,
                                            std::span<std::uint8_t const> master_key,
                                            std::uint64_t subkey_id,
-                                           std::span<std::uint8_t const> context) noexcept;
+                                           std::span<std::uint8_t const> context_bytes) noexcept;
  @endcode
 
  A failure is `error::backend_failure`; the public function then zeroes the output.
@@ -548,7 +554,7 @@ struct blake2b_subkey_engine {
     /** Never called: the refusal has stopped the build. */
     [[nodiscard]] static boost::system::result<void> derive(
         std::span<std::uint8_t> /*output_bytes*/, std::span<std::uint8_t const> /*master_key*/,
-        std::uint64_t /*subkey_id*/, std::span<std::uint8_t const> /*context*/) noexcept {
+        std::uint64_t /*subkey_id*/, std::span<std::uint8_t const> /*context_bytes*/) noexcept {
         return error::backend_failure;
     }
 };
@@ -703,7 +709,7 @@ struct full_engine {
      @return true.
     */
     template <class Options>
-    static constexpr bool accepts(Options const& /*options*/) noexcept {
+    static constexpr bool accepts(Options const& /*algorithm_options*/) noexcept {
         return true;
     }
 
@@ -713,7 +719,7 @@ struct full_engine {
      @return true.
     */
     template <class Options>
-    static constexpr bool accepts(Options const& /*options*/, std::size_t /*key_size*/,
+    static constexpr bool accepts(Options const& /*algorithm_options*/, std::size_t /*key_size*/,
                                   std::size_t /*output_size*/) noexcept {
         return true;
     }
@@ -742,22 +748,24 @@ struct full_engine {
  static constexpr std::uint64_t min_output = ...;
  static constexpr std::uint64_t max_output = ...;
  // Whether the backend takes these options, every one the family accepts or fewer.
- static bool accepts(digest_options<Digest> const& options) noexcept;
- // Starts a hash in `hashed`, a default-constructed state.
- static boost::system::result<void> init(state& hashed, digest_options<Digest> const& options)
- noexcept;
- // Absorbs `input`, of any size.
- static boost::system::result<void> update(state& hashed, std::span<std::uint8_t const> input)
- noexcept;
- // Writes the result, of output.size() bytes; called once per init.
- static boost::system::result<void> finish(state& hashed, std::span<std::uint8_t> output) noexcept;
+ static bool accepts(digest_options<Digest> const& algorithm_options) noexcept;
+ // Starts a hash in `digest_state`, a default-constructed state.
+ static boost::system::result<void> init(state& digest_state,
+                                         digest_options<Digest> const& algorithm_options) noexcept;
+ // Absorbs `input_bytes`, of any size.
+ static boost::system::result<void> update(state& digest_state,
+                                           std::span<std::uint8_t const> input_bytes) noexcept;
+ // Writes the result, of output_bytes.size() bytes; called once per init.
+ static boost::system::result<void> finish(state& digest_state,
+                                           std::span<std::uint8_t> output_bytes) noexcept;
  // Wipes the state and frees what it owns: called once after every init, whether init, update
  // and finish succeeded or not, and on each state moved from; a second call does nothing.
- static void destroy(state& hashed) noexcept;
+ static void destroy(state& digest_state) noexcept;
  // init, update and finish at once, the state wiped.
- static boost::system::result<void> one_shot(std::span<std::uint8_t> output,
-                                             std::span<std::uint8_t const> input,
-                                             digest_options<Digest> const& options) noexcept;
+ static boost::system::result<void> one_shot(std::span<std::uint8_t> output_bytes,
+                                             std::span<std::uint8_t const> input_bytes,
+                                             digest_options<Digest> const& algorithm_options)
+ noexcept;
  @endcode
 
  @ref full_engine gives `min_output`, `max_output` and `accepts` to an engine without narrower
@@ -783,29 +791,29 @@ struct refused_digest_engine : full_engine {
 
     /** Never called. @return backend_failure. */
     [[nodiscard]] static boost::system::result<void> init(
-        state& /*hashed*/, digest_options<Digest> const& /*options*/) noexcept {
+        state& /*digest_state*/, digest_options<Digest> const& /*algorithm_options*/) noexcept {
         return error::backend_failure;
     }
 
     /** Never called. @return backend_failure. */
     [[nodiscard]] static boost::system::result<void> update(
-        state& /*hashed*/, std::span<std::uint8_t const> /*input*/) noexcept {
+        state& /*digest_state*/, std::span<std::uint8_t const> /*input_bytes*/) noexcept {
         return error::backend_failure;
     }
 
     /** Never called. @return backend_failure. */
     [[nodiscard]] static boost::system::result<void> finish(
-        state& /*hashed*/, std::span<std::uint8_t> /*output*/) noexcept {
+        state& /*digest_state*/, std::span<std::uint8_t> /*output_bytes*/) noexcept {
         return error::backend_failure;
     }
 
     /** Never called. */
-    static void destroy(state& /*hashed*/) noexcept {}
+    static void destroy(state& /*digest_state*/) noexcept {}
 
     /** Never called. @return backend_failure. */
     [[nodiscard]] static boost::system::result<void> one_shot(
-        std::span<std::uint8_t> /*output*/, std::span<std::uint8_t const> /*input*/,
-        digest_options<Digest> const& /*options*/) noexcept {
+        std::span<std::uint8_t> /*output_bytes*/, std::span<std::uint8_t const> /*input_bytes*/,
+        digest_options<Digest> const& /*algorithm_options*/) noexcept {
         return error::backend_failure;
     }
 };
@@ -1201,14 +1209,14 @@ struct digest_engine<Backend, digests::skein_512> : refused_digest_engine<digest
  @code
  // Whether the backend takes these options, a key of key_size bytes and a tag of output_size
  // bytes, every one the family accepts or fewer; refused: unsupported_by_backend.
- static bool accepts(mac_options<Mac> const& options, std::size_t key_size,
+ static bool accepts(mac_options<Mac> const& algorithm_options, std::size_t key_size,
                      std::size_t output_size) noexcept;
- // The tag of `input` under `key`, of output.size() bytes (for HMAC, the digest cut to it:
- // RFC 2104, section 5), every intermediate wiped.
- static boost::system::result<void> compute(std::span<std::uint8_t> output,
-                                            std::span<std::uint8_t const> key,
-                                            std::span<std::uint8_t const> input,
-                                            mac_options<Mac> const& options) noexcept;
+ // The tag of `input_bytes` under `key_bytes`, of output_bytes.size() bytes (for HMAC, the digest
+ // cut to it: RFC 2104, section 5), every intermediate wiped.
+ static boost::system::result<void> compute(std::span<std::uint8_t> output_bytes,
+                                            std::span<std::uint8_t const> key_bytes,
+                                            std::span<std::uint8_t const> input_bytes,
+                                            mac_options<Mac> const& algorithm_options) noexcept;
  @endcode
 
  @ref full_engine gives `accepts` to an engine without narrower limits. A failure is
@@ -1228,8 +1236,9 @@ template <class Mac>
 struct refused_mac_engine : full_engine {
     /** Never called. @return backend_failure. */
     [[nodiscard]] static boost::system::result<void> compute(
-        std::span<std::uint8_t> /*output*/, std::span<std::uint8_t const> /*key*/,
-        std::span<std::uint8_t const> /*input*/, mac_options<Mac> const& /*options*/) noexcept {
+        std::span<std::uint8_t> /*output_bytes*/, std::span<std::uint8_t const> /*key_bytes*/,
+        std::span<std::uint8_t const> /*input_bytes*/,
+        mac_options<Mac> const& /*algorithm_options*/) noexcept {
         return error::backend_failure;
     }
 };
@@ -1593,11 +1602,11 @@ struct argon2_limits {
 
  @code
  static constexpr argon2_limits limits{...};
- // RFC 9106, version 0x13: the tag of output.size() bytes.
- static boost::system::result<void> derive(std::span<std::uint8_t> output,
-                                           std::span<std::uint8_t const> password,
-                                           std::span<std::uint8_t const> salt,
-                                           argon2_parameters const& parameters) noexcept;
+ // RFC 9106, version 0x13: the tag of output_bytes.size() bytes.
+ static boost::system::result<void> derive(std::span<std::uint8_t> output_bytes,
+                                           std::span<std::uint8_t const> password_bytes,
+                                           std::span<std::uint8_t const> salt_bytes,
+                                           argon2_parameters const& cost_parameters) noexcept;
  @endcode
 
  A failure is `error::backend_failure`, or `errc::not_enough_memory` when the memory cannot be
@@ -1621,8 +1630,9 @@ struct refused_argon2_engine {
 
     /** Never called. @return backend_failure. */
     [[nodiscard]] static boost::system::result<void> derive(
-        std::span<std::uint8_t> /*output*/, std::span<std::uint8_t const> /*password*/,
-        std::span<std::uint8_t const> /*salt*/, argon2_parameters const& /*parameters*/) noexcept {
+        std::span<std::uint8_t> /*output_bytes*/, std::span<std::uint8_t const> /*password_bytes*/,
+        std::span<std::uint8_t const> /*salt_bytes*/,
+        argon2_parameters const& /*cost_parameters*/) noexcept {
         return error::backend_failure;
     }
 };
@@ -1694,11 +1704,12 @@ struct kdf_standard_limits {
 
  @code
  static constexpr kdf_standard_limits limits{...};
- static constexpr bool accepts(kbkdf_options const& options) noexcept;  // optional
- // K_OUT, output.size() bytes, from K_IN, key, and the fixed input options states.
- static boost::system::result<void> derive(std::span<std::uint8_t> output,
-                                           std::span<std::uint8_t const> key,
-                                           kbkdf_options const& options) noexcept;
+ static constexpr bool accepts(kbkdf_options const& algorithm_options) noexcept;  // optional
+ // K_OUT, output_bytes.size() bytes, from K_IN, key_bytes, and the fixed input algorithm_options
+ // states.
+ static boost::system::result<void> derive(std::span<std::uint8_t> output_bytes,
+                                           std::span<std::uint8_t const> key_bytes,
+                                           kbkdf_options const& algorithm_options) noexcept;
  @endcode
 
  A failure is `error::backend_failure`, or `errc::not_enough_memory` when the library could not
@@ -1720,8 +1731,8 @@ struct kbkdf_engine : needs_library<Backend> {
 
     /** Never called: the refusal has stopped the build. @return backend_failure. */
     [[nodiscard]] static boost::system::result<void> derive(
-        std::span<std::uint8_t> /*output*/, std::span<std::uint8_t const> /*key*/,
-        kbkdf_options const& /*options*/) noexcept {
+        std::span<std::uint8_t> /*output_bytes*/, std::span<std::uint8_t const> /*key_bytes*/,
+        kbkdf_options const& /*algorithm_options*/) noexcept {
         return error::backend_failure;
     }
 };
@@ -1736,8 +1747,8 @@ struct refused_digest_kdf_engine {
 
     /** Never called. @return backend_failure. */
     [[nodiscard]] static boost::system::result<void> derive(
-        std::span<std::uint8_t> /*output*/, std::span<std::uint8_t const> /*secret*/,
-        std::span<std::uint8_t const> /*info*/) noexcept {
+        std::span<std::uint8_t> /*output_bytes*/, std::span<std::uint8_t const> /*secret_bytes*/,
+        std::span<std::uint8_t const> /*fixed_or_shared_info*/) noexcept {
         return error::backend_failure;
     }
 };
@@ -1752,9 +1763,9 @@ struct refused_digest_kdf_engine {
 
  @code
  static constexpr kdf_standard_limits limits{...};
- // output.size() bytes: H(counter || Z || FixedInfo) for counter 1, 2, ..., concatenated.
- static boost::system::result<void> derive(std::span<std::uint8_t> output,
-                                           std::span<std::uint8_t const> secret,
+ // output_bytes.size() bytes: H(counter || Z || FixedInfo) for counter 1, 2, ..., concatenated.
+ static boost::system::result<void> derive(std::span<std::uint8_t> output_bytes,
+                                           std::span<std::uint8_t const> secret_bytes,
                                            std::span<std::uint8_t const> fixed_info) noexcept;
  @endcode
 
@@ -1779,8 +1790,8 @@ struct sskdf_engine : refused_digest_kdf_engine, needs_library<Backend> {
 
  @code
  static constexpr kdf_standard_limits limits{...};
- static boost::system::result<void> derive(std::span<std::uint8_t> output,
-                                           std::span<std::uint8_t const> secret,
+ static boost::system::result<void> derive(std::span<std::uint8_t> output_bytes,
+                                           std::span<std::uint8_t const> secret_bytes,
                                            std::span<std::uint8_t const> shared_info) noexcept;
  @endcode
 
@@ -1810,15 +1821,18 @@ struct x963kdf_engine : refused_digest_kdf_engine, needs_library<Backend> {
  // The highest cost the backend computes; a higher one, within bcrypt's 31, is
  // unsupported_by_backend.
  static constexpr std::uint32_t max_cost = ...;
- // The 60 characters of password's bcrypt under the 16-byte salt, of cost (4 to max_cost) and
- // version ('a', 'b' or 'y'): the password of at most 72 bytes, without a zero byte.
- static boost::system::result<void> generate(std::span<char> output,
-                                             std::span<std::uint8_t const> password,
-                                             std::span<std::uint8_t const> salt,
-                                             std::uint32_t cost, char version) noexcept;
- // Whether password gives hash, 60 characters of bcrypt's form, compared in constant time.
- static boost::system::result<bool> verify(std::span<std::uint8_t const> password,
-                                           std::string_view hash) noexcept;
+ // The 60 characters of password_bytes' bcrypt under the 16-byte salt_bytes, of bcrypt_cost (4 to
+ // max_cost) and version_character ('a', 'b' or 'y'): the password of at most 72 bytes, without a
+ // zero byte.
+ static boost::system::result<void> generate(std::span<char> output_characters,
+                                             std::span<std::uint8_t const> password_bytes,
+                                             std::span<std::uint8_t const> salt_bytes,
+                                             std::uint32_t bcrypt_cost,
+                                             char version_character) noexcept;
+ // Whether password_bytes gives encoded_hash, 60 characters of bcrypt's form, compared in constant
+ // time.
+ static boost::system::result<bool> verify(std::span<std::uint8_t const> password_bytes,
+                                           std::string_view encoded_hash) noexcept;
  @endcode
 
  A failure is `error::backend_failure`, or `errc::not_enough_memory` when the library could not
@@ -1840,14 +1854,16 @@ struct bcrypt_engine : needs_library<Backend> {
 
     /** Never called: the refusal has stopped the build. @return backend_failure. */
     [[nodiscard]] static boost::system::result<void> generate(
-        std::span<char> /*output*/, std::span<std::uint8_t const> /*password*/,
-        std::span<std::uint8_t const> /*salt*/, std::uint32_t /*cost*/, char /*version*/) noexcept {
+        std::span<char> /*output_characters*/, std::span<std::uint8_t const> /*password_bytes*/,
+        std::span<std::uint8_t const> /*salt_bytes*/, std::uint32_t /*bcrypt_cost*/,
+        char /*version_character*/) noexcept {
         return error::backend_failure;
     }
 
     /** Never called: the refusal has stopped the build. @return backend_failure. */
     [[nodiscard]] static boost::system::result<bool> verify(
-        std::span<std::uint8_t const> /*password*/, std::string_view /*hash*/) noexcept {
+        std::span<std::uint8_t const> /*password_bytes*/,
+        std::string_view /*encoded_hash*/) noexcept {
         return error::backend_failure;
     }
 };
@@ -1858,12 +1874,12 @@ struct bcrypt_engine : needs_library<Backend> {
  `derive` is called only after every guard of `bcrypt_pbkdf` (OpenBSD's limits) has passed:
 
  @code
- // output.size() bytes (1 to 1,024) from password (1 byte or more) and salt (1 to 1,048,576
- // bytes), by rounds (1 or more) of bcrypt's hash.
- static boost::system::result<void> derive(std::span<std::uint8_t> output,
-                                           std::span<std::uint8_t const> password,
-                                           std::span<std::uint8_t const> salt,
-                                           std::uint32_t rounds) noexcept;
+ // output_bytes.size() bytes (1 to 1,024) from password_bytes (1 byte or more) and salt_bytes (1 to
+ // 1,048,576 bytes), by round_count (1 or more) rounds of bcrypt's hash.
+ static boost::system::result<void> derive(std::span<std::uint8_t> output_bytes,
+                                           std::span<std::uint8_t const> password_bytes,
+                                           std::span<std::uint8_t const> salt_bytes,
+                                           std::uint32_t round_count) noexcept;
  @endcode
 
  @tparam Backend A backend of `backends`, or `no_default`.
@@ -1879,8 +1895,8 @@ struct bcrypt_pbkdf_engine : needs_library<Backend> {
 
     /** Never called: the refusal has stopped the build. @return backend_failure. */
     [[nodiscard]] static boost::system::result<void> derive(
-        std::span<std::uint8_t> /*output*/, std::span<std::uint8_t const> /*password*/,
-        std::span<std::uint8_t const> /*salt*/, std::uint32_t /*rounds*/) noexcept {
+        std::span<std::uint8_t> /*output_bytes*/, std::span<std::uint8_t const> /*password_bytes*/,
+        std::span<std::uint8_t const> /*salt_bytes*/, std::uint32_t /*round_count*/) noexcept {
         return error::backend_failure;
     }
 };

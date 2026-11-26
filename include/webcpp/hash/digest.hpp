@@ -284,7 +284,7 @@ struct fixed_output {
      @return `Size`.
     */
     template <class Options>
-    static constexpr std::uint64_t min_output(Options const& /*options*/) noexcept {
+    static constexpr std::uint64_t min_output(Options const& /*algorithm_options*/) noexcept {
         return Size;
     }
 
@@ -294,7 +294,7 @@ struct fixed_output {
      @return `Size`.
     */
     template <class Options>
-    static constexpr std::uint64_t max_output(Options const& /*options*/) noexcept {
+    static constexpr std::uint64_t max_output(Options const& /*algorithm_options*/) noexcept {
         return Size;
     }
 
@@ -305,7 +305,7 @@ struct fixed_output {
     */
     template <class Options>
     [[nodiscard]] static constexpr boost::system::result<void> check(
-        Options const& /*options*/) noexcept {
+        Options const& /*algorithm_options*/) noexcept {
         return {};
     }
 };
@@ -318,7 +318,7 @@ struct extendable_output {
      @return 1.
     */
     template <class Options>
-    static constexpr std::uint64_t min_output(Options const& /*options*/) noexcept {
+    static constexpr std::uint64_t min_output(Options const& /*algorithm_options*/) noexcept {
         return 1;
     }
 
@@ -328,7 +328,7 @@ struct extendable_output {
      @return `no_limit`.
     */
     template <class Options>
-    static constexpr std::uint64_t max_output(Options const& /*options*/) noexcept {
+    static constexpr std::uint64_t max_output(Options const& /*algorithm_options*/) noexcept {
         return no_limit;
     }
 
@@ -339,17 +339,18 @@ struct extendable_output {
     */
     template <class Options>
     [[nodiscard]] static constexpr boost::system::result<void> check(
-        Options const& /*options*/) noexcept {
+        Options const& /*algorithm_options*/) noexcept {
         return {};
     }
 };
 
 /**
- The family's guards of a tag of `digests`, in one place (spec 2.15): `min_output(options)` and
- `max_output(options)`, the output sizes the tag produces (`invalid_output_size` outside them);
- `check(options)`, the options' own guards (`invalid_parameters`, `invalid_key_size`,
- `invalid_salt_size` or `input_too_long`), success for a tag without options. Every tag of `digests`
- has a specialisation; the increment that gives a tag options adds their check to it.
+ The family's guards of a tag of `digests`, in one place (spec 2.15):
+ `min_output(algorithm_options)` and `max_output(algorithm_options)`, the output sizes the tag
+ produces (`invalid_output_size` outside them); `check(algorithm_options)`, the options' own guards
+ (`invalid_parameters`, `invalid_key_size`, `invalid_salt_size` or `input_too_long`), success for a
+ tag without options. Every tag of `digests` has a specialisation; the increment that gives a tag
+ options adds their check to it.
 
  The primary template, reached only by a type that is not a tag, guards nothing: the engine's
  refusal is then the call's only error.
@@ -434,43 +435,44 @@ struct digest_traits<digests::blake2b> {
     /**
      The shortest output: the options' size, and at least 1.
 
-     @param options The options. @return The size the output must have.
+     @param algorithm_options The options. @return The size the output must have.
     */
     static constexpr std::uint64_t min_output(
-        digest_options<digests::blake2b> const& options) noexcept {
-        return options.output_size == 0 ? 1 : options.output_size;
+        digest_options<digests::blake2b> const& algorithm_options) noexcept {
+        return algorithm_options.output_size == 0 ? 1 : algorithm_options.output_size;
     }
 
     /**
      The longest output: the options' size, and at most 64, so that an output size out of range
      refuses every output.
 
-     @param options The options. @return The size the output must have.
+     @param algorithm_options The options. @return The size the output must have.
     */
     static constexpr std::uint64_t max_output(
-        digest_options<digests::blake2b> const& options) noexcept {
-        return options.output_size > max_size ? max_size : options.output_size;
+        digest_options<digests::blake2b> const& algorithm_options) noexcept {
+        return algorithm_options.output_size > max_size ? max_size : algorithm_options.output_size;
     }
 
     /**
      Checks the options, in order: the output size, the key, the salt, the personalisation.
 
-     @param options The options.
+     @param algorithm_options The options.
      @return Success; or `invalid_output_size`, `invalid_key_size`, `invalid_salt_size` or
      `invalid_parameters`.
     */
     [[nodiscard]] static constexpr boost::system::result<void> check(
-        digest_options<digests::blake2b> const& options) noexcept {
-        if (options.output_size == 0 || options.output_size > max_size) {
+        digest_options<digests::blake2b> const& algorithm_options) noexcept {
+        if (algorithm_options.output_size == 0 || algorithm_options.output_size > max_size) {
             return error::invalid_output_size;
         }
-        if (options.key.size() > max_size) {
+        if (algorithm_options.key.size() > max_size) {
             return error::invalid_key_size;
         }
-        if (!options.salt.empty() && options.salt.size() != block_part_size) {
+        if (!algorithm_options.salt.empty() && algorithm_options.salt.size() != block_part_size) {
             return error::invalid_salt_size;
         }
-        if (!options.personalisation.empty() && options.personalisation.size() != block_part_size) {
+        if (!algorithm_options.personalisation.empty() &&
+            algorithm_options.personalisation.size() != block_part_size) {
             return error::invalid_parameters;
         }
         return {};
@@ -491,12 +493,12 @@ struct turboshake_traits : extendable_output {
     /**
      Checks the domain byte.
 
-     @param options The options. @return Success, or `invalid_parameters`.
+     @param algorithm_options The options. @return Success, or `invalid_parameters`.
     */
     template <class Options>
     [[nodiscard]] static constexpr boost::system::result<void> check(
-        Options const& options) noexcept {
-        if (options.domain < min_domain || options.domain > max_domain) {
+        Options const& algorithm_options) noexcept {
+        if (algorithm_options.domain < min_domain || algorithm_options.domain > max_domain) {
             return error::invalid_parameters;
         }
         return {};
@@ -535,15 +537,15 @@ struct cshake_traits : extendable_output {
     /**
      Checks the function name, then the customisation.
 
-     @param options The options. @return Success, or `input_too_long`.
+     @param algorithm_options The options. @return Success, or `input_too_long`.
     */
     [[nodiscard]] static boost::system::result<void> check(
-        digest_options<Digest> const& options) noexcept {
-        auto named = check_sp800_185_string(options.function_name);
-        if (!named) {
-            return named;
+        digest_options<Digest> const& algorithm_options) noexcept {
+        auto name_check = check_sp800_185_string(algorithm_options.function_name);
+        if (!name_check) {
+            return name_check;
         }
-        return check_sp800_185_string(options.customisation);
+        return check_sp800_185_string(algorithm_options.customisation);
     }
 };
 
@@ -570,33 +572,35 @@ struct sp800_185_hash_traits {
 
      @return 1.
     */
-    static constexpr std::uint64_t min_output(digest_options<Digest> const& /*options*/) noexcept {
+    static constexpr std::uint64_t min_output(
+        digest_options<Digest> const& /*algorithm_options*/) noexcept {
         return 1;
     }
 
     /**
      The longest output: `sp800_185_max_bytes` in the fixed-length form, no limit in the XOF form.
 
-     @param options The options. @return The longest output.
+     @param algorithm_options The options. @return The longest output.
     */
-    static constexpr std::uint64_t max_output(digest_options<Digest> const& options) noexcept {
-        return options.xof ? no_limit : sp800_185_max_bytes;
+    static constexpr std::uint64_t max_output(
+        digest_options<Digest> const& algorithm_options) noexcept {
+        return algorithm_options.xof ? no_limit : sp800_185_max_bytes;
     }
 
     /**
      Checks ParallelHash's block size, then the customisation.
 
-     @param options The options.
+     @param algorithm_options The options.
      @return Success, `invalid_parameters` or `input_too_long`.
     */
     [[nodiscard]] static boost::system::result<void> check(
-        digest_options<Digest> const& options) noexcept {
-        if constexpr (requires { options.block_size; }) {
-            if (options.block_size == 0) {
+        digest_options<Digest> const& algorithm_options) noexcept {
+        if constexpr (requires { algorithm_options.block_size; }) {
+            if (algorithm_options.block_size == 0) {
                 return error::invalid_parameters;
             }
         }
-        return check_sp800_185_string(options.customisation);
+        return check_sp800_185_string(algorithm_options.customisation);
     }
 };
 
@@ -641,19 +645,19 @@ struct digest_traits<digests::parallelhash_256> : sp800_185_hash_traits<digests:
  (`backends::webcrypto`) checks before it starts the work.
 
  @tparam Digest A tag of `digests`. @param output_size The output's size.
- @param options The digest's parameters.
+ @param algorithm_options The digest's parameters.
  @return Success, or the error of the first guard that fails, as `digest_of` returns it.
 */
 template <class Digest>
-[[nodiscard]] boost::system::result<void> digest_guards(std::size_t output_size,
-                                                        digest_options<Digest> const& options) {
+[[nodiscard]] boost::system::result<void> digest_guards(
+    std::size_t output_size, digest_options<Digest> const& algorithm_options) {
     using traits = digest_traits<Digest>;
-    auto sized =
-        check_output(output_size, traits::min_output(options), traits::max_output(options));
-    if (!sized) {
-        return sized;
+    auto size_check = check_output(output_size, traits::min_output(algorithm_options),
+                                   traits::max_output(algorithm_options));
+    if (!size_check) {
+        return size_check;
     }
-    return traits::check(options);
+    return traits::check(algorithm_options);
 }
 
 /**
@@ -677,13 +681,13 @@ template <class Engine>
  Whether a digest's options carry a key: a keyed BLAKE2b is a MAC, and holds the timing guard of
  one (design D1); every other digest computes on public data.
 
- @tparam Options A tag's `digest_options`. @param options The digest's parameters.
+ @tparam Options A tag's `digest_options`. @param algorithm_options The digest's parameters.
  @return Whether the options hold a non-empty `key`; `false` for options without one.
 */
 template <class Options>
-[[nodiscard]] constexpr bool options_keyed(Options const& options) noexcept {
-    if constexpr (requires { options.key.empty(); }) {
-        return !options.key.empty();
+[[nodiscard]] constexpr bool options_keyed(Options const& algorithm_options) noexcept {
+    if constexpr (requires { algorithm_options.key.empty(); }) {
+        return !algorithm_options.key.empty();
     } else {
         return false;
     }
@@ -692,7 +696,7 @@ template <class Options>
 }  // namespace detail
 
 /**
- Hashes `input` into `output` with the digest `Digest` on `Backend`, in one call.
+ Hashes `input_bytes` into `output_bytes` with the digest `Digest` on `Backend`, in one call.
 
  @code
  std::array<std::uint8_t, 32> id{};
@@ -703,35 +707,36 @@ template <class Options>
  @tparam Backend The backend; by default @ref default_backend of `Digest` (spec 4.1). A backend
  without the tag, or one the program does not link, refuses at compile time, naming those that
  have it, or the Jamfile line to add.
- @param output The digest: exactly the digest's size for a fixed-size digest, any size from 1
+ @param output_bytes The digest: exactly the digest's size for a fixed-size digest, any size from 1
  byte for an extendable-output function.
- @param input The data, of any size.
- @param options The digest's parameters (none for most tags).
+ @param input_bytes The data, of any size.
+ @param algorithm_options The digest's parameters (none for most tags).
  @return Success; or the first guard's error (`invalid_output_size`, an option's error,
- `unsupported_by_backend`), `output` untouched; or the backend's failure, `output` zeroed.
+ `unsupported_by_backend`), `output_bytes` untouched; or the backend's failure, `output_bytes`
+ zeroed.
 */
 template <class Digest, class Backend = default_backend<Digest>>
-[[nodiscard]] boost::system::result<void> digest_of(std::span<std::uint8_t> output,
-                                                    std::span<std::uint8_t const> input,
-                                                    digest_options<Digest> const& options = {}) {
-    secure::timing_guard const timing{detail::options_keyed(options)};
+[[nodiscard]] boost::system::result<void> digest_of(
+    std::span<std::uint8_t> output_bytes, std::span<std::uint8_t const> input_bytes,
+    digest_options<Digest> const& algorithm_options = {}) {
+    secure::timing_guard const timing_scope{detail::options_keyed(algorithm_options)};
     using engine = detail::digest_engine<Backend, Digest>;
-    auto checked = detail::digest_guards<Digest>(output.size(), options);
-    if (!checked) {
-        return checked;
+    auto guard_result = detail::digest_guards<Digest>(output_bytes.size(), algorithm_options);
+    if (!guard_result) {
+        return guard_result;
     }
-    auto served = detail::check_engine_output<engine>(output.size());
-    if (!served) {
-        return served;
+    auto output_check = detail::check_engine_output<engine>(output_bytes.size());
+    if (!output_check) {
+        return output_check;
     }
-    if (!engine::accepts(options)) {
+    if (!engine::accepts(algorithm_options)) {
         return error::unsupported_by_backend;
     }
-    auto hashed = engine::one_shot(output, input, options);
-    if (!hashed) {
-        secure::erase_secret(output);
+    auto digest_state = engine::one_shot(output_bytes, input_bytes, algorithm_options);
+    if (!digest_state) {
+        secure::erase_secret(output_bytes);
     }
-    return hashed;
+    return digest_state;
 }
 
 // MSVC's warning C4324 ("structure was padded due to alignment specifier") is off for the hasher
@@ -784,32 +789,32 @@ public:
     /**
      Starts a hash.
 
-     @param options The digest's parameters (none for most tags).
+     @param algorithm_options The digest's parameters (none for most tags).
      @return The hasher; or an option's error or `unsupported_by_backend`; or the backend's
      failure.
     */
     [[nodiscard]] static boost::system::result<hasher> make(
-        digest_options<Digest> const& options = {}) noexcept {
-        secure::timing_guard const timing{detail::options_keyed(options)};
-        auto const checked = traits::check(options);
-        if (!checked) {
-            return checked.error();
+        digest_options<Digest> const& algorithm_options = {}) noexcept {
+        secure::timing_guard const timing_scope{detail::options_keyed(algorithm_options)};
+        auto const check_result = traits::check(algorithm_options);
+        if (!check_result) {
+            return check_result.error();
         }
-        if (!engine::accepts(options)) {
+        if (!engine::accepts(algorithm_options)) {
             return error::unsupported_by_backend;
         }
-        hasher started;
-        auto const initialised = engine::init(started.state_, options);
-        if (!initialised) {
-            engine::destroy(started.state_);
-            started.phase_ = phase::spent;
-            return initialised.error();
+        hasher started_hasher;
+        auto const init_result = engine::init(started_hasher.state_, algorithm_options);
+        if (!init_result) {
+            engine::destroy(started_hasher.state_);
+            started_hasher.phase_ = phase::spent;
+            return init_result.error();
         }
-        started.min_output_ = traits::min_output(options);
-        started.max_output_ = traits::max_output(options);
-        started.keyed_ = detail::options_keyed(options);
-        started.phase_ = phase::hashing;
-        return started;
+        started_hasher.min_output_ = traits::min_output(algorithm_options);
+        started_hasher.max_output_ = traits::max_output(algorithm_options);
+        started_hasher.keyed_ = detail::options_keyed(algorithm_options);
+        started_hasher.phase_ = phase::hashing;
+        return started_hasher;
     }
 
     /**
@@ -855,55 +860,57 @@ public:
     ~hasher() { end(); }
 
     /**
-     Absorbs `input`.
+     Absorbs `input_bytes`.
 
-     @param input The next piece of the data, of any size.
+     @param input_bytes The next piece of the data, of any size.
      @return Success; `invalid_state` after `finish` or once moved from; `input_too_long` when the
      input would pass a limit of the tag's options or of the backend (ParallelHash's whole input,
      a TupleHash element, KangarooTwelve's input on 32-bit XKCP); or the backend's failure. After
      either of the last two the hasher is spent (`invalid_state`).
     */
-    [[nodiscard]] boost::system::result<void> update(std::span<std::uint8_t const> input) noexcept {
-        secure::timing_guard const timing{keyed_};
+    [[nodiscard]] boost::system::result<void> update(
+        std::span<std::uint8_t const> input_bytes) noexcept {
+        secure::timing_guard const timing_scope{keyed_};
         if (phase_ != phase::hashing) {
             return error::invalid_state;
         }
-        auto absorbed = engine::update(state_, input);
-        if (!absorbed) {
+        auto update_result = engine::update(state_, input_bytes);
+        if (!update_result) {
             end();
         }
-        return absorbed;
+        return update_result;
     }
 
     /**
-     Writes the hash's result into `output`, once.
+     Writes the hash's result into `output_bytes`, once.
 
-     @param output The digest: exactly the digest's size for a fixed-size digest, any size from 1
-     byte for an extendable-output function.
+     @param output_bytes The digest: exactly the digest's size for a fixed-size digest, any size
+     from 1 byte for an extendable-output function.
      @return Success, after which the hasher is spent; `invalid_state` after `finish` or once
-     moved from; a guard's error (`invalid_output_size`, `unsupported_by_backend`), `output`
-     untouched and the hasher still hashing; or the backend's failure, `output` zeroed and the
+     moved from; a guard's error (`invalid_output_size`, `unsupported_by_backend`), `output_bytes`
+     untouched and the hasher still hashing; or the backend's failure, `output_bytes` zeroed and the
      hasher spent.
     */
-    [[nodiscard]] boost::system::result<void> finish(std::span<std::uint8_t> output) noexcept {
-        secure::timing_guard const timing{keyed_};
+    [[nodiscard]] boost::system::result<void> finish(
+        std::span<std::uint8_t> output_bytes) noexcept {
+        secure::timing_guard const timing_scope{keyed_};
         if (phase_ != phase::hashing) {
             return error::invalid_state;
         }
-        auto sized = detail::check_output(output.size(), min_output_, max_output_);
-        if (!sized) {
-            return sized;
+        auto size_check = detail::check_output(output_bytes.size(), min_output_, max_output_);
+        if (!size_check) {
+            return size_check;
         }
-        auto served = detail::check_engine_output<engine>(output.size());
-        if (!served) {
-            return served;
+        auto output_check = detail::check_engine_output<engine>(output_bytes.size());
+        if (!output_check) {
+            return output_check;
         }
-        auto finished = engine::finish(state_, output);
-        if (!finished) {
-            secure::erase_secret(output);
+        auto finish_result = engine::finish(state_, output_bytes);
+        if (!finish_result) {
+            secure::erase_secret(output_bytes);
         }
         end();
-        return finished;
+        return finish_result;
     }
 
 private:

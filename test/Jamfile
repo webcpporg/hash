@@ -842,6 +842,19 @@ hash-run timing_coverage_blake3 : timing_coverage_blake3_test.cpp
 botan-run timing_coverage_botan : timing_coverage_botan_test.cpp
   : $(.hash-tables) <toolset>msvc:<cxxflags>/bigobj ;
 
+# No local name in a header hides a program's global: every public header after
+# a global of each one-word name a header's local once had, which MSVC's C4459
+# reports at /W4 /WX (clang and GCC never warn across namespaces), and every
+# cell of every backend called, which instantiates the templates. Like
+# timing_coverage_botan, it instantiates enough to pass the sections of an MSVC
+# object (C1128), so MSVC compiles it with /bigobj.
+hash-run user_globals : user_globals_test.cpp
+  : <library>/webcpp/hash//openssl <library>/third_party//xkcp
+    <library>/third_party//blake3 <library>/third_party//bearssl
+    <library>/third_party//sodium <library>/webcpp/asio//asio
+    <conditional>@botan-native-with-exceptions <toolset>msvc:<cxxflags>/bigobj
+  : native ;
+
 build-project messages ;
 
 # The canaries at link time, each C library's absence and another commit of

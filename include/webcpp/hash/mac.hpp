@@ -120,7 +120,7 @@ struct mac_sizes {
     */
     template <class Options>
     [[nodiscard]] static constexpr boost::system::result<void> check(
-        Options const& /*options*/) noexcept {
+        Options const& /*algorithm_options*/) noexcept {
         return {};
     }
 };
@@ -131,8 +131,9 @@ inline constexpr std::uint64_t hmac_min_output = 10;
 /**
  The family's guards of a tag of `macs`, in one place (spec 2.15): `min_output` and `max_output`
  (`invalid_output_size` outside them), `min_key` and `max_key` (`invalid_key_size`), and
- `check(options)`, the options' own guards (`input_too_long` for KMAC's customisation). Every tag of
- `macs` has a specialisation; the increment that gives a tag options adds their check to it.
+ `check(algorithm_options)`, the options' own guards (`input_too_long` for KMAC's customisation).
+ Every tag of `macs` has a specialisation; the increment that gives a tag options adds their check
+ to it.
 
  The primary template, reached only by a type that is not a tag, guards nothing: the engine's
  refusal is then the call's only error.
@@ -177,11 +178,11 @@ struct kmac_traits : mac_sizes<kmac_min_output, sp800_185_max_bytes, 0, sp800_18
     /**
      Checks the customisation.
 
-     @param options The options. @return Success, or `input_too_long`.
+     @param algorithm_options The options. @return Success, or `input_too_long`.
     */
     [[nodiscard]] static boost::system::result<void> check(
-        mac_options<Mac> const& options) noexcept {
-        return check_sp800_185_string(options.customisation);
+        mac_options<Mac> const& algorithm_options) noexcept {
+        return check_sp800_185_string(algorithm_options.customisation);
     }
 };
 
@@ -210,12 +211,12 @@ template <> struct mac_traits<macs::blake2s_mac> : mac_sizes<1, 32, 1, 32> {};
  that completes by itself (`backends::webcrypto`) checks before it starts the work.
 
  @tparam Mac A tag of `macs`. @param output_size The tag's size. @param key_size The key's size.
- @param options The MAC's parameters.
+ @param algorithm_options The MAC's parameters.
  @return Success, or the error of the first guard that fails, as `mac` returns it.
 */
 template <class Mac>
 [[nodiscard]] boost::system::result<void> mac_guards(std::size_t output_size, std::size_t key_size,
-                                                     mac_options<Mac> const& options) {
+                                                     mac_options<Mac> const& algorithm_options) {
     using traits = mac_traits<Mac>;
     // Each bound through exceeds, a function of two 64-bit values: a constant bound of 0 or of
     // no_limit compared with a size_t is a tautology the warnings refuse.
@@ -225,13 +226,13 @@ template <class Mac>
     if (exceeds(traits::min_key, key_size) || exceeds(key_size, traits::max_key)) {
         return error::invalid_key_size;
     }
-    return traits::check(options);
+    return traits::check(algorithm_options);
 }
 
 }  // namespace detail
 
 /**
- The tag of `input` under `key`, with the MAC `Mac` on `Backend`.
+ The tag of `input_bytes` under `key_bytes`, with the MAC `Mac` on `Backend`.
 
  @code
  std::array<std::uint8_t, 32> tag{};
@@ -242,34 +243,35 @@ template <class Mac>
  @tparam Mac A tag of `macs`, as `macs::hmac<digests::sha2_256>`.
  @tparam Backend The backend; by default @ref default_backend of `Mac` (spec 4.1). A backend
  without the tag, or one the program does not link, refuses at compile time.
- @param output The tag: for HMAC, 10 bytes up to the digest's size (a shorter tag is the digest
- cut, RFC 2104 section 5); for the others, the size their traits give.
- @param key The key.
- @param input The message, of any size.
- @param options The MAC's parameters (none for most tags).
+ @param output_bytes The tag: for HMAC, 10 bytes up to the digest's size (a shorter tag is the
+ digest cut, RFC 2104 section 5); for the others, the size their traits give.
+ @param key_bytes The key.
+ @param input_bytes The message, of any size.
+ @param algorithm_options The MAC's parameters (none for most tags).
  @return Success; or the first guard's error (`invalid_output_size`, `invalid_key_size`, an
- option's error, `unsupported_by_backend`), `output` untouched; or the backend's failure,
- `output` zeroed.
+ option's error, `unsupported_by_backend`), `output_bytes` untouched; or the backend's failure,
+ `output_bytes` zeroed.
 */
 template <class Mac, class Backend = default_backend<Mac>>
-[[nodiscard]] boost::system::result<void> mac(std::span<std::uint8_t> output,
-                                              std::span<std::uint8_t const> key,
-                                              std::span<std::uint8_t const> input,
-                                              mac_options<Mac> const& options = {}) {
-    secure::timing_guard const timing;
+[[nodiscard]] boost::system::result<void> mac(std::span<std::uint8_t> output_bytes,
+                                              std::span<std::uint8_t const> key_bytes,
+                                              std::span<std::uint8_t const> input_bytes,
+                                              mac_options<Mac> const& algorithm_options = {}) {
+    secure::timing_guard const timing_scope;
     using engine = detail::mac_engine<Backend, Mac>;
-    auto checked = detail::mac_guards<Mac>(output.size(), key.size(), options);
-    if (!checked) {
-        return checked;
+    auto guard_result =
+        detail::mac_guards<Mac>(output_bytes.size(), key_bytes.size(), algorithm_options);
+    if (!guard_result) {
+        return guard_result;
     }
-    if (!engine::accepts(options, key.size(), output.size())) {
+    if (!engine::accepts(algorithm_options, key_bytes.size(), output_bytes.size())) {
         return error::unsupported_by_backend;
     }
-    auto computed = engine::compute(output, key, input, options);
-    if (!computed) {
-        secure::erase_secret(output);
+    auto compute_result = engine::compute(output_bytes, key_bytes, input_bytes, algorithm_options);
+    if (!compute_result) {
+        secure::erase_secret(output_bytes);
     }
-    return computed;
+    return compute_result;
 }
 
 }  // namespace webcpp::hash

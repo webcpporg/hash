@@ -487,16 +487,16 @@ struct openssl_memory_error {
  OpenSSL raised an error failed, whatever its functions returned: OpenSSL's Argon2 leaves some of
  its allocations unchecked and returns success over a wrong tag when one fails.
 
- @param succeeded Whether OpenSSL's functions returned success.
+ @param call_succeeded Whether OpenSSL's functions returned success.
  @param memory_error An error that means the memory cannot be had, beside an allocation's.
  @return Success when OpenSSL succeeded and raised nothing; `errc::not_enough_memory` when an error
  raised since the mark is an allocation's or `memory_error`; `error::backend_failure` otherwise.
 */
 [[nodiscard]] inline boost::system::result<void> openssl_outcome(
-    bool succeeded, openssl_memory_error memory_error = {}) noexcept {
+    bool call_succeeded, openssl_memory_error memory_error = {}) noexcept {
     // NOLINTNEXTLINE(bugprone-signed-bitwise): OpenSSL's macro ORs signed constants
     constexpr int malloc_failure_reason = ERR_R_MALLOC_FAILURE;
-    const bool raised = ERR_count_to_mark() > 0;
+    const bool error_raised = ERR_count_to_mark() > 0;
     bool is_out_of_memory = false;
     while (ERR_count_to_mark() > 0) {
         unsigned long const error_code = ERR_peek_last_error();
@@ -507,7 +507,7 @@ struct openssl_memory_error {
         ERR_pop();
     }
     ERR_pop_to_mark();
-    if (succeeded && !raised) {
+    if (call_succeeded && !error_raised) {
         return {};
     }
     if (is_out_of_memory) {
@@ -564,17 +564,17 @@ struct hkdf_engine<backends::openssl, Hmac> {
      RFC 5869, 2.2, in extract-only mode, which writes the PRK, HashLen bytes, into the digest.
      An empty salt is HashLen zeros, as OpenSSL's HMAC pads it.
 
-     @param salt The salt. @param input_key_material The input keying material.
+     @param salt_bytes The salt. @param input_key_material The input keying material.
      @return The PRK, or OpenSSL's failure.
     */
     [[nodiscard]] static boost::system::result<digest_type> extract(
-        std::span<std::uint8_t const> salt,
+        std::span<std::uint8_t const> salt_bytes,
         std::span<std::uint8_t const> input_key_material) noexcept {
         int hkdf_mode = extract_only;
         std::array<OSSL_PARAM, 5> ossl_params{
             openssl_text("digest", openssl_digest<Hmac>()),
             openssl_octets("key", input_key_material),
-            openssl_octets("salt", salt),
+            openssl_octets("salt", salt_bytes),
             OSSL_PARAM_construct_int("mode", &hkdf_mode),
             OSSL_PARAM_construct_end(),
         };
@@ -596,8 +596,8 @@ struct hkdf_engine<backends::openssl, Hmac> {
     /**
      RFC 5869, 2.3, in expand-only mode.
 
-     @param output_key_material The OKM, its size L. @param pseudorandom_key The PRK. @param
-     application_info The info.
+     @param output_key_material The OKM, its size L. @param pseudorandom_key The PRK.
+     @param application_info The info.
      @return Success, or OpenSSL's failure.
     */
     [[nodiscard]] static boost::system::result<void> expand(
@@ -617,20 +617,20 @@ struct hkdf_engine<backends::openssl, Hmac> {
     /**
      RFC 5869, 2, in extract-and-expand mode: the PRK stays inside OpenSSL's context.
 
-     @param output_key_material The OKM. @param salt The salt. @param input_key_material The input
-     keying material.
+     @param output_key_material The OKM. @param salt_bytes The salt. @param input_key_material The
+     input keying material.
      @param application_info The info.
      @return Success, or OpenSSL's failure.
     */
     [[nodiscard]] static boost::system::result<void> extract_and_expand(
-        std::span<std::uint8_t> output_key_material, std::span<std::uint8_t const> salt,
+        std::span<std::uint8_t> output_key_material, std::span<std::uint8_t const> salt_bytes,
         std::span<std::uint8_t const> input_key_material,
         std::span<std::uint8_t const> application_info) noexcept {
         int hkdf_mode = both;
         std::array<OSSL_PARAM, 6> ossl_params{
             openssl_text("digest", openssl_digest<Hmac>()),
             openssl_octets("key", input_key_material),
-            openssl_octets("salt", salt),
+            openssl_octets("salt", salt_bytes),
             openssl_octets("info", application_info),
             OSSL_PARAM_construct_int("mode", &hkdf_mode),
             OSSL_PARAM_construct_end(),
@@ -669,14 +669,14 @@ struct hkdf_pieces_engine<backends::openssl, Hmac> {
                   "EVP_MAC_update takes every slice's length");
 
     /**
-     A context of `mac_algorithm` keyed by `key` with the hmac's digest (`EVP_MAC_CTX_new`, then
-     `EVP_MAC_init`), or null when OpenSSL could not make or key it (a context made is freed).
+     A context of `mac_algorithm` keyed by `key_bytes` with the hmac's digest (`EVP_MAC_CTX_new`,
+     then `EVP_MAC_init`), or null when OpenSSL could not make or key it (a context made is freed).
 
-     @param mac_algorithm The MAC "HMAC", or null. @param key The key, possibly empty.
+     @param mac_algorithm The MAC "HMAC", or null. @param key_bytes The key, possibly empty.
      @return The keyed context, which the caller frees, or null.
     */
-    [[nodiscard]] static EVP_MAC_CTX* keyed_context(EVP_MAC* mac_algorithm,
-                                                    std::span<std::uint8_t const> key) noexcept {
+    [[nodiscard]] static EVP_MAC_CTX* keyed_context(
+        EVP_MAC* mac_algorithm, std::span<std::uint8_t const> key_bytes) noexcept {
         if (mac_algorithm == nullptr) {
             return nullptr;
         }
@@ -686,8 +686,8 @@ struct hkdf_pieces_engine<backends::openssl, Hmac> {
             OSSL_PARAM_construct_end(),
         };
         // A key's pointer is never null: OpenSSL takes a null key for "no key given".
-        if (mac_context != nullptr &&
-            EVP_MAC_init(mac_context, nonnull(key), key.size(), ossl_params.data()) != 1) {
+        if (mac_context != nullptr && EVP_MAC_init(mac_context, nonnull(key_bytes),
+                                                   key_bytes.size(), ossl_params.data()) != 1) {
             EVP_MAC_CTX_free(mac_context);
             mac_context = nullptr;
         }
@@ -695,18 +695,20 @@ struct hkdf_pieces_engine<backends::openssl, Hmac> {
     }
 
     /**
-     Feeds every byte of `pieces` to `mac_context`, in slices of at most @ref slice_max bytes,
+     Feeds every byte of `input_pieces` to `mac_context`, in slices of at most @ref slice_max bytes,
      until OpenSSL fails one.
 
-     @param mac_context The keyed context. @param pieces The pieces.
+     @param mac_context The keyed context. @param input_pieces The pieces.
      @return Whether OpenSSL took every slice.
     */
-    [[nodiscard]] static bool update_all(EVP_MAC_CTX* mac_context, byte_pieces pieces) noexcept {
-        bool updated = true;
-        for_each_slice<slice_max>(pieces, [&](std::span<std::uint8_t const> slice) {
-            updated = updated && EVP_MAC_update(mac_context, slice.data(), slice.size()) == 1;
+    [[nodiscard]] static bool update_all(EVP_MAC_CTX* mac_context,
+                                         byte_pieces input_pieces) noexcept {
+        bool update_succeeded = true;
+        for_each_slice<slice_max>(input_pieces, [&](std::span<std::uint8_t const> slice_bytes) {
+            update_succeeded = update_succeeded && EVP_MAC_update(mac_context, slice_bytes.data(),
+                                                                  slice_bytes.size()) == 1;
         });
-        return updated;
+        return update_succeeded;
     }
 
     /**
@@ -717,38 +719,39 @@ struct hkdf_pieces_engine<backends::openssl, Hmac> {
      @return Whether OpenSSL wrote the whole HMAC.
     */
     [[nodiscard]] static bool finish(EVP_MAC_CTX* mac_context, digest_type& mac_result) noexcept {
-        std::size_t written = 0;
+        std::size_t written_size = 0;
         return EVP_MAC_CTX_get_mac_size(mac_context) == mac_result.size() &&
-               EVP_MAC_final(mac_context, mac_result.data(), &written, mac_result.size()) == 1 &&
-               written == mac_result.size();
+               EVP_MAC_final(mac_context, mac_result.data(), &written_size, mac_result.size()) ==
+                   1 &&
+               written_size == mac_result.size();
     }
 
     /**
      RFC 5869, 2.2: PRK = HMAC-Hash(salt, piece_1 | ... | piece_n). An empty salt, of length 0,
      is padded by HMAC with zeros to the block: RFC 5869's HashLen zeros.
 
-     @param salt The salt. @param input_key_material The input keying material's pieces.
+     @param salt_bytes The salt. @param input_key_material The input keying material's pieces.
      @return The PRK, or OpenSSL's failure.
     */
     [[nodiscard]] static boost::system::result<digest_type> extract(
-        std::span<std::uint8_t const> salt, byte_pieces input_key_material) noexcept {
+        std::span<std::uint8_t const> salt_bytes, byte_pieces input_key_material) noexcept {
         // The PRK is built in the result returned and OpenSSL writes into it: a single return path
         // of the one named object, so that no copy of the PRK is left behind unwiped.
         boost::system::result<digest_type> pseudorandom_key{boost::system::in_place_value};
         digest_type& pseudorandom_key_digest = pseudorandom_key.unsafe_value();
         ERR_set_mark();
         EVP_MAC* mac_algorithm = EVP_MAC_fetch(nullptr, "HMAC", nullptr);
-        EVP_MAC_CTX* mac_context = keyed_context(mac_algorithm, salt);
-        const bool computed = mac_context != nullptr &&
-                              update_all(mac_context, input_key_material) &&
-                              finish(mac_context, pseudorandom_key_digest);
+        EVP_MAC_CTX* mac_context = keyed_context(mac_algorithm, salt_bytes);
+        const bool call_succeeded = mac_context != nullptr &&
+                                    update_all(mac_context, input_key_material) &&
+                                    finish(mac_context, pseudorandom_key_digest);
         // The frees raise no error: the outcome read after them is the computation's.
         EVP_MAC_CTX_free(mac_context);
         EVP_MAC_free(mac_algorithm);
-        auto const outcome = openssl_outcome(computed);
-        if (!outcome) {
+        auto const extract_result = openssl_outcome(call_succeeded);
+        if (!extract_result) {
             secure::erase_secret(std::span(&pseudorandom_key_digest, 1));
-            pseudorandom_key = outcome.error();
+            pseudorandom_key = extract_result.error();
         }
         return pseudorandom_key;
     }
@@ -767,22 +770,22 @@ struct hkdf_pieces_engine<backends::openssl, Hmac> {
         byte_pieces application_info) noexcept {
         ERR_set_mark();
         EVP_MAC* mac_algorithm = EVP_MAC_fetch(nullptr, "HMAC", nullptr);
-        EVP_MAC_CTX* keyed = keyed_context(mac_algorithm, pseudorandom_key);
+        EVP_MAC_CTX* keyed_mac = keyed_context(mac_algorithm, pseudorandom_key);
         digest_type t_block{};
-        bool computed = keyed != nullptr;
+        bool call_succeeded = keyed_mac != nullptr;
         std::size_t written_count = 0;
-        for (unsigned block_counter = 1; computed && written_count < output_key_material.size();
-             ++block_counter) {
-            EVP_MAC_CTX* block_context = EVP_MAC_CTX_dup(keyed);
+        for (unsigned block_counter = 1;
+             call_succeeded && written_count < output_key_material.size(); ++block_counter) {
+            EVP_MAC_CTX* block_context = EVP_MAC_CTX_dup(keyed_mac);
             auto const octet_value = static_cast<unsigned char>(block_counter);
-            computed = block_context != nullptr &&
-                       (block_counter == 1 ||
-                        EVP_MAC_update(block_context, t_block.data(), t_block.size()) == 1) &&
-                       update_all(block_context, application_info) &&
-                       EVP_MAC_update(block_context, &octet_value, 1) == 1 &&
-                       finish(block_context, t_block);
+            call_succeeded = block_context != nullptr &&
+                             (block_counter == 1 ||
+                              EVP_MAC_update(block_context, t_block.data(), t_block.size()) == 1) &&
+                             update_all(block_context, application_info) &&
+                             EVP_MAC_update(block_context, &octet_value, 1) == 1 &&
+                             finish(block_context, t_block);
             EVP_MAC_CTX_free(block_context);
-            if (computed) {
+            if (call_succeeded) {
                 std::size_t const copied_count =
                     std::min(t_block.size(), output_key_material.size() - written_count);
                 std::copy_n(t_block.data(), copied_count,
@@ -792,24 +795,24 @@ struct hkdf_pieces_engine<backends::openssl, Hmac> {
         }
         secure::erase_secret(std::span(&t_block, 1));
         // The frees raise no error: the outcome read after them is the computation's.
-        EVP_MAC_CTX_free(keyed);
+        EVP_MAC_CTX_free(keyed_mac);
         EVP_MAC_free(mac_algorithm);
-        return openssl_outcome(computed);
+        return openssl_outcome(call_succeeded);
     }
 
     /**
      RFC 5869, 2: HKDF-Extract, then HKDF-Expand, over pieces; the PRK is wiped between them.
 
-     @param output_key_material The OKM. @param salt The salt.
+     @param output_key_material The OKM. @param salt_bytes The salt.
      @param input_key_material The input keying material's pieces.
      @param application_info The info's pieces.
      @return Success, or OpenSSL's failure.
     */
     [[nodiscard]] static boost::system::result<void> extract_and_expand(
-        std::span<std::uint8_t> output_key_material, std::span<std::uint8_t const> salt,
+        std::span<std::uint8_t> output_key_material, std::span<std::uint8_t const> salt_bytes,
         byte_pieces input_key_material, byte_pieces application_info) noexcept {
         return hkdf_pieces_extract_and_expand<hkdf_pieces_engine<backends::openssl, Hmac>>(
-            output_key_material, salt, input_key_material, application_info);
+            output_key_material, salt_bytes, input_key_material, application_info);
     }
 };
 
@@ -860,7 +863,7 @@ inline constexpr std::uint32_t openssl_argon2_max_memory_kibibytes = static_cast
 
  @param kdf_name "ARGON2D", "ARGON2I" or "ARGON2ID".
  @param output_bytes The tag. @param password_bytes The password. @param salt_bytes The salt.
- @param parameters t, m in KiB, p, the secret and the associated data, within RFC 9106's
+ @param cost_parameters t, m in KiB, p, the secret and the associated data, within RFC 9106's
  bounds and `openssl_argon2_max_memory_kibibytes`.
  @return Success; `errc::not_enough_memory` when the memory cannot be allocated (OpenSSL raises
  its allocation's error, then its own "invalid memory size"); `error::backend_failure` otherwise.
@@ -868,17 +871,17 @@ inline constexpr std::uint32_t openssl_argon2_max_memory_kibibytes = static_cast
 [[nodiscard]] inline boost::system::result<void> openssl_argon2(
     char const* kdf_name, std::span<std::uint8_t> output_bytes,
     std::span<std::uint8_t const> password_bytes, std::span<std::uint8_t const> salt_bytes,
-    argon2_parameters const& parameters) noexcept {
-    std::uint32_t pass_count = parameters.passes;
-    std::uint32_t memory_kibibytes = parameters.memory_kibibytes;
-    std::uint32_t lane_count = parameters.lanes;
+    argon2_parameters const& cost_parameters) noexcept {
+    std::uint32_t pass_count = cost_parameters.passes;
+    std::uint32_t memory_kibibytes = cost_parameters.memory_kibibytes;
+    std::uint32_t lane_count = cost_parameters.lanes;
     std::uint32_t thread_count = 1;
     // An empty secret or associated data is hashed as OpenSSL hashes none: its length, 0, alone.
     std::array<OSSL_PARAM, 9> ossl_params{
         openssl_octets("pass", password_bytes),
         openssl_octets("salt", salt_bytes),
-        openssl_octets("secret", parameters.secret),
-        openssl_octets("ad", parameters.associated_data),
+        openssl_octets("secret", cost_parameters.secret),
+        openssl_octets("ad", cost_parameters.associated_data),
         OSSL_PARAM_construct_uint32("iter", &pass_count),
         OSSL_PARAM_construct_uint32("memcost", &memory_kibibytes),
         OSSL_PARAM_construct_uint32("lanes", &lane_count),
@@ -934,14 +937,15 @@ struct openssl_argon2_engine {
      RFC 9106, version 0x13.
 
      @param output_bytes The tag. @param password_bytes The password. @param salt_bytes The salt.
-     @param parameters The costs, the lanes, the secret and the associated data.
+     @param cost_parameters The costs, the lanes, the secret and the associated data.
      @return Success, `errc::not_enough_memory` or `error::backend_failure`.
     */
     [[nodiscard]] static boost::system::result<void> derive(
         std::span<std::uint8_t> output_bytes, std::span<std::uint8_t const> password_bytes,
-        std::span<std::uint8_t const> salt_bytes, argon2_parameters const& parameters) noexcept {
+        std::span<std::uint8_t const> salt_bytes,
+        argon2_parameters const& cost_parameters) noexcept {
         return openssl_argon2(openssl_argon2_name<Variant>::value, output_bytes, password_bytes,
-                              salt_bytes, parameters);
+                              salt_bytes, cost_parameters);
     }
 };
 
@@ -1105,13 +1109,13 @@ public:
     [[nodiscard]] EVP_MD_CTX* get() const noexcept { return context_; }
 
     /**
-     Owns `context` from here on, freeing the one it held.
+     Owns `digest_context` from here on, freeing the one it held.
 
-     @param context A context of `EVP_MD_CTX_new`, or null.
+     @param digest_context A context of `EVP_MD_CTX_new`, or null.
     */
-    void adopt(EVP_MD_CTX* context) noexcept {
+    void adopt(EVP_MD_CTX* digest_context) noexcept {
         reset();
-        context_ = context;
+        context_ = digest_context;
     }
 
     /** Frees the context; a state without one is left as it is. */
@@ -1147,86 +1151,90 @@ struct openssl_digest_engine : full_engine {
      Starts a hash: a new context, the digest fetched, `EVP_DigestInit_ex2` with no parameter
      (BLAKE2b's engine gives its size).
 
-     @param hashed The state, which owns the context from here on, even when the start fails.
-     @param options The digest's parameters.
+     @param digest_state The state, which owns the context from here on, even when the start fails.
+     @param algorithm_options The digest's parameters.
      @return Success; `errc::not_enough_memory`; or `error::backend_failure`.
     */
     [[nodiscard]] static boost::system::result<void> init(
-        state& hashed, digest_options<Digest> const& options) noexcept {
+        state& digest_state, digest_options<Digest> const& algorithm_options) noexcept {
         ERR_set_mark();
-        hashed.adopt(EVP_MD_CTX_new());
-        EVP_MD* digest_algorithm = hashed.get() != nullptr
+        digest_state.adopt(EVP_MD_CTX_new());
+        EVP_MD* digest_algorithm = digest_state.get() != nullptr
                                        ? EVP_MD_fetch(nullptr, openssl_md<Digest>(), nullptr)
                                        : nullptr;
-        const bool started =
-            digest_algorithm != nullptr && start(hashed.get(), digest_algorithm, options);
+        const bool start_succeeded = digest_algorithm != nullptr &&
+                                     start(digest_state.get(), digest_algorithm, algorithm_options);
         // The context holds its own reference to the digest from EVP_DigestInit_ex2 on.
         EVP_MD_free(digest_algorithm);
-        return openssl_outcome(started);
+        return openssl_outcome(start_succeeded);
     }
 
     /**
-     Absorbs `input`: `EVP_DigestUpdate`, which returns at once on an empty input.
+     Absorbs `input_bytes`: `EVP_DigestUpdate`, which returns at once on an empty input.
 
-     @param hashed The state. @param input The bytes.
+     @param digest_state The state. @param input_bytes The bytes.
      @return Success, or OpenSSL's failure.
     */
     [[nodiscard]] static boost::system::result<void> update(
-        state& hashed, std::span<std::uint8_t const> input) noexcept {
+        state& digest_state, std::span<std::uint8_t const> input_bytes) noexcept {
         ERR_set_mark();
-        return openssl_outcome(EVP_DigestUpdate(hashed.get(), input.data(), input.size()) == 1);
+        return openssl_outcome(
+            EVP_DigestUpdate(digest_state.get(), input_bytes.data(), input_bytes.size()) == 1);
     }
 
     /**
-     Writes the result, of `output.size()` bytes: `EVP_DigestFinalXOF` for an extendable-output
-     function; else `EVP_DigestFinal_ex`, once OpenSSL's size of the context is seen to be the
-     output's (the family's guards hold it to the digest's size, or BLAKE2b's option).
+     Writes the result, of `output_bytes.size()` bytes: `EVP_DigestFinalXOF` for an
+     extendable-output function; else `EVP_DigestFinal_ex`, once OpenSSL's size of the context is
+     seen to be the output's (the family's guards hold it to the digest's size, or BLAKE2b's
+     option).
 
-     @param hashed The state. @param output The digest.
+     @param digest_state The state. @param output_bytes The digest.
      @return Success, or OpenSSL's failure.
     */
     [[nodiscard]] static boost::system::result<void> finish(
-        state& hashed, std::span<std::uint8_t> output) noexcept {
+        state& digest_state, std::span<std::uint8_t> output_bytes) noexcept {
         ERR_set_mark();
-        bool finished = false;
+        bool finish_succeeded = false;
         if constexpr (openssl_md_name<Digest>::xof) {
-            finished = EVP_DigestFinalXOF(hashed.get(), output.data(), output.size()) == 1;
+            finish_succeeded = EVP_DigestFinalXOF(digest_state.get(), output_bytes.data(),
+                                                  output_bytes.size()) == 1;
         } else {
-            const int context_size = EVP_MD_CTX_get_size(hashed.get());
-            finished = context_size > 0 &&
-                       static_cast<std::size_t>(context_size) == output.size() &&
-                       EVP_DigestFinal_ex(hashed.get(), output.data(), nullptr) == 1;
+            const int context_size = EVP_MD_CTX_get_size(digest_state.get());
+            finish_succeeded =
+                context_size > 0 && static_cast<std::size_t>(context_size) == output_bytes.size() &&
+                EVP_DigestFinal_ex(digest_state.get(), output_bytes.data(), nullptr) == 1;
         }
-        return openssl_outcome(finished);
+        return openssl_outcome(finish_succeeded);
     }
 
     /**
      Frees the context (`EVP_MD_CTX_free`); a second call does nothing.
 
-     @param hashed The state.
+     @param digest_state The state.
     */
-    static void destroy(state& hashed) noexcept { hashed.reset(); }
+    static void destroy(state& digest_state) noexcept { digest_state.reset(); }
 
     /**
-     The digest of `input` at once: `init`, `update` and `finish` on a context freed before the
-     return.
+     The digest of `input_bytes` at once: `init`, `update` and `finish` on a context freed before
+     the return.
 
-     @param output The digest. @param input The bytes. @param options The digest's parameters.
+     @param output_bytes The digest. @param input_bytes The bytes. @param algorithm_options The
+     digest's parameters.
      @return Success, or OpenSSL's failure.
     */
     [[nodiscard]] static boost::system::result<void> one_shot(
-        std::span<std::uint8_t> output, std::span<std::uint8_t const> input,
-        digest_options<Digest> const& options) noexcept {
-        state hashed;
-        auto done = init(hashed, options);
-        if (done) {
-            done = update(hashed, input);
+        std::span<std::uint8_t> output_bytes, std::span<std::uint8_t const> input_bytes,
+        digest_options<Digest> const& algorithm_options) noexcept {
+        state digest_state;
+        auto init_result = init(digest_state, algorithm_options);
+        if (init_result) {
+            init_result = update(digest_state, input_bytes);
         }
-        if (done) {
-            done = finish(hashed, output);
+        if (init_result) {
+            init_result = finish(digest_state, output_bytes);
         }
-        destroy(hashed);
-        return done;
+        destroy(digest_state);
+        return init_result;
     }
 
 private:
@@ -1234,18 +1242,18 @@ private:
     // a template parameter so that digest_options<digests::blake2b>, which digest.hpp defines after
     // this header, is read only when the engine is used.
     template <class Options>
-    static bool start(EVP_MD_CTX* context, EVP_MD const* digest_algorithm,
-                      Options const& options) noexcept {
+    static bool start(EVP_MD_CTX* digest_context, EVP_MD const* digest_algorithm,
+                      Options const& algorithm_options) noexcept {
         if constexpr (std::is_same_v<Digest, digests::blake2b>) {
-            std::size_t output_size = options.output_size;
+            std::size_t output_size = algorithm_options.output_size;
             std::array<OSSL_PARAM, 2> const size_params{
                 OSSL_PARAM_construct_size_t("size", &output_size),
                 OSSL_PARAM_construct_end(),
             };
-            return EVP_DigestInit_ex2(context, digest_algorithm, size_params.data()) == 1;
+            return EVP_DigestInit_ex2(digest_context, digest_algorithm, size_params.data()) == 1;
         } else {
-            static_cast<void>(options);
-            return EVP_DigestInit_ex2(context, digest_algorithm, nullptr) == 1;
+            static_cast<void>(algorithm_options);
+            return EVP_DigestInit_ex2(digest_context, digest_algorithm, nullptr) == 1;
         }
     }
 };
@@ -1375,11 +1383,12 @@ struct digest_engine<backends::openssl, digests::blake2b>
      personalisation. A template, so that it reads `digest_options<digests::blake2b>`, which
      digest.hpp defines after this header.
 
-     @param options The options. @return Whether the options are unkeyed BLAKE2b's.
+     @param algorithm_options The options. @return Whether the options are unkeyed BLAKE2b's.
     */
     template <class Options>
-    static constexpr bool accepts(Options const& options) noexcept {
-        return options.key.empty() && options.salt.empty() && options.personalisation.empty();
+    static constexpr bool accepts(Options const& algorithm_options) noexcept {
+        return algorithm_options.key.empty() && algorithm_options.salt.empty() &&
+               algorithm_options.personalisation.empty();
     }
 };
 
@@ -1444,35 +1453,38 @@ struct openssl_mac_name<macs::blake2s_mac> {
 
 /**
  Fetches the MAC named `mac_name`, makes a context (`EVP_MAC_CTX_new`, through OpenSSL's
- allocator), and computes the tag of `input` under `key` into `output` with `ossl_params`:
- `EVP_MAC_init`, `EVP_MAC_update`, then `EVP_MAC_final` once OpenSSL's size of the tag is seen to
- be the output's; frees both before it returns. The thread's error queue is left as it was found.
+ allocator), and computes the tag of `input_bytes` under `key_bytes` into `output_bytes` with
+ `ossl_params`: `EVP_MAC_init`, `EVP_MAC_update`, then `EVP_MAC_final` once OpenSSL's size of the
+ tag is seen to be the output's; frees both before it returns. The thread's error queue is left as
+ it was found.
 
  @param mac_name OpenSSL's name of the MAC.
- @param output The tag, its whole size. @param key The key, possibly empty (HMAC's).
- @param input The message. @param ossl_params The parameters, ending with
+ @param output_bytes The tag, its whole size. @param key_bytes The key, possibly empty (HMAC's).
+ @param input_bytes The message. @param ossl_params The parameters, ending with
  `OSSL_PARAM_construct_end()`, which `EVP_MAC_init` sets before the key.
  @return Success; `errc::not_enough_memory` when the last error OpenSSL raised is an allocation's;
  `error::backend_failure` for any other failure.
 */
 [[nodiscard]] inline boost::system::result<void> openssl_mac(
-    char const* mac_name, std::span<std::uint8_t> output, std::span<std::uint8_t const> key,
-    std::span<std::uint8_t const> input, OSSL_PARAM const* ossl_params) noexcept {
+    char const* mac_name, std::span<std::uint8_t> output_bytes,
+    std::span<std::uint8_t const> key_bytes, std::span<std::uint8_t const> input_bytes,
+    OSSL_PARAM const* ossl_params) noexcept {
     ERR_set_mark();
     EVP_MAC* mac_algorithm = EVP_MAC_fetch(nullptr, mac_name, nullptr);
     EVP_MAC_CTX* mac_context = mac_algorithm != nullptr ? EVP_MAC_CTX_new(mac_algorithm) : nullptr;
-    std::size_t written = 0;
+    std::size_t written_size = 0;
     // A key's or an input's pointer is never null: OpenSSL takes a null key for "no key given".
-    const bool computed = mac_context != nullptr &&
-                          EVP_MAC_init(mac_context, nonnull(key), key.size(), ossl_params) == 1 &&
-                          EVP_MAC_update(mac_context, nonnull(input), input.size()) == 1 &&
-                          EVP_MAC_CTX_get_mac_size(mac_context) == output.size() &&
-                          EVP_MAC_final(mac_context, output.data(), &written, output.size()) == 1 &&
-                          written == output.size();
+    const bool call_succeeded =
+        mac_context != nullptr &&
+        EVP_MAC_init(mac_context, nonnull(key_bytes), key_bytes.size(), ossl_params) == 1 &&
+        EVP_MAC_update(mac_context, nonnull(input_bytes), input_bytes.size()) == 1 &&
+        EVP_MAC_CTX_get_mac_size(mac_context) == output_bytes.size() &&
+        EVP_MAC_final(mac_context, output_bytes.data(), &written_size, output_bytes.size()) == 1 &&
+        written_size == output_bytes.size();
     // The frees raise no error: the outcome read after them is the computation's.
     EVP_MAC_CTX_free(mac_context);
     EVP_MAC_free(mac_algorithm);
-    return openssl_outcome(computed);
+    return openssl_outcome(call_succeeded);
 }
 
 /**
@@ -1492,36 +1504,36 @@ struct openssl_hmac_engine : full_engine {
      @param key_size The key's size. @return Whether it is taken.
     */
     template <class Options>
-    static constexpr bool accepts(Options const& /*options*/, std::size_t key_size,
+    static constexpr bool accepts(Options const& /*algorithm_options*/, std::size_t key_size,
                                   std::size_t /*output_size*/) noexcept {
         return !exceeds(key_size, openssl_int_max);
     }
 
     /**
-     The tag of `input` under `key`, the HMAC cut to `output.size()` bytes.
+     The tag of `input_bytes` under `key_bytes`, the HMAC cut to `output_bytes.size()` bytes.
 
-     @param output The tag. @param key The key. @param input The message.
+     @param output_bytes The tag. @param key_bytes The key. @param input_bytes The message.
      @return Success, or OpenSSL's failure.
     */
     template <class Options>
-    [[nodiscard]] static boost::system::result<void> compute(std::span<std::uint8_t> output,
-                                                             std::span<std::uint8_t const> key,
-                                                             std::span<std::uint8_t const> input,
-                                                             Options const& /*options*/) noexcept {
+    [[nodiscard]] static boost::system::result<void> compute(
+        std::span<std::uint8_t> output_bytes, std::span<std::uint8_t const> key_bytes,
+        std::span<std::uint8_t const> input_bytes, Options const& /*algorithm_options*/) noexcept {
         constexpr std::uint64_t digest_size = mac_traits<macs::hmac<Digest>>::max_output;
         static_assert(digest_size <= EVP_MAX_MD_SIZE);
         std::array<OSSL_PARAM, 2> ossl_params{
             openssl_text("digest", openssl_md<Digest>()),
             OSSL_PARAM_construct_end(),
         };
-        std::array<std::uint8_t, EVP_MAX_MD_SIZE> whole{};
-        auto const tag = std::span(whole).first(digest_size);
-        auto computed = openssl_mac("HMAC", tag, key, input, ossl_params.data());
-        if (computed) {
-            std::copy_n(tag.begin(), output.size(), output.begin());
+        std::array<std::uint8_t, EVP_MAX_MD_SIZE> whole_tag{};
+        auto const tag_bytes = std::span(whole_tag).first(digest_size);
+        auto compute_result =
+            openssl_mac("HMAC", tag_bytes, key_bytes, input_bytes, ossl_params.data());
+        if (compute_result) {
+            std::copy_n(tag_bytes.begin(), output_bytes.size(), output_bytes.begin());
         }
-        secure::erase_secret(whole);
-        return computed;
+        secure::erase_secret(whole_tag);
+        return compute_result;
     }
 };
 
@@ -1550,37 +1562,39 @@ struct openssl_kmac_engine : full_engine {
      Whether OpenSSL takes these options, key size and tag size. A template, so that it reads
      `mac_options<Mac>`, which mac.hpp defines after this header.
 
-     @param options The customisation and the form. @param key_size The key's size.
+     @param algorithm_options The customisation and the form. @param key_size The key's size.
      @param output_size The tag's size. @return Whether OpenSSL takes them.
     */
     template <class Options>
-    static constexpr bool accepts(Options const& options, std::size_t key_size,
+    static constexpr bool accepts(Options const& algorithm_options, std::size_t key_size,
                                   std::size_t output_size) noexcept {
         return key_size >= min_key && key_size <= max_key &&
-               options.customisation.size() <= max_customisation && output_size <= max_tag;
+               algorithm_options.customisation.size() <= max_customisation &&
+               output_size <= max_tag;
     }
 
     /**
-     The tag of `input` under `key`, of `output.size()` bytes, in the form the options choose.
+     The tag of `input_bytes` under `key_bytes`, of `output_bytes.size()` bytes, in the form the
+     options choose.
 
-     @param output The tag. @param key The key. @param input The message.
-     @param options The customisation and the form.
+     @param output_bytes The tag. @param key_bytes The key. @param input_bytes The message.
+     @param algorithm_options The customisation and the form.
      @return Success, or OpenSSL's failure.
     */
     template <class Options>
-    [[nodiscard]] static boost::system::result<void> compute(std::span<std::uint8_t> output,
-                                                             std::span<std::uint8_t const> key,
-                                                             std::span<std::uint8_t const> input,
-                                                             Options const& options) noexcept {
-        std::size_t tag_size = output.size();
-        int xof_form = options.xof ? 1 : 0;
+    [[nodiscard]] static boost::system::result<void> compute(
+        std::span<std::uint8_t> output_bytes, std::span<std::uint8_t const> key_bytes,
+        std::span<std::uint8_t const> input_bytes, Options const& algorithm_options) noexcept {
+        std::size_t tag_size = output_bytes.size();
+        int xof_form = algorithm_options.xof ? 1 : 0;
         std::array<OSSL_PARAM, 4> ossl_params{
             OSSL_PARAM_construct_size_t("size", &tag_size),
             OSSL_PARAM_construct_int("xof", &xof_form),
-            openssl_octets("custom", options.customisation),
+            openssl_octets("custom", algorithm_options.customisation),
             OSSL_PARAM_construct_end(),
         };
-        return openssl_mac(openssl_mac_name<Mac>::value, output, key, input, ossl_params.data());
+        return openssl_mac(openssl_mac_name<Mac>::value, output_bytes, key_bytes, input_bytes,
+                           ossl_params.data());
     }
 };
 
@@ -1595,22 +1609,22 @@ struct openssl_kmac_engine : full_engine {
 template <class Mac>
 struct openssl_sized_mac_engine : full_engine {
     /**
-     The tag of `input` under `key`, of `output.size()` bytes.
+     The tag of `input_bytes` under `key_bytes`, of `output_bytes.size()` bytes.
 
-     @param output The tag. @param key The key. @param input The message.
+     @param output_bytes The tag. @param key_bytes The key. @param input_bytes The message.
      @return Success, or OpenSSL's failure.
     */
     template <class Options>
-    [[nodiscard]] static boost::system::result<void> compute(std::span<std::uint8_t> output,
-                                                             std::span<std::uint8_t const> key,
-                                                             std::span<std::uint8_t const> input,
-                                                             Options const& /*options*/) noexcept {
-        std::size_t tag_size = output.size();
+    [[nodiscard]] static boost::system::result<void> compute(
+        std::span<std::uint8_t> output_bytes, std::span<std::uint8_t const> key_bytes,
+        std::span<std::uint8_t const> input_bytes, Options const& /*algorithm_options*/) noexcept {
+        std::size_t tag_size = output_bytes.size();
         std::array<OSSL_PARAM, 2> ossl_params{
             OSSL_PARAM_construct_size_t("size", &tag_size),
             OSSL_PARAM_construct_end(),
         };
-        return openssl_mac(openssl_mac_name<Mac>::value, output, key, input, ossl_params.data());
+        return openssl_mac(openssl_mac_name<Mac>::value, output_bytes, key_bytes, input_bytes,
+                           ossl_params.data());
     }
 };
 
@@ -1770,25 +1784,26 @@ struct kbkdf_engine<backends::openssl, Hmac> {
      SP 800-108r1, section 4.1.
 
      @param output_bytes K_OUT, its size L. @param key_bytes K_IN.
-     @param options The label, the context, r, and whether the separator and L are written.
+     @param algorithm_options The label, the context, r, and whether the separator and L are
+     written.
      @return Success, or OpenSSL's failure.
     */
-    [[nodiscard]] static boost::system::result<void> derive(std::span<std::uint8_t> output_bytes,
-                                                            std::span<std::uint8_t const> key_bytes,
-                                                            kbkdf_options const& options) noexcept {
+    [[nodiscard]] static boost::system::result<void> derive(
+        std::span<std::uint8_t> output_bytes, std::span<std::uint8_t const> key_bytes,
+        kbkdf_options const& algorithm_options) noexcept {
         if constexpr (!openssl_hmac_v<Hmac>) {
             return error::backend_failure;  // unreachable: the refusal has stopped the build
         } else {
-            int counter_bits = static_cast<int>(options.counter_bits);
-            int use_separator = options.separator ? 1 : 0;
-            int use_length = options.length ? 1 : 0;
+            int counter_bits = static_cast<int>(algorithm_options.counter_bits);
+            int use_separator = algorithm_options.separator ? 1 : 0;
+            int use_length = algorithm_options.length ? 1 : 0;
             std::array<OSSL_PARAM, 10> ossl_params{
                 openssl_text("mode", "counter"),
                 openssl_text("mac", "HMAC"),
                 openssl_text("digest", openssl_digest<Hmac>()),
                 openssl_octets("key", key_bytes),
-                openssl_octets("salt", options.label),
-                openssl_octets("info", options.context),
+                openssl_octets("salt", algorithm_options.label),
+                openssl_octets("info", algorithm_options.context),
                 OSSL_PARAM_construct_int("r", &counter_bits),
                 OSSL_PARAM_construct_int("use-separator", &use_separator),
                 OSSL_PARAM_construct_int("use-l", &use_length),
@@ -1846,14 +1861,14 @@ struct sskdf_engine<backends::openssl, Digest> : openssl_digest_kdf_engine<Diges
     /**
      SP 800-56C Rev. 2, section 4.1.
 
-     @param output_bytes The output. @param secret_bytes Z. @param fixed_info_bytes FixedInfo.
+     @param output_bytes The output. @param secret_bytes Z. @param fixed_info FixedInfo.
      @return Success, or OpenSSL's failure.
     */
     [[nodiscard]] static boost::system::result<void> derive(
         std::span<std::uint8_t> output_bytes, std::span<std::uint8_t const> secret_bytes,
-        std::span<std::uint8_t const> fixed_info_bytes) noexcept {
+        std::span<std::uint8_t const> fixed_info) noexcept {
         return openssl_digest_kdf_engine<Digest>::derive_with("SSKDF", output_bytes, secret_bytes,
-                                                              fixed_info_bytes);
+                                                              fixed_info);
     }
 };
 
@@ -1868,14 +1883,14 @@ struct x963kdf_engine<backends::openssl, Digest> : openssl_digest_kdf_engine<Dig
     /**
      ANSI X9.63-2011, section 5.6.3.
 
-     @param output_bytes The output. @param secret_bytes Z. @param shared_info_bytes SharedInfo.
+     @param output_bytes The output. @param secret_bytes Z. @param shared_info SharedInfo.
      @return Success, or OpenSSL's failure.
     */
     [[nodiscard]] static boost::system::result<void> derive(
         std::span<std::uint8_t> output_bytes, std::span<std::uint8_t const> secret_bytes,
-        std::span<std::uint8_t const> shared_info_bytes) noexcept {
+        std::span<std::uint8_t const> shared_info) noexcept {
         return openssl_digest_kdf_engine<Digest>::derive_with("X963KDF", output_bytes, secret_bytes,
-                                                              shared_info_bytes);
+                                                              shared_info);
     }
 };
 

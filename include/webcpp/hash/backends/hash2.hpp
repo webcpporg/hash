@@ -71,13 +71,13 @@ struct hkdf_engine<backends::hash2, Hmac> {
      RFC 5869, 2.2: PRK = HMAC-Hash(salt, IKM). An empty salt is HashLen zeros, which Hash2's
      hmac keys as zeros of the block, the same key.
 
-     @param salt The salt. @param input_key_material The input keying material.
+     @param salt_bytes The salt. @param input_key_material The input keying material.
      @return The PRK.
     */
     [[nodiscard]] static boost::system::result<digest_type> extract(
-        std::span<std::uint8_t const> salt,
+        std::span<std::uint8_t const> salt_bytes,
         std::span<std::uint8_t const> input_key_material) noexcept {
-        Hmac mac_state(salt.data(), salt.size());
+        Hmac mac_state(salt_bytes.data(), salt_bytes.size());
         mac_state.update(input_key_material.data(), input_key_material.size());
         // The PRK is stored in the result returned, whose wiping is the caller's.
         boost::system::result<digest_type> pseudorandom_key{
@@ -92,8 +92,8 @@ struct hkdf_engine<backends::hash2, Hmac> {
      RFC 5869, 2.3: T(0) = empty; T(i) = HMAC-Hash(PRK, T(i-1) | info | i); OKM = the first L
      octets of T(1) | T(2) | ... | T(N), N = ceil(L/HashLen).
 
-     @param output_key_material The OKM, its size L. @param pseudorandom_key The PRK. @param
-     application_info The info.
+     @param output_key_material The OKM, its size L. @param pseudorandom_key The PRK.
+     @param application_info The info.
      @return Success.
     */
     [[nodiscard]] static boost::system::result<void> expand(
@@ -127,16 +127,16 @@ struct hkdf_engine<backends::hash2, Hmac> {
     /**
      RFC 5869, 2: HKDF-Extract, then HKDF-Expand; the PRK is wiped.
 
-     @param output_key_material The OKM. @param salt The salt. @param input_key_material The input
-     keying material.
+     @param output_key_material The OKM. @param salt_bytes The salt. @param input_key_material The
+     input keying material.
      @param application_info The info.
      @return Success.
     */
     [[nodiscard]] static boost::system::result<void> extract_and_expand(
-        std::span<std::uint8_t> output_key_material, std::span<std::uint8_t const> salt,
+        std::span<std::uint8_t> output_key_material, std::span<std::uint8_t const> salt_bytes,
         std::span<std::uint8_t const> input_key_material,
         std::span<std::uint8_t const> application_info) noexcept {
-        auto pseudorandom_key = extract(salt, input_key_material);
+        auto pseudorandom_key = extract(salt_bytes, input_key_material);
         if (!pseudorandom_key) {
             return pseudorandom_key.error();
         }
@@ -170,15 +170,16 @@ struct hkdf_pieces_engine<backends::hash2, Hmac> {
      RFC 5869, 2.2: PRK = HMAC-Hash(salt, piece_1 | ... | piece_n). An empty salt is HashLen
      zeros, which Hash2's hmac keys as zeros of the block, the same key.
 
-     @param salt The salt. @param input_key_material The input keying material's pieces.
+     @param salt_bytes The salt. @param input_key_material The input keying material's pieces.
      @return The PRK.
     */
     [[nodiscard]] static boost::system::result<digest_type> extract(
-        std::span<std::uint8_t const> salt, byte_pieces input_key_material) noexcept {
-        Hmac mac_state(salt.data(), salt.size());
-        for_each_slice<slice_max>(input_key_material, [&](std::span<std::uint8_t const> slice) {
-            mac_state.update(slice.data(), slice.size());
-        });
+        std::span<std::uint8_t const> salt_bytes, byte_pieces input_key_material) noexcept {
+        Hmac mac_state(salt_bytes.data(), salt_bytes.size());
+        for_each_slice<slice_max>(input_key_material,
+                                  [&](std::span<std::uint8_t const> slice_bytes) {
+                                      mac_state.update(slice_bytes.data(), slice_bytes.size());
+                                  });
         // The PRK is stored in the result returned, whose wiping is the caller's.
         boost::system::result<digest_type> pseudorandom_key{
             boost::system::in_place_value,
@@ -210,9 +211,10 @@ struct hkdf_pieces_engine<backends::hash2, Hmac> {
             if (block_counter > 1) {
                 mac_state.update(t_block.data(), t_block.size());
             }
-            for_each_slice<slice_max>(application_info, [&](std::span<std::uint8_t const> slice) {
-                mac_state.update(slice.data(), slice.size());
-            });
+            for_each_slice<slice_max>(application_info,
+                                      [&](std::span<std::uint8_t const> slice_bytes) {
+                                          mac_state.update(slice_bytes.data(), slice_bytes.size());
+                                      });
             const auto octet_value = static_cast<unsigned char>(block_counter);
             mac_state.update(&octet_value, 1);
             t_block = mac_state.result();
@@ -230,16 +232,16 @@ struct hkdf_pieces_engine<backends::hash2, Hmac> {
     /**
      RFC 5869, 2: HKDF-Extract, then HKDF-Expand, over pieces; the PRK is wiped between them.
 
-     @param output_key_material The OKM. @param salt The salt.
+     @param output_key_material The OKM. @param salt_bytes The salt.
      @param input_key_material The input keying material's pieces.
      @param application_info The info's pieces.
      @return Success.
     */
     [[nodiscard]] static boost::system::result<void> extract_and_expand(
-        std::span<std::uint8_t> output_key_material, std::span<std::uint8_t const> salt,
+        std::span<std::uint8_t> output_key_material, std::span<std::uint8_t const> salt_bytes,
         byte_pieces input_key_material, byte_pieces application_info) noexcept {
         return hkdf_pieces_extract_and_expand<hkdf_pieces_engine<backends::hash2, Hmac>>(
-            output_key_material, salt, input_key_material, application_info);
+            output_key_material, salt_bytes, input_key_material, application_info);
     }
 };
 
@@ -305,10 +307,10 @@ struct pbkdf2_engine<backends::hash2, Hmac> {
 /**
  A digest of `digests` on backends::hash2, over the Boost.Hash2 algorithm `Hash` (its interface is
  @ref digest_engine); the state is a `Hash`, wiped by `destroy`. The output is the first
- `output.size()` bytes of the results of `result()`, called one after the other: one result, the
- whole of it, for a fixed-size digest, which the family's guards hold to its size; for SHAKE, whose
- every `result()` permutes and gives the next block of the stream, as many blocks as the output
- needs.
+ `output_bytes.size()` bytes of the results of `result()`, called one after the other: one result,
+ the whole of it, for a fixed-size digest, which the family's guards hold to its size; for SHAKE,
+ whose every `result()` permutes and gives the next block of the stream, as many blocks as the
+ output needs.
 
  @tparam Digest The tag. @tparam Hash Its Boost.Hash2 algorithm.
 */
@@ -317,54 +319,57 @@ struct hash2_digest_engine : full_engine {
     /** The Hash2 algorithm, which is all of the state. */
     using state = Hash;
 
-    /** Starts a hash. @param hashed The state. @return Success. */
+    /** Starts a hash. @param digest_state The state. @return Success. */
     [[nodiscard]] static boost::system::result<void> init(
-        state& hashed, digest_options<Digest> const& /*options*/) noexcept {
-        hashed = Hash();
+        state& digest_state, digest_options<Digest> const& /*algorithm_options*/) noexcept {
+        digest_state = Hash();
         return {};
     }
 
-    /** Absorbs `input`. @param hashed The state. @param input The bytes. @return Success. */
+    /** Absorbs `input_bytes`. @param digest_state The state. @param input_bytes The bytes. @return
+     * Success. */
     [[nodiscard]] static boost::system::result<void> update(
-        state& hashed, std::span<std::uint8_t const> input) noexcept {
-        hashed.update(input.data(), input.size());
+        state& digest_state, std::span<std::uint8_t const> input_bytes) noexcept {
+        digest_state.update(input_bytes.data(), input_bytes.size());
         return {};
     }
 
     /**
-     Writes the first `output.size()` bytes of the successive results, each result wiped.
+     Writes the first `output_bytes.size()` bytes of the successive results, each result wiped.
 
-     @param hashed The state. @param output The digest. @return Success.
+     @param digest_state The state. @param output_bytes The digest. @return Success.
     */
     [[nodiscard]] static boost::system::result<void> finish(
-        state& hashed, std::span<std::uint8_t> output) noexcept {
-        while (!output.empty()) {
-            auto result_bytes = hashed.result();
-            auto const taken = std::min(output.size(), result_bytes.size());
-            std::memcpy(output.data(), result_bytes.data(), taken);
+        state& digest_state, std::span<std::uint8_t> output_bytes) noexcept {
+        while (!output_bytes.empty()) {
+            auto result_bytes = digest_state.result();
+            auto const taken_size = std::min(output_bytes.size(), result_bytes.size());
+            std::memcpy(output_bytes.data(), result_bytes.data(), taken_size);
             secure::erase_secret(std::span(&result_bytes, 1));
-            output = output.subspan(taken);
+            output_bytes = output_bytes.subspan(taken_size);
         }
         return {};
     }
 
-    /** Wipes the state. @param hashed The state. */
-    static void destroy(state& hashed) noexcept { secure::erase_secret(std::span(&hashed, 1)); }
+    /** Wipes the state. @param digest_state The state. */
+    static void destroy(state& digest_state) noexcept {
+        secure::erase_secret(std::span(&digest_state, 1));
+    }
 
     /**
-     The hash of `input` at once, the state wiped.
+     The hash of `input_bytes` at once, the state wiped.
 
-     @param output The digest. @param input The bytes. @param options None.
+     @param output_bytes The digest. @param input_bytes The bytes. @param algorithm_options None.
      @return Success.
     */
     [[nodiscard]] static boost::system::result<void> one_shot(
-        std::span<std::uint8_t> output, std::span<std::uint8_t const> input,
-        digest_options<Digest> const& options) noexcept {
-        state hashed;
-        static_cast<void>(init(hashed, options));
-        static_cast<void>(update(hashed, input));
-        static_cast<void>(finish(hashed, output));
-        destroy(hashed);
+        std::span<std::uint8_t> output_bytes, std::span<std::uint8_t const> input_bytes,
+        digest_options<Digest> const& algorithm_options) noexcept {
+        state digest_state;
+        static_cast<void>(init(digest_state, algorithm_options));
+        static_cast<void>(update(digest_state, input_bytes));
+        static_cast<void>(finish(digest_state, output_bytes));
+        destroy(digest_state);
         return {};
     }
 };
@@ -456,12 +461,13 @@ struct digest_engine<backends::hash2, digests::blake2b>
      personalisation. A template, so that it reads `digest_options<digests::blake2b>`, which
      digest.hpp defines after this header.
 
-     @param options The options. @return Whether Boost.Hash2's `blake2b_512` computes them.
+     @param algorithm_options The options. @return Whether Boost.Hash2's `blake2b_512` computes
+     them.
     */
     template <class Options>
-    static constexpr bool accepts(Options const& options) noexcept {
-        return options.output_size == min_output && options.key.empty() && options.salt.empty() &&
-               options.personalisation.empty();
+    static constexpr bool accepts(Options const& algorithm_options) noexcept {
+        return algorithm_options.output_size == min_output && algorithm_options.key.empty() &&
+               algorithm_options.salt.empty() && algorithm_options.personalisation.empty();
     }
 };
 
@@ -493,19 +499,19 @@ struct digest_engine<backends::hash2, digests::shake_256>
 template <class Digest, class Hash>
 struct hash2_hmac_engine : full_engine {
     /**
-     The tag of `input` under `key`.
+     The tag of `input_bytes` under `key_bytes`.
 
-     @param output The tag, at most the digest's size. @param key The key, of any size.
-     @param input The message. @return Success.
+     @param output_bytes The tag, at most the digest's size. @param key_bytes The key, of any size.
+     @param input_bytes The message. @return Success.
     */
     [[nodiscard]] static boost::system::result<void> compute(
-        std::span<std::uint8_t> output, std::span<std::uint8_t const> key,
-        std::span<std::uint8_t const> input,
-        mac_options<macs::hmac<Digest>> const& /*options*/) noexcept {
-        boost::hash2::hmac<Hash> keyed_mac(key.data(), key.size());
-        keyed_mac.update(input.data(), input.size());
+        std::span<std::uint8_t> output_bytes, std::span<std::uint8_t const> key_bytes,
+        std::span<std::uint8_t const> input_bytes,
+        mac_options<macs::hmac<Digest>> const& /*algorithm_options*/) noexcept {
+        boost::hash2::hmac<Hash> keyed_mac(key_bytes.data(), key_bytes.size());
+        keyed_mac.update(input_bytes.data(), input_bytes.size());
         auto tag_bytes = keyed_mac.result();
-        std::memcpy(output.data(), tag_bytes.data(), output.size());
+        std::memcpy(output_bytes.data(), tag_bytes.data(), output_bytes.size());
         secure::erase_secret(std::span(&tag_bytes, 1));
         secure::erase_secret(std::span(&keyed_mac, 1));
         return {};
@@ -595,20 +601,21 @@ struct mac_engine<backends::hash2, macs::hmac<digests::blake2s_256>>
 template <>
 struct mac_engine<backends::hash2, macs::siphash_2_4> : full_engine {
     /**
-     The tag of `input` under `key`.
+     The tag of `input_bytes` under `key_bytes`.
 
-     @param output The tag, 8 bytes. @param key The key, 16 bytes. @param input The message.
+     @param output_bytes The tag, 8 bytes. @param key_bytes The key, 16 bytes. @param input_bytes
+     The message.
      @return Success.
     */
     [[nodiscard]] static boost::system::result<void> compute(
-        std::span<std::uint8_t> output, std::span<std::uint8_t const> key,
-        std::span<std::uint8_t const> input,
-        mac_options<macs::siphash_2_4> const& /*options*/) noexcept {
-        boost::hash2::siphash_64 keyed_mac(key.data(), key.size());
-        keyed_mac.update(input.data(), input.size());
+        std::span<std::uint8_t> output_bytes, std::span<std::uint8_t const> key_bytes,
+        std::span<std::uint8_t const> input_bytes,
+        mac_options<macs::siphash_2_4> const& /*algorithm_options*/) noexcept {
+        boost::hash2::siphash_64 keyed_mac(key_bytes.data(), key_bytes.size());
+        keyed_mac.update(input_bytes.data(), input_bytes.size());
         std::uint64_t tag_value = keyed_mac.result();
-        for (std::uint8_t& byte : output) {
-            byte = static_cast<std::uint8_t>(tag_value & 0xffU);
+        for (std::uint8_t& output_byte : output_bytes) {
+            output_byte = static_cast<std::uint8_t>(tag_value & 0xffU);
             tag_value >>= 8U;
         }
         secure::erase_secret(std::span(&keyed_mac, 1));
@@ -628,25 +635,26 @@ struct mac_engine<backends::hash2, macs::blake2s_mac> : full_engine {
 
      @param output_size The tag's size. @return Whether it is 32.
     */
-    static constexpr bool accepts(mac_options<macs::blake2s_mac> const& /*options*/,
+    static constexpr bool accepts(mac_options<macs::blake2s_mac> const& /*algorithm_options*/,
                                   std::size_t /*key_size*/, std::size_t output_size) noexcept {
         return output_size == boost::hash2::blake2s_256::result_type().size();
     }
 
     /**
-     The tag of `input` under `key`.
+     The tag of `input_bytes` under `key_bytes`.
 
-     @param output The tag, 32 bytes. @param key The key, 1 to 32 bytes. @param input The message.
+     @param output_bytes The tag, 32 bytes. @param key_bytes The key, 1 to 32 bytes.
+     @param input_bytes The message.
      @return Success.
     */
     [[nodiscard]] static boost::system::result<void> compute(
-        std::span<std::uint8_t> output, std::span<std::uint8_t const> key,
-        std::span<std::uint8_t const> input,
-        mac_options<macs::blake2s_mac> const& /*options*/) noexcept {
-        boost::hash2::blake2s_256 keyed_mac(key.data(), key.size());
-        keyed_mac.update(input.data(), input.size());
+        std::span<std::uint8_t> output_bytes, std::span<std::uint8_t const> key_bytes,
+        std::span<std::uint8_t const> input_bytes,
+        mac_options<macs::blake2s_mac> const& /*algorithm_options*/) noexcept {
+        boost::hash2::blake2s_256 keyed_mac(key_bytes.data(), key_bytes.size());
+        keyed_mac.update(input_bytes.data(), input_bytes.size());
         auto tag_bytes = keyed_mac.result();
-        std::memcpy(output.data(), tag_bytes.data(), output.size());
+        std::memcpy(output_bytes.data(), tag_bytes.data(), output_bytes.size());
         secure::erase_secret(std::span(&tag_bytes, 1));
         secure::erase_secret(std::span(&keyed_mac, 1));
         return {};

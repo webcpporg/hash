@@ -25,12 +25,12 @@ specific to hash.
   without.
 - Every function that computes on a key, a password or a key derivation's secret input holds
   `secure::timing_guard` (webcpp::secure's, `<webcpp/secure/timing_guard.hpp>`) as its first
-  statement (`timing{engaged}` where the arguments decide whether the call is keyed); unkeyed
-  digests and Boost.Hash2's types by alias hold none. A new keyed function, or a keyed cell that
-  `doc/capabilities.json` gains (a MAC, a key derivation, a password hash, on any backend), holds
-  the guard and gets its call in that backend's `test/timing_coverage_<backend>_test.cpp`, which
-  fails until it does. The seam support (`test/support/timing_seam.hpp`) counts hash's own guards
-  by their file, under `include/webcpp/hash/`, in `timing_entries`, and every guard in
+  statement (`timing_scope{seed_value != 0}` where the arguments decide whether the call is keyed);
+  unkeyed digests and Boost.Hash2's types by alias hold none. A new keyed function, or a keyed cell
+  that `doc/capabilities.json` gains (a MAC, a key derivation, a password hash, on any backend),
+  holds the guard and gets its call in that backend's `test/timing_coverage_<backend>_test.cpp`,
+  which fails until it does. The seam support (`test/support/timing_seam.hpp`) counts hash's own
+  guards by their file, under `include/webcpp/hash/`, in `timing_entries`, and every guard in
   `timing_all_entries`.
 - Every wipe of a secret or of a failed output is `secure::erase_secret` over a span
   (`<webcpp/secure/erase_secret.hpp>`); a test sees each one through secure's seam
@@ -38,3 +38,11 @@ specific to hash.
   secure, no other webcpp library.
 - `include/webcpp/hash/detail/canary.h` is a C header: it is in neither the headers-alone list nor
   `meta/include-boundaries.json`.
+- Every local and parameter of a C++ function in `include/` takes two words, the role then the kind
+  (`timing_scope`, `salt_bytes`, `completion_token`): MSVC's C4459 at /W4 /WX stops a user's program
+  that has a global of a one-word name a header's function declares (a template's only where it is
+  instantiated). `test/user_globals_test.cpp` declares a global of each one-word name a header once
+  had, then calls every cell. HKDF's public functions keep `salt`, the name the change hkdf-pieces
+  gives them: a function template's parameter raises no C4459. The XKCP adapter's C declarations
+  (`detail/xkcp.hpp`) keep `src/xkcp_adapter.c`'s names: a declaration without a body raises no
+  C4459.
