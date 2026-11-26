@@ -4,20 +4,20 @@
 // accompanying file LICENSE_1_0.txt or copy at
 // https://www.boost.org/LICENSE_1_0.txt)
 
-// The test seam of detail::wipe, recorded: a program built with
-// WEBCPP_HASH_DETAIL_TEST_WIPE_RECORD includes this header once, which defines the seam's function
-// detail::test::wipe_record. Each wipe is recorded in wipes, and wiped_sizes() returns the sizes
-// of the wipes since its last call, checking that each wipe left only zero bytes; clear_wipes()
-// discards them, however many.
+// The test seam of webcpp::secure::detail::wipe, which every secure::erase_secret of hash's runs,
+// recorded: a program built with WEBCPP_SECURE_TEST_WIPE_RECORD includes this header once, which
+// defines the seam's function webcpp::secure::test::wipe_record. Each wipe is recorded in wipes,
+// and wiped_sizes() returns the sizes of the wipes since its last call, checking that each wipe
+// left only zero bytes; clear_wipes() discards them, however many.
 
 #ifndef WEBCPP_TEST_HASH_SUPPORT_WIPE_RECORD_HPP
 #define WEBCPP_TEST_HASH_SUPPORT_WIPE_RECORD_HPP
 
-#ifndef WEBCPP_HASH_DETAIL_TEST_WIPE_RECORD
-#error "support/wipe_record.hpp is for a program built with WEBCPP_HASH_DETAIL_TEST_WIPE_RECORD"
+#ifndef WEBCPP_SECURE_TEST_WIPE_RECORD
+#error "support/wipe_record.hpp is for a program built with WEBCPP_SECURE_TEST_WIPE_RECORD"
 #endif
 
-#include <webcpp/hash/detail/wipe.hpp>
+#include <webcpp/secure/detail/wipe.hpp>
 
 #include <boost/core/lightweight_test.hpp>
 
@@ -39,7 +39,7 @@ struct wipe_log {
     std::size_t not_zero = 0;
 };
 
-/** The seam's record, which detail::wipe reaches through detail::test::wipe_record. */
+/** The seam's record, which secure::detail::wipe reaches through secure::test::wipe_record. */
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables): the seam's record
 inline wipe_log wipes;
 
@@ -69,11 +69,10 @@ inline void clear_wipes() {
 
 }  // namespace webcpp::test
 
-// The seam's function, declared by detail/wipe.hpp, defined once by the program that includes
-// this header.
+// The seam's function, declared by <webcpp/secure/detail/wipe.hpp>, defined once by the program
+// that includes this header.
 // NOLINTBEGIN(misc-definitions-in-headers)
-void webcpp::hash::detail::test::wipe_record(void const* wiped_data,
-                                             std::size_t byte_count) noexcept {
+void webcpp::secure::test::wipe_record(void const* wiped_data, std::size_t byte_count) noexcept {
     auto& log = ::webcpp::test::wipes;
     auto const* const bytes = static_cast<unsigned char const*>(wiped_data);
     // Checked here, so that the store cannot throw: the seam is noexcept. A wipe past the storage

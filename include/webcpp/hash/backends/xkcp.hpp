@@ -31,10 +31,10 @@
 
 #include <webcpp/hash/detail/engines.hpp>
 #include <webcpp/hash/detail/limits.hpp>
-#include <webcpp/hash/detail/wipe.hpp>
 #include <webcpp/hash/detail/xkcp.hpp>
 #include <webcpp/hash/error.hpp>
 #include <webcpp/hash/keccak.hpp>
+#include <webcpp/secure/erase_secret.hpp>
 
 #include <boost/system/result.hpp>
 
@@ -84,12 +84,12 @@ struct digest_engine<backends::xkcp, digests::keccak_256> : full_engine {
         state& hashed, std::span<std::uint8_t> output) noexcept {
         auto result_bytes = hashed.result();
         std::memcpy(output.data(), result_bytes.data(), output.size());
-        wipe_object(result_bytes);
+        secure::erase_secret(std::span(&result_bytes, 1));
         return {};
     }
 
     /** Wipes the state. @param hashed The state. */
-    static void destroy(state& hashed) noexcept { wipe_object(hashed); }
+    static void destroy(state& hashed) noexcept { secure::erase_secret(std::span(&hashed, 1)); }
 
     /**
      The digest of `input` at once, the state wiped.
@@ -171,7 +171,7 @@ struct xkcp_keccak_hash_engine : full_engine {
     }
 
     /** Wipes the state. @param hashed The state. */
-    static void destroy(state& hashed) noexcept { wipe_object(hashed); }
+    static void destroy(state& hashed) noexcept { secure::erase_secret(std::span(&hashed, 1)); }
 
     /**
      The output of `input` at once, the state wiped.
@@ -397,7 +397,7 @@ struct xkcp_cshake_engine : full_engine {
     }
 
     /** Wipes the state. @param hashed The state. */
-    static void destroy(state& hashed) noexcept { wipe_object(hashed); }
+    static void destroy(state& hashed) noexcept { secure::erase_secret(std::span(&hashed, 1)); }
 
     /**
      The output of `input` at once, the state wiped.
@@ -519,7 +519,7 @@ struct xkcp_tuplehash_engine : full_engine {
     }
 
     /** Wipes the state. @param hashed The state. */
-    static void destroy(state& hashed) noexcept { wipe_object(hashed); }
+    static void destroy(state& hashed) noexcept { secure::erase_secret(std::span(&hashed, 1)); }
 
     /**
      The digest of the tuple of one element, `input`, the state wiped.
@@ -621,7 +621,7 @@ struct xkcp_parallelhash_engine : full_engine {
     }
 
     /** Wipes the state. @param hashed The state. */
-    static void destroy(state& hashed) noexcept { wipe_object(hashed); }
+    static void destroy(state& hashed) noexcept { secure::erase_secret(std::span(&hashed, 1)); }
 
     /**
      The digest of `input` at once, the state wiped.
@@ -675,7 +675,7 @@ struct xkcp_kmac_engine : full_engine {
                              Functions::squeeze(storage.data(), output.data(), output.size()) == 0
                        : Functions::final(storage.data(), output.data()) == 0;
         }
-        wipe_object(storage);
+        secure::erase_secret(std::span(&storage, 1));
         if (!done) {
             return error::backend_failure;
         }
@@ -745,7 +745,7 @@ struct xkcp_turboshake_engine : full_engine {
     }
 
     /** Wipes the state. @param hashed The state. */
-    static void destroy(state& hashed) noexcept { wipe_object(hashed); }
+    static void destroy(state& hashed) noexcept { secure::erase_secret(std::span(&hashed, 1)); }
 
     /**
      The output of `input` at once, the state wiped.
@@ -854,7 +854,7 @@ struct xkcp_kangarootwelve_engine : full_engine {
     }
 
     /** Wipes the state. @param hashed The state. */
-    static void destroy(state& hashed) noexcept { wipe_object(hashed); }
+    static void destroy(state& hashed) noexcept { secure::erase_secret(std::span(&hashed, 1)); }
 
     /**
      The output of `input` at once, the state wiped.

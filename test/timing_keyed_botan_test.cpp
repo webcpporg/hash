@@ -5,8 +5,8 @@
 // https://www.boost.org/LICENSE_1_0.txt)
 
 // bcrypt, bcrypt_verify and bcrypt_pbkdf, which only backends::botan serves, and a cell of each
-// other key derivation and password hash on it, hold detail::timing_guard (design D1, D4, D6,
-// ruling H10): each enters its own guard first, through the seam, also for a call that a guard
+// other key derivation and password hash on it, hold webcpp::secure::timing_guard (design D1, D4,
+// D6, ruling H10): each enters its own guard first, through the seam, also for a call that a guard
 // refuses before the backend, and Botan's boundary, which turns its exceptions into errors, holds
 // none. The functions of the default backends are in timing_keyed_test.cpp.
 

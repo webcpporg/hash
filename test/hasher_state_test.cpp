@@ -7,7 +7,7 @@
 // hasher's state machine (spec 2.15): make, update, finish once; invalid_state after finish, after
 // a backend's failure and once moved from; a guard's refusal at finish leaves it hashing;
 // move-only. On the mock backend, every engine call is counted and every init is matched by one
-// destroy, in every path; on backends::hash2, built with WEBCPP_HASH_DETAIL_TEST_WIPE_RECORD, the
+// destroy, in every path; on backends::hash2, built with WEBCPP_SECURE_TEST_WIPE_RECORD, the
 // state's bytes inside the hasher are wiped by finish, by the destructor and in the hasher moved
 // from.
 
@@ -29,8 +29,8 @@
 #include <type_traits>
 #include <utility>
 
-#ifndef WEBCPP_HASH_DETAIL_TEST_WIPE_RECORD
-#error "hasher_state_test is built with WEBCPP_HASH_DETAIL_TEST_WIPE_RECORD (test/Jamfile)"
+#ifndef WEBCPP_SECURE_TEST_WIPE_RECORD
+#error "hasher_state_test is built with WEBCPP_SECURE_TEST_WIPE_RECORD (test/Jamfile)"
 #endif
 
 namespace {
@@ -62,7 +62,7 @@ wipe_log wipes;
 
 }  // namespace
 
-namespace webcpp::hash::detail::test {
+namespace webcpp::secure::test {
 
 void wipe_record(void const* wiped_data, std::size_t byte_count) noexcept {
     auto const* const bytes = static_cast<unsigned char const*>(wiped_data);
@@ -76,7 +76,7 @@ void wipe_record(void const* wiped_data, std::size_t byte_count) noexcept {
     }
 }
 
-}  // namespace webcpp::hash::detail::test
+}  // namespace webcpp::secure::test
 
 namespace {
 

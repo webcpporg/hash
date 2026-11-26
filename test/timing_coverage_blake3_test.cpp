@@ -5,9 +5,9 @@
 // https://www.boost.org/LICENSE_1_0.txt)
 
 // The keyed modes of the blake3 type, the one keyed function of backends::blake3, enter their own
-// detail::timing_guard first and leave the thread's DIT as it found it, on every target, also
-// where DIT does not apply; its digest cell, called through digest_of and a hasher round, and the
-// blake3 type in its plain mode enter none (support/timing_coverage.hpp).
+// webcpp::secure::timing_guard first and leave the thread's DIT as it found it, on every target,
+// also where DIT does not apply; its digest cell, called through digest_of and a hasher round, and
+// the blake3 type in its plain mode enter none (support/timing_coverage.hpp).
 //
 // What it covers, by family; the list is doc/capabilities.json's, read at run time. A new cell of
 // a family the support knows gets its call from backend_has_v, which capabilities_test keeps equal

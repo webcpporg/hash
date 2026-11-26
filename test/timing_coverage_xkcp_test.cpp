@@ -4,8 +4,8 @@
 // accompanying file LICENSE_1_0.txt or copy at
 // https://www.boost.org/LICENSE_1_0.txt)
 
-// Every keyed cell of backends::xkcp enters its own detail::timing_guard first and leaves the
-// thread's DIT as it found it, on every target, also where DIT does not apply, each with valid
+// Every keyed cell of backends::xkcp enters its own webcpp::secure::timing_guard first and leaves
+// the thread's DIT as it found it, on every target, also where DIT does not apply, each with valid
 // input and with input refused before the backend; every digest cell, called without a key,
 // enters none; and so does the keccak_256 type, seeded or not (design D3)
 // (support/timing_coverage.hpp).

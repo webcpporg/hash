@@ -19,7 +19,7 @@ of every version are on webcpp's index page.
 * *Breaking change:* Changed the public names: hkdf's input_key_material, pseudorandom_key, application_info, output_key_material and salt, hkdf_max_application_info_size, scrypt_parameters' cost, block_size and parallelism (from n, r, p) and argon2_parameters::memory_kibibytes.
 * *Breaking change:* Changed HKDF's overloads: `+hkdf(out, {}, {}, {})+`, `+async_hkdf(ex, out, salt, {}, {}, token)+` and `+{vec}+` inputs are ambiguous; pass the vector itself, an empty span or `+byte_pieces{...}+`.
 * Added the library: Boost.Hash2's algorithms and HMAC under webcpp::hash's names, keccak_256 (Ethereum's Keccak-256 over XKCP), blake3 (keyed, key derivation, extendable output), every result `+[[nodiscard]]+`.
-* Added HKDF (RFC 5869) and PBKDF2 (RFC 8018) on hash2, argon2id (RFC 9106), scrypt and argon2's Argon2i and Argon2id on sodium; keyed calls set DIT on arm64 Apple and Linux.
+* Added HKDF (RFC 5869) and PBKDF2 (RFC 8018) on hash2, argon2id (RFC 9106), scrypt and Argon2i/Argon2id on sodium; keyed calls hold webcpp::secure's timing guard (DIT on arm64 Apple, Linux, Windows).
 * Added HKDF over byte pieces (hkdf_extract, hkdf_expand, hkdf and their async forms), with no cap; on the synchronous backends hash makes no buffer, heap or copy of the inputs.
 * Added backends::openssl (OpenSSL 3.5.9; native, wasip2, wasip3) and backends::botan (Botan 3.14.1, with exceptions), named in the call: their digests, MACs, key derivations and, on Botan, bcrypt.
 * Added backends::sodium (HKDF, BLAKE2b with its options, keyed BLAKE2b, SipHash, blake2b_subkey, SHA-2, SHA-3, SHAKE, TurboSHAKE, HMAC) and backends::bearssl (HKDF, MD5, SHA-1, SHA-2, MD5-SHA1, SHAKE, HMAC).

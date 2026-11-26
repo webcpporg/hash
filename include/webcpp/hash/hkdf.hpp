@@ -17,8 +17,8 @@
  (`{vec}`, `{array}`), in every pieces position is ambiguous between the two forms: pass `x`
  itself, which converts to the span, or write `byte_pieces{...}`, or an empty span.
 
- Every call holds the data-independent-timing guard (`detail::timing_guard`): where the CPU has
- DIT, the call sets it and leaves the thread's state as it found it.
+ Every call holds the data-independent-timing guard (`webcpp::secure::timing_guard`, secure's
+ guard): where the CPU has DIT, the call sets it and leaves the thread's state as it found it.
 
  Every guard runs before any work, and a guard's refusal leaves the output as it was; a backend's
  failure zeroes it.
@@ -44,10 +44,10 @@
 #include <webcpp/hash/byte_pieces.hpp>
 #include <webcpp/hash/detail/engines.hpp>
 #include <webcpp/hash/detail/limits.hpp>
-#include <webcpp/hash/detail/timing.hpp>
-#include <webcpp/hash/detail/wipe.hpp>
 #include <webcpp/hash/error.hpp>
 #include <webcpp/hash/kdf.hpp>
+#include <webcpp/secure/erase_secret.hpp>
+#include <webcpp/secure/timing_guard.hpp>
 
 // The backends the program links, each under its WEBCPP_HASH_HAS_<NAME>, so that a call that names
 // one finds its engines here; the default, backends::hash2, needs none of them.
@@ -188,7 +188,7 @@ template <class Hmac, class Backend>
 template <class Hmac, class Backend = default_kdf_backend<Hmac, kdfs::hkdf_extract>>
 [[nodiscard]] boost::system::result<typename detail::hmac_result<Hmac>::type> hkdf_extract(
     std::span<std::uint8_t const> salt, std::span<std::uint8_t const> input_key_material) {
-    detail::timing_guard const timing;
+    secure::timing_guard const timing;
     if constexpr (!detail::takes_hmac<Hmac>()) {
         return error::backend_failure;  // unreachable: takes_hmac has stopped the build
     } else {
@@ -219,7 +219,7 @@ template <class Hmac, class Backend = default_kdf_backend<Hmac, kdfs::hkdf_expan
 [[nodiscard]] boost::system::result<void> hkdf_expand(
     std::span<std::uint8_t> output_key_material, std::span<std::uint8_t const> pseudorandom_key,
     std::span<std::uint8_t const> application_info) {
-    detail::timing_guard const timing;
+    secure::timing_guard const timing;
     if constexpr (!detail::takes_hmac<Hmac>()) {
         return error::backend_failure;  // unreachable: takes_hmac has stopped the build
     } else {
@@ -245,7 +245,7 @@ template <class Hmac, class Backend = default_kdf_backend<Hmac, kdfs::hkdf_expan
         auto derive_result = detail::hkdf_engine<Backend, Hmac>::expand(
             output_key_material, pseudorandom_key, application_info);
         if (!derive_result) {
-            detail::wipe(output_key_material);
+            secure::erase_secret(output_key_material);
         }
         return derive_result;
     }
@@ -270,7 +270,7 @@ template <class Hmac, class Backend = default_kdf_backend<Hmac>>
                                                std::span<std::uint8_t const> salt,
                                                std::span<std::uint8_t const> input_key_material,
                                                std::span<std::uint8_t const> application_info) {
-    detail::timing_guard const timing;
+    secure::timing_guard const timing;
     if constexpr (!detail::takes_hmac<Hmac>()) {
         return error::backend_failure;  // unreachable: takes_hmac has stopped the build
     } else {
@@ -283,7 +283,7 @@ template <class Hmac, class Backend = default_kdf_backend<Hmac>>
         auto derive_result = detail::hkdf_engine<Backend, Hmac>::extract_and_expand(
             output_key_material, salt, input_key_material, application_info);
         if (!derive_result) {
-            detail::wipe(output_key_material);
+            secure::erase_secret(output_key_material);
         }
         return derive_result;
     }
@@ -309,7 +309,7 @@ template <class Hmac, class Backend = default_kdf_backend<Hmac>>
 template <class Hmac, class Backend = default_kdf_backend<Hmac, kdfs::hkdf_extract_pieces>>
 [[nodiscard]] boost::system::result<typename detail::hmac_result<Hmac>::type> hkdf_extract(
     std::span<std::uint8_t const> salt, byte_pieces input_key_material) {
-    detail::timing_guard const timing;
+    secure::timing_guard const timing;
     if constexpr (!detail::takes_hmac<Hmac>()) {
         return error::backend_failure;  // unreachable: takes_hmac has stopped the build
     } else {
@@ -339,7 +339,7 @@ template <class Hmac, class Backend = default_kdf_backend<Hmac, kdfs::hkdf_expan
 [[nodiscard]] boost::system::result<void> hkdf_expand(
     std::span<std::uint8_t> output_key_material, std::span<std::uint8_t const> pseudorandom_key,
     byte_pieces application_info) {
-    detail::timing_guard const timing;
+    secure::timing_guard const timing;
     if constexpr (!detail::takes_hmac<Hmac>()) {
         return error::backend_failure;  // unreachable: takes_hmac has stopped the build
     } else {
@@ -355,7 +355,7 @@ template <class Hmac, class Backend = default_kdf_backend<Hmac, kdfs::hkdf_expan
         auto derive_result = detail::hkdf_pieces_engine<Backend, Hmac>::expand(
             output_key_material, pseudorandom_key, application_info);
         if (!derive_result) {
-            detail::wipe(output_key_material);
+            secure::erase_secret(output_key_material);
         }
         return derive_result;
     }
@@ -387,7 +387,7 @@ template <class Hmac, class Backend = default_kdf_backend<Hmac, kdfs::hkdf_piece
                                                std::span<std::uint8_t const> salt,
                                                byte_pieces input_key_material,
                                                byte_pieces application_info) {
-    detail::timing_guard const timing;
+    secure::timing_guard const timing;
     if constexpr (!detail::takes_hmac<Hmac>()) {
         return error::backend_failure;  // unreachable: takes_hmac has stopped the build
     } else {
@@ -399,7 +399,7 @@ template <class Hmac, class Backend = default_kdf_backend<Hmac, kdfs::hkdf_piece
         auto derive_result = detail::hkdf_pieces_engine<Backend, Hmac>::extract_and_expand(
             output_key_material, salt, input_key_material, application_info);
         if (!derive_result) {
-            detail::wipe(output_key_material);
+            secure::erase_secret(output_key_material);
         }
         return derive_result;
     }

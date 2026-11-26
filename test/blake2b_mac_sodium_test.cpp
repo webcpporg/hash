@@ -12,7 +12,7 @@
 // digests::blake2b keyed on backends::sodium at every tag size; every key and tag size of RFC
 // 7693, those under libsodium's advisory 16-byte minimums included; the family's guards; and the
 // wipe of libsodium's state after each call, reported through the seam
-// WEBCPP_HASH_DETAIL_TEST_WIPE_RECORD. The agreement with backends::openssl on random cases is
+// WEBCPP_SECURE_TEST_WIPE_RECORD. The agreement with backends::openssl on random cases is
 // agreement_families_test's.
 
 #include <webcpp/hash/algorithms.hpp>
@@ -44,8 +44,8 @@
 #include <type_traits>
 #include <vector>
 
-#ifndef WEBCPP_HASH_DETAIL_TEST_WIPE_RECORD
-#error "blake2b_mac_sodium_test is built with WEBCPP_HASH_DETAIL_TEST_WIPE_RECORD (test/Jamfile)"
+#ifndef WEBCPP_SECURE_TEST_WIPE_RECORD
+#error "blake2b_mac_sodium_test is built with WEBCPP_SECURE_TEST_WIPE_RECORD (test/Jamfile)"
 #endif
 
 namespace {
@@ -76,7 +76,7 @@ struct record {
     }
 };
 
-// The seam's record, which detail::wipe reaches through a function of this test.
+// The seam's record, which secure::detail::wipe reaches through a function of this test.
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables): the seam's record
 record wipes;
 
@@ -233,8 +233,7 @@ void check_guards() {
 
 }  // namespace
 
-void webcpp::hash::detail::test::wipe_record(void const* wiped_data,
-                                             std::size_t byte_count) noexcept {
+void webcpp::secure::test::wipe_record(void const* wiped_data, std::size_t byte_count) noexcept {
     auto const* const wiped = static_cast<unsigned char const*>(wiped_data);
     if (!std::all_of(wiped, wiped + byte_count, [](unsigned char byte) { return byte == 0; })) {
         ++wipes.not_zero;

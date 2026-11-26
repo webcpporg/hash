@@ -6,8 +6,8 @@
 
 // mac, the keyed modes of BLAKE2b (digest_of, hasher) and of BLAKE3 (the blake3 class), and the
 // key derivations and password hashes of the default backends (hkdf_extract, hkdf_expand, hkdf,
-// pbkdf2, blake2b_subkey, argon2id, argon2, scrypt), hold detail::timing_guard (design D1, D4):
-// each enters its own guard first, on every target, through the seam, also for a call that a
+// pbkdf2, blake2b_subkey, argon2id, argon2, scrypt), hold webcpp::secure::timing_guard (design D1,
+// D4): each enters its own guard first, on every target, through the seam, also for a call that a
 // guard refuses before the backend; a call that is not keyed enters none (D2); a guard changes no
 // byte of any output. Where the CPU has DIT, mac leaves the thread's state as it found it.
 
@@ -18,12 +18,12 @@
 #include <webcpp/hash/backends/sodium.hpp>
 #include <webcpp/hash/blake2b_subkey.hpp>
 #include <webcpp/hash/blake3.hpp>
-#include <webcpp/hash/detail/timing.hpp>
 #include <webcpp/hash/digest.hpp>
 #include <webcpp/hash/hkdf.hpp>
 #include <webcpp/hash/mac.hpp>
 #include <webcpp/hash/pbkdf2.hpp>
 #include <webcpp/hash/scrypt.hpp>
+#include <webcpp/secure/timing_guard.hpp>
 #include <webcpp/test/exit_status.hpp>
 
 #include "require.hpp"
@@ -49,7 +49,6 @@
 
 namespace {
 
-namespace detail = webcpp::hash::detail;
 namespace hash = webcpp::hash;
 namespace test = webcpp::test;
 namespace digests = webcpp::hash::digests;
@@ -97,13 +96,13 @@ void mac_enters() {
 void mac_leaves_set_state() {
     std::array<std::uint8_t, 32> tag{};
     test::force_dit(true);
-    BOOST_TEST_EQ(detail::dit_is_set(), detail::cpu_has_dit());
+    BOOST_TEST_EQ(webcpp::secure::dit_is_set(), webcpp::secure::cpu_has_dit());
     BOOST_TEST((hash::mac<hmac_sha256, backends::hash2>(tag, test_key, test_input)).has_value());
-    BOOST_TEST_EQ(detail::dit_is_set(), detail::cpu_has_dit());
+    BOOST_TEST_EQ(webcpp::secure::dit_is_set(), webcpp::secure::cpu_has_dit());
     test::force_dit(false);
-    BOOST_TEST(!detail::dit_is_set());
+    BOOST_TEST(!webcpp::secure::dit_is_set());
     BOOST_TEST((hash::mac<hmac_sha256, backends::hash2>(tag, test_key, test_input)).has_value());
-    BOOST_TEST(!detail::dit_is_set());
+    BOOST_TEST(!webcpp::secure::dit_is_set());
 }
 
 // digest_of with a key, and hasher's make, update and finish of a keyed hasher, each enter their

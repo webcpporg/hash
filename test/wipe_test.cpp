@@ -4,18 +4,19 @@
 // accompanying file LICENSE_1_0.txt or copy at
 // https://www.boost.org/LICENSE_1_0.txt)
 
-// detail::wipe zeroes every byte it is given and none around it; detail::exceeds compares in 64
-// bits on every target. Built with WEBCPP_HASH_DETAIL_TEST_WIPE_RECORD, every wipe is reported
-// to this test once its bytes are zero, so that the test checks the whole sequence of wipes HKDF's
+// secure::erase_secret, as hash's wipes call it (a span of bytes, a part of a buffer, an object's
+// bytes), zeroes every byte it is given and none around it; detail::exceeds compares in 64 bits on
+// every target. Built with WEBCPP_SECURE_TEST_WIPE_RECORD, every wipe is reported to this test
+// once its bytes are zero, so that the test checks the whole sequence of wipes HKDF's
 // (also over pieces) and PBKDF2's engines on backends::hash2 do (spec section 6.1): each one's
 // size, in order, its bytes zero, and the addresses of objects alive at once told apart.
 
 #include <webcpp/hash/backends/hash2.hpp>
 #include <webcpp/hash/detail/limits.hpp>
-#include <webcpp/hash/detail/wipe.hpp>
 #include <webcpp/hash/hkdf.hpp>
 #include <webcpp/hash/hmac.hpp>
 #include <webcpp/hash/pbkdf2.hpp>
+#include <webcpp/secure/erase_secret.hpp>
 
 #include <boost/core/lightweight_test.hpp>
 
@@ -31,12 +32,13 @@
 #include <span>
 #include <vector>
 
-#ifndef WEBCPP_HASH_DETAIL_TEST_WIPE_RECORD
-#error "wipe_test is built with WEBCPP_HASH_DETAIL_TEST_WIPE_RECORD (test/Jamfile)"
+#ifndef WEBCPP_SECURE_TEST_WIPE_RECORD
+#error "wipe_test is built with WEBCPP_SECURE_TEST_WIPE_RECORD (test/Jamfile)"
 #endif
 
 namespace detail = webcpp::hash::detail;
 namespace hash = webcpp::hash;
+namespace secure = webcpp::secure;
 
 namespace {
 
@@ -53,7 +55,7 @@ struct record {
     std::size_t not_zero = 0;
 };
 
-// The seam's record, which detail::wipe reaches through a function of this test.
+// The seam's record, which secure::detail::wipe reaches through a function of this test.
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables): the seam's record
 record wipes;
 
@@ -90,8 +92,7 @@ bool apart(const std::vector<wipe_entry>& entries, std::size_t index,
 
 }  // namespace
 
-void webcpp::hash::detail::test::wipe_record(void const* wiped_data,
-                                             std::size_t byte_count) noexcept {
+void webcpp::secure::test::wipe_record(void const* wiped_data, std::size_t byte_count) noexcept {
     const auto* const bytes = static_cast<unsigned char const*>(wiped_data);
     for (std::size_t i = 0; i < byte_count; ++i) {
         if (bytes[i] != 0) {
@@ -110,14 +111,14 @@ namespace {
 void test_wipe() {
     std::array<std::uint8_t, 34> bytes{};
     bytes.fill(0xa5);
-    detail::wipe(std::span<std::uint8_t>(bytes.data() + 1, 32));
+    secure::erase_secret(std::span<std::uint8_t>(bytes.data() + 1, 32));
     BOOST_TEST_EQ(bytes.front(), 0xa5);
     BOOST_TEST_EQ(bytes.back(), 0xa5);
     for (std::size_t i = 1; i < 33; ++i) {
         BOOST_TEST_EQ(bytes[i], 0);
     }
     bytes.fill(0xa5);
-    detail::wipe(bytes.data() + 2, 30);
+    secure::erase_secret(std::span(bytes).subspan(2, 30));
     BOOST_TEST_EQ(bytes[1], 0xa5);
     BOOST_TEST_EQ(bytes[2], 0);
     BOOST_TEST_EQ(bytes[31], 0);
@@ -127,10 +128,10 @@ void test_wipe() {
         std::array<std::uint32_t, 4> words;
     } object{{{1, 2, 3, 4}}};
 
-    detail::wipe_object(object);
+    secure::erase_secret(std::span(&object, 1));
     BOOST_TEST_EQ(object.words[0] | object.words[1] | object.words[2] | object.words[3], 0U);
-    detail::wipe(nullptr, 0);
-    detail::wipe(std::span<std::uint8_t>());
+    secure::erase_secret(std::span<std::uint8_t>());
+    secure::erase_secret(std::span<char>());
 
     BOOST_TEST((taken() == std::vector<std::size_t>{32, 30, sizeof(schedule), 0, 0}));
 }

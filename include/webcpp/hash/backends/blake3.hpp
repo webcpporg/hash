@@ -24,7 +24,7 @@
 
 #include <webcpp/hash/blake3.hpp>
 #include <webcpp/hash/detail/engines.hpp>
-#include <webcpp/hash/detail/wipe.hpp>
+#include <webcpp/secure/erase_secret.hpp>
 
 #include <boost/system/result.hpp>
 
@@ -76,7 +76,7 @@ struct digest_engine<backends::blake3, digests::blake3> : full_engine {
     }
 
     /** Wipes the state. @param hashed The state. */
-    static void destroy(state& hashed) noexcept { wipe_object(hashed); }
+    static void destroy(state& hashed) noexcept { secure::erase_secret(std::span(&hashed, 1)); }
 
     /**
      The output of `input` at once, the state wiped.

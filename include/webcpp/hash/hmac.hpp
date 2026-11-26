@@ -8,7 +8,7 @@
  Boost.Hash2's HMAC under webcpp::hash's names: HMAC, RFC 2104, over each of Hash2's
  cryptographic algorithms.
 
- A program checks a MAC with `webcpp::crypto::constant_time_equal`, never with
+ A program checks a MAC with `webcpp::secure::constant_time_equal`, never with
  `digest<N>::operator==`, which does not run in constant time:
 
  @code
@@ -16,7 +16,7 @@
  // a webcpp::hash::hmac_sha2_256::result_type
  webcpp::hash::hmac_sha2_256 mac(key.data(), key.size());
  mac.update(message.data(), message.size());
- bool genuine = webcpp::crypto::constant_time_equal(mac.result(), tag);
+ bool genuine = webcpp::secure::constant_time_equal(mac.result(), tag);
  @endcode
 
  @see "HMAC", in the guide.

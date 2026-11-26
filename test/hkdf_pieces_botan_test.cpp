@@ -14,7 +14,7 @@
 // A salt longer than the 8,192 bytes Botan's HMAC takes as a key is hashed first, as RFC 2104 does,
 // and gives the same pseudorandom key. Botan's HMAC object is cleared (its clear()) and freed; hash
 // wipes the digest room of a long salt, each block T(i) and the pseudorandom key between the steps,
-// reported through the seam WEBCPP_HASH_DETAIL_TEST_WIPE_RECORD; a guard's refusal wipes nothing.
+// reported through the seam WEBCPP_SECURE_TEST_WIPE_RECORD; a guard's refusal wipes nothing.
 // Built again as hkdf_pieces_botan_sliced with the test seam
 // WEBCPP_HASH_DETAIL_TEST_HKDF_PIECES_SLICE, which makes the engine feed every piece to Botan in
 // slices of a few bytes (Review Focus 4), over hmac_sha2_256: the bytes are the same, 1 MiB pieces
@@ -44,8 +44,8 @@
 #include <span>
 #include <vector>
 
-#ifndef WEBCPP_HASH_DETAIL_TEST_WIPE_RECORD
-#error "hkdf_pieces_botan_test is built with WEBCPP_HASH_DETAIL_TEST_WIPE_RECORD (test/Jamfile)"
+#ifndef WEBCPP_SECURE_TEST_WIPE_RECORD
+#error "hkdf_pieces_botan_test is built with WEBCPP_SECURE_TEST_WIPE_RECORD (test/Jamfile)"
 #endif
 
 namespace hash = webcpp::hash;

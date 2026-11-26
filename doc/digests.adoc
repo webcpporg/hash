@@ -79,7 +79,7 @@ guesses per second on a graphics card. Passwords go through Argon2id
 (<<hash-argon2id>>).
 * *A digest is compared as a public value.* Comparing two digests with `==` is
 fine when both are public, a file's expected digest for example; a tag that
-depends on a secret is compared with `webcpp::crypto::constant_time_equal`
+depends on a secret is compared with `webcpp::secure::constant_time_equal`
 (<<hash-hmac>>).
 * *Other backends, by name.* `backends::bearssl`, `backends::openssl` and
 `backends::botan` compute SHA-2 too, never as a default: a call names one
@@ -439,7 +439,7 @@ the output given to `digest_of` or `finish` has exactly that size
 same way on every side, since the library does not guess a padding.
 * *A key is a secret, the salt and personalisation are not.* For a MAC, use a
 random key of 16 to 64 bytes from `webcpp::crypto::random_device`, compare
-tags with `webcpp::crypto::constant_time_equal`, and prefer
+tags with `webcpp::secure::constant_time_equal`, and prefer
 `mac<macs::blake2b_mac>` (<<hash-blake2b-mac-sodium>>); a key of 0 bytes is the
 unkeyed hash. With a key, `digest_of` and each of `make`, `update` and `finish`
 of a `hasher` set DIT around the call (<<hash-backends-dit>>); without one, none

@@ -24,12 +24,17 @@ specific to hash.
 - A test is declared through `hash-run` in `test/Jamfile`, which runs it with exceptions and
   without.
 - Every function that computes on a key, a password or a key derivation's secret input holds
-  `detail::timing_guard` as its first statement (`timing{engaged}` where the arguments decide
-  whether the call is keyed); unkeyed digests and Boost.Hash2's types by alias hold none. A new
-  keyed function, or a keyed cell that `doc/capabilities.json` gains (a MAC, a key derivation, a
-  password hash, on any backend), holds the guard and gets its call in that backend's
-  `test/timing_coverage_<backend>_test.cpp`, which fails until it does. `detail/timing.hpp` is a
-  copy of webcpp::crypto's `detail/timing.hpp` (hash cannot depend on crypto): a change to one is
-  made to both, and crypto's `test/timing_hash_interop_test.cpp` runs the two together.
+  `secure::timing_guard` (webcpp::secure's, `<webcpp/secure/timing_guard.hpp>`) as its first
+  statement (`timing{engaged}` where the arguments decide whether the call is keyed); unkeyed
+  digests and Boost.Hash2's types by alias hold none. A new keyed function, or a keyed cell that
+  `doc/capabilities.json` gains (a MAC, a key derivation, a password hash, on any backend), holds
+  the guard and gets its call in that backend's `test/timing_coverage_<backend>_test.cpp`, which
+  fails until it does. The seam support (`test/support/timing_seam.hpp`) counts hash's own guards
+  by their file, under `include/webcpp/hash/`, in `timing_entries`, and every guard in
+  `timing_all_entries`.
+- Every wipe of a secret or of a failed output is `secure::erase_secret` over a span
+  (`<webcpp/secure/erase_secret.hpp>`); a test sees each one through secure's seam
+  `WEBCPP_SECURE_TEST_WIPE_RECORD` (`test/support/wipe_record.hpp`). hash depends on config and
+  secure, no other webcpp library.
 - `include/webcpp/hash/detail/canary.h` is a C header: it is in neither the headers-alone list nor
   `meta/include-boundaries.json`.

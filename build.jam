@@ -16,7 +16,8 @@ import webcpp-target ;
 project /webcpp/hash ;
 
 # tag::hash[]
-alias hash : : : : <include>include <library>/boost//headers <library>/webcpp/config//config ;
+alias hash : : : : <include>include <library>/boost//headers <library>/webcpp/config//config
+    <library>/webcpp/secure//secure ;
 # end::hash[]
 
 # tag::openssl[]

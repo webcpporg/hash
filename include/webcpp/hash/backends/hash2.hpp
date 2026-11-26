@@ -26,7 +26,7 @@
 
 #include <webcpp/hash/byte_pieces.hpp>
 #include <webcpp/hash/detail/engines.hpp>
-#include <webcpp/hash/detail/wipe.hpp>
+#include <webcpp/secure/erase_secret.hpp>
 
 #include <boost/hash2/blake2.hpp>
 #include <boost/hash2/hmac.hpp>
@@ -84,7 +84,7 @@ struct hkdf_engine<backends::hash2, Hmac> {
             boost::system::in_place_value,
             mac_state.result(),
         };
-        wipe_object(mac_state);
+        secure::erase_secret(std::span(&mac_state, 1));
         return pseudorandom_key;
     }
 
@@ -113,14 +113,14 @@ struct hkdf_engine<backends::hash2, Hmac> {
             const auto octet_value = static_cast<unsigned char>(block_counter);
             mac_state.update(&octet_value, 1);
             t_block = mac_state.result();
-            wipe_object(mac_state);
+            secure::erase_secret(std::span(&mac_state, 1));
             const std::size_t copied_count =
                 std::min(t_block.size(), output_key_material.size() - written_count);
             std::memcpy(output_key_material.data() + written_count, t_block.data(), copied_count);
             written_count += copied_count;
         }
-        wipe_object(t_block);
-        wipe_object(keyed_mac);
+        secure::erase_secret(std::span(&t_block, 1));
+        secure::erase_secret(std::span(&keyed_mac, 1));
         return {};
     }
 
@@ -145,7 +145,7 @@ struct hkdf_engine<backends::hash2, Hmac> {
                                     std::span<std::uint8_t const>(pseudorandom_key_digest.data(),
                                                                   pseudorandom_key_digest.size()),
                                     application_info);
-        wipe_object(pseudorandom_key_digest);
+        secure::erase_secret(std::span(&pseudorandom_key_digest, 1));
         return derive_result;
     }
 };
@@ -184,7 +184,7 @@ struct hkdf_pieces_engine<backends::hash2, Hmac> {
             boost::system::in_place_value,
             mac_state.result(),
         };
-        wipe_object(mac_state);
+        secure::erase_secret(std::span(&mac_state, 1));
         return pseudorandom_key;
     }
 
@@ -216,14 +216,14 @@ struct hkdf_pieces_engine<backends::hash2, Hmac> {
             const auto octet_value = static_cast<unsigned char>(block_counter);
             mac_state.update(&octet_value, 1);
             t_block = mac_state.result();
-            wipe_object(mac_state);
+            secure::erase_secret(std::span(&mac_state, 1));
             const std::size_t copied_count =
                 std::min(t_block.size(), output_key_material.size() - written_count);
             std::memcpy(output_key_material.data() + written_count, t_block.data(), copied_count);
             written_count += copied_count;
         }
-        wipe_object(t_block);
-        wipe_object(keyed_mac);
+        secure::erase_secret(std::span(&t_block, 1));
+        secure::erase_secret(std::span(&keyed_mac, 1));
         return {};
     }
 
@@ -289,15 +289,15 @@ struct pbkdf2_engine<backends::hash2, Hmac> {
                     t_block[byte_index] ^= u_block[byte_index];
                 }
             }
-            wipe_object(mac_state);
+            secure::erase_secret(std::span(&mac_state, 1));
             const std::size_t copied_count =
                 std::min(t_block.size(), output_bytes.size() - written_count);
             std::memcpy(output_bytes.data() + written_count, t_block.data(), copied_count);
             written_count += copied_count;
         }
-        wipe_object(u_block);
-        wipe_object(t_block);
-        wipe_object(keyed_mac);
+        secure::erase_secret(std::span(&u_block, 1));
+        secure::erase_secret(std::span(&t_block, 1));
+        secure::erase_secret(std::span(&keyed_mac, 1));
         return {};
     }
 };
@@ -342,14 +342,14 @@ struct hash2_digest_engine : full_engine {
             auto result_bytes = hashed.result();
             auto const taken = std::min(output.size(), result_bytes.size());
             std::memcpy(output.data(), result_bytes.data(), taken);
-            wipe_object(result_bytes);
+            secure::erase_secret(std::span(&result_bytes, 1));
             output = output.subspan(taken);
         }
         return {};
     }
 
     /** Wipes the state. @param hashed The state. */
-    static void destroy(state& hashed) noexcept { wipe_object(hashed); }
+    static void destroy(state& hashed) noexcept { secure::erase_secret(std::span(&hashed, 1)); }
 
     /**
      The hash of `input` at once, the state wiped.
@@ -506,8 +506,8 @@ struct hash2_hmac_engine : full_engine {
         keyed_mac.update(input.data(), input.size());
         auto tag_bytes = keyed_mac.result();
         std::memcpy(output.data(), tag_bytes.data(), output.size());
-        wipe_object(tag_bytes);
-        wipe_object(keyed_mac);
+        secure::erase_secret(std::span(&tag_bytes, 1));
+        secure::erase_secret(std::span(&keyed_mac, 1));
         return {};
     }
 };
@@ -611,7 +611,7 @@ struct mac_engine<backends::hash2, macs::siphash_2_4> : full_engine {
             byte = static_cast<std::uint8_t>(tag_value & 0xffU);
             tag_value >>= 8U;
         }
-        wipe_object(keyed_mac);
+        secure::erase_secret(std::span(&keyed_mac, 1));
         return {};
     }
 };
@@ -647,8 +647,8 @@ struct mac_engine<backends::hash2, macs::blake2s_mac> : full_engine {
         keyed_mac.update(input.data(), input.size());
         auto tag_bytes = keyed_mac.result();
         std::memcpy(output.data(), tag_bytes.data(), output.size());
-        wipe_object(tag_bytes);
-        wipe_object(keyed_mac);
+        secure::erase_secret(std::span(&tag_bytes, 1));
+        secure::erase_secret(std::span(&keyed_mac, 1));
         return {};
     }
 };

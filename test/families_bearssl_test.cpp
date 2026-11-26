@@ -11,7 +11,7 @@
 // against RFC 1321's and FIPS 180's printed digests of "abc", an oracle that is not Hash2; HMAC
 // against RFC 4231 (SHA-2) and RFC 2202 (MD5, SHA-1); SHAKE against FIPS 202's empty-input
 // outputs; the wipe of BearSSL's contexts after a call, when a hasher finishes and when a hasher
-// is dropped unfinished, reported through the seam WEBCPP_HASH_DETAIL_TEST_WIPE_RECORD (spec 6.1);
+// is dropped unfinished, reported through the seam WEBCPP_SECURE_TEST_WIPE_RECORD (spec 6.1);
 // and backends::bearssl never a default (design D34).
 
 #include <webcpp/hash/backends/bearssl.hpp>
@@ -47,8 +47,8 @@
 #include <type_traits>
 #include <vector>
 
-#ifndef WEBCPP_HASH_DETAIL_TEST_WIPE_RECORD
-#error "families_bearssl_test is built with WEBCPP_HASH_DETAIL_TEST_WIPE_RECORD (test/Jamfile)"
+#ifndef WEBCPP_SECURE_TEST_WIPE_RECORD
+#error "families_bearssl_test is built with WEBCPP_SECURE_TEST_WIPE_RECORD (test/Jamfile)"
 #endif
 
 namespace {
@@ -73,7 +73,7 @@ struct record {
     }
 };
 
-// The seam's record, which detail::wipe reaches through a function of this test.
+// The seam's record, which secure::detail::wipe reaches through a function of this test.
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables): the seam's record
 record wipes;
 
@@ -389,8 +389,7 @@ static_assert(!hash::backend_has_v<bearssl, macs::hmac<digests::sha3_256>, void>
 
 }  // namespace
 
-void webcpp::hash::detail::test::wipe_record(void const* wiped_data,
-                                             std::size_t byte_count) noexcept {
+void webcpp::secure::test::wipe_record(void const* wiped_data, std::size_t byte_count) noexcept {
     auto const* const bytes = static_cast<unsigned char const*>(wiped_data);
     if (wipes.count < wipes.sizes.size()) {
         wipes.sizes[wipes.count] = byte_count;

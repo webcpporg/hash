@@ -4,11 +4,11 @@
 // accompanying file LICENSE_1_0.txt or copy at
 // https://www.boost.org/LICENSE_1_0.txt)
 
-// The key derivations and the password hashes on backends::openssl hold detail::timing_guard
-// (design D1, D4, D6): each enters its own guard first, through the seam, also for a call that a
-// guard refuses before the backend. The functions the default backends cover are in
-// timing_keyed_test.cpp; here are the three that OpenSSL alone serves (kbkdf, sskdf and x963kdf)
-// and, as a second cell of each template, hkdf, pbkdf2, argon2id, argon2 and scrypt.
+// The key derivations and the password hashes on backends::openssl hold
+// webcpp::secure::timing_guard (design D1, D4, D6): each enters its own guard first, through the
+// seam, also for a call that a guard refuses before the backend. The functions the default backends
+// cover are in timing_keyed_test.cpp; here are the three that OpenSSL alone serves (kbkdf, sskdf
+// and x963kdf) and, as a second cell of each template, hkdf, pbkdf2, argon2id, argon2 and scrypt.
 
 #include "support/timing_seam.hpp"
 

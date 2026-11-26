@@ -19,8 +19,9 @@ does not prove to a third party who wrote it (both sides hold the key); that
 is a signature's job, webcpp::crypto's.
 
 `mac` sets DIT (data-independent timing) around each call, on every
-synchronous backend, on 64-bit ARM under Apple's systems and Linux where the
-CPU has FEAT_DIT, and leaves the thread's DIT as it found it: a program does nothing (<<hash-backends-dit>>). Boost.Hash2's types that
+synchronous backend, on 64-bit ARM under macOS, iOS, Linux, Android and Windows
+where the CPU has FEAT_DIT, and leaves the thread's DIT as it found it: a
+program does nothing (<<hash-backends-dit>>). Boost.Hash2's types that
 hash names by alias, `hmac<H>` and its `hmac_*` aliases, `siphash_32` and
 `siphash_64`, set none (<<hash-hmac>>): for HMAC with DIT, call
 `mac<macs::hmac<D>>`, and for SipHash with DIT, `mac<macs::siphash_2_4>`.
@@ -53,7 +54,7 @@ include::{examples}/hmac_sha256.expected[]
 
 *Pitfalls.*
 
-* *Compare tags with `webcpp::crypto::constant_time_equal`, never with `==`.*
+* *Compare tags with `webcpp::secure::constant_time_equal`, never with `==`.*
 The digest's `operator==` is `memcmp`, which returns at the first byte that
 differs; an attacker who sends guesses and times the answers learns how many
 leading bytes are right and builds a valid tag one byte at a time, in a few
@@ -154,7 +155,7 @@ include::{examples}/kmac.expected[]
 
 *Pitfalls.*
 
-* *Compare with `webcpp::crypto::constant_time_equal`.* As for every tag
+* *Compare with `webcpp::secure::constant_time_equal`.* As for every tag
 (<<hash-hmac>>).
 * *The key sets the strength.* SP 800-185 (section 8.4.1) forbids a key
 shorter than the security the application needs: 16 bytes for KMAC128, 32
@@ -197,7 +198,7 @@ include::{examples}/mac_family.expected[]
 
 *Pitfalls.*
 
-* *Compare with `webcpp::crypto::constant_time_equal`.* As for every tag
+* *Compare with `webcpp::secure::constant_time_equal`.* As for every tag
 (<<hash-hmac>>).
 * *A cut tag is a weaker tag.* Ten bytes, 80 bits, is the shortest `mac`
 gives; keep the whole digest unless a protocol fixes a shorter tag.
@@ -276,7 +277,7 @@ include::{examples}/hmac_sodium.expected[]
 *Pitfalls.*
 
 * *The pitfalls of <<hash-hmac>> hold:* compare tags with
-`webcpp::crypto::constant_time_equal`, and use a random key, not a password.
+`webcpp::secure::constant_time_equal`, and use a random key, not a password.
 * *"HMAC-SHA-512-256" has two meanings.* A program that must agree with
 libsodium's `crypto_auth_hmacsha512256` names `macs::hmac<digests::sha2_512>`
 and a 32-byte output; one that follows a standard naming HMAC over
@@ -309,7 +310,7 @@ include::{examples}/blake2b_mac_sodium.expected[]
 
 *Pitfalls.*
 
-* *Compare with `webcpp::crypto::constant_time_equal`.* As for every tag
+* *Compare with `webcpp::secure::constant_time_equal`.* As for every tag
 (<<hash-hmac>>).
 * *The length is a parameter, not a cut.* The tag's size goes into the hash:
 a 16-byte tag is not the first 16 bytes of a 32-byte one, and the receiver

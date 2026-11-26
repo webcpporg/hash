@@ -13,7 +13,7 @@
 // 5869's sizes (support/hkdf_pieces.hpp), over the 15 hmacs of OpenSSL's HMAC cells, every hmac of
 // hmac.hpp but hmac_ripemd_128. The cells equal those of kdfs::hkdf. OpenSSL's contexts are its
 // own, freed by EVP_MAC_CTX_free; hash wipes each block T(i) and the pseudorandom key between the
-// steps, reported through the seam WEBCPP_HASH_DETAIL_TEST_WIPE_RECORD; a guard's refusal wipes
+// steps, reported through the seam WEBCPP_SECURE_TEST_WIPE_RECORD; a guard's refusal wipes
 // nothing; the thread's error queue is left empty. Built again as hkdf_pieces_openssl_sliced with
 // the test seam WEBCPP_HASH_DETAIL_TEST_HKDF_PIECES_SLICE, which makes the engine feed every piece
 // to OpenSSL in slices of a few bytes (Review Focus 4), over hmac_sha2_256: the bytes are the same,
@@ -43,8 +43,8 @@
 #include <span>
 #include <vector>
 
-#ifndef WEBCPP_HASH_DETAIL_TEST_WIPE_RECORD
-#error "hkdf_pieces_openssl_test is built with WEBCPP_HASH_DETAIL_TEST_WIPE_RECORD (test/Jamfile)"
+#ifndef WEBCPP_SECURE_TEST_WIPE_RECORD
+#error "hkdf_pieces_openssl_test is built with WEBCPP_SECURE_TEST_WIPE_RECORD (test/Jamfile)"
 #endif
 
 namespace hash = webcpp::hash;

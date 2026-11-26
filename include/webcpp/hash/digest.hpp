@@ -35,10 +35,10 @@
 #include <webcpp/hash/backends/hash2.hpp>
 #include <webcpp/hash/detail/engines.hpp>
 #include <webcpp/hash/detail/limits.hpp>
-#include <webcpp/hash/detail/timing.hpp>
-#include <webcpp/hash/detail/wipe.hpp>
 #include <webcpp/hash/error.hpp>
 #include <webcpp/hash/kdf.hpp>
+#include <webcpp/secure/erase_secret.hpp>
+#include <webcpp/secure/timing_guard.hpp>
 
 #include <boost/system/result.hpp>
 
@@ -714,7 +714,7 @@ template <class Digest, class Backend = default_backend<Digest>>
 [[nodiscard]] boost::system::result<void> digest_of(std::span<std::uint8_t> output,
                                                     std::span<std::uint8_t const> input,
                                                     digest_options<Digest> const& options = {}) {
-    detail::timing_guard const timing{detail::options_keyed(options)};
+    secure::timing_guard const timing{detail::options_keyed(options)};
     using engine = detail::digest_engine<Backend, Digest>;
     auto checked = detail::digest_guards<Digest>(output.size(), options);
     if (!checked) {
@@ -729,7 +729,7 @@ template <class Digest, class Backend = default_backend<Digest>>
     }
     auto hashed = engine::one_shot(output, input, options);
     if (!hashed) {
-        detail::wipe(output);
+        secure::erase_secret(output);
     }
     return hashed;
 }
@@ -790,7 +790,7 @@ public:
     */
     [[nodiscard]] static boost::system::result<hasher> make(
         digest_options<Digest> const& options = {}) noexcept {
-        detail::timing_guard const timing{detail::options_keyed(options)};
+        secure::timing_guard const timing{detail::options_keyed(options)};
         auto const checked = traits::check(options);
         if (!checked) {
             return checked.error();
@@ -864,7 +864,7 @@ public:
      either of the last two the hasher is spent (`invalid_state`).
     */
     [[nodiscard]] boost::system::result<void> update(std::span<std::uint8_t const> input) noexcept {
-        detail::timing_guard const timing{keyed_};
+        secure::timing_guard const timing{keyed_};
         if (phase_ != phase::hashing) {
             return error::invalid_state;
         }
@@ -886,7 +886,7 @@ public:
      hasher spent.
     */
     [[nodiscard]] boost::system::result<void> finish(std::span<std::uint8_t> output) noexcept {
-        detail::timing_guard const timing{keyed_};
+        secure::timing_guard const timing{keyed_};
         if (phase_ != phase::hashing) {
             return error::invalid_state;
         }
@@ -900,7 +900,7 @@ public:
         }
         auto finished = engine::finish(state_, output);
         if (!finished) {
-            detail::wipe(output);
+            secure::erase_secret(output);
         }
         end();
         return finished;

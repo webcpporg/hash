@@ -7,20 +7,20 @@
 // A failure of Botan inside a guard (design D1, ruling H10): through the seam
 // WEBCPP_HASH_DETAIL_TEST_BOTAN_NAME, which the test's Jamfile defines to "NO-SUCH-HASH", Botan's
 // create_or_throw throws Lookup_Error inside detail::botan_boundary, after the public function's
-// detail::timing_guard is entered; the boundary answers backend_failure, and the guard's scope
-// ends by that return. Each of mac, hkdf_extract, hkdf_expand, hkdf and pbkdf2 enters its own
+// webcpp::secure::timing_guard is entered; the boundary answers backend_failure, and the guard's
+// scope ends by that return. Each of mac, hkdf_extract, hkdf_expand, hkdf and pbkdf2 enters its own
 // guard first and leaves the thread's DIT as it found it, from a thread with DIT clear and from
 // one that set DIT itself (where the CPU has DIT).
 
 #include "support/timing_dit.hpp"
 
 #include <webcpp/hash/backends/botan.hpp>
-#include <webcpp/hash/detail/timing.hpp>
 #include <webcpp/hash/error.hpp>
 #include <webcpp/hash/hkdf.hpp>
 #include <webcpp/hash/hmac.hpp>
 #include <webcpp/hash/mac.hpp>
 #include <webcpp/hash/pbkdf2.hpp>
+#include <webcpp/secure/timing_guard.hpp>
 #include <webcpp/test/exit_status.hpp>
 
 #include <boost/core/lightweight_test.hpp>
@@ -52,10 +52,10 @@ bool backend_failed(boost::system::result<void> const& outcome) {
 // Each call, from DIT set as `set` says: its own guard first, backend_failure, DIT as found.
 void fails_inside_guard(bool set) {
     test::force_dit(set);
-    bool const before = hash::detail::dit_is_set();
+    bool const before = webcpp::secure::dit_is_set();
     std::string const from = set ? " from DIT set" : " from DIT clear";
     auto const restored = [&](std::string const& name) {
-        if (hash::detail::dit_is_set() != before) {
+        if (webcpp::secure::dit_is_set() != before) {
             BOOST_ERROR((name + from + " left DIT other than it found it").c_str());
         }
     };
@@ -90,6 +90,6 @@ void fails_inside_guard(bool set) {
 int main() {
     fails_inside_guard(false);
     fails_inside_guard(true);
-    BOOST_TEST(!hash::detail::dit_is_set());
+    BOOST_TEST(!webcpp::secure::dit_is_set());
     return webcpp::test::exit_status(boost::report_errors());
 }

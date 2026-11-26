@@ -24,7 +24,6 @@
 
 #include <webcpp/hash/argon2.hpp>
 #include <webcpp/hash/async.hpp>
-#include <webcpp/hash/detail/timing.hpp>
 #include <webcpp/hash/digest.hpp>
 #include <webcpp/hash/error.hpp>
 #include <webcpp/hash/hkdf.hpp>
@@ -32,6 +31,7 @@
 #include <webcpp/hash/mac.hpp>
 #include <webcpp/hash/pbkdf2.hpp>
 #include <webcpp/hash/scrypt.hpp>
+#include <webcpp/secure/timing_guard.hpp>
 #ifdef WEBCPP_TEST_TIMING_ASYNC_BOTAN
 #include <webcpp/hash/backends/botan.hpp>
 #include <webcpp/hash/bcrypt.hpp>
@@ -117,7 +117,7 @@ record read_this_thread() {
     return {
         .entries = test::timing_entries,
         .first = test::timing_first_entry != nullptr ? test::timing_first_entry : "",
-        .dit_off = !hash::detail::dit_is_set(),
+        .dit_off = !webcpp::secure::dit_is_set(),
     };
 }
 

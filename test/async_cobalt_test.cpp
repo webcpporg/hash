@@ -14,6 +14,11 @@
 // Natively a heavy function, async_pbkdf2 on a thread pool, resumes the task on its own thread; on
 // Emscripten async_digest on backends::webcrypto completes through Cobalt's executor, an
 // io_context's.
+// Under MSVC each promise's frame is aligned to __STDCPP_DEFAULT_NEW_ALIGNMENT__: Boost 1.92.0's
+// Cobalt placed it 8 bytes off a 16-byte boundary, and MSVC's optimized code stores into the frame
+// with movaps, so this test died with 0xC0000005 on MSVC x64 release (the CI's Boost carries the
+// upstream fix, tools/ci/actions/boost/patches/cobalt-coroutine-align-msvc.patch); without that fix
+// the check fails in a debug build too, where nothing faults.
 
 #include <webcpp/hash/async.hpp>
 #include <webcpp/hash/backends/hash2.hpp>
@@ -36,6 +41,7 @@
 #include <webcpp/asio/thread_pool.hpp>
 #endif
 
+#include <boost/config.hpp>
 #include <boost/core/lightweight_test.hpp>
 #include <boost/system/error_code.hpp>
 #include <boost/system/system_error.hpp>
@@ -43,6 +49,7 @@
 #include <webcpp/test/exit_status.hpp>
 
 #include <array>
+#include <coroutine>
 #include <cstdint>
 #include <span>
 #include <string_view>
@@ -56,6 +63,35 @@ namespace {
 std::span<std::uint8_t const> bytes_of(std::string_view text) {
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): the text's bytes
     return {reinterpret_cast<std::uint8_t const*>(text.data()), text.size()};
+}
+
+// The address of the awaiting coroutine's frame, read without suspending it: awaited once, it is
+// not ready until await_suspend has read the address.
+class frame_address {
+public:
+    [[nodiscard]] bool await_ready() const noexcept { return address_ != nullptr; }
+
+    bool await_suspend(std::coroutine_handle<> const handle) noexcept {
+        address_ = handle.address();
+        return false;
+    }
+
+    [[nodiscard]] void* await_resume() const noexcept { return address_; }
+
+private:
+    void* address_ = nullptr;
+};
+
+// Whether a frame starts where an operator new without std::align_val_t must place storage. Only
+// MSVC is checked: there Boost's Cobalt aligns the frame to 16 bytes (coroutine_align) since the
+// fix the CI's Boost carries; elsewhere Cobalt aligns it to std::max_align_t, as before.
+[[nodiscard]] bool frame_aligned([[maybe_unused]] void const* const frame) {
+#ifdef BOOST_MSVC
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): the frame's address
+    return reinterpret_cast<std::uintptr_t>(frame) % __STDCPP_DEFAULT_NEW_ALIGNMENT__ == 0;
+#else
+    return true;
+#endif
 }
 
 // GCC 14 warns that each promise below, a coroutine, frees its frame with an operator delete that
@@ -72,6 +108,8 @@ std::span<std::uint8_t const> bytes_of(std::string_view text) {
 cobalt::promise<void> cheap() {
     // NOLINTNEXTLINE(readability-static-accessed-through-instance)
     auto const executor = co_await cobalt::this_coro::executor;
+    void const* const frame = co_await frame_address{};
+    BOOST_TEST(frame_aligned(frame));
     auto const abc = bytes_of("abc");
     auto const key = bytes_of("key");
 
@@ -119,6 +157,8 @@ cobalt::promise<void> cheap() {
 #ifdef WEBCPP_HASH_HAS_THREADS
 // A heavy function: the work on the pool, the task resumed on the thread that runs it.
 cobalt::promise<void> heavy(webcpp::asio::thread_pool& pool) {
+    void const* const frame = co_await frame_address{};
+    BOOST_TEST(frame_aligned(frame));
     auto const caller = std::this_thread::get_id();
     auto const password = bytes_of("password");
     auto const salt = bytes_of("salt");

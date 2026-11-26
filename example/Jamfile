@@ -40,18 +40,15 @@ webcpp.example whirlpool.cpp : $(.botan) : native emscripten ;
 webcpp.example skein.cpp : $(.botan) : native emscripten ;
 
 # Message authentication: a MAC is compared with
-# webcpp::crypto::constant_time_equal, and a hash table's key comes from
-# webcpp::crypto::random_device.
-webcpp.example hmac_sha256.cpp : <library>/webcpp/crypto//crypto ;
+# webcpp::secure::constant_time_equal (secure, which hash depends on), and a
+# hash table's key comes from webcpp::crypto::random_device.
+webcpp.example hmac_sha256.cpp ;
 webcpp.example siphash.cpp : <library>/webcpp/crypto//crypto ;
-webcpp.example mac_family.cpp : <library>/webcpp/crypto//crypto ;
+webcpp.example mac_family.cpp ;
 webcpp.example siphash_sodium.cpp : <library>/third_party//sodium ;
-webcpp.example hmac_sodium.cpp : <library>/third_party//sodium
-  <library>/webcpp/crypto//crypto ;
-webcpp.example blake2b_mac_sodium.cpp : <library>/third_party//sodium
-  <library>/webcpp/crypto//crypto ;
-webcpp.example kmac.cpp : <library>/webcpp/crypto//crypto
-  <library>/third_party//xkcp ;
+webcpp.example hmac_sodium.cpp : <library>/third_party//sodium ;
+webcpp.example blake2b_mac_sodium.cpp : <library>/third_party//sodium ;
+webcpp.example kmac.cpp : <library>/third_party//xkcp ;
 webcpp.example macs_openssl.cpp : <library>/webcpp/hash//openssl : native wasip2 wasip3 ;
 webcpp.example macs_botan.cpp : $(.botan) : native emscripten ;
 

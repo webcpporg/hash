@@ -12,7 +12,7 @@
 // (support/hkdf_pieces.hpp), over hmac_sha2_256 and hmac_sha2_512, the hmacs of libsodium's HMAC
 // cells. The cells equal those of kdfs::hkdf. Each step wipes libsodium's HMAC states, every
 // block T(i) and the pseudorandom key between the steps, reported through the seam
-// WEBCPP_HASH_DETAIL_TEST_WIPE_RECORD; a guard's refusal wipes nothing. Built again as
+// WEBCPP_SECURE_TEST_WIPE_RECORD; a guard's refusal wipes nothing. Built again as
 // hkdf_pieces_sodium_sliced with the test seam WEBCPP_HASH_DETAIL_TEST_HKDF_PIECES_SLICE, which
 // makes the engine feed every piece to libsodium in slices of a few bytes (Review Focus 4), over
 // hmac_sha2_256: the bytes are the same, 1 MiB pieces included. hkdf_pieces_sodium_sha512_sliced
@@ -45,8 +45,8 @@
 #include <span>
 #include <vector>
 
-#ifndef WEBCPP_HASH_DETAIL_TEST_WIPE_RECORD
-#error "hkdf_pieces_sodium_test is built with WEBCPP_HASH_DETAIL_TEST_WIPE_RECORD (test/Jamfile)"
+#ifndef WEBCPP_SECURE_TEST_WIPE_RECORD
+#error "hkdf_pieces_sodium_test is built with WEBCPP_SECURE_TEST_WIPE_RECORD (test/Jamfile)"
 #endif
 
 namespace hash = webcpp::hash;
