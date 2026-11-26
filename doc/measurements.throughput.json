@@ -279,14 +279,14 @@
     },
     "load_average_before_after": [
       [
-        7.77587890625,
-        18.5400390625,
-        19.75
+        1.91015625,
+        2.6796875,
+        3.17578125
       ],
       [
-        7.77587890625,
-        18.5400390625,
-        19.75
+        1.9169921875,
+        2.66796875,
+        3.16845703125
       ]
     ],
     "build": "variant=release optimization=speed",
@@ -295,15 +295,15 @@
     "iterations": 10000000,
     "runs": 5,
     "dit": true,
-    "clear_ns": 39.509,
-    "clear_fastest_ns": 39.472,
-    "clear_slowest_ns": 39.552,
-    "set_ns": 1.3,
-    "set_fastest_ns": 1.277,
-    "set_slowest_ns": 1.394,
-    "disengaged_ns": -0.0,
-    "disengaged_fastest_ns": -0.0,
-    "disengaged_slowest_ns": 0.0,
-    "provisional": true
+    "clear_ns": 37.013,
+    "clear_fastest_ns": 36.98,
+    "clear_slowest_ns": 39.605,
+    "set_ns": 1.211,
+    "set_fastest_ns": 1.199,
+    "set_slowest_ns": 1.234,
+    "disengaged_ns": 0.0,
+    "disengaged_fastest_ns": 0.0,
+    "disengaged_slowest_ns": 0.012,
+    "provisional": false
   }
 }
