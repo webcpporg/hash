@@ -65,10 +65,11 @@ std::span<std::uint8_t const> bytes_of(std::string_view text) {
     return {reinterpret_cast<std::uint8_t const*>(text.data()), text.size()};
 }
 
-// The address of the awaiting coroutine's frame, read without suspending it.
+// The address of the awaiting coroutine's frame, read without suspending it: awaited once, it is
+// not ready until await_suspend has read the address.
 class frame_address {
 public:
-    [[nodiscard]] static bool await_ready() noexcept { return false; }
+    [[nodiscard]] bool await_ready() const noexcept { return address_ != nullptr; }
 
     bool await_suspend(std::coroutine_handle<> const handle) noexcept {
         address_ = handle.address();
